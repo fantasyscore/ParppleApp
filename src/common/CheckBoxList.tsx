@@ -20,11 +20,11 @@ const CheckBoxlist = ({ Icons, headLines, listdata, visible, onClick, underTitle
                 {listdata?.map((item: any, index: any) => {
                     const isLast = index === listdata.length - 1;
                     return (
-                        <TouchableOpacityView key={index} onPress={() => onClick(item.title)} style={styles.checkBoxContianer}>
+                        <TouchableOpacityView key={index} onPress={() => onClick(item.sendTitle)} style={styles.checkBoxContianer}>
                             <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>
                                 {item.title}
                             </AppText>
-                            <View style={[styles.checkBox, { backgroundColor: visible == item.title ? colors.purple : colors.lightBack }]}>
+                            <View style={[styles.checkBox, { backgroundColor: visible == item.sendTitle ? colors.purple : colors.lightBack }]}>
                                 <FastImage source={rightBlack} tintColor={colors.white} resizeMode="contain" style={styles.rightIcon} />
                             </View>
                         </TouchableOpacityView>

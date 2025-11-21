@@ -13,28 +13,37 @@ import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_OTP_SCREEN } from "../../navigation/routes";
 import { CountryPicker } from "react-native-country-codes-picker";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
-import { useDispatch } from "react-redux";
-import { userLogin } from "../../actions/authActions";
+import { useDispatch, useSelector } from "react-redux";
+import { discoverProfile, userLogin } from "../../actions/authActions";
 import { toastAlert } from "../../actions/UploadImageActions";
+import LinearGradient from "react-native-linear-gradient";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 const LoginScreen = () => {
     const dispatch = useDispatch();
+    const emailAuth = useSelector((state: any) => state.auth.emailAuth);
     const [phoneNumber, setPhoneNumber] = useState("");
     const [show, setShow] = useState(false);
     const [countryCode, setCountryCode] = useState('+91');
     const loginButton = () => {
         if (phoneNumber) {
             let data = {
-                phoneNumber: phoneNumber
+                phoneNumber: phoneNumber,
+                googleToken:null,
             };
             dispatch(userLogin(data))
-        }else{
-            console.log("asdadasd")
+        } else {
             toastAlert.showToastError("Please enter valid mobile number");
         }
-    }
+    };
+    
     return (
         <AppSafeAreaView>
+              <KeyboardAwareScrollView
+              showsVerticalScrollIndicator={false}
+                enableOnAndroid={true}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ flexGrow: 1 }}>
             <HeaderCommon />
             <View style={styles.container}>
                 <AppText style={{ fontSize: fontSize(27) }} weight={SCHEHERAZADE_BOLD}>
@@ -68,7 +77,12 @@ const LoginScreen = () => {
                     We’ll send you a notification for verification code for verification on your mobile number.
                 </AppText>
             </View>
-            <GoButton colortrue={phoneNumber?.length == 10 ? true: false} onPress={() => loginButton()} />
+            <LinearGradient start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                <View style={{ marginTop: metrics.hp9 }}>
+                    <GoButton colortrue={phoneNumber?.length == 10 ? true : false} onPress={() => loginButton()} />
+                </View>
+            </LinearGradient>
             <CountryPicker
                 show={show}
                 lang="en"
@@ -126,7 +140,7 @@ const LoginScreen = () => {
                     },
                 }}
             />
-
+</KeyboardAwareScrollView>
         </AppSafeAreaView>
     )
 };

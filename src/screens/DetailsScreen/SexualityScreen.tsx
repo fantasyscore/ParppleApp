@@ -24,10 +24,11 @@ const SexualityScreen = ({ route }: any) => {
     const dispatch = useDispatch();
     const filter = route?.params?.filter ?? "";
     const dataFilter = route?.params?.data ?? "";
+    const fieldVisibility = route?.params?.fieldVisibility ?? "";
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
     const datalistnew = new Array(8).fill(null).map((_, index) => ({ id: String(index), }))
     const [selectPronoun, setSelectPronoun] = useState(dataFilter ? dataFilter : "");
-    const [showProfile, setShowProfile] = useState(true);
+    const [showProfile, setShowProfile] = useState(fieldVisibility ? fieldVisibility?.sexualOrientation : true);
 
     const datalist = new Array(10).fill(null).map((_, index) => ({
         id: String(index),
@@ -47,6 +48,7 @@ const SexualityScreen = ({ route }: any) => {
         if (filter) {
             const dataToSave = {
                 sexualOrientation: selectPronoun,
+                fieldVisibility: { sexualOrientation: showProfile }
             };
             dispatch(editProfile(dataToSave))
         } else {
@@ -83,9 +85,12 @@ const SexualityScreen = ({ route }: any) => {
                     />
                 </View>
             </View>
-                <LinearGradient colors={["#FFFFFF00", "#FFFFFF"]} style={{ paddingVertical: metrics.hp0 }}>
+            <LinearGradient start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                <View style={{ marginTop: metrics.hp9 }}>
                     <GoButton visiBleProfile={true} colortrue={selectPronoun} onPress={() => onSubmit()} visible={showProfile} setShowProfile={setShowProfile} />
-                </LinearGradient>
+                </View>
+            </LinearGradient>
         </AppSafeAreaView>
     )
 };

@@ -18,17 +18,18 @@ import { languagesDATA } from "../../common/UiltData";
 import { useDispatch, useSelector } from "react-redux";
 import { setAddProfile } from "../../slices/loginServices/authSlice";
 import { toastAlert } from "../../actions/UploadImageActions";
-import { editProfile } from "../../actions/authActions";
+import { attributesGet, editProfile } from "../../actions/authActions";
 
 const LanguageSpeak = ({ route }: any) => {
     const dispatch = useDispatch();
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
     const filter = route?.params?.filter ?? "";
     const dataFilter = route?.params?.data ?? "";
+    const fieldVisibility = route?.params?.fieldVisibility ?? "";
     const datalistnew = new Array(1).fill(null).map((_, index) => ({ id: String(index), }))
     const [search, setSearch] = useState("");
     const [selectPronoun, setSelectPronoun] = useState(dataFilter?.length ? dataFilter : [])
-    const [showProfile, setShowProfile] = useState(true);
+    const [showProfile, setShowProfile] = useState(fieldVisibility ? fieldVisibility?.languages : true);
     const onSkip = () => {
         const dataToSave = {
             ...addProfileData,
@@ -43,15 +44,17 @@ const LanguageSpeak = ({ route }: any) => {
         if (filter) {
             const dataToSave = {
                 languages: selectPronoun,
+                fieldVisibility: { languages: showProfile }
             };
             dispatch(editProfile(dataToSave))
         } else {
             const dataToSave = {
                 ...addProfileData,
                 languages: selectPronoun,
-                fieldVisibility: { ...addProfileData?.fieldVisibility, languages: true }
+                fieldVisibility: { ...addProfileData?.fieldVisibility, languages: showProfile }
             };
             dispatch(setAddProfile(dataToSave));
+            dispatch(attributesGet())
             NavigationService.navigate(NAVIGATION_PROCCED_SCREEN, { comming: "languages" })
         }
     };
@@ -75,10 +78,12 @@ const LanguageSpeak = ({ route }: any) => {
                     />
                 </View>
             </View>
-                <LinearGradient start={{ x: 0, y: 0 }}
-                    end={{ x: 0, y: 1 }} colors={["#FFFFFF00", colors.white, colors.white]}>
+            <LinearGradient start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                <View style={{ marginTop: metrics.hp9 }}>
                     <GoButton colortrue={selectPronoun?.length == 0 ? false : true} onPress={() => onSubmit()} visiBleProfile={true} visible={showProfile} setShowProfile={setShowProfile} />
-                </LinearGradient>
+                </View>
+            </LinearGradient>
         </AppSafeAreaView>
     )
 };

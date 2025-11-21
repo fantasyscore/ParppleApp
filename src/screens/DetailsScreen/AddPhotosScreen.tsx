@@ -1,24 +1,22 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Dimensions, FlatList, Image, ImageBackground, Modal, PermissionsAndroid, Platform, StatusBar, StyleSheet, View } from "react-native";
+import { Dimensions, FlatList, Modal, PermissionsAndroid, Platform, StyleSheet, View } from "react-native";
 import HeaderCommon from "../../common/HeaderCommon";
 import TopCommonLine from "../../common/TopCommonLine";
 import DubleTextLine from "../../common/DubleTextLine";
 import { AppText, ELEVEN, INTER_BOLD, INTER_MEDIUM, LIGHT_BLACK, OPECITY, OPECITY_DARK, RED, TWELVE } from "../../common/AppText";
 import metrics from "../../assets/Metrics";
-import { addPhotoIcon, allSetback, uploadIcon } from "../../helper/ImageAssets";
+import { addPhotoIcon, uploadIcon } from "../../helper/ImageAssets";
 import { colors } from "../../theme/colors";
 import FastImage from "react-native-fast-image";
 import { launchImageLibrary } from "react-native-image-picker";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import GoButton from "../../common/GoButton";
-import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_ALL_SET_SCREEN } from "../../navigation/routes";
 import { toastAlert, uploadImageCloud } from "../../actions/UploadImageActions";
 import { useDispatch, useSelector } from "react-redux";
-import { setAddProfile } from "../../slices/loginServices/authSlice";
-import { addProfile, getProfile } from "../../actions/authActions";
+import { addProfile, discoverProfile, getProfile } from "../../actions/authActions";
 import { Image as ImageCompressor } from "react-native-compressor";
+import LinearGradient from "react-native-linear-gradient";
 async function requestGalleryPermission() {
   if (Platform.OS === "android") {
     try {
@@ -64,9 +62,9 @@ const AddPhotoScreen = () => {
 
     launchImageLibrary({ mediaType: "photo", selectionLimit: 6 }, async (res: any) => {
       if (res.didCancel || !res.assets || res.assets.length === 0) return;
-    
+
       const assets = res.assets.slice(0, 6);
-    
+
       setPhotos((prev) => {
         const updated = [...prev];
         let count = 0;
@@ -78,19 +76,19 @@ const AddPhotoScreen = () => {
         }
         return updated;
       });
-    
+
       try {
         const uploadedUrls: string[] = [];
-    
+
         for (const asset of assets) {
           try {
             const compressedUri = await ImageCompressor.compress(asset.uri, {
               compressionMethod: "auto",
-              quality: 0.6, 
-              maxWidth: 1080,
+              quality: 0.6,
+              maxWidth: 720,
               maxHeight: 1080,
             });
-    
+
             const cloudUrl = await uploadImageCloud(compressedUri);
             uploadedUrls.push(cloudUrl);
           } catch (err) {
@@ -98,7 +96,7 @@ const AddPhotoScreen = () => {
             uploadedUrls.push("");
           }
         }
-    
+
         setPhotos((prev) => {
           const updated = [...prev];
           let uploadIndex = 0;
@@ -121,24 +119,24 @@ const AddPhotoScreen = () => {
   const pickSingleImage = async (index: number) => {
     const hasPermission = await requestGalleryPermission();
     if (!hasPermission) return;
-  
+
     launchImageLibrary({ mediaType: "photo", selectionLimit: 1 }, async (res: any) => {
       if (res.didCancel || !res.assets || res.assets.length === 0) return;
-  
+
       setPhotos((prev) => {
         const updated = [...prev];
         updated[index].loading = true;
         return updated;
       });
-  
+
       try {
         const compressedUri = await ImageCompressor.compress(res.assets[0].uri, {
           compressionMethod: "auto",
           quality: 0.6,
-          maxWidth: 1080,
+          maxWidth: 720,
           maxHeight: 1080,
         });
-  
+
         const cloudUrl = await uploadImageCloud(compressedUri);
         setPhotos((prev) => {
           const updated = [...prev];
@@ -156,7 +154,7 @@ const AddPhotoScreen = () => {
       }
     });
   };
-  
+
 
   const uploadedCount = photos.filter((p) => p.image !== "").length;
   const minRequired = 4;
@@ -197,7 +195,8 @@ const AddPhotoScreen = () => {
       fieldVisibility: { ...addProfileData?.fieldVisibility }
     };
     dispatch(addProfile(data));
-    dispatch(getProfile(true))
+    dispatch(getProfile(true));
+    dispatch(discoverProfile())
   };
 
   return (
@@ -227,7 +226,12 @@ const AddPhotoScreen = () => {
           )}
         </View>
       </View>
-      <GoButton colortrue={remaining == 0 ? true : false} onPress={() => onSubmit()} />
+      <LinearGradient start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+        <View style={{ marginTop: metrics.hp9 }}>
+          <GoButton colortrue={remaining == 0 ? true : false} onPress={() => onSubmit()} />
+        </View>
+      </LinearGradient>
       {previewVisible && (
         <Modal visible={previewVisible} transparent animationType="fade">
           <View style={styles.modalBackground}>
@@ -242,8 +246,7 @@ const AddPhotoScreen = () => {
             />
             <TouchableOpacityView
               style={styles.closeButton}
-              onPress={() => setPreviewVisible(false)}
-            >
+              onPress={() => setPreviewVisible(false)}>
               <AppText weight={INTER_BOLD} type={ELEVEN} color={LIGHT_BLACK}>Close</AppText>
             </TouchableOpacityView>
           </View>

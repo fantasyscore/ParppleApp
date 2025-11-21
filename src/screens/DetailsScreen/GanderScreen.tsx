@@ -17,21 +17,24 @@ import { toastAlert } from "../../actions/UploadImageActions";
 import { Screen } from "../../theme/dimens";
 import { colors } from "../../theme/colors";
 import { editProfile } from "../../actions/authActions";
+import LinearGradient from "react-native-linear-gradient";
 
 const GanderScreen = ({ route }: any) => {
     const dispatch = useDispatch();
     const filter = route?.params?.filter ?? "";
     const dataFilter = route?.params?.data ?? "";
+    const fieldVisibility = route?.params?.fieldVisibility ?? "";
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
     const datalistnew = new Array(9).fill(null).map((_, index) => ({ id: String(index), }))
-    const [selectPronoun, setSelectPronoun] = useState(dataFilter ? dataFilter : 'male');
-    const [showProfile, setShowProfile] = useState(true);
+    const [selectPronoun, setSelectPronoun] = useState(dataFilter ? dataFilter : '');
+    const [showProfile, setShowProfile] = useState(fieldVisibility? fieldVisibility?.gender : true);
 
     const onSubmit = () => {
         if (!selectPronoun) return toastAlert.showToastError("Please add gender")
         if (filter) {
             const dataToSave = {
                 gender: selectPronoun,
+                fieldVisibility: { gender: showProfile }
             };
             dispatch(editProfile(dataToSave))
         } else {
@@ -64,7 +67,12 @@ const GanderScreen = ({ route }: any) => {
                     />
                 </View>
             </View>
-            <GoButton visiBleProfile={true} colortrue={selectPronoun ? true : false} visible={showProfile} onPress={() => onSubmit()} setShowProfile={setShowProfile} />
+            <LinearGradient start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                <View style={{ marginTop: metrics.hp9 }}>
+                    <GoButton visiBleProfile={true} colortrue={selectPronoun ? true : false} visible={showProfile} onPress={() => onSubmit()} setShowProfile={setShowProfile} />
+                </View>
+            </LinearGradient>
         </AppSafeAreaView>
     )
 };

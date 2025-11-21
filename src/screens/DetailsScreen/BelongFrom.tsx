@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import HeaderCommon from "../../common/HeaderCommon";
 import TopCommonLine from "../../common/TopCommonLine";
 import DubleTextLine from "../../common/DubleTextLine";
@@ -17,15 +17,18 @@ import { useDispatch, useSelector } from "react-redux";
 import { setAddProfile } from "../../slices/loginServices/authSlice";
 import { toastAlert } from "../../actions/UploadImageActions";
 import { editProfile } from "../../actions/authActions";
+import LinearGradient from "react-native-linear-gradient";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 const BelongFrom = ({ route }: any) => {
     const dispatch = useDispatch();
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
     const filter = route?.params?.filter ?? "";
     const dataFilter = route?.params?.data ?? "";
+    const fieldVisibility = route?.params?.fieldVisibility ?? "";
     const datalist = new Array(6).fill(null).map((_, index) => ({ id: String(index), }))
-    const [email, setEmail] = useState(dataFilter?.length ? dataFilter :"");
-    const [showProfile, setShowProfile] = useState(true);
+    const [email, setEmail] = useState(dataFilter?.length ? dataFilter : "");
+    const [showProfile, setShowProfile] = useState(fieldVisibility ? fieldVisibility?.homeTown : true);
     const onSkip = () => {
         const dataToSave = {
             ...addProfileData,
@@ -40,6 +43,7 @@ const BelongFrom = ({ route }: any) => {
         if (filter) {
             const dataToSave = {
                 homeTown: email,
+                fieldVisibility: { homeTown: showProfile }
             };
             dispatch(editProfile(dataToSave))
         } else {
@@ -54,23 +58,33 @@ const BelongFrom = ({ route }: any) => {
     }
     return (
         <AppSafeAreaView>
-            <HeaderCommon onSkip={onSkip} title={filter} skip={filter ? false : true} />
-            {filter ?
-                <View style={styles.singleLine} /> : <></>}
-            <View style={styles.container}>
-                {filter ? <></> :
-                    <TopCommonLine icon={homeIcon} datalist={datalist} />}
-                <View style={{ paddingHorizontal: metrics.hp2 }}>
+            <KeyboardAwareScrollView
+                enableOnAndroid={true}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ flexGrow: 1 }}>
+                <HeaderCommon onSkip={onSkip} title={filter} skip={filter ? false : true} />
+                {filter ?
+                    <View style={styles.singleLine} /> : <></>}
+                <View style={styles.container}>
                     {filter ? <></> :
-                        <DubleTextLine firstText={"Where do you belong"} secondText={'from?'} />}
-                    {filter ? <></> :
-                        <AppText style={{ marginTop: -metrics.hp2 }} type={TWELVE} weight={INTER_MEDIUM} color={OPECITY}>
-                            Tell us about your hometown.
-                        </AppText>}
-                    <InputCommon value={email} closeVisible={true} onPress={() => setEmail("")} onChangeText={setEmail} placeholder={"Hometown"} />
+                        <TopCommonLine icon={homeIcon} datalist={datalist} />}
+                    <View style={{ paddingHorizontal: metrics.hp2 }}>
+                        {filter ? <></> :
+                            <DubleTextLine firstText={"Where do you belong"} secondText={'from?'} />}
+                        {filter ? <></> :
+                            <AppText style={{ marginTop: -metrics.hp2 }} type={TWELVE} weight={INTER_MEDIUM} color={OPECITY}>
+                                Tell us about your hometown.
+                            </AppText>}
+                        <InputCommon value={email} closeVisible={true} onPress={() => setEmail("")} onChangeText={setEmail} placeholder={"Hometown"} />
+                    </View>
                 </View>
-            </View>
-                <GoButton colortrue={email} onPress={() => onSubmit()} visiBleProfile={true} visible={showProfile} setShowProfile={setShowProfile} />
+                <LinearGradient start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                    <View style={{ marginTop: metrics.hp9 }}>
+                        <GoButton colortrue={email} onPress={() => onSubmit()} visiBleProfile={true} visible={showProfile} setShowProfile={setShowProfile} />
+                    </View>
+                </LinearGradient>
+            </KeyboardAwareScrollView>
         </AppSafeAreaView>
     )
 };

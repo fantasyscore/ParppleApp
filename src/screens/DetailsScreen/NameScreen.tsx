@@ -14,17 +14,19 @@ import { NAVIGATION_DOB_SCREEN } from "../../navigation/routes";
 import { useDispatch, useSelector } from "react-redux";
 import { toastAlert } from "../../actions/UploadImageActions";
 import { setAddProfile } from "../../slices/loginServices/authSlice";
+import LinearGradient from "react-native-linear-gradient";
+import { colors } from "../../theme/colors";
 
 const NameScreen = () => {
     const dispatch = useDispatch();
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
+    const emailAuth = useSelector((state: any) => state?.auth?.emailAuth);
     const datalist = new Array(13).fill(null).map((_, index) => ({ id: String(index), }))
-    const [firstNmae, setFirstName] = useState("");
+    const [firstNmae, setFirstName] = useState(emailAuth?.data?.user?.givenName ? emailAuth?.data?.user?.givenName : "");
     const [lastNmae, setLastName] = useState("");
     const onSubmit = () => {
         if (!firstNmae) toastAlert.showToastError("Please enter your first name")
         const data = {
-            ...addProfileData,
             firstName: firstNmae,
             lastName: lastNmae,
         };
@@ -46,7 +48,12 @@ const NameScreen = () => {
                     </AppText>
                 </View>
             </View>
-            <GoButton colortrue={firstNmae} onPress={() => onSubmit()} />
+            <LinearGradient start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                <View style={{ marginTop: metrics.hp9 }}>
+                    <GoButton colortrue={firstNmae} onPress={() => onSubmit()} />
+                </View>
+            </LinearGradient>
 
         </AppSafeAreaView>
     )

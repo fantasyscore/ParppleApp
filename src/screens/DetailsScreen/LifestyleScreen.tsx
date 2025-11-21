@@ -1,74 +1,136 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { ScrollView, StyleSheet, View } from "react-native";
 import HeaderCommon from "../../common/HeaderCommon";
 import TopCommonLine from "../../common/TopCommonLine";
 import DubleTextLine from "../../common/DubleTextLine";
-import { AppText, FORTEEN, INTER_MEDIUM, INTER_SEMI_BOLD, OPECITY, TWELVE } from "../../common/AppText";
+import { AppText, TWELVE, INTER_MEDIUM, OPECITY } from "../../common/AppText";
 import metrics from "../../assets/Metrics";
 import { drikingIcon, lifeStyleIcon, petsIcon, smookingIcon, workIcon } from "../../helper/ImageAssets";
 import { Screen } from "../../theme/dimens";
 import { colors } from "../../theme/colors";
-import FastImage from "react-native-fast-image";
 import MultyContainer from "../../common/MultyContainer";
 import GoButton from "../../common/GoButton";
 import { NAVIGATION_ADCENTUOURS_SCREEN } from "../../navigation/routes";
 import NavigationService from "../../navigation/NavigationService";
+import { useDispatch, useSelector } from "react-redux";
+import { toastAlert } from "../../actions/UploadImageActions";
+import { setAddProfile } from "../../slices/loginServices/authSlice";
+import { editProfile } from "../../actions/authActions";
 
-const LifestyleScreen = () => {
-  const datalistnew = new Array(7).fill(null).map((_, index) => ({ id: String(index), }))
-
-    const [selectedCategories, setSelectedCategories] = useState<any[]>([]);
-    let datasmoke = [{ id: "1", title: "Non-smoker" }, { id: "2", title: "Social smoker" },
-    { id: "3", title: "Chain smoker" }, { id: "4", title: "Smoking while drinking" },
-    { id: "5", title: "Trying to quit" }, { id: "6", title: "Prefer not say" },
-    ];
-    let dataDrink = [{ id: "1", title: "Not for me" }, { id: "2", title: "Sober" },
-    { id: "3", title: "Sober Curiour" }, { id: "4", title: "Most Nights" },
-    { id: "5", title: "On Special Occassions" }, { id: "6", title: "Trying to quit" },
-    { id: "7", title: "Pefer not to say" },
-    ];
-    let dataWrokout = [{ id: "1", title: "Everyday" }, { id: "2", title: "Often" },
-    { id: "3", title: "Sometimes" }, { id: "4", title: "Never" },
-    { id: "5", title: "Gym Freak" }
-    ];
-    let dataPets = [{ id: "1", title: "Dog" }, { id: "2", title: "Cat" },
-    { id: "3", title: "Reptile" }, { id: "4", title: "Amphibian" },
-    { id: "5", title: "Bird" }, { id: "6", title: "Fish" },
-    { id: "7", title: "Don’t have but love" }, { id: "8", title: "Turtle" },
-    { id: "9", title: "Hamster" }, { id: "10", title: "Rabbit" }, { id: "11", title: "Want a pet" }, { id: "12", title: "Allergic to pets" },
-    ];
-
+const LifestyleScreen = ({ route }: any) => {
+    const dispatch = useDispatch();
+    const filter = route?.params?.filter ?? "";
+    const dataFilter = route?.params?.data ?? [];
+    const ids = route?.params?.ids ?? [];
+    const attributes = useSelector((state: any) => state.auth.attributes);
+    const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
+    const workout = attributes.find((item: any) => item._id === "workout");
+    const smoke = attributes.find((item: any) => item._id === "smoke");
+    const drink = attributes.find((item: any) => item._id === "drink");
+    const pets = attributes.find((item: any) => item._id === "pets");
+    const [selectedSmoke, setSelectedSmoke] = useState<string | null>(null);
+    const [selectedDrink, setSelectedDrink] = useState<string | null>(null);
+    const [selectedWorkout, setSelectedWorkout] = useState<string | null>(null);
+    const [selectedPets, setSelectedPets] = useState<string | null>(null);
+    const selectedCategories = [selectedSmoke, selectedDrink, selectedWorkout, selectedPets].filter(Boolean);
+    useEffect(() => {
+        if (dataFilter?.length) {
+            const findMatch = (category: any) => {
+                const match = category?.attributes?.find((attr: any) =>
+                    dataFilter?.find((value: any) => attr?._id == value?._id)
+                );
+                return match?._id || null;
+            };
+            setSelectedSmoke(findMatch(smoke));
+            setSelectedDrink(findMatch(drink));
+            setSelectedWorkout(findMatch(workout));
+            setSelectedPets(findMatch(pets));
+        }
+    }, [dataFilter, attributes]);
+    const onSkip = () => {
+        const dataToSave = {
+            ...addProfileData,
+            attribute: [],
+        };
+        dispatch(setAddProfile(dataToSave));
+        NavigationService.navigate(NAVIGATION_ADCENTUOURS_SCREEN);
+    };
+    const onSubmit = () => {
+        if (filter) {
+            const combined = [...ids, ...selectedCategories];
+            const dataToSave = {
+                attribute: combined,
+            };
+            dispatch(editProfile(dataToSave))
+        } else {
+            if (selectedCategories.length != 4) return toastAlert.showToastError(`Please select ${4 - selectedCategories?.length} answer`);
+            const dataToSave = {
+                ...addProfileData,
+                attribute: selectedCategories,
+            };
+            dispatch(setAddProfile(dataToSave));
+            NavigationService.navigate(NAVIGATION_ADCENTUOURS_SCREEN);
+        }
+    };
 
     return (
         <AppSafeAreaView>
-            <HeaderCommon skip={true}/>
+            <HeaderCommon onSkip={onSkip}    skip={filter ? false : true} title={filter} />
+            {filter ? <View style={styles.singleLine} /> : null}
             <View style={styles.container}>
-                <TopCommonLine icon={lifeStyleIcon} datalist={datalistnew}/>
-                <View style={{ paddingHorizontal: metrics.hp2 }}>
-                    <DubleTextLine firstText={"Tell us about your"} secondText={"lifestyle."} />
-                    <AppText style={{ marginTop: -metrics.hp2 }} type={TWELVE} weight={INTER_MEDIUM} color={OPECITY}>
-                        Select any 4.
-                    </AppText>
-                </View>
-                <View style={styles.singleLine} />
+                {!filter &&
+                    <>
+                        <TopCommonLine icon={lifeStyleIcon} datalist={new Array(7).fill(null)} />
+                        <View style={{ paddingHorizontal: metrics.hp2 }}>
+                            <DubleTextLine firstText={"Tell us about your"} secondText={"lifestyle."} />
+                            <AppText style={{ marginTop: -metrics.hp2 }} type={TWELVE} weight={INTER_MEDIUM} color={OPECITY}>
+                                Select one per question.
+                            </AppText>
+                        </View>
+                        <View style={styles.singleLine} />
+                    </>
+                }
                 <ScrollView contentContainerStyle={{ paddingBottom: metrics.hp10 }} showsVerticalScrollIndicator={false}>
-                    <MultyContainer data={datasmoke} setSelectedCategories={setSelectedCategories} selectedCategories={selectedCategories} firstIcon={smookingIcon} title={"How often do you smoke?"} />
-                    <MultyContainer data={dataDrink} setSelectedCategories={setSelectedCategories} selectedCategories={selectedCategories} firstIcon={drikingIcon} title={"How often do you drink?"} />
-                    <MultyContainer data={dataWrokout} setSelectedCategories={setSelectedCategories} selectedCategories={selectedCategories} firstIcon={workIcon} title={"Do you workout?"} />
-                    <MultyContainer data={dataPets} setSelectedCategories={setSelectedCategories} selectedCategories={selectedCategories} firstIcon={petsIcon} title={"Do you have any pets?"} />
+                    <MultyContainer
+                        data={smoke?.attributes || []}
+                        selectedCategory={selectedSmoke}
+                        setSelectedCategory={setSelectedSmoke}
+                        firstIcon={smookingIcon}
+                        title={"How often do you smoke?"}
+                    />
+                    <MultyContainer
+                        data={drink?.attributes || []}
+                        selectedCategory={selectedDrink}
+                        setSelectedCategory={setSelectedDrink}
+                        firstIcon={drikingIcon}
+                        title={"How often do you drink?"}
+                    />
+                    <MultyContainer
+                        data={workout?.attributes || []}
+                        selectedCategory={selectedWorkout}
+                        setSelectedCategory={setSelectedWorkout}
+                        firstIcon={workIcon}
+                        title={"Do you workout?"}
+                    />
+                    <MultyContainer
+                        data={pets?.attributes || []}
+                        selectedCategory={selectedPets}
+                        setSelectedCategory={setSelectedPets}
+                        firstIcon={petsIcon}
+                        title={"Do you have any pets?"}
+                    />
                 </ScrollView>
             </View>
-            <View style={{
-                position: "absolute", bottom: metrics.hp3,
-                right: metrics.hp2,
-            }}>
-                <GoButton onPress={()=>NavigationService.navigate(NAVIGATION_ADCENTUOURS_SCREEN)} />
+            <View style={{ position: "absolute", bottom: metrics.hp1, right: metrics.hp0 }}>
+                <GoButton colortrue={filter ? selectedCategories?.length >= 1 ? true : false : selectedCategories?.length == 4 ? true : false} onPress={onSubmit} />
             </View>
         </AppSafeAreaView>
-    )
+    );
 };
+
 export default LifestyleScreen;
+
 const styles = StyleSheet.create({
     container: {
         marginTop: metrics.hp3,
@@ -78,7 +140,6 @@ const styles = StyleSheet.create({
         height: metrics.hp0_2,
         width: Screen.Width,
         backgroundColor: colors.nanoOpecity,
-        marginTop: metrics.hp2
+        marginTop: metrics.hp2,
     },
-
-})
+});

@@ -18,7 +18,7 @@ export class AppOperation {
   customer;
   customerToken: string | null | undefined;
   constructor() {
-    this.base_url = "https://d2b293cbbfa7.ngrok-free.app/";
+    this.base_url = "http://13.201.74.29/";
     this.root_path = ``;
     this.admin = admin(this);
     this.guest = guest(this);
@@ -73,7 +73,6 @@ export class AppOperation {
     const headers: any = {
       "Content-Type": "application/json",
     };
-console.log(type , CUSTOMER_TYPE,"headersheadersheadersheaders")
 
     if (this.customerToken && type === CUSTOMER_TYPE) {
 

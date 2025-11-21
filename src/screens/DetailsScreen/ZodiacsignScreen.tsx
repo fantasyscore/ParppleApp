@@ -4,13 +4,13 @@ import { FlatList, StyleSheet, View } from "react-native";
 import HeaderCommon from "../../common/HeaderCommon";
 import TopCommonLine from "../../common/TopCommonLine";
 import metrics from "../../assets/Metrics";
-import { drikingIcon, moonIcon, workoutIcon } from "../../helper/ImageAssets";
+import { moonIcon } from "../../helper/ImageAssets";
 import DubleTextLine from "../../common/DubleTextLine";
 import ListCheckBox from "../../common/ListCheckbox";
 import LinearGradient from "react-native-linear-gradient";
 import GoButton from "../../common/GoButton";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_LANGUAGE_SPEAK_SCREEN, NAVIGATION_MEET_SOME_ONE_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_LANGUAGE_SPEAK_SCREEN } from "../../navigation/routes";
 import { colors } from "../../theme/colors";
 import { Screen } from "../../theme/dimens";
 import { zodiacSignsDATA } from "../../common/UiltData";
@@ -24,9 +24,10 @@ const ZodiacsignScreen = ({ route }: any) => {
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
     const filter = route?.params?.filter ?? "";
     const dataFilter = route?.params?.data ?? "";
+    const fieldVisibility = route?.params?.fieldVisibility ?? "";
     const datalistnew = new Array(2).fill(null).map((_, index) => ({ id: String(index), }))
     const [selectPronoun, setSelectPronoun] = useState(dataFilter ? dataFilter : "");
-    const [showProfile, setShowProfile] = useState(true);
+    const [showProfile, setShowProfile] = useState(fieldVisibility ? fieldVisibility?.zodiaSign : true);
 
     const onSkip = () => {
         const dataToSave = {
@@ -42,7 +43,7 @@ const ZodiacsignScreen = ({ route }: any) => {
         if (filter) {
             const dataToSave = {
                 zodiaSign: selectPronoun,
-                fieldVisibility: { ...addProfileData?.fieldVisibility, zodiaSign: showProfile }
+                fieldVisibility: { zodiaSign: showProfile }
             };
             dispatch(editProfile(dataToSave))
         }
@@ -56,7 +57,8 @@ const ZodiacsignScreen = ({ route }: any) => {
             dispatch(setAddProfile(data))
             NavigationService.navigate(NAVIGATION_LANGUAGE_SPEAK_SCREEN)
         }
-    }
+    };
+    
     return (
         <AppSafeAreaView>
             <HeaderCommon onSkip={onSkip} title={filter} skip={filter ? false : true} />
@@ -76,10 +78,12 @@ const ZodiacsignScreen = ({ route }: any) => {
                     />
                 </View>
             </View>
-                <LinearGradient start={{ x: 0, y: 0 }}
-                    end={{ x: 0, y: 1 }} colors={["#FFFFFF00", colors.white, colors.white]}>
+            <LinearGradient start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                <View style={{ marginTop: metrics.hp9 }}>
                     <GoButton onPress={() => onSubmit()} colortrue={selectPronoun} visiBleProfile={true} visible={showProfile} setShowProfile={setShowProfile} />
-                </LinearGradient>
+                </View>
+            </LinearGradient>
         </AppSafeAreaView>
     )
 };

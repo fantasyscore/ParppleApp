@@ -5,7 +5,7 @@ import HeaderCommon from "../../common/HeaderCommon";
 import metrics from "../../assets/Metrics";
 import { Screen } from "../../theme/dimens";
 import { colors } from "../../theme/colors";
-import { AppText, BLACK, EIGHT, EIGHTEEN, fontSize, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, PURPLE, RED, TWELVE } from "../../common/AppText";
+import { AppText, BLACK, EIGHT, EIGHTEEN, fontSize, INTER_BOLD, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, PURPLE, RED, TWELVE } from "../../common/AppText";
 import FastImage from "react-native-fast-image";
 import { aboutIcon, addPhotoIcon, bussnisIcon, childrenIcon, dateIcon, drikingIcon, familyIcon, ganderIcon, homeIcon, infoIcon, keywordRightArrow, langIcon, lifeStyleIcon, locIcon, moonIcon, moreAboutU, nameIcon, partnerheart, personHeartIcon, petsIcon, politicalIcon, pronounIcon, religiousIcon, schoolIcon, searchIcon, sexualityIcon, smookingIcon, straightenIcon, uploadIcon, workIcon } from "../../helper/ImageAssets";
 import HeadLineContiner from "../../common/HeadLineContiner";
@@ -14,12 +14,12 @@ import { launchImageLibrary } from "react-native-image-picker";
 import { interMedium } from "../../theme/typography";
 import ButtonSheet from "../../common/ButtonSheet";
 import EditButtonCommon from "../../common/EditButtonCommon";
-import { dataPets,DrinkData, ExerciseData, SmokeData } from "../../common/UiltData";
+import { dataPets, DrinkData, ExerciseData, SmokeData } from "../../common/UiltData";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_BELONG_SCREEN, NAVIGATION_CHILDERN_SCREEN, NAVIGATION_COMMONSELECT_PAGE_SCREEN, NAVIGATION_DATE_SCREEN, NAVIGATION_DATING_SCREEN, NAVIGATION_EDUCATION_SCREEN, NAVIGATION_FAMILY_PLANING_SCREEN, NAVIGATION_GANDER_SCREEN, NAVIGATION_HEIGHT_SCREEN, NAVIGATION_JOB_TITLE_SCREEN, NAVIGATION_LANGUAGE_SPEAK_SCREEN, NAVIGATION_NAME_SCREEN, NAVIGATION_PERSONAL_INTEREST_SCREEN, NAVIGATION_POLITICAL_SCREEN, NAVIGATION_PROFILE_STRENGTH_SCREEN, NAVIGATION_PRONOUN_SCREEN, NAVIGATION_RELATION_SCREEN, NAVIGATION_RELIGIOUS_SCREEN, NAVIGATION_SEXUALITY_SCREEN, NAVIGATION_USER_EDIT_PROFILE_SCREEN, NAVIGATION_WORK_PLACE_SCREEN, NAVIGATION_ZODIACSING_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_ABOUT_SCREEN, NAVIGATION_BELONG_SCREEN, NAVIGATION_CHILDERN_SCREEN, NAVIGATION_COMMONSELECT_PAGE_SCREEN, NAVIGATION_DATE_SCREEN, NAVIGATION_DATING_SCREEN, NAVIGATION_EDUCATION_SCREEN, NAVIGATION_FAMILY_PLANING_SCREEN, NAVIGATION_GANDER_SCREEN, NAVIGATION_HEIGHT_SCREEN, NAVIGATION_JOB_TITLE_SCREEN, NAVIGATION_LANGUAGE_SPEAK_SCREEN, NAVIGATION_LIFE_STYLE_SCREEN, NAVIGATION_NAME_SCREEN, NAVIGATION_PERSONAL_INTEREST_SCREEN, NAVIGATION_POLITICAL_SCREEN, NAVIGATION_PROFILE_STRENGTH_SCREEN, NAVIGATION_PRONOUN_SCREEN, NAVIGATION_RELATION_SCREEN, NAVIGATION_RELIGIOUS_SCREEN, NAVIGATION_SEXUALITY_SCREEN, NAVIGATION_USER_EDIT_PROFILE_SCREEN, NAVIGATION_WORK_PLACE_SCREEN, NAVIGATION_ZODIACSING_SCREEN } from "../../navigation/routes";
 import { useDispatch, useSelector } from "react-redux";
-import { getProfile } from "../../actions/authActions";
-import { uploadImageCloud } from "../../actions/UploadImageActions";
+import { attributesGet, editProfile, getProfile } from "../../actions/authActions";
+import { toastAlert, uploadImageCloud } from "../../actions/UploadImageActions";
 import { Image as ImageCompressor } from "react-native-compressor";
 
 async function requestGalleryPermission() {
@@ -48,9 +48,25 @@ async function requestGalleryPermission() {
 const EditProfileScreen = () => {
     const dispatch = useDispatch();
     const userData = useSelector((state: any) => state.auth.userData);
-    console.log(userData,"userData");
-    
-    const [bio, setBio] = useState(userData?.bio)
+    const attributesRemove = userData?.attributes?.filter((item: any) =>
+        ["smoke", "drink", "workout", "pets"].includes(item?.type)
+    );
+    const attributes = userData?.attributes?.filter(
+        (item: any) => !["smoke", "drink", "workout", "pets"].includes(item?.type)
+    );
+    const [bio, setBio] = useState(userData?.bio);
+    const workout = attributesRemove?.find((item: any) => item.type === "workout");
+    const smoke = attributesRemove?.find((item: any) => item.type === "smoke");
+    const drink = attributesRemove?.find((item: any) => item.type === "drink");
+    const pets = attributesRemove?.find((item: any) => item.type === "pets");
+    const idsOnlyRemo = attributesRemove.map((item: any) => item._id);
+    const idsOnly = attributes.map((item: any) => item._id);
+
+
+
+    useEffect(() => {
+        setBio(userData?.bio)
+    }, [userData?.bio])
     const [photos, setPhotos] = useState(
         Array(6)
             .fill({ id: "", image: "", loading: false })
@@ -74,13 +90,18 @@ const EditProfileScreen = () => {
             if (res.didCancel || !res.assets || res.assets.length === 0) return;
 
             const assets = res.assets.slice(0, 6);
+            const currentCount = photos.filter((p) => p.image !== "").length;
 
+            if (currentCount >= 6) {
+                return toastAlert.showToastError("You can upload a maximum of 6 photos only.");
+            }
             setPhotos((prev) => {
                 const updated = [...prev];
                 let count = 0;
                 for (let i = 0; i < updated.length && count < assets.length; i++) {
                     if (updated[i].image === "") {
                         updated[i].loading = true;
+                        updated[i].image = "";
                         count++;
                     }
                 }
@@ -95,7 +116,7 @@ const EditProfileScreen = () => {
                         const compressedUri = await ImageCompressor.compress(asset.uri, {
                             compressionMethod: "auto",
                             quality: 0.6,
-                            maxWidth: 1080,
+                            maxWidth: 720,
                             maxHeight: 1080,
                         });
 
@@ -119,6 +140,17 @@ const EditProfileScreen = () => {
                     }
                     return updated;
                 });
+
+                const galleryData = photos
+                    .map((p) => p.image)
+                    .concat(uploadedUrls.filter(Boolean))
+                    .slice(0, 6)
+                    .map((p, index) => ({
+                        priority: index === 0,
+                        url: p,
+                    }));
+
+                dispatch(editProfile({ gallery: galleryData }, true));
             } catch (err) {
                 console.error("Upload failed:", err);
                 setPhotos((prev) => prev.map((p) => ({ ...p, loading: false })));
@@ -132,7 +164,6 @@ const EditProfileScreen = () => {
 
         launchImageLibrary({ mediaType: "photo", selectionLimit: 1 }, async (res: any) => {
             if (res.didCancel || !res.assets || res.assets.length === 0) return;
-
             setPhotos((prev) => {
                 const updated = [...prev];
                 updated[index].loading = true;
@@ -143,17 +174,28 @@ const EditProfileScreen = () => {
                 const compressedUri = await ImageCompressor.compress(res.assets[0].uri, {
                     compressionMethod: "auto",
                     quality: 0.6,
-                    maxWidth: 1080,
+                    maxWidth: 720,
                     maxHeight: 1080,
                 });
 
                 const cloudUrl = await uploadImageCloud(compressedUri);
+
                 setPhotos((prev) => {
                     const updated = [...prev];
                     updated[index].loading = false;
                     updated[index].image = cloudUrl;
                     return updated;
                 });
+
+                const oldGallery = userData?.gallery?.map((img: any) => img.url) || [];
+                const newGallery = [...oldGallery];
+                newGallery[index] = cloudUrl;
+                const galleryData = newGallery.slice(0, 6).map((p, i) => ({
+                    priority: i === 0,
+                    url: p,
+                }));
+
+                dispatch(editProfile({ gallery: galleryData }, true));
             } catch (err) {
                 console.error("Single upload failed:", err);
                 setPhotos((prev) => {
@@ -164,30 +206,47 @@ const EditProfileScreen = () => {
             }
         });
     };
-    const renderItem = ({ item, index }: { item: { id: string; image: string }, index: number }) => {
+
+    const renderItem = ({ item, index }: { item: any; index: number }) => {
         return (
-            <TouchableOpacityView onPress={() => item.image ? pickSingleImage(index) : pickMultipleImages()} style={[styles.boxContainer, { borderWidth: item.image ? 0 : metrics.hp0_2 }]}>
-                {item.image ? (
+            <TouchableOpacityView
+                onPress={() => (item.image ? pickSingleImage(index) : pickMultipleImages())}
+                style={[
+                    styles.boxContainer,
+
+                ]}
+                disabled={item.loading}
+            >
+                {item.loading ? (
+                    <View style={styles.loaderContainer}>
+                        <AppText color={LIGHT_BLACK} weight={INTER_BOLD}>
+                            Uploading...
+                        </AppText>
+                    </View>
+                ) : item.image ? (
                     <FastImage source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
                 ) : (
                     <FastImage source={uploadIcon} resizeMode="contain" style={styles.icon} />
                 )}
-                {item.image && index == 0 &&
+
+                {item.image && index === 0 && (
                     <View style={styles.mainContainer}>
                         <AppText type={EIGHT} weight={INTER_MEDIUM} color={BLACK}>
                             Main
                         </AppText>
-                    </View>}
-                {item.image && index >= 1 &&
+                    </View>
+                )}
+                {item.image && index >= 1 && (
                     <View style={styles.indedxContainer}>
                         <AppText type={EIGHT} weight={INTER_MEDIUM} color={BLACK}>
                             {index}
                         </AppText>
                     </View>
-                }
+                )}
             </TouchableOpacityView>
-        )
+        );
     };
+
     const uploadedCount = photos.filter((p) => p.image !== "").length;
     const minRequired = 6;
     const remaining = Math.max(0, minRequired - uploadedCount);
@@ -228,9 +287,11 @@ const EditProfileScreen = () => {
                         columnWrapperStyle={{ gap: metrics.hp2 }}
                     />
                 </View>
-                <AppText color={RED} weight={INTER_MEDIUM} type={TWELVE}>
-                    Add {remaining} of your best photos.
-                </AppText>
+                {remaining === 0 ? <></> :
+                    <AppText color={RED} weight={INTER_MEDIUM} type={TWELVE}>
+                        Add {remaining} of your best photos.
+                    </AppText>
+                }
                 <View style={styles.singleLine} />
                 <HeadLineContiner
                     redText={"Important"}
@@ -238,7 +299,7 @@ const EditProfileScreen = () => {
                     circle={bio}
                     secondLine={"Tell about yourself fun and interesting thing."}
                     Icons={aboutIcon} headLines={"My Bio"} />
-                <View style={styles.inputContainer}>
+                <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_ABOUT_SCREEN, { filter: "Bio", data: userData?.bio })} style={styles.inputContainer}>
                     <TextInput
                         allowFontScaling={false}
                         placeholder="Write about you..."
@@ -246,6 +307,7 @@ const EditProfileScreen = () => {
                         numberOfLines={5}
                         multiline={true}
                         maxLength={200}
+                        editable={false}
                         onChangeText={(item) => setBio(item)}
                         value={bio}
                         style={{
@@ -255,15 +317,15 @@ const EditProfileScreen = () => {
                             color: colors.black,
                         }}
                     />
-                </View>
+                </TouchableOpacityView>
                 <View style={styles.singleLine} />
                 <HeadLineContiner
                     secondLine={"Add most specific interests you love"}
-                    circle={userData?.languages}
+                    circle={attributes}
                     Icons={personHeartIcon} headLines={"My Interests"} />
                 <ButtonSheet Icons={personHeartIcon}
-                    titile={"Select"} edit={true} data={userData?.languages}
-                    onPress={() => NavigationService.navigate(NAVIGATION_PERSONAL_INTEREST_SCREEN, { filter: "My Interests" })} />
+                    titile={"Select"} edit={true} data={attributes}
+                    onPress={() => { dispatch(attributesGet()), NavigationService.navigate(NAVIGATION_PERSONAL_INTEREST_SCREEN, { filter: "My Interests", data: attributes, ids: idsOnlyRemo }) }} />
                 <View style={styles.singleLine} />
                 <HeadLineContiner
                     circle={userData?.height && userData?.pronouns?.length && userData?.zodiaSign}
@@ -271,14 +333,19 @@ const EditProfileScreen = () => {
                 <EditButtonCommon
                     first={true} Icons={pronounIcon}
                     title={"Pronoun"}
-                    filluptext={userData?.pronouns?.map((item: any) => { return `${item},` })}
+                    filluptext={userData?.pronouns
+                        ?.map((item: any, index: any) =>
+                            index === userData?.pronouns?.length - 1 ? `${item}` : `${item}, `
+                        )
+                        .join('')}
                     onPress={() => NavigationService.navigate(NAVIGATION_PRONOUN_SCREEN, { filter: "Pronoun", data: userData?.pronouns })} />
                 <EditButtonCommon Icons={straightenIcon}
                     title={"Height"} filluptext={userData?.height}
                     onPress={() => NavigationService.navigate(NAVIGATION_HEIGHT_SCREEN, { filter: "Height", data: userData?.height })} />
                 <EditButtonCommon Icons={moonIcon}
                     title={"Zodiac"} filluptext={userData?.zodiaSign}
-                    onPress={() => NavigationService.navigate(NAVIGATION_ZODIACSING_SCREEN, { filter: "Zodiac", data: userData?.zodiaSign })} />
+                    hidden={userData?.fieldVisibility?.zodiaSign}
+                    onPress={() => NavigationService.navigate(NAVIGATION_ZODIACSING_SCREEN, { filter: "Zodiac", data: userData?.zodiaSign, fieldVisibility: userData?.fieldVisibility })} />
                 <View style={styles.singleLine} />
                 <HeadLineContiner
                     circle={userData?.relationsShipStatus && userData?.preferredGender && userData?.relationshipPreference}
@@ -288,7 +355,7 @@ const EditProfileScreen = () => {
                     title={"Relationship Status"}
                     first={true}
                     filluptext={userData?.relationsShipStatus}
-                    onPress={() => NavigationService.navigate(NAVIGATION_RELATION_SCREEN, {filter: "Relationship Status", data: userData?.relationsShipStatus})} />
+                    onPress={() => NavigationService.navigate(NAVIGATION_RELATION_SCREEN, { filter: "Relationship Status", data: userData?.relationsShipStatus })} />
                 <EditButtonCommon Icons={dateIcon}
                     title={"Whom to date"}
                     filluptext={userData?.preferredGender}
@@ -296,29 +363,38 @@ const EditProfileScreen = () => {
                 <EditButtonCommon Icons={homeIcon}
                     title={"Dating Intentions"}
                     filluptext={userData?.relationshipPreference}
-                    onPress={() => NavigationService.navigate(NAVIGATION_DATING_SCREEN, { filter: "Dating Intentions",data: userData?.relationshipPreference })} />
+                    hidden={userData?.fieldVisibility?.relationshipPreference}
+                    onPress={() => NavigationService.navigate(NAVIGATION_DATING_SCREEN, { filter: "Dating Intentions", data: userData?.relationshipPreference, fieldVisibility: userData?.fieldVisibility })} />
                 <View style={styles.singleLine} />
                 <HeadLineContiner
-                    circle={false}
+                    circle={smoke?.displayLabel && drink?.displayLabel && workout?.displayLabel && pets?.displayLabel}
                     Icons={lifeStyleIcon} headLines={"About Your Lifestyle"} />
                 <EditButtonCommon Icons={smookingIcon}
                     title={"Smoke"}
+                    filluptext={smoke?.displayLabel}
                     first={true}
-                    onPress={() => NavigationService.navigate(NAVIGATION_COMMONSELECT_PAGE_SCREEN, { headline: "Smoke", data: SmokeData })} />
+                    onPress={() => { dispatch(attributesGet()), NavigationService.navigate(NAVIGATION_LIFE_STYLE_SCREEN, { filter: "Smoke", data: attributesRemove, ids: idsOnly }) }} />
                 <EditButtonCommon Icons={drikingIcon}
                     title={"Drink"}
-                    filluptext={"Always"}
-                    onPress={() => NavigationService.navigate(NAVIGATION_COMMONSELECT_PAGE_SCREEN, { headline: "Drink", data: DrinkData })} />
+                    filluptext={drink?.displayLabel}
+                    onPress={() => { dispatch(attributesGet()), NavigationService.navigate(NAVIGATION_LIFE_STYLE_SCREEN, { filter: "Drink", data: attributesRemove, ids: idsOnly }) }} />
                 <EditButtonCommon Icons={workIcon}
                     title={"Workout"}
-                    onPress={() => NavigationService.navigate(NAVIGATION_COMMONSELECT_PAGE_SCREEN, { headline: "Workout", data: ExerciseData })} />
+                    filluptext={workout?.displayLabel}
+                    onPress={() => { dispatch(attributesGet()), NavigationService.navigate(NAVIGATION_LIFE_STYLE_SCREEN, { filter: "Workout", data: attributesRemove, ids: idsOnly }) }} />
                 <EditButtonCommon Icons={petsIcon}
                     title={"Pets"}
-                    onPress={() => NavigationService.navigate(NAVIGATION_COMMONSELECT_PAGE_SCREEN, { headline: "Pets", data: dataPets })} />
+                    filluptext={pets?.displayLabel}
+                    onPress={() => { dispatch(attributesGet()), NavigationService.navigate(NAVIGATION_LIFE_STYLE_SCREEN, { filter: "Pets", data: attributesRemove, ids: idsOnly }) }} />
                 <EditButtonCommon Icons={religiousIcon}
                     title={"Religious Beliefs"}
-                    filluptext={userData?.relegiousBelief?.map((item: any) => { return `${item},` })}
-                    onPress={() => NavigationService.navigate(NAVIGATION_RELIGIOUS_SCREEN, { filter: "Religious Beliefs",data: userData?.relegiousBelief })} />
+                    hidden={userData?.fieldVisibility?.relegiousBelief}
+                    filluptext={userData?.relegiousBelief
+                        ?.map((item: any, index: any) =>
+                            index === userData?.relegiousBelief?.length - 1 ? `${item}` : `${item}, `
+                        )
+                        .join('')}
+                    onPress={() => NavigationService.navigate(NAVIGATION_RELIGIOUS_SCREEN, { filter: "Religious Beliefs", data: userData?.relegiousBelief, fieldVisibility: userData?.fieldVisibility })} />
                 <View style={styles.singleLine} />
                 <HeadLineContiner
                     circle={userData?.education && userData?.work && userData?.jobTitle}
@@ -327,15 +403,18 @@ const EditProfileScreen = () => {
                     title={"Education"}
                     first={true}
                     filluptext={userData?.education}
-                    onPress={() => NavigationService.navigate(NAVIGATION_EDUCATION_SCREEN, { filter: "Education" , data: userData?.education})} />
+                    hidden={userData?.fieldVisibility?.education}
+                    onPress={() => NavigationService.navigate(NAVIGATION_EDUCATION_SCREEN, { filter: "Education", data: userData?.education, fieldVisibility: userData?.fieldVisibility })} />
                 <EditButtonCommon Icons={workIcon}
                     title={"Work"}
                     filluptext={userData?.work}
-                    onPress={() => NavigationService.navigate(NAVIGATION_WORK_PLACE_SCREEN, { filter: "Work", data: userData?.work })} />
+                    hidden={userData?.fieldVisibility?.work}
+                    onPress={() => NavigationService.navigate(NAVIGATION_WORK_PLACE_SCREEN, { filter: "Work", data: userData?.work, fieldVisibility: userData?.fieldVisibility })} />
                 <EditButtonCommon Icons={searchIcon}
                     title={"Job Title"}
                     filluptext={userData?.jobTitle}
-                    onPress={() => NavigationService.navigate(NAVIGATION_JOB_TITLE_SCREEN, { filter: "Job Title", data: userData?.jobTitle })} />
+                    hidden={userData?.fieldVisibility?.jobTitle}
+                    onPress={() => NavigationService.navigate(NAVIGATION_JOB_TITLE_SCREEN, { filter: "Job Title", data: userData?.jobTitle, fieldVisibility: userData?.fieldVisibility })} />
                 <View style={styles.singleLine} />
                 <HeadLineContiner
                     circle={userData?.city && userData?.homeTown}
@@ -347,7 +426,8 @@ const EditProfileScreen = () => {
                 <EditButtonCommon Icons={homeIcon}
                     title={"Hometown"}
                     filluptext={userData?.homeTown}
-                    onPress={() => NavigationService.navigate(NAVIGATION_BELONG_SCREEN, { filter: "Hometown",data: userData?.homeTown })} />
+                    hidden={userData?.fieldVisibility?.homeTown}
+                    onPress={() => NavigationService.navigate(NAVIGATION_BELONG_SCREEN, { filter: "Hometown", data: userData?.homeTown, fieldVisibility: userData?.fieldVisibility })} />
                 <View style={styles.singleLine} />
                 <HeadLineContiner
                     circle={userData?.children && userData?.familyPlanning}
@@ -355,35 +435,38 @@ const EditProfileScreen = () => {
                 <EditButtonCommon Icons={childrenIcon}
                     title={"Children"}
                     filluptext={userData?.children}
+                    hidden={userData?.fieldVisibility?.children}
                     first={true}
-                    onPress={() => NavigationService.navigate(NAVIGATION_CHILDERN_SCREEN, { filter: "Children",data: userData?.children })} />
+                    onPress={() => NavigationService.navigate(NAVIGATION_CHILDERN_SCREEN, { filter: "Children", data: userData?.children, fieldVisibility: userData?.fieldVisibility })} />
                 <EditButtonCommon Icons={familyIcon}
                     title={"Family Planning"}
                     filluptext={userData?.familyPlanning}
-                    onPress={() => NavigationService.navigate(NAVIGATION_FAMILY_PLANING_SCREEN, { filter: "Family Planning",data: userData?.familyPlanning })} />
+                    hidden={userData?.fieldVisibility?.familyPlanning}
+                    onPress={() => NavigationService.navigate(NAVIGATION_FAMILY_PLANING_SCREEN, { filter: "Family Planning", data: userData?.familyPlanning, fieldVisibility: userData?.fieldVisibility })} />
                 <View style={styles.singleLine} />
                 <HeadLineContiner
                     circle={userData?.gender}
                     Icons={ganderIcon} headLines={"Gender"} />
                 <ButtonSheet Icons={personHeartIcon} headLines={"What are their interests?"}
                     color={userData?.gender ? true : false}
-                    titile={userData?.gender ? userData?.gender : "Add Gender"} edit={true} hidden={"Hidden"}
-                    onPress={() => NavigationService.navigate(NAVIGATION_GANDER_SCREEN, { filter: "Add Gender", data: userData?.gender })} />
+                    titile={userData?.gender ? "Gender" : "Add Gender"} edit={true} hidden={userData?.fieldVisibility?.gender ? userData?.gender : "Hidden"}
+                    onPress={() => NavigationService.navigate(NAVIGATION_GANDER_SCREEN, { filter: "Add Gender", data: userData?.gender, fieldVisibility: userData?.fieldVisibility })} />
                 <View style={styles.singleLine} />
                 <HeadLineContiner
-                    circle={userData?.sexualOrientation}
+                    circle={userData?.sexualOrientation} s
                     Icons={sexualityIcon} headLines={"Sexuality"} />
                 <ButtonSheet Icons={personHeartIcon} headLines={"What are their interests?"}
-                    titile={userData?.sexualOrientation ? userData?.sexualOrientation : "Add Sexuality"} edit={true} hidden={"Hidden"}
+                    titile={userData?.sexualOrientation ? "Sexuality" : "Add Sexuality"} edit={true} hidden={userData?.fieldVisibility?.sexualOrientation ? userData?.sexualOrientation : "Hidden"}
                     color={userData?.sexualOrientation ? true : false}
-                    onPress={() => NavigationService.navigate(NAVIGATION_SEXUALITY_SCREEN, { filter: "Add Sexuality" ,data: userData?.sexualOrientation})} />
+                    onPress={() => NavigationService.navigate(NAVIGATION_SEXUALITY_SCREEN, { filter: "Add Sexuality", data: userData?.sexualOrientation, fieldVisibility: userData?.fieldVisibility })} />
                 <View style={styles.singleLine} />
                 <HeadLineContiner
                     circle={userData?.languages?.length}
                     Icons={langIcon} headLines={"Language"} />
                 <ButtonSheet Icons={personHeartIcon} headLines={"What are their interests?"}
                     titile={"Add Language"} edit={true} data={userData?.languages}
-                    onPress={() => NavigationService.navigate(NAVIGATION_LANGUAGE_SPEAK_SCREEN, { filter: "Add Language",data: userData?.languages })} />
+                    hidden={!userData?.fieldVisibility?.languages && "Hidden"}
+                    onPress={() => NavigationService.navigate(NAVIGATION_LANGUAGE_SPEAK_SCREEN, { filter: "Add Language", data: userData?.languages, fieldVisibility: userData?.fieldVisibility })} />
             </ScrollView>
         </AppSafeAreaView>
     )
@@ -414,7 +497,7 @@ const styles = StyleSheet.create({
     boxContainer: {
         height: metrics.hp12,
         width: "30%",
-        borderWidth: metrics.hp0_2,
+        borderWidth: metrics.hp0_1,
         borderColor: colors.opecity,
         marginBottom: metrics.hp1,
         borderRadius: metrics.hp1_5,
@@ -445,5 +528,12 @@ const styles = StyleSheet.create({
         height: metrics.hp1_7,
         width: metrics.hp1_7, backgroundColor: colors.white, position: "absolute", borderRadius: metrics.hp50, alignItems: "center", justifyContent: "center",
         top: metrics.hp1, left: metrics.hp1
-    }
+    },
+    loaderContainer: {
+        height: "100%",
+        width: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        // backgroundColor: colors,
+    },
 })

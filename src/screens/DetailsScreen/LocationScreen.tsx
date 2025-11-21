@@ -33,7 +33,7 @@ const LocationScreen = () => {
     latitudeDelta: 0.05,
     longitudeDelta: 0.05,
   });
-  const [markerCoords, setMarkerCoords] = useState<{ latitude: number; longitude: number, latitudeDelta:Number, longitudeDelta:Number }>({
+  const [markerCoords, setMarkerCoords] = useState<{ latitude: number; longitude: number, latitudeDelta: Number, longitudeDelta: Number }>({
     latitude: region?.latitude, // default Delhi
     longitude: region?.longitude,
     latitudeDelta: region?.latitudeDelta,
@@ -76,6 +76,7 @@ const LocationScreen = () => {
       Geolocation.getCurrentPosition(
         async (position: GeoPosition) => {
           const { latitude, longitude } = position.coords;
+          
           setRegion((prev) => ({
             ...prev,
             latitude,
@@ -86,8 +87,7 @@ const LocationScreen = () => {
             `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`
           );
           const data = await response.json();
-          console.log(data,"datadatadata");
-          
+
           if (data.results && data.results.length > 0) {
             const addressComponents = data.results[0].address_components;
             const getComponent = (type: string) => {
@@ -107,19 +107,19 @@ const LocationScreen = () => {
             const dataToSave = {
               ...addProfileData,
               coordinates: { long: longitude, lat: latitude },
-              city,
-              state,
-              country,
+              city:city,
+              state: state,
+              country: country,
             };
             dispatch(setAddProfile(dataToSave));
             console.log("📍 Location data:", dataToSave);
           } else {
-            Alert.alert("Error", "Unable to fetch address. Try again later.");
+            // Alert.alert("Error", "Unable to fetch address. Try again later.");
           }
         },
         (error) => {
           console.warn("Location error:", error);
-          Alert.alert("Error", "Unable to get location. Please try again.");
+          // Alert.alert("Error", "Unable to get location. Please try again.");
         },
         {
           enableHighAccuracy: true,
@@ -150,17 +150,18 @@ const LocationScreen = () => {
       console.warn("Permission check error:", error);
     }
   };
-  
+
   useEffect(() => {
     requestLocationPermissionCheck();
   }, []);
 
   const onSubmit = () => {
-    // if (!addressName) return toastAlert.showToastError("Please wait to fetch location")
+    if (!addressName) return toastAlert.showToastError("Please wait to fetch location")
     NavigationService.navigate(NAVIGATION_PRONOUN_SCREEN)
   };
   const handleMapPress = async (e: MapPressEvent) => {
     const { latitude, longitude } = e.nativeEvent.coordinate;
+    
     setMarkerCoords((prev) => ({
       ...prev,
       latitude,
@@ -190,14 +191,14 @@ const LocationScreen = () => {
       const dataToSave = {
         ...addProfileData,
         coordinates: { long: longitude, lat: latitude },
-        city,
-        state,
-        country,
+        city:city,
+        state: state,
+        country: country,
       };
       dispatch(setAddProfile(dataToSave));
       console.log("📍 Location data:", dataToSave);
     } else {
-      Alert.alert("Error", "Unable to fetch address. Try again later.");
+      // Alert.alert("Error", "Unable to fetch address. Try again later.");
     }
   };
   return (
@@ -235,9 +236,11 @@ const LocationScreen = () => {
                   {addressName}
                 </AppText>
               </View>
-              <LinearGradient style={{ marginTop: metrics.hp3 }} start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }} colors={["#FFFFFF00", colors.white, colors.white]}>
-                <GoButton colortrue={addressName} onPress={() => onSubmit()} />
+              <LinearGradient start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                <View style={{ marginTop: metrics.hp3 }}>
+                  <GoButton colortrue={addressName} onPress={() => onSubmit()} />
+                </View>
               </LinearGradient>
             </>
           ) : (

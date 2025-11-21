@@ -11,25 +11,40 @@ import ListCheckBox from "../../common/ListCheckbox";
 import SearchContainer from "../../common/SearchContainer";
 import LinearGradient from "react-native-linear-gradient";
 import GoButton from "../../common/GoButton";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { editProfile } from "../../actions/authActions";
+import { setfilterData } from "../../slices/loginServices/authSlice";
+import NavigationService from "../../navigation/NavigationService";
 
 const CommonSelectPage = ({ route }: any) => {
     const dispatch = useDispatch();
     const headLine = route?.params?.headline ?? "";
     const listData = route?.params?.data ?? "";
-    console.log(listData,"listData");
-    
-    const filterData = route?.params?.filterData ?? "";
+    const title = route?.params?.title ?? "";
+    const select = route?.params?.select ?? "";
     const secondHeadline = route?.params?.secondHeadline ?? "";
-    const [selectPronoun, setSelectPronoun] = useState(filterData ? filterData : "");
+    const filterData = useSelector((state: any) => state.auth.filterData);
+    const [selectPronoun, setSelectPronoun] = useState(select? select: "");
     const [search, setSearch] = useState("");
-    const onSubmit = () =>{
-        const dataToSave = {
-            relationsShipStatus: selectPronoun,
-        };
-        dispatch(editProfile(dataToSave))
-    }
+    const onSubmit = () => {
+        if (title === "gender") {
+            const dataToSave = {
+                ...filterData,
+                preferredGender: selectPronoun,
+            };
+            dispatch(setfilterData(dataToSave));
+            NavigationService.goBack()
+        }else if(title === "relationsShipStatus"){
+            const dataToSave = {
+                ...filterData,
+                relationshipPreference: selectPronoun,
+            };
+            dispatch(setfilterData(dataToSave));
+            NavigationService.goBack()
+        }
+    };
+    console.log(select,"selectselectselect");
+    
     return (
         <AppSafeAreaView>
             <HeaderCommon title={headLine} />

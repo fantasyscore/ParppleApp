@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import {
     ImageBackground,
@@ -64,8 +64,20 @@ const UserEditProfile = (props: any) => {
     const otherUserProfile = useSelector((state: any) => state.auth.otherUserProfile);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [updown, setupdown] = useState(false);
+    const attributes = otherUserProfile?.attributes?.filter(
+        (item: any) => !["smoke", "drink", "workout", "pets"].includes(item?.type)
+    );
+    const workout = otherUserProfile?.attributes?.find((item: any) => item.type === "workout");
+    const smoke = otherUserProfile?.attributes?.find((item: any) => item.type === "smoke");
+    const drink = otherUserProfile?.attributes?.find((item: any) => item.type === "drink");
+    const pets = otherUserProfile?.attributes?.find((item: any) => item.type === "pets");
     const animationValue = useRef(new Animated.Value(0)).current;
     const cardWidthRef = useRef(0);
+    useEffect(() => {
+        if (otherCome) {
+            updownAction()
+        }
+    }, [otherCome])
     const animatedHeight = animationValue.interpolate({
         inputRange: [0, 1],
         outputRange: [FULL_IMAGE_HEIGHT, COLLAPSED_IMAGE_HEIGHT],
@@ -159,7 +171,6 @@ const UserEditProfile = (props: any) => {
             </View>
         );
     };
-
     return (
         <AppSafeAreaView>
             <HeaderCommon title={otherCome ? "" : "Edit Profile"} edit={otherCome ? false : true} editOnPress={() => NavigationService.goBack()} />
@@ -191,30 +202,30 @@ const UserEditProfile = (props: any) => {
                             <Animated.View style={{ opacity: bottomDetailsOpacity }}>
                                 <LinearGradient start={{ x: 1, y: 1 }}
                                     end={{ x: 1, y: 0 }} colors={["#000000", "#00000099", "#00000000"]} style={styles.bottomDetails}>
-                                        <View style={{marginLeft:metrics.hp2, marginTop:metrics.hp10}}>
-                                            <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                                <AppText type={TWENTY} color={WHITE} weight={INTER_BOLD}>
-                                                    {otherUserProfile?.firstName}, 21{" "}
-                                                </AppText>
-                                                <FastImage
-                                                    source={blueTikeIcon}
-                                                    resizeMode="contain"
-                                                    style={styles.blueTikIcon}
-                                                />
-                                            </View>
-                                            <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                                <FastImage
-                                                    source={bussnisIcon}
-                                                    tintColor={colors.white}
-                                                    resizeMode="contain"
-                                                    style={styles.loctionIcon}
-                                                />
-                                                <AppText type={ELEVEN} color={WHITE} weight={INTER_MEDIUM}>
-                                                    {" "}
-                                                    {otherUserProfile?.work}
-                                                </AppText>
-                                            </View>
+                                    <View style={{ marginLeft: metrics.hp2, marginTop: metrics.hp10 }}>
+                                        <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                            <AppText type={TWENTY} color={WHITE} weight={INTER_BOLD}>
+                                                {otherUserProfile?.firstName}, 21{" "}
+                                            </AppText>
+                                            <FastImage
+                                                source={blueTikeIcon}
+                                                resizeMode="contain"
+                                                style={styles.blueTikIcon}
+                                            />
                                         </View>
+                                        <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                            <FastImage
+                                                source={bussnisIcon}
+                                                tintColor={colors.white}
+                                                resizeMode="contain"
+                                                style={styles.loctionIcon}
+                                            />
+                                            <AppText type={ELEVEN} color={WHITE} weight={INTER_MEDIUM}>
+                                                {" "}
+                                                {otherUserProfile?.work}
+                                            </AppText>
+                                        </View>
+                                    </View>
                                 </LinearGradient>
                                 <View style={styles.wrapContainer}>
                                     <View style={styles.listContainer}>
@@ -341,13 +352,14 @@ const UserEditProfile = (props: any) => {
                                         Pronoun
                                     </AppText>
                                 </View>
-                                {otherUserProfile?.pronouns?.map((value: any, index: any) =>
-                                    <View key={index} style={{ flexDirection: "row", alignItems: "center" }}>
-                                        <AppText style={{ marginTop: metrics.hp0_5, marginRight: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
+                                    {otherUserProfile?.pronouns?.map((value: any, index: any) =>
+                                        <AppText key={index} style={{ marginTop: metrics.hp1, marginRight: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
                                             {value}
                                         </AppText>
-                                    </View>
-                                )}
+                                    )}
+                                </View>
+
                             </View>}
                         <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
                             <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -382,58 +394,64 @@ const UserEditProfile = (props: any) => {
                                 {"  "} Lifestyle
                             </AppText>
                         </View>
-                        <View style={[styles.insideContainer, { marginTop: metrics.hp1 }]}>
-                            <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                <FastImage tintColor={colors.darkOpecity} source={smookingIcon} resizeMode="contain" style={styles.bioIcon} />
-                                <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                                    {"    "}
-                                    Smoke
-                                </AppText>
-                            </View>
-                            {otherUserProfile?.pronouns?.map((value: any, index: any) =>
-                                <View key={index} style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <AppText style={{ marginTop: metrics.hp0_5, marginRight: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                        {value}
+                        {smoke &&
+                            <View style={[styles.insideContainer, { marginTop: metrics.hp1 }]}>
+                                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                    <FastImage tintColor={colors.darkOpecity} source={smookingIcon} resizeMode="contain" style={styles.bioIcon} />
+                                    <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                        {"    "}
+                                        Smoke
                                     </AppText>
                                 </View>
-                            )}
-                        </View>
-                        <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
-                            <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                <FastImage tintColor={colors.darkOpecity} source={drikingIcon} resizeMode="contain" style={styles.bioIcon} />
-                                <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                                    {"    "}
-                                    Drink
+                                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                    <AppText style={{ marginTop: metrics.hp0_5, marginRight: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                        {smoke?.displayLabel}
+                                    </AppText>
+                                </View>
+                            </View>
+                        }
+                        {drink &&
+                            <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
+                                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                    <FastImage tintColor={colors.darkOpecity} source={drikingIcon} resizeMode="contain" style={styles.bioIcon} />
+                                    <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                        {"    "}
+                                        Drink
+                                    </AppText>
+                                </View>
+                                <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                    {drink?.displayLabel}
                                 </AppText>
                             </View>
-                            <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                {otherUserProfile?.height}
-                            </AppText>
-                        </View>
-                        <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
-                            <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                <FastImage tintColor={colors.darkOpecity} source={workoutIcon} resizeMode="contain" style={styles.bioIcon} />
-                                <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                                    {"    "}
-                                    Workout
+                        }
+                        {workout &&
+                            <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
+                                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                    <FastImage tintColor={colors.darkOpecity} source={workoutIcon} resizeMode="contain" style={styles.bioIcon} />
+                                    <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                        {"    "}
+                                        Workout
+                                    </AppText>
+                                </View>
+                                <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                    {workout?.displayLabel}
                                 </AppText>
                             </View>
-                            <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                {otherUserProfile?.zodiaSign}
-                            </AppText>
-                        </View>
-                        <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
-                            <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                <FastImage tintColor={colors.darkOpecity} source={petsIcon} resizeMode="contain" style={styles.bioIcon} />
-                                <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                                    {"    "}
-                                    Pets
+                        }
+                        {pets &&
+                            <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
+                                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                    <FastImage tintColor={colors.darkOpecity} source={petsIcon} resizeMode="contain" style={styles.bioIcon} />
+                                    <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                        {"    "}
+                                        Pets
+                                    </AppText>
+                                </View>
+                                <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                    {pets?.displayLabel}
                                 </AppText>
                             </View>
-                            <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                {otherUserProfile?.zodiaSign}
-                            </AppText>
-                        </View>
+                        }
                     </View>
 
 
@@ -446,10 +464,10 @@ const UserEditProfile = (props: any) => {
                             </AppText>
                         </View>
                         <View style={styles.wrapContainerTwo}>
-                            {datapersonal?.map((item: any, idx: number) => (
-                                <View key={item.id} style={styles.containerSelect}>
+                            {attributes?.map((item: any, idx: number) => (
+                                <View key={item._id} style={styles.containerSelect}>
                                     <AppText type={TWELVE} weight={INTER_MEDIUM}>
-                                        {item?.title}
+                                        {item?.displayLabel}
                                     </AppText>
                                 </View>
                             ))}
@@ -500,9 +518,9 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        width:"100%",
-        height:metrics.hp40,
-        borderRadius:metrics.hp2
+        width: "100%",
+        height: metrics.hp40,
+        borderRadius: metrics.hp2
     },
     upArrowContainer: {
         height: metrics.hp5,

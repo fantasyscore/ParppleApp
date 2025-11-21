@@ -8,7 +8,7 @@ import { Screen } from "../theme/dimens";
 import FastImage from "react-native-fast-image";
 import { googleIcon, lockIcon } from "../helper/ImageAssets";
 
-const PurpuleButton = ({ gmail, onPress, title, tabSelect }: any) => {
+const PurpuleButton = ({ gmail, onPress, title, tabSelect, onPressGoogle }: any) => {
     return (
         <View style={[styles.container, { height: gmail ? metrics.hp28 : metrics.hp11 }]}>
             <TouchableOpacityView onPress={onPress} style={tabSelect == "Advance" ? styles.buttonContinerNew : styles.buttonContiner}>
@@ -29,14 +29,14 @@ const PurpuleButton = ({ gmail, onPress, title, tabSelect }: any) => {
                         </AppText>
                         <View style={{ height: metrics.hp0_1, width: Screen.Width / 3, backgroundColor: colors.nanoOpecity }} />
                     </View>
-                    <View style={[styles.phoneContainer, { marginTop: metrics.hp2 }]}>
+                    <TouchableOpacityView onPress={onPressGoogle} style={[styles.phoneContainer, { marginTop: metrics.hp2 }]}>
                         <View style={styles.callIconContainer}>
                             <FastImage source={googleIcon} resizeMode="contain" style={styles.googleIcon} />
                         </View>
                         <AppText weight={INTER_BOLD} type={FORTEEN}>
                             {"                  "}Continue with Google
                         </AppText>
-                    </View>
+                    </TouchableOpacityView>
                     <AppText style={{ textAlign: "center", marginVertical: metrics.hp1 }} type={TWELVE} weight={INTER_MEDIUM} color={OPECITY}>
                         Get your google account instantly connected
                     </AppText>

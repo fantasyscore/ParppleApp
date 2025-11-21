@@ -97,8 +97,8 @@ const TakingScreen = () => {
         <Bubble
             {...props}
             wrapperStyle={{
-                left: { backgroundColor: '#FFFFFF', borderRadius: metrics.hp0_5, padding: metrics.hp0_8, marginBottom: metrics.hp1_2 },
-                right: { backgroundColor: '#EDE0FF', borderRadius: metrics.hp0_5, padding: metrics.hp0_8, marginBottom: metrics.hp1_2, marginRight: 0 },
+                left: { backgroundColor: '#FFFFFF', borderRadius: metrics.hp0_5, padding: metrics.hp0_2, marginBottom: metrics.hp1_2 },
+                right: { backgroundColor: '#EDE0FF', borderRadius: metrics.hp0_5, padding: metrics.hp0_2, marginBottom: metrics.hp1_2, marginRight: 0 },
             }}
             textStyle={{
                 left: { color: 'black', fontSize: fontSize(14), fontFamily: interSemiBold },
@@ -122,22 +122,19 @@ const TakingScreen = () => {
     const renderCustomInput = () => (
         <KeyboardAvoidingView keyboardVerticalOffset={80} style={styles.inputContainer}>
             <View style={styles.inputContainerType}>
-                <TouchableOpacityView onPress={() => { Keyboard.dismiss(); setEmojiVisible(!emojiVisible); }}>
-                    <FastImage source={emojiIcon} resizeMode='contain' style={styles.emojiIcon} />
-                </TouchableOpacityView>
                 <TextInput
                     style={styles.textInput}
                     value={inputText}
                     onChangeText={setInputText}
                     placeholder="Type a message..."
                     multiline
-                    onFocus={() => setEmojiVisible(false)}
                 />
             </View>
             <TouchableOpacityView
                 style={styles.sendButton}
                 onPress={() => {
                     if (inputText.trim().length > 0) {
+                        console.log("Hello")
                         onSend([{
                             _id: Math.random(),
                             text: inputText,
@@ -191,14 +188,6 @@ const TakingScreen = () => {
 
                         />
                     </View>
-                    {emojiVisible && (
-                        <EmojiSelector
-                            category={Categories.all}
-                            onEmojiSelected={emoji => setInputText(prev => prev + emoji)}
-                            showHistory={true}
-                            columns={8}
-                        />
-                    )}
                 </View> :
                 <ChatProfileScreen />
             }
@@ -290,7 +279,7 @@ const styles = StyleSheet.create({
     inTabContainer: { alignItems: 'center', justifyContent: 'center', flex: 1 },
     containerChat: { flex: 1, backgroundColor: '#F5F7FA' },
     inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: metrics.hp2, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e0e0e0', paddingVertical: metrics.hp2 },
-    textInput: { minHeight: metrics.hp4, maxHeight: metrics.hp8, fontSize: fontSize(13), width: Screen.Width / 1.57, fontFamily: interMedium, marginLeft: metrics.hp1 },
+    textInput: { minHeight: metrics.hp4, maxHeight: metrics.hp8, fontSize: fontSize(13), width: "83%", fontFamily: interMedium, marginLeft: metrics.hp1 },
     sendButton: { backgroundColor: '#6F13F2', borderRadius: metrics.hp50, marginLeft: 6, justifyContent: 'center', alignItems: 'center', height: metrics.hp5_5, width: metrics.hp5_5 },
     inputContainerType: { borderWidth: metrics.hp0_1, borderColor: colors.nanoOpecity, borderRadius: metrics.hp5, paddingHorizontal: metrics.hp1, alignItems: 'center', justifyContent: 'space-between', flexDirection: 'row', paddingVertical: metrics.hp0_5 },
     emojiIcon: { height: metrics.hp3, width: metrics.hp3 },

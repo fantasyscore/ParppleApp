@@ -1,16 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { FlatList, ImageBackground, StyleSheet, View } from "react-native";
-import PeopleHeader from "../../common/PeopleHeader";
 import FastImage from "react-native-fast-image";
 import { blueTikeIcon, bostIconWhite, goldCard, likeYouIcon, lockIconWhite, logoBlue, profileImage, upgradPlan, viewsIcon } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
-import { AppText, INTER_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, PURPLE, RED, SCHEHERAZADE_BOLD, SIXTEEN, TEN, THIRTEEN, TWELVE, TWENTY_FOUR, WHITE } from "../../common/AppText";
+import { AppText, INTER_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, PURPLE, SCHEHERAZADE_BOLD, SIXTEEN, TEN, THIRTEEN, TWELVE, TWENTY_FOUR, WHITE } from "../../common/AppText";
 import { colors } from "../../theme/colors";
-import { UpgradeData, viewsData } from "../../common/UiltData";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_PREVIEW_DETAILS_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN, NAVIGATION_USER_EDIT_PROFILE_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 import { Screen } from "../../theme/dimens";
 import { useDispatch, useSelector } from "react-redux";
 import { getOtherProfile, likeByOther, likeYou, viewProfileByOther, youView } from "../../actions/authActions";
@@ -24,6 +22,7 @@ const LikesYouScreen = () => {
     const likeYouData = useSelector((state: any) => state.auth.likeYouData);
     const viewByOtherData = useSelector((state: any) => state.auth.viewByOtherData);
     const viewYouData = useSelector((state: any) => state.auth.viewYouData);
+    const userData = useSelector((state: any) => state.auth.userData);
     const [likeYoue, setlikeYou] = useState('Likes You');
     const [ViewYoue, setViewYou] = useState('Viewed You');
     useEffect(() => {
@@ -90,13 +89,15 @@ const LikesYouScreen = () => {
             </View>
         )
     };
-    const viewProfile = (item:any) =>{
-        let data ={
+    const viewProfile = (item: any) => {
+        let data = {
             "userId": item?.userId
         };
         dispatch(getOtherProfile(data));
     }
     const renderItems = ({ item, index }: any) => {
+        console.log(item, "itemitemitem");
+
         return (
             <TouchableOpacityView onPress={() => viewProfile(item)} key={index} style={[styles.upgradeDataContainer, { marginBottom: metrics.hp2 }]}>
                 <ImageBackground imageStyle={{ borderRadius: metrics.hp1_5 }} source={{ uri: item?.profilePicture[0]?.url }} resizeMode="cover" style={styles.profileImageTwo}>
@@ -123,10 +124,36 @@ const LikesYouScreen = () => {
         )
     };
     const dataCorrect = () => {
-        if (tabSelect == "Likes" && likeYoue == "Likes You") return likeByOtherData?.length ? likeByOtherData : [];
-        if (tabSelect == "Likes" && likeYoue == "You Liked") return likeYouData?.length ? likeYouData : [];
-        if (tabSelect == "Views" && ViewYoue == "Viewed You") return viewYouData?.length ? viewYouData : [];
-        if (tabSelect == "Views" && ViewYoue == "You Viewed") return viewByOtherData?.length ? viewByOtherData : [];
+        const { subscription } = userData || {};
+        const { perks = {}, plan } = subscription || {};
+
+        // Define permission logic based on subscription plan/perks
+        const canSeeLikes = perks?.canSeeLikes || plan !== "FREE";
+        const canSeeViews = perks?.canSeeViews || plan !== "FREE";
+
+        let data: any[] = [];
+
+        if (tabSelect === "Likes" && likeYoue === "Likes You") {
+            data = likeByOtherData?.length ? likeByOtherData : [];
+            return data.map((item) => ({ ...item, see: canSeeLikes }));
+        }
+
+        if (tabSelect === "Likes" && likeYoue === "You Liked") {
+            data = likeYouData?.length ? likeYouData : [];
+            return data.map((item) => ({ ...item, see: true })); // You can always see who you liked
+        }
+
+        if (tabSelect === "Views" && ViewYoue === "Viewed You") {
+            data = viewYouData?.length ? viewYouData : [];
+            return data.map((item) => ({ ...item, see: canSeeViews }));
+        }
+
+        if (tabSelect === "Views" && ViewYoue === "You Viewed") {
+            data = viewByOtherData?.length ? viewByOtherData : [];
+            return data.map((item) => ({ ...item, see: true })); // You can see whom you viewed
+        }
+
+        return [];
     };
     return (
         <AppSafeAreaView>

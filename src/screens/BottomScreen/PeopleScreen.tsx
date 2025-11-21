@@ -22,7 +22,7 @@ import { SwiperCardRefType } from 'rn-swiper-list';
 import Swiper from '../../swiperComponents/Swiper';
 import PreviewDetails from './PreviewDetails';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
-import { listProfiles, swipeLikeDisLike } from '../../actions/authActions';
+import { getProfile, listProfiles, swipeLikeDisLike } from '../../actions/authActions';
 import { AnyComponent } from 'react-native-reanimated/lib/typescript/createAnimatedComponent/commonTypes';
 import { useIsFocused } from '@react-navigation/native';
 import { setListProfiles } from '../../slices/loginServices/authSlice';
@@ -48,7 +48,7 @@ const PeopleScreen = () => {
     const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
     const [matchData, setMatchData] = useState([])
     const cardWidthRef = useRef(0);
-    const url = `https://d2b293cbbfa7.ngrok-free.app/?userId=${userData?._id}`
+    const url = `http://13.201.74.29/?userId=${userData?._id}`
     const socket = useMemo(() => createSocket(url), [url]);
     useEffect(() => {
         socket.on('connect', () => {
@@ -82,6 +82,7 @@ const PeopleScreen = () => {
         extrapolate: 'clamp',
     });
     useEffect(() => {
+        dispatch(getProfile(true))
         dispatch(listProfiles(true));
     }, [IsFocused])
     const OverlayLabelRight = useCallback(() => {
@@ -159,7 +160,7 @@ const PeopleScreen = () => {
                         <View style={{ marginTop: metrics.hp8 }}>
                             <View style={{ flexDirection: "row", alignItems: "center" }}>
                                 <AppText type={TWENTY_TWO} color={WHITE} weight={INTER_BOLD}>
-                                    {profile.name}{" "}
+                                    {profile.name}, {profile.age}{" "}
                                 </AppText>
                                 <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} />
                             </View>
@@ -167,7 +168,7 @@ const PeopleScreen = () => {
                                 <FastImage source={locationCIon} resizeMode="contain" style={styles.loctionIcon} />
                                 <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} color={WHITE} weight={INTER_MEDIUM}>
                                     {"  "}
-                                    {profile.distanceInKm} Km away
+                                    {`${profile.distanceInKm == 0 ? "Near by" : `${profile.distanceInKm} Km away`}`}
                                 </AppText>
                             </View>
                             {profile.work !== "" &&
@@ -217,19 +218,19 @@ const PeopleScreen = () => {
         setGetCurrentIndex(index + 1);
         if (swipe === "like") {
             let data = {
-                "swipedId": listProfiles[index]?._id,
+                "swipedId": listProfilesData[index]?._id,
                 "type": "like"
             };
             dispatch(swipeLikeDisLike(data))
         } else if (swipe === "superLike") {
             let data = {
-                "swipedId": listProfiles[index]?._id,
+                "swipedId": listProfilesData[index]?._id,
                 "type": "superLike"
             };
             dispatch(swipeLikeDisLike(data))
         } else if (swipe === "dislike") {
             let data = {
-                "swipedId": listProfiles[index]?._id,
+                "swipedId": listProfilesData[index]?._id,
                 "type": "dislike"
             };
             dispatch(swipeLikeDisLike(data))
@@ -323,37 +324,39 @@ const PeopleScreen = () => {
             </>
         );
     };
-    const toastRef = useRef<IToast>(null);
-    function show() {
-        toastRef.current?.hide(() => {
-            toastRef.current?.show('Posting...', 'info', 400);
-        })
-    }
+    // const toastRef = useRef<IToast>(null);
+    // function show() {
+    //     toastRef.current?.hide(() => {
+    //         toastRef.current?.show('Posting...', 'info', 400);
+    //     })
+    // }
 
-    function hide() {
-        toastRef.current?.hide();
-    }
+    // function hide() {
+    //     toastRef.current?.hide();
+    // }
 
-    function showSuccess() {
-        toastRef.current?.hide(() => {
-            toastRef.current?.show('Posted', 'success', 400);
-        })
-    }
+    // function showSuccess() {
+    //     toastRef.current?.hide(() => {
+    //         toastRef.current?.show('Posted', 'success', 400);
+    //     })
+    // }
 
-    function showError() {
-        toastRef.current?.hide(() => {
-            toastRef.current?.show('Ops, something is wrong!', 'error', 400);
-        })
-    }
+    // function showError() {
+    //     toastRef.current?.hide(() => {
+    //         toastRef.current?.show('Ops, something is wrong!', 'error', 400);
+    //     })
+    // }
 
-    function handleHide() {
-        console.log('toast is hidden');
-    }
-    useEffect(()=>{
-        // toastRef.current?.hide(() => {
-            toastRef.current?.show('Posted', 'success', 400);
-        // })
-    },[])
+    // function handleHide() {
+    //     console.log('toast is hidden');
+    // }
+    // useEffect(()=>{
+    //     // toastRef.current?.hide(() => {
+    //         toastRef.current?.show('Posted', 'success', 400);
+    //     // })
+    // },[])
+    console.log(listProfilesData,"listProfilesData");
+    
 
     return (
         <AppSafeAreaView>
@@ -418,7 +421,7 @@ const PeopleScreen = () => {
                     </View>
                 </View>
                 <Modal
-                    animationType="slide"
+                    animationType="fade"
                     transparent={true}
                     visible={modalVisible}
                     onRequestClose={() => setModalVisible(false)}>

@@ -7,7 +7,7 @@ import { colors } from "../theme/colors";
 import { TouchableOpacityView } from "./TouchableOpacityView";
 import { AppText, ELEVEN, INTER_MEDIUM, LIGHT_BLACK, TEN } from "./AppText";
 
-const GoButton = ({ onPress, colortrue, visible, setShowProfile, visiBleProfile, defaultVisible }: any) => {
+const GoButton = ({ onPress, colortrue, visible, setShowProfile, visiBleProfile, defaultVisible, disabled }: any) => {
     return (
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
             {defaultVisible ?
@@ -36,8 +36,8 @@ const GoButton = ({ onPress, colortrue, visible, setShowProfile, visiBleProfile,
                     </AppText>
                 </TouchableOpacityView>
                 : <View />}
-            <TouchableOpacityView onPress={onPress} style={[styles.arrowContainer, { backgroundColor: colortrue ? colors.purple : colors.nanoOpecity }]}>
-                <FastImage tintColor={colortrue && colors.white} source={rightArrow} resizeMode="contain" style={styles.arrowIcon} />
+            <TouchableOpacityView disabled={disabled} onPress={onPress} style={[styles.arrowContainer, { backgroundColor: colortrue ? colors.purple : colors.nanoOpecity }]}>
+                <FastImage tintColor={colortrue ? colors.white: "#6E6E6E"} source={rightArrow} resizeMode="contain" style={styles.arrowIcon} />
             </TouchableOpacityView>
         </View>
     )

@@ -2,11 +2,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { appOperation } from "../appOperation";
 import { USER_TOKEN_KEY } from "../helper/Constants";
 import NavigationService from "../navigation/NavigationService";
-import { NAVIGATION_ALL_SET_SCREEN, NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_OTP_SCREEN, NAVIGATION_USER_EDIT_PROFILE_SCREEN, NAVIGATION_WELCOME_SCREEN } from "../navigation/routes";
+import { NAVIGATION_ALL_SET_SCREEN, NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_OTP_SCREEN, NAVIGATION_PROCCED_SCREEN, NAVIGATION_USER_EDIT_PROFILE_SCREEN, NAVIGATION_WELCOME_SCREEN } from "../navigation/routes";
 import { toastAlert } from "./UploadImageActions";
-import { setGetProfile, setLikeByOther, setLikeYou, setListProfiles, setOtherUserProfile, setViewByOhter, setViewYou } from "../slices/loginServices/authSlice";
+import { setAttributes, setDiscoverData, setGetProfile, setLikeByOther, setLikeYou, setListProfiles, setOtherUserProfile, setViewByOhter, setViewYou } from "../slices/loginServices/authSlice";
 
-export const userLogin: any = (data: any) => async (dispatch: any) => {
+export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.guest.login(data);
         if (response?.statusCode == 200) {
@@ -15,12 +15,17 @@ export const userLogin: any = (data: any) => async (dispatch: any) => {
             await AsyncStorage.setItem(USER_TOKEN_KEY, response?.data?.tokenData?.token);
             if (response?.data?.profileCleared) {
                 dispatch(listProfiles());
-                dispatch(getProfile(true))
+                dispatch(getProfile(true));
+                dispatch(discoverProfile())
             } else {
-                NavigationService.navigate(NAVIGATION_OTP_SCREEN)
+                if (gmail) {
+                    NavigationService.navigate(NAVIGATION_PROCCED_SCREEN,{ comming: "OTP" })
+                } else {
+                    NavigationService.navigate(NAVIGATION_OTP_SCREEN)
+                }
             }
         } else {
-            toastAlert.showToastError(response.message);
+            // toastAlert.showToastError(response.message);
         }
     } catch (error: any) {
         toastAlert.showToastError(error);
@@ -31,7 +36,7 @@ export const addProfile: any = (data: any) => async (dispatch: any) => {
         const response: any = await appOperation.customer.addProfileAPI(data);
         if (response?.statusCode == 200) {
             NavigationService.reset(NAVIGATION_ALL_SET_SCREEN)
-            dispatch(listProfiles());
+            dispatch(listProfiles(true));
         } else {
             toastAlert.showToastError(response.message);
         }
@@ -39,7 +44,7 @@ export const addProfile: any = (data: any) => async (dispatch: any) => {
         toastAlert.showToastError(error);
     }
 };
-export const listProfiles: any = (navigate:any) => async (dispatch: any) => {
+export const listProfiles: any = (navigate: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.datingProfileAPI();
         if (response?.statusCode == 200) {
@@ -59,8 +64,6 @@ export const swipeLikeDisLike: any = (data: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.swipeLikeDisLikeAPI(data);
         if (response?.statusCode == 200) {
-            console.log(response, "responseresponseresponse")
-
         }
     } catch (error: any) {
         toastAlert.showToastError(error);
@@ -107,35 +110,85 @@ export const youView: any = () => async (dispatch: any) => {
         toastAlert.showToastError(error);
     }
 };
-export const getOtherProfile: any = (data:any) => async (dispatch: any) => {
+export const getOtherProfile: any = (data: any, isNavigate: any, setProfileData: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.otherDataProfileAPI(data);
         if (response?.statusCode == 200) {
             dispatch(setOtherUserProfile(response?.data));
-            NavigationService.navigate(NAVIGATION_USER_EDIT_PROFILE_SCREEN, {other:true})
+            const dataWithIndex = {
+                ...response?.data,
+                index: 0
+            };
+            setProfileData(dataWithIndex)
+            !isNavigate && NavigationService.navigate(NAVIGATION_USER_EDIT_PROFILE_SCREEN, { other: true })
         }
     } catch (error: any) {
         toastAlert.showToastError(error);
     }
 };
-export const getProfile: any = (navigate:any) => async (dispatch: any) => {
+export const getProfile: any = (navigate: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.getProfileAPI();
         if (response?.statusCode == 200) {
             dispatch(setGetProfile(response?.data));
             dispatch(setOtherUserProfile(response?.data));
-            !navigate && NavigationService.navigate(NAVIGATION_USER_EDIT_PROFILE_SCREEN, {other:false})
+            !navigate && NavigationService.navigate(NAVIGATION_USER_EDIT_PROFILE_SCREEN, { other: false })
         }
     } catch (error: any) {
         toastAlert.showToastError(error);
     }
 };
-export const editProfile: any = (data:any) => async (dispatch: any) => {
+let isEditing = false;
+export const editProfile: any = (data: any, navigate: any) => async (dispatch: any) => {
+    if (isEditing) {
+        console.log("Edit already in progress — skipping...");
+        return;
+    }
+    isEditing = true;
     try {
         const response: any = await appOperation.customer.editProfileAPI(data);
+        console.log(response, "responseresponse");
+
         if (response?.statusCode == 200) {
-            dispatch(setGetProfile(response?.data));
-            NavigationService.goBack();
+            dispatch(getProfile(true));
+            navigate ? console.log() : NavigationService.goBack();
+        } else {
+            toastAlert.showToastError(response?.message || "Something went wrong!");
+        }
+    } catch (error: any) {
+        console.log(error, "responserrorerrorerrorerrorerrorerroreresponse");
+
+        toastAlert.showToastError(error);
+    } finally {
+        isEditing = false; // unlock after response (success or fail)
+    }
+};
+
+export const attributesGet: any = () => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.attributesAPI();
+        if (response?.statusCode == 200) {
+            dispatch(setAttributes(response?.data));
+        }
+    } catch (error: any) {
+        toastAlert.showToastError(error);
+    }
+};
+export const editFilter: any = (data: any) => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.editFilterAPI(data);
+        if (response?.statusCode == 200) {
+            NavigationService.goBack()
+        }
+    } catch (error: any) {
+        toastAlert.showToastError(error);
+    }
+};
+export const discoverProfile: any = () => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.discoverAPI();
+        if (response?.statusCode == 200) {
+            dispatch(setDiscoverData(response?.data))
         }
     } catch (error: any) {
         toastAlert.showToastError(error);

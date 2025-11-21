@@ -19,16 +19,19 @@ import { useDispatch, useSelector } from "react-redux";
 import { setAddProfile } from "../../slices/loginServices/authSlice";
 import { toastAlert } from "../../actions/UploadImageActions";
 import { editProfile } from "../../actions/authActions";
+import LinearGradient from "react-native-linear-gradient";
 
 const WorkPlace = ({ route }: any) => {
     const dispatch = useDispatch();
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
     const filter = route?.params?.filter ?? "";
     const dataFilter = route?.params?.data ?? "";
+    const fieldVisibility = route?.params?.fieldVisibility ?? "";
+
     const datalistnew = new Array(4).fill(null).map((_, index) => ({ id: String(index), }))
     const [email, setEmail] = useState("");
     const [selectPronoun, setSelectPronoun] = useState(dataFilter ? dataFilter : "");
-    const [showProfile, setShowProfile] = useState(true);
+    const [showProfile, setShowProfile] = useState(fieldVisibility ? fieldVisibility?.work : true);
 
     const onSkip = () => {
         const dataToSave = {
@@ -44,6 +47,7 @@ const WorkPlace = ({ route }: any) => {
         if (filter) {
             const dataToSave = {
                 work: selectPronoun,
+                fieldVisibility: {work: showProfile }
             };
             dispatch(editProfile(dataToSave))
         } else {
@@ -80,7 +84,12 @@ const WorkPlace = ({ route }: any) => {
                     />
                 </View>
             </View>
-            <GoButton onPress={() => onSubmit()} colortrue={selectPronoun} visiBleProfile={true} visible={showProfile} setShowProfile={setShowProfile} />
+            <LinearGradient start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                <View style={{ marginTop: metrics.hp9 }}>
+                    <GoButton onPress={() => onSubmit()} colortrue={selectPronoun} visiBleProfile={true} visible={showProfile} setShowProfile={setShowProfile} />
+                </View>
+            </LinearGradient>
         </AppSafeAreaView>
     )
 };

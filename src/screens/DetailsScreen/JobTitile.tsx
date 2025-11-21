@@ -16,15 +16,18 @@ import { useDispatch, useSelector } from "react-redux";
 import { setAddProfile } from "../../slices/loginServices/authSlice";
 import { toastAlert } from "../../actions/UploadImageActions";
 import { editProfile } from "../../actions/authActions";
+import LinearGradient from "react-native-linear-gradient";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 const JobTitle = ({ route }: any) => {
     const dispatch = useDispatch();
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
     const filter = route?.params?.filter ?? "";
     const dataFilter = route?.params?.data ?? "";
+    const fieldVisibility = route?.params?.fieldVisibility ?? "";
     const datalist = new Array(3).fill(null).map((_, index) => ({ id: String(index), }))
     const [email, setEmail] = useState(dataFilter ? dataFilter : "");
-    const [showProfile, setShowProfile] = useState(true);
+    const [showProfile, setShowProfile] = useState(fieldVisibility ? fieldVisibility?.jobTitle : true);
 
     const onSkip = () => {
         const dataToSave = {
@@ -40,6 +43,7 @@ const JobTitle = ({ route }: any) => {
         if (filter) {
             const dataToSave = {
                 jobTitle: email,
+                fieldVisibility: { jobTitle: showProfile }
             };
             dispatch(editProfile(dataToSave))
         } else {
@@ -54,7 +58,11 @@ const JobTitle = ({ route }: any) => {
     }
     return (
         <AppSafeAreaView>
-            <HeaderCommon title={filter} skip={filter ? false : true} />
+            <KeyboardAwareScrollView
+                enableOnAndroid={true}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ flexGrow: 1 }}>
+            <HeaderCommon title={filter} skip={filter ? false : true} onSkip={onSkip} />
             {filter ?
                 <View style={styles.singleLine} /> : <></>}
             <View style={styles.container}>
@@ -66,7 +74,13 @@ const JobTitle = ({ route }: any) => {
                     <InputCommon value={email} closeVisible={true} onPress={() => setEmail("")} onChangeText={setEmail} placeholder={"Job title"} />
                 </View>
             </View>
-                <GoButton onPress={() => onSubmit()} colortrue={email} visiBleProfile={true} visible={showProfile} setShowProfile={setShowProfile} />
+            <LinearGradient start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                <View style={{ marginTop: metrics.hp9 }}>
+                    <GoButton onPress={() => onSubmit()} colortrue={email} visiBleProfile={true} visible={showProfile} setShowProfile={setShowProfile} />
+                </View>
+            </LinearGradient>
+            </KeyboardAwareScrollView>
         </AppSafeAreaView>
     )
 };

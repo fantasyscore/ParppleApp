@@ -12,7 +12,11 @@ export const initialState: AuthState = {
   viewByOtherData:undefined,
   viewYouData:undefined,
   otherUserProfile:undefined,
-  userData:undefined
+  userData:undefined,
+  attributes:[],
+  filterData:undefined,
+  discoverProfileData:[],
+  emailAuth:undefined
 };
 
 export const authSlice = createSlice({
@@ -49,6 +53,18 @@ export const authSlice = createSlice({
     setGetProfile: (state, { payload }: PayloadAction<any>) => {
       state.userData = payload;
     },
+    setAttributes: (state, { payload }: PayloadAction<any>) => {
+      state.attributes = payload;
+    },
+    setfilterData: (state, { payload }: PayloadAction<any>) => {
+      state.filterData = payload;
+    },
+    setDiscoverData: (state, { payload }: PayloadAction<any>) => {
+      state.discoverProfileData = payload;
+    },
+    setEmailAuth: (state, { payload }: PayloadAction<any>) => {
+      state.emailAuth = payload;
+    },
   },
 });
 
@@ -62,7 +78,11 @@ export const {
   setViewByOhter,
   setViewYou,
   setOtherUserProfile,
-  setGetProfile
+  setGetProfile,
+  setAttributes,
+  setfilterData,
+  setDiscoverData,
+  setEmailAuth
 } = authSlice.actions;
 
 export const authSelector = (state: RootState) => state.auth;

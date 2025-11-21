@@ -7,17 +7,18 @@ import metrics from "../../assets/Metrics";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_BOTTOMTAB_SCREEN } from "../../navigation/routes";
 import { useDispatch } from "react-redux";
-import { listProfiles } from "../../actions/authActions";
+import { discoverProfile, listProfiles } from "../../actions/authActions";
 
 const AllsetScreen = () => {
     const dispatch = useDispatch();
     const onSubmit = () =>{
         dispatch(listProfiles())
+        dispatch(discoverProfile())
     }
     return (
         <AppSafeAreaView>
             <ImageBackground source={allSetback} resizeMode="cover" style={{ height: "100%", width: "100%" }}>
-                <TouchableOpacityView onPress={()=> NavigationService.goBack()} style={styles.closeback}/>
+                <TouchableOpacityView onPress={()=> onSubmit()} style={styles.closeback}/>
                 <TouchableOpacityView onPress={()=> onSubmit()} style={styles.goHome}/>
             </ImageBackground>
         </AppSafeAreaView>

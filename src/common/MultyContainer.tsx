@@ -6,23 +6,12 @@ import metrics from "../assets/Metrics";
 import { colors } from "../theme/colors";
 import { TouchableOpacityView } from "./TouchableOpacityView";
 
-
-const MultyContainer = ({ firstIcon, title, data, selectedCategories, setSelectedCategories }: any) => {
+const MultyContainer = ({ firstIcon, title, data, selectedCategory, setSelectedCategory }: any) => {
     const toggleCategory = (item: any) => {
-        setSelectedCategories((prev: any) => {
-            const exists = prev.some((i: any) => JSON.stringify(i) === JSON.stringify(item));
-            if (exists) {
-                return prev.filter((i: any) => JSON.stringify(i) !== JSON.stringify(item));
-            } else {
-                return [...prev, item];
-            }
-        });
+        setSelectedCategory((prev: any) => (prev === item._id ? null : item._id));
     };
+    const isItemSelected = (item: any) => selectedCategory === item._id;
 
-    const isItemSelected = (item: any) => {
-        return selectedCategories.some((i: any) => JSON.stringify(i) === JSON.stringify(item));
-    };
-    
     return (
         <View style={styles.containerRender}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -35,35 +24,43 @@ const MultyContainer = ({ firstIcon, title, data, selectedCategories, setSelecte
                 {data.map((item: any, index: any) => {
                     const isSelected = isItemSelected(item);
                     return (
-                        <TouchableOpacityView onPress={() => toggleCategory(item)} key={index} style={[styles.containerSelect, { backgroundColor: isSelected ? colors.green : colors.lightBack }]}>
+                        <TouchableOpacityView
+                            key={index}
+                            onPress={() => toggleCategory(item)}
+                            style={[
+                                styles.containerSelect,
+                                { backgroundColor: isSelected ? colors.green : colors.lightBack },
+                            ]}
+                        >
                             <AppText type={TWELVE} weight={INTER_MEDIUM}>
-                                {item.title}
+                                {item.displayLabel}
                             </AppText>
                         </TouchableOpacityView>
                     );
                 })}
             </View>
         </View>
-    )
+    );
 };
 export default MultyContainer;
+
 const styles = StyleSheet.create({
     containerRender: {
         marginVertical: metrics.hp2,
         borderBottomWidth: metrics.hp0_1,
         marginHorizontal: metrics.hp2,
-        borderBottomColor: colors.nanoOpecity
+        borderBottomColor: colors.nanoOpecity,
     },
     smookingIcon: {
         height: metrics.hp2,
-        width: metrics.hp2
+        width: metrics.hp2,
     },
     wrapContainer: {
         flexDirection: "row",
         flexWrap: "wrap",
         gap: metrics.hp1_3,
         marginTop: metrics.hp2,
-        marginBottom: metrics.hp2
+        marginBottom: metrics.hp2,
     },
     containerSelect: {
         height: metrics.hp4,
@@ -71,6 +68,6 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp4,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: colors.lightBack
-    }
-})
+        backgroundColor: colors.lightBack,
+    },
+});

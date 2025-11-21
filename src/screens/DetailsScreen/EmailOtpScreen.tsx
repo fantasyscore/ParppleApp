@@ -11,6 +11,7 @@ import { interBold } from "../../theme/typography";
 import GoButton from "../../common/GoButton";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_NAME_SCREEN } from "../../navigation/routes";
+import LinearGradient from "react-native-linear-gradient";
 
 const EmailOtpScreen = () => {
     const [otpNumber, setOtpNumber] = useState("");
@@ -62,7 +63,12 @@ const EmailOtpScreen = () => {
                     </AppText>
                 </View>
             </View>
-            <GoButton onPress={()=>NavigationService.navigate(NAVIGATION_NAME_SCREEN)}/>
+            <LinearGradient start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                <View style={{ marginTop: metrics.hp9 }}>
+                    <GoButton onPress={() => NavigationService.navigate(NAVIGATION_NAME_SCREEN)} />
+                </View>
+            </LinearGradient>
         </AppSafeAreaView>
     )
 };

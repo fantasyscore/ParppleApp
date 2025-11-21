@@ -53,15 +53,18 @@ const RelationStatus = ({ route }: any) => {
                     {filter ? <></> :
                         <DubleTextLine firstText={"What’s your relationship"} secondText={"status?"} />}
                     <FlatList data={relationShipStatus}
-                        renderItem={({ item, index }: any) => <ListCheckBox item={item} index={index} round={true} selectPronoun={selectPronoun} setSelectPronoun={setSelectPronoun} notsend={true}/>}
+                        renderItem={({ item, index }: any) => <ListCheckBox item={item} index={index} round={true} selectPronoun={selectPronoun} setSelectPronoun={setSelectPronoun} notsend={true} />}
                         keyExtractor={(item) => item.id}
                         contentContainerStyle={{ marginTop: filter ? 0 : metrics.hp2, paddingBottom: metrics.hp20 }}
                         showsVerticalScrollIndicator={false}
                     />
                 </View>
             </View>
-            <LinearGradient colors={["#FFFFFF00", colors.white, colors.white]}>
-                <GoButton visiBleProfile={false} colortrue={selectPronoun} onPress={() => onSubmit()} />
+            <LinearGradient start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                <View style={{ marginTop: metrics.hp9 }}>
+                    <GoButton visiBleProfile={false} colortrue={selectPronoun} onPress={() => onSubmit()} />
+                </View>
             </LinearGradient>
         </AppSafeAreaView>
     )

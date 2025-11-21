@@ -11,7 +11,7 @@ import { colors } from "../theme/colors";
 const HeaderCommon = ({ onSkip, skip, title, preview, edit, PreviewOnpress, editOnPress }: any) => {
     return (
         <View style={{ paddingHorizontal: metrics.hp2, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <TouchableOpacityView style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp5 }} onPress={() => NavigationService.goBack()}>
+            <TouchableOpacityView style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp6 }} onPress={() => NavigationService.goBack()}>
                 <FastImage source={backIcon} resizeMode="contain" style={styles.backIcon} />
                 {title &&
                     <AppText type={FORTEEN} weight={INTER_SEMI_BOLD}>

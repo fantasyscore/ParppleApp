@@ -46,7 +46,7 @@ const DateScreen = ({ route }: any) => {
     }
     return (
         <AppSafeAreaView>
-            <HeaderCommon skip={filter ? false : true} title={filter} />
+            <HeaderCommon title={filter} />
             {filter ?
                 <View style={styles.singleLine} /> : <></>}
             <View style={styles.container}>
@@ -63,13 +63,16 @@ const DateScreen = ({ route }: any) => {
                     <FlatList data={ganderDATA_DATING}
                         renderItem={({ item, index }: any) => <ListCheckBox item={item} index={index} round={true} selectPronoun={selectPronoun} setSelectPronoun={setSelectPronoun} />}
                         keyExtractor={(item) => item.id}
-                        contentContainerStyle={{ marginTop:filter ? 0 : metrics.hp2,  paddingBottom: metrics.hp20 }}
+                        contentContainerStyle={{ marginTop: filter ? 0 : metrics.hp2, paddingBottom: metrics.hp20 }}
                         showsVerticalScrollIndicator={false}
                     />
                 </View>
             </View>
-            <LinearGradient colors={["#FFFFFF00", "#FFFFFF"]} style={{ paddingVertical: metrics.hp0 }}>
-                <GoButton visiBleProfile={false} colortrue={true} onPress={() => onSubmit()} />
+            <LinearGradient start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                <View style={{ marginTop: metrics.hp9 }}>
+                    <GoButton visiBleProfile={false} colortrue={selectPronoun} onPress={() => onSubmit()} />
+                </View>
             </LinearGradient>
         </AppSafeAreaView>
     )

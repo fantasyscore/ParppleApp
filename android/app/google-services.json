@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "955105716636",
+    "project_id": "parpple-7e88f",
+    "storage_bucket": "parpple-7e88f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:955105716636:android:cb35d0fcb822cc19be0059",
+        "android_client_info": {
+          "package_name": "com.parpple"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "955105716636-jkd87gi9lap9vr4514i9d3br9e4to5sg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.parpple",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "955105716636-4pf49jso1bitv7ohduq37vb23ujf46cs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAMzFwPEVwcWaNvFbvfl7zukbCL5tTQnLY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "955105716636-4pf49jso1bitv7ohduq37vb23ujf46cs.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

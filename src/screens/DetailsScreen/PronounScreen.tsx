@@ -26,7 +26,7 @@ const PronounScreen = ({ route }: any) => {
     const datalistnew = new Array(10).fill(null).map((_, index) => ({ id: String(index), }))
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
     const [selectPronoun, setSelectPronoun] = useState(dataFilter?.length ? dataFilter : []);
-    const [showProfile, setShowProfile] = useState(true);
+    
     const onSkip = () => {
         const dataToSave = {
             ...addProfileData,
@@ -73,8 +73,10 @@ const PronounScreen = ({ route }: any) => {
                 </View>
             </View>
             <LinearGradient start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }} colors={["#FFFFFF00", colors.white, colors.white]}>
-                <GoButton colortrue={selectPronoun?.length} onPress={() => onSubmit()} visiBleProfile={true} visible={showProfile} setShowProfile={setShowProfile} />
+                end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                <View style={{ marginTop: metrics.hp9 }}>
+                    <GoButton colortrue={selectPronoun?.length}  onPress={() => onSubmit()} />
+                </View>
             </LinearGradient>
         </AppSafeAreaView>
     )

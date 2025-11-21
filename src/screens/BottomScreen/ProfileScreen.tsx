@@ -20,6 +20,8 @@ const ProfileScreen = () => {
     const [percentage, setPercentage] = useState(25);
     const [tabSelect, setTabSelect] = useState("Premium");
     const userData = useSelector((state: any) => state.auth.userData);
+    console.log(userData,"userData");
+    
     const size = metrics.hp12;
     const strokeWidth = metrics.hp0_5;
     const radius = (size - strokeWidth) / 2;
@@ -195,11 +197,11 @@ const styles = StyleSheet.create({
         marginLeft: metrics.hp1_7,
         borderWidth: metrics.hp0_1,
         borderColor: colors.nanoOpecity,
-        paddingHorizontal: metrics.hp1,
         paddingVertical: metrics.hp0_7,
         borderRadius: metrics.hp5,
         justifyContent: "center",
-        marginTop: metrics.hp1
+        marginTop: metrics.hp1,
+        width:metrics.hp17
     },
     headerTabs: {
         flexDirection: "row",

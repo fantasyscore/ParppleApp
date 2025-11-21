@@ -23,13 +23,15 @@ const ChildrenScreen = ({ route }: any) => {
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
     const filter = route?.params?.filter ?? "";
     const dataFilter = route?.params?.data ?? "";
+    const fieldVisibility = route?.params?.fieldVisibility ?? "";
     const datalistnew = new Array(9).fill(null).map((_, index) => ({ id: String(index), }))
     const [selectPronoun, setSelectPronoun] = useState(dataFilter ? dataFilter : "Don’t have children");
-    const [showProfile, setShowProfile] = useState(true);
+    const [showProfile, setShowProfile] = useState(fieldVisibility? fieldVisibility?.children: true);
     const onSubmit = () => {
         if (filter) {
             const dataToSave = {
                 children: selectPronoun,
+                fieldVisibility: { children: showProfile }
             };
             dispatch(editProfile(dataToSave))
         } else {
@@ -61,8 +63,11 @@ const ChildrenScreen = ({ route }: any) => {
                     />
                 </View>
             </View>
-            <LinearGradient colors={["#FFFFFF00", "#FFFFFF"]} style={{ paddingVertical: metrics.hp0 }}>
-                <GoButton visiBleProfile={true} onPress={() => onSubmit()} colortrue={true} visible={showProfile} setShowProfile={setShowProfile} />
+            <LinearGradient start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                <View style={{ marginTop: metrics.hp9 }}>
+                    <GoButton visiBleProfile={true} onPress={() => onSubmit()} colortrue={true} visible={showProfile} setShowProfile={setShowProfile} />
+                </View>
             </LinearGradient>
         </AppSafeAreaView>
     )

@@ -10,7 +10,19 @@ import { datapersonal } from "../../common/UiltData";
 import { datingIntentionsFilter } from "../../helper/utility";
 
 
-const ProfileBottomDetails = ({ topTextOpacity, visibleCards }: any) => {
+const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover }: any) => {
+    const attributesRemove = visibleCards?.attributes?.filter((item: any) =>
+        ["smoke", "drink", "workout", "pets"].includes(item?.type)
+    );
+    const attributes = visibleCards?.attributes?.filter(
+        (item: any) => !["smoke", "drink", "workout", "pets"].includes(item?.type)
+    );
+    console.log(attributes, "attributes");
+
+    const workout = attributesRemove?.find((item: any) => item.type === "workout");
+    const smoke = attributesRemove?.find((item: any) => item.type === "smoke");
+    const drink = attributesRemove?.find((item: any) => item.type === "drink");
+    const pets = attributesRemove?.find((item: any) => item.type === "pets");
 
     return (
         <View>
@@ -97,22 +109,22 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards }: any) => {
                     </AppText>
                 </View>
                 {visibleCards?.pronouns?.length !== 0 &&
-                <View style={[styles.insideContainer, { marginTop: metrics.hp1 }]}>
-                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                        <FastImage tintColor={colors.darkOpecity} source={pronounIcon} resizeMode="contain" style={styles.bioIcon} />
-                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                            {"    "}
-                            Pronoun
-                        </AppText>
-                    </View>
-                    {visibleCards?.pronouns?.map((value: any, index:any) =>
-                        <View key={index} style={{ flexDirection: "row", alignItems: "center" }}>
-                            <AppText style={{ marginTop: metrics.hp0_5, marginRight: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                {value}
+                    <View style={[styles.insideContainer, { marginTop: metrics.hp1 }]}>
+                        <View style={{ flexDirection: "row", alignItems: "center" }}>
+                            <FastImage tintColor={colors.darkOpecity} source={pronounIcon} resizeMode="contain" style={styles.bioIcon} />
+                            <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                {"    "}
+                                Pronoun
                             </AppText>
                         </View>
-                    )}
-                </View>}
+                        {visibleCards?.pronouns?.map((value: any, index: any) =>
+                            <View key={index} style={{ flexDirection: "row", alignItems: "center" }}>
+                                <AppText style={{ marginTop: metrics.hp0_5, marginRight: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                    {value}
+                                </AppText>
+                            </View>
+                        )}
+                    </View>}
                 <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
                         <FastImage tintColor={colors.darkOpecity} source={straightenIcon} resizeMode="contain" style={styles.bioIcon} />
@@ -126,111 +138,117 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards }: any) => {
                     </AppText>
                 </View>
                 {visibleCards?.zodiaSign !== "" &&
-                <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
-                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                        <FastImage tintColor={colors.darkOpecity} source={moonIcon} resizeMode="contain" style={styles.bioIcon} />
-                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                            {"    "}
-                            Zodiac
+                    <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
+                        <View style={{ flexDirection: "row", alignItems: "center" }}>
+                            <FastImage tintColor={colors.darkOpecity} source={moonIcon} resizeMode="contain" style={styles.bioIcon} />
+                            <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                {"    "}
+                                Zodiac
+                            </AppText>
+                        </View>
+                        <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                            {visibleCards?.zodiaSign}
                         </AppText>
-                    </View>
-                    <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                        {visibleCards?.zodiaSign}
-                    </AppText>
-                </View>}
+                    </View>}
             </View>
-            <View style={styles.bioContinaer}>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <FastImage tintColor={colors.darkOpecity} source={lifeStyleIcon} resizeMode="contain" style={styles.iconsFrom} />
-                    <AppText type={ELEVEN} weight={INTER_BOLD} color={OPECITY_DARK}>
-                        {"  "} Lifestyle
-                    </AppText>
-                </View>
-                <View style={[styles.insideContainer, { marginTop: metrics.hp1 }]}>
+            {(smoke || drink || workout || pets) && (
+                <View style={styles.bioContinaer}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
-                        <FastImage tintColor={colors.darkOpecity} source={smookingIcon} resizeMode="contain" style={styles.bioIcon} />
-                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                            {"    "}
-                            Smoke
+                        <FastImage tintColor={colors.darkOpecity} source={lifeStyleIcon} resizeMode="contain" style={styles.iconsFrom} />
+                        <AppText type={ELEVEN} weight={INTER_BOLD} color={OPECITY_DARK}>
+                            {"  "} Lifestyle
                         </AppText>
                     </View>
-                    {visibleCards?.pronouns?.map((value: any, index:any) =>
-                        <View  key={index} style={{ flexDirection: "row", alignItems: "center" }}>
+                    {smoke &&
+                        <View style={[styles.insideContainer, { marginTop: metrics.hp1 }]}>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <FastImage tintColor={colors.darkOpecity} source={smookingIcon} resizeMode="contain" style={styles.bioIcon} />
+                                <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                    {"    "}
+                                    Smoke
+                                </AppText>
+                            </View>
                             <AppText style={{ marginTop: metrics.hp0_5, marginRight: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                {value}
+                                {smoke?.displayLabel}
                             </AppText>
                         </View>
-                    )}
-                </View>
-                <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
-                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                        <FastImage tintColor={colors.darkOpecity} source={drikingIcon} resizeMode="contain" style={styles.bioIcon} />
-                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                            {"    "}
-                            Drink
-                        </AppText>
-                    </View>
-                    <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                        {visibleCards?.height}
-                    </AppText>
-                </View>
-                <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
-                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                        <FastImage tintColor={colors.darkOpecity} source={workoutIcon} resizeMode="contain" style={styles.bioIcon} />
-                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                            {"    "}
-                            Workout
-                        </AppText>
-                    </View>
-                    <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                        {visibleCards?.zodiaSign}
-                    </AppText>
-                </View>
-                <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
-                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                        <FastImage tintColor={colors.darkOpecity} source={petsIcon} resizeMode="contain" style={styles.bioIcon} />
-                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                            {"    "}
-                            Pets
-                        </AppText>
-                    </View>
-                    <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                        {visibleCards?.zodiaSign}
-                    </AppText>
-                </View>
-            </View>
-
-
-            <View style={styles.bioContinaer}>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <FastImage tintColor={colors.darkOpecity} source={personHeartIcon} resizeMode="contain" style={styles.iconsFrom} />
-                    <AppText type={ELEVEN} weight={INTER_BOLD} color={OPECITY_DARK}>
-                        {"  "}
-                        Interests
-                    </AppText>
-                </View>
-                <View style={styles.wrapContainerTwo}>
-                    {datapersonal?.map((item: any, idx: number) => (
-                        <View key={item.id} style={styles.containerSelect}>
-                            <AppText type={TWELVE} weight={INTER_MEDIUM}>
-                                {item?.title}
+                    }
+                    {drink &&
+                        <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <FastImage tintColor={colors.darkOpecity} source={drikingIcon} resizeMode="contain" style={styles.bioIcon} />
+                                <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                    {"    "}
+                                    Drink
+                                </AppText>
+                            </View>
+                            <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                {drink?.displayLabel}
                             </AppText>
                         </View>
-                    ))}
+                    }
+                    {workout &&
+                        <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <FastImage tintColor={colors.darkOpecity} source={workoutIcon} resizeMode="contain" style={styles.bioIcon} />
+                                <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                    {"    "}
+                                    Workout
+                                </AppText>
+                            </View>
+                            <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                {workout?.displayLabel}
+                            </AppText>
+                        </View>
+                    }
+                    {pets &&
+                        <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <FastImage tintColor={colors.darkOpecity} source={petsIcon} resizeMode="contain" style={styles.bioIcon} />
+                                <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                    {"    "}
+                                    Pets
+                                </AppText>
+                            </View>
+                            <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                {pets?.displayLabel}
+                            </AppText>
+                        </View>
+                    }
                 </View>
-            </View>
+            )}
+            {attributes?.length &&
+                <View style={styles.bioContinaer}>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <FastImage tintColor={colors.darkOpecity} source={personHeartIcon} resizeMode="contain" style={styles.iconsFrom} />
+                        <AppText type={ELEVEN} weight={INTER_BOLD} color={OPECITY_DARK}>
+                            {"  "}
+                            Interests
+                        </AppText>
+                    </View>
+                    <View style={styles.wrapContainerTwo}>
+                        {attributes?.map((item: any, idx: number) => (
+                            <View key={item.id} style={styles.containerSelect}>
+                                <AppText type={TWELVE} weight={INTER_MEDIUM}>
+                                    {item?.displayLabel}
+                                </AppText>
+                            </View>
+                        ))}
+                    </View>
+                </View>
+            }
             <View style={styles.shareDetailsContaier}>
                 <FastImage source={shareIcon} resizeMode="contain" style={styles.shareIcon} />
                 <AppText color={DARKGREEN} weight={INTER_BOLD} type={TWELVE}>
                     {"  "}
-                    Share {visibleCards?.name} Profile
+                    Share {discover ? visibleCards?.firstName : visibleCards?.name} Profile
                 </AppText>
             </View>
             <View style={styles.shareDetailsContaier}>
                 <FastImage source={blackIcon} resizeMode="contain" style={styles.shareIcon} />
                 <AppText color={BLACK} weight={INTER_BOLD} type={TWELVE}>
                     {"  "}
-                    Block {visibleCards?.name} Profile
+                    Block {discover ? visibleCards?.firstName : visibleCards?.name} Profile
                 </AppText>
             </View>
             <View style={styles.shareDetailsContaier}>

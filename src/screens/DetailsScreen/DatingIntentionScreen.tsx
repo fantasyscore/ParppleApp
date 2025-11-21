@@ -17,15 +17,18 @@ import { Screen } from "../../theme/dimens";
 import { useDispatch, useSelector } from "react-redux";
 import { setAddProfile } from "../../slices/loginServices/authSlice";
 import { editProfile } from "../../actions/authActions";
+import LinearGradient from "react-native-linear-gradient";
 
 const DatingIntentionScreen = ({ route }: any) => {
     const dispatch = useDispatch();
     const filter = route?.params?.filter ?? "";
     const dataFilter = route?.params?.data ?? "";
+    const fieldVisibility = route?.params?.fieldVisibility ?? "";
+
     const datalistnew = new Array(10).fill(null).map((_, index) => ({ id: String(index), }))
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
     const [selectDating, setSelectDating] = useState(dataFilter ? dataFilter : 'longTermPartner');
-    const [showProfile, setShowProfile] = useState(true);
+    const [showProfile, setShowProfile] = useState(fieldVisibility ? fieldVisibility?.relationshipPreference : true);
     const data = [
         {
             id: "1",
@@ -78,6 +81,7 @@ const DatingIntentionScreen = ({ route }: any) => {
         if (filter) {
             const dataToSave = {
                 relationshipPreference: selectDating,
+                fieldVisibility: { relationshipPreference: showProfile }
             };
             dispatch(editProfile(dataToSave))
         } else {
@@ -110,7 +114,12 @@ const DatingIntentionScreen = ({ route }: any) => {
                         }} />
                 </View>
             </View>
-            <GoButton visiBleProfile={true} onPress={() => onSubmit()} colortrue={true} visible={showProfile} setShowProfile={setShowProfile} />
+            <LinearGradient start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                <View style={{ marginTop: metrics.hp9 }}>
+                    <GoButton visiBleProfile={true} onPress={() => onSubmit()} colortrue={true} visible={showProfile} setShowProfile={setShowProfile} />
+                </View>
+            </LinearGradient>
         </AppSafeAreaView>
     )
 };

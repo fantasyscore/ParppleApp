@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { ImageBackground, StyleSheet, View } from "react-native";
 import { applogo, callIcon, googleIcon, welcomeVideo } from "../../helper/ImageAssets";
@@ -10,15 +10,50 @@ import { colors } from "../../theme/colors";
 import { AppText, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_REGULAR, SIXTEEN, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_LOGIN_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_LOGIN_SCREEN, NAVIGATION_PROCCED_SCREEN } from "../../navigation/routes";
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { GoogleAuthProvider, getAuth, signInWithCredential } from '@react-native-firebase/auth';
+import { useDispatch } from "react-redux";
+import { setEmailAuth } from "../../slices/loginServices/authSlice";
+import { userLogin } from "../../actions/authActions";
 const WelcomeScreen = () => {
+    const dispatch = useDispatch();
+    useEffect(() => {
+        GoogleSignin.configure({
+            webClientId: '955105716636-4pf49jso1bitv7ohduq37vb23ujf46cs.apps.googleusercontent.com',
+        });
+    }, [])
+    const onGoogleButtonPress = async () => {
+        try {
+            await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+            const signInResult: any = await GoogleSignin.signIn();
+            let idToken = signInResult.data?.idToken;
+            if (!idToken) {
+                idToken = signInResult.idToken;
+            }
+            if (!idToken) {
+                throw new Error('No ID token found');
+            }
+            const googleCredential = GoogleAuthProvider.credential(signInResult.data.idToken);
+            dispatch(setEmailAuth(signInResult))
+            let data = {
+                phoneNumber: null,
+                googleToken: signInResult?.data?.idToken
+            };
+            dispatch(userLogin(data, true))
+            return signInWithCredential(getAuth(), googleCredential);
+        } catch (error) {
+            console.log(error)
+        }
+    };
+    
     return (
         <AppSafeAreaView>
             <FastImage style={styles.welCom}
                 resizeMode="cover" source={welcomeVideo} />
             <FastImage source={applogo} resizeMode="contain" style={styles.logo} />
             <View style={styles.bottomContainer}>
-                <TouchableOpacityView onPress={()=>NavigationService.navigate(NAVIGATION_LOGIN_SCREEN)} style={styles.phoneContainer}>
+                <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_LOGIN_SCREEN)} style={styles.phoneContainer}>
                     <View style={styles.callIconContainer}>
                         <FastImage source={callIcon} resizeMode="contain" style={styles.callIcon} />
                     </View>
@@ -26,14 +61,14 @@ const WelcomeScreen = () => {
                         {"          "}Continue with Phone Number
                     </AppText>
                 </TouchableOpacityView>
-                <View style={[styles.phoneContainer, { marginTop: metrics.hp2 }]}>
+                <TouchableOpacityView onPress={onGoogleButtonPress} style={[styles.phoneContainer, { marginTop: metrics.hp2 }]}>
                     <View style={styles.callIconContainer}>
                         <FastImage source={googleIcon} resizeMode="contain" style={styles.googleIcon} />
                     </View>
                     <AppText weight={INTER_BOLD} type={FORTEEN}>
                         {"                  "}Continue with Google
                     </AppText>
-                </View>
+                </TouchableOpacityView>
                 <AppText type={INTER_REGULAR} style={{ textAlign: "center", marginTop: metrics.hp3 }} color={WHITE}>
                     By tapping Create Account or Sign In, you agree to our <AppText color={WHITE} type={INTER_REGULAR} style={{ textDecorationLine: "underline" }}>Terms &{'\n'} Services.</AppText> Learn how we process your data in our{'\n'}
                     <AppText color={WHITE} type={INTER_REGULAR} style={{ textDecorationLine: "underline" }}>Privacy Policy</AppText> and <AppText color={WHITE} type={INTER_REGULAR} style={{ textDecorationLine: "underline" }}>Cookies Policy.</AppText>
@@ -96,3 +131,7 @@ const styles = StyleSheet.create({
         width: metrics.hp4
     }
 })
+
+
+
+

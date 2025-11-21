@@ -25,6 +25,7 @@ import { scale, verticalScale } from "react-native-size-matters";
 import { useDispatch, useSelector } from "react-redux";
 import { setAddProfile } from "../../slices/loginServices/authSlice";
 import { editProfile } from "../../actions/authActions";
+import LinearGradient from "react-native-linear-gradient";
 
 // --- NO CHANGES IN THIS SECTION ---
 const heights: any = [];
@@ -111,7 +112,7 @@ const HeightScreen = ({ route }: any) => {
       setSelectedHeight(ftHeight);
     } else {
       setSelectFtCm("CM");
-       // Reset to original dataFilter or default 'CM'
+      // Reset to original dataFilter or default 'CM'
       const cmHeight = (dataFilter && dataFilter.includes("cm") && heightsCm.indexOf(dataFilter) !== -1) ? dataFilter : "170 cm";
       setSelectedHeight(cmHeight);
     }
@@ -269,11 +270,16 @@ const HeightScreen = ({ route }: any) => {
           </AppText>
         </View>
       </View>
-      <GoButton
-        onPress={() => onSubmit()}
-        colortrue={selectedHeight}
-        defaultVisible={true}
-      />
+      <LinearGradient start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+        <View style={{ marginTop: metrics.hp9 }}>
+          <GoButton
+            onPress={() => onSubmit()}
+            colortrue={selectedHeight}
+            defaultVisible={true}
+          />
+        </View>
+      </LinearGradient>
     </AppSafeAreaView>
   );
 };

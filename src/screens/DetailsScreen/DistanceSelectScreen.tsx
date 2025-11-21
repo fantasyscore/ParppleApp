@@ -25,14 +25,14 @@ const DispatchSelectScreen = () => {
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
     const datalistnew = new Array(2).fill(null).map((_, index) => ({ id: String(index), }))
     const [sliderValue, setSliderValue] = useState(1);
-    const handleSliderChange = React.useCallback((val:any) => {
+    const handleSliderChange = React.useCallback((val: any) => {
         setSliderValue(Math.round(val));
-      }, []);
-      const onSubmit = () => {
+    }, []);
+    const onSubmit = () => {
         const data = {
             ...addProfileData,
             preferredDistanceKm: sliderValue,
-            fieldVisibility: { ...addProfileData?.fieldVisibility}
+            fieldVisibility: { ...addProfileData?.fieldVisibility }
         };
         dispatch(setAddProfile(data))
         NavigationService.navigate(NAVIGATION_ABOUT_SCREEN)
@@ -102,9 +102,12 @@ const DispatchSelectScreen = () => {
                     You can change preferences in settings.
                 </AppText>
             </View>
-
-            <GoButton colortrue={sliderValue} onPress={() => onSubmit()} />
-
+            <LinearGradient start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                <View style={{ marginTop: metrics.hp9 }}>
+                    <GoButton colortrue={sliderValue} onPress={() => onSubmit()} />
+                </View>
+            </LinearGradient>
         </AppSafeAreaView>
     );
 };

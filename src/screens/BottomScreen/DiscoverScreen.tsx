@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
     Animated,
     ImageBackground,
@@ -7,6 +7,7 @@ import {
     Dimensions,
     FlatList,
     ScrollView,
+    Modal,
 } from "react-native";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import PeopleHeader from "../../common/PeopleHeader";
@@ -28,21 +29,34 @@ import {
 } from "../../common/AppText";
 import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
-import { accountcircleIcon, blueTikeIcon, bussnisIcon, closeIcon, filterIcon, heartRed, locationCIon, recommonedICon } from "../../helper/ImageAssets";
+import { accountcircleIcon, blueTikeIcon, bussnisIcon, closeIcon, filterIcon, heartRed, locationCIon, moonIcon, recommonedICon } from "../../helper/ImageAssets";
 import { datapersonal, editDiscover, editProfileData, profileDataDiscover, similarProfileFilter } from "../../common/UiltData";
 import { colors } from "../../theme/colors";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import RBSheet from "react-native-raw-bottom-sheet";
 import ListCheckBox from "../../common/ListCheckbox";
 import PurpuleButton from "../../common/PurpuleButton";
+import { useDispatch, useSelector } from "react-redux";
+import { discoverProfile, getOtherProfile } from "../../actions/authActions";
+import PreviewDetails from "./PreviewDetails";
+import { SwiperCardRefType } from "rn-swiper-list";
 
 const { width } = Dimensions.get("window");
 const ITEM_WIDTH = metrics.hp34;
 const SPACING = metrics.hp1;
 const DiscoverScreen = () => {
+    const discoverProfileData = useSelector((state: any) => state.auth.discoverProfileData);
+    const dispatch = useDispatch();
+    const ref = useRef<SwiperCardRefType>();
     const refFilter: any = useRef(null);
     const scrollX = useRef(new Animated.Value(0)).current;
     const [selectPronoun, setSelectPronoun] = useState(0);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
+    const [swipeUp, setSwipeUp] = useState(false);
+    const [profileData, setProfileData] = useState();
+    console.log(profileData, "profileData");
+
     const datalist = [
         {
             id: "1",
@@ -60,7 +74,15 @@ const DiscoverScreen = () => {
             id: "4",
             title: "Communities in Common",
         },
-    ]
+    ];
+    const viewProfile = (item: any) => {
+        let data = {
+            "userId": item?._id
+        };
+        let isNavigate = true
+        dispatch(getOtherProfile(data, isNavigate, setProfileData));
+        setModalVisible(true)
+    }
     const discoverRender = ({ item, index }: any) => {
         const inputRange = [
             (index - 1) * (ITEM_WIDTH + SPACING),
@@ -81,116 +103,127 @@ const DiscoverScreen = () => {
         });
 
         return (
-            <Animated.View
-                style={{
-                    transform: [{ scale }],
-                    opacity,
-                    marginLeft: index === 0 ? metrics.hp2_5 : 0,
-                    marginRight: SPACING,
-                }}>
-                <ImageBackground
-                    resizeMode="cover"
-                    imageStyle={{ borderRadius: metrics.hp1_5 }}
-                    style={styles.discoverImage}
-                    source={item.imageUri}>
-                    <View style={{ flex: 1 }} />
-                    <View style={styles.bottomDetails}>
-                        <View>
-                            <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                <AppText type={TWENTY} color={WHITE} weight={INTER_BOLD}>
-                                    Dikhsha, 21{" "}
-                                </AppText>
-                                <FastImage
-                                    source={blueTikeIcon}
-                                    resizeMode="contain"
-                                    style={styles.blueTikIcon}
-                                />
-                            </View>
-                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
-                                <FastImage
-                                    source={bussnisIcon}
-                                    tintColor={colors.white}
-                                    resizeMode="contain"
-                                    style={styles.loctionIcon}
-                                />
-                                <AppText type={ELEVEN} color={WHITE} weight={INTER_MEDIUM}>
-                                    {" "}
-                                    React Native Developer
-                                </AppText>
-                            </View>
-                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
-                                <FastImage source={locationCIon} resizeMode="contain" style={styles.loctionIcon} />
-                                <AppText type={ELEVEN} color={WHITE} weight={INTER_MEDIUM}>
-                                    {" "}
-                                    5 Km away
-                                </AppText>
-                            </View>
-                            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: ITEM_WIDTH - metrics.hp4, marginBottom: -metrics.hp1 }}>
-                                <View style={styles.wrapContainer}>
-                                    {editDiscover.map((item, index) => {
-                                        return (
-                                            <View style={styles.listContainer} key={index}>
-                                                <FastImage
-                                                    tintColor={colors.white}
-                                                    source={item.image}
-                                                    resizeMode="contain"
-                                                    style={styles.icons}
-                                                />
-                                                <AppText color={WHITE} weight={INTER_MEDIUM} type={ELEVEN}>
-                                                    {"  "}
-                                                    {item.title}
-                                                </AppText>
-                                            </View>
-                                        );
-                                    })}
-
+            <TouchableOpacityView key={item?._id} onPress={() => viewProfile(item)} activeOpacity={1}>
+                <Animated.View
+                    style={{
+                        transform: [{ scale }],
+                        opacity,
+                        marginLeft: index === 0 ? metrics.hp2_5 : 0,
+                        marginRight: SPACING,
+                    }}>
+                 <ImageBackground
+                        resizeMode="cover"
+                        imageStyle={{ borderRadius: metrics.hp1_5 }}
+                        style={styles.discoverImage}
+                        source={{ uri: item?.profilePicture[0]?.url }}>
+                        <View style={{ flex: 1 }} />
+                        <View style={styles.bottomDetails}>
+                            <View>
+                                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                    <AppText type={TWENTY} color={WHITE} weight={INTER_BOLD}>
+                                        {item.firstName}, {item.age}{" "}
+                                    </AppText>
+                                    <FastImage
+                                        source={blueTikeIcon}
+                                        resizeMode="contain"
+                                        style={styles.blueTikIcon}
+                                    />
                                 </View>
-                                <View style={[styles.flasContaier]}>
-                                    <FastImage source={heartRed} resizeMode="contain" style={styles.flasIcon} />
+                                <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
+                                    <FastImage
+                                        source={bussnisIcon}
+                                        tintColor={colors.white}
+                                        resizeMode="contain"
+                                        style={styles.loctionIcon}
+                                    />
+                                    <AppText type={ELEVEN} color={WHITE} weight={INTER_MEDIUM}>
+                                        {" "}
+                                        {item.jobTitle}
+                                    </AppText>
                                 </View>
-                            </View>
+                                 <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
+                                    <FastImage source={locationCIon} resizeMode="contain" style={styles.loctionIcon} />
+                                    <AppText type={ELEVEN} color={WHITE} weight={INTER_MEDIUM}>
+                                        {" "}
+                                        5 Km away
+                                    </AppText>
+                                </View>
+                                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: ITEM_WIDTH - metrics.hp4, marginBottom: -metrics.hp1 }}>
+                                     <View style={styles.wrapContainer}>
+                                        <View style={styles.listContainer}>
+                                            <FastImage
+                                                tintColor={colors.white}
+                                                source={moonIcon}
+                                                resizeMode="contain"
+                                                style={styles.icons}
+                                            />
+                                            <AppText color={WHITE} weight={INTER_MEDIUM} type={ELEVEN}>
+                                                {"  "}
+                                                {item.zodiaSign}
+                                            </AppText>
+                                        </View>
+                                         <View  style={styles.listContainer} >
+                                            <FastImage
+                                                tintColor={colors.white}
+                                                source={locationCIon}
+                                                resizeMode="contain"
+                                                style={styles.icons}
+                                            />
+                                            <AppText color={WHITE} weight={INTER_MEDIUM} type={ELEVEN}>
+                                                {"  "}
+                                                {item.city}
+                                            </AppText>
+                                        </View> 
+                                    </View>
+                                    <View style={[styles.flasContaier]}>
+                                        <FastImage source={heartRed} resizeMode="contain" style={styles.flasIcon} />
+                                    </View>
+                                </View> 
+                                </View>
                         </View>
-                    </View>
 
-                </ImageBackground>
-            </Animated.View>
+                    </ImageBackground> 
+                </Animated.View>
+            </TouchableOpacityView>
         );
     };
     const SimilarRender = ({ item, index }: any) => {
         return (
-            <Animated.View
-                style={{
-                    marginLeft: index === 0 ? metrics.hp2_5 : 0,
-                    marginRight: SPACING,
-                }}>
-                <ImageBackground
-                    resizeMode="cover"
-                    imageStyle={{ borderRadius: metrics.hp1_5 }}
-                    style={styles.simlierImage}
-                    source={ item.imageUri }>
-                    <View style={{ flex: 1 }} />
-                    <View style={[styles.bottomDetails, { marginLeft: metrics.hp1, marginBottom: metrics.hp1 }]}>
-                        <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" }}>
-                            <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                <AppText type={FORTEEN} color={WHITE} weight={INTER_BOLD}>
-                                    Dikhsha, 21{" "}
-                                </AppText>
-                                <FastImage
-                                    source={blueTikeIcon}
-                                    resizeMode="contain"
-                                    style={[styles.blueTikIcon, {
-                                        height: metrics.hp2,
-                                        width: metrics.hp2,
-                                    }]}
-                                />
-                            </View>
-                            <View style={[styles.flasContaier, { marginLeft: metrics.hp1 }]}>
-                                <FastImage source={heartRed} resizeMode="contain" style={styles.flasIcon} />
+            <TouchableOpacityView key={item?._id} onPress={() => viewProfile(item)} activeOpacity={1}>
+                <Animated.View
+                    style={{
+                        marginLeft: index === 0 ? metrics.hp2_5 : 0,
+                        marginRight: SPACING,
+                    }}>
+                    <ImageBackground
+                        resizeMode="cover"
+                        imageStyle={{ borderRadius: metrics.hp1_5 }}
+                        style={styles.simlierImage}
+                        source={{ uri: item?.profilePicture[0]?.url }}>
+                        <View style={{ flex: 1 }} />
+                        <View style={[styles.bottomDetails, { marginLeft: metrics.hp1, marginBottom: metrics.hp1 }]}>
+                            <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" }}>
+                                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                    <AppText type={FORTEEN} color={WHITE} weight={INTER_BOLD}>
+                                        {item.firstName}, {item.age}{" "}
+                                    </AppText>
+                                    <FastImage
+                                        source={blueTikeIcon}
+                                        resizeMode="contain"
+                                        style={[styles.blueTikIcon, {
+                                            height: metrics.hp2,
+                                            width: metrics.hp2,
+                                        }]}
+                                    />
+                                </View>
+                                <View style={[styles.flasContaier, { marginLeft: metrics.hp1 }]}>
+                                    <FastImage source={heartRed} resizeMode="contain" style={styles.flasIcon} />
+                                </View>
                             </View>
                         </View>
-                    </View>
-                </ImageBackground>
-            </Animated.View>
+                    </ImageBackground>
+                </Animated.View>
+            </TouchableOpacityView>
         )
     }
     return (
@@ -231,9 +264,9 @@ const DiscoverScreen = () => {
                 </View>
                 <View>
                     <Animated.FlatList
-                        data={profileDataDiscover}
+                        data={discoverProfileData}
                         renderItem={discoverRender}
-                        keyExtractor={(item) => item.id}
+                        keyExtractor={(item) => item?._id}
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         snapToInterval={ITEM_WIDTH + SPACING}
@@ -265,7 +298,7 @@ const DiscoverScreen = () => {
                             {"  "}Similar Soulmates Profiles
                         </AppText>
                     </View>
-                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    {/* <View style={{ flexDirection: "row", alignItems: "center" }}>
                         <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={styles.wrapContainerTwo}>
                             {similarProfileFilter?.map((item: any, index: any) => {
                                 return (
@@ -286,11 +319,11 @@ const DiscoverScreen = () => {
                         <TouchableOpacityView onPress={() => refFilter?.current?.open()} style={styles.filterButton}>
                             <FastImage source={filterIcon} resizeMode="contain" style={styles.filterIcon} />
                         </TouchableOpacityView>
-                    </View>
+                    </View> */}
                     <FlatList
-                        data={profileDataDiscover}
+                        data={discoverProfileData}
                         renderItem={SimilarRender}
-                        keyExtractor={(item) => item.id}
+                        keyExtractor={(item) => String(item?._id)}
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={{ paddingVertical: metrics.hp2 }}
@@ -327,6 +360,16 @@ const DiscoverScreen = () => {
                 />
                 <PurpuleButton title={"Apply"} />
             </RBSheet>
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={() => setModalVisible(false)}>
+                <PreviewDetails data={profileData} setModalVisible={setModalVisible}
+                    setSwipeUp={setSwipeUp} modalVisible={modalVisible} 
+                    setProfileData={setProfileData}
+                    discover={true}/>
+            </Modal>
         </AppSafeAreaView>
     );
 };

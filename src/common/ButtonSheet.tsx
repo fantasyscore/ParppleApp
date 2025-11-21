@@ -3,28 +3,40 @@ import { StyleSheet, View } from "react-native";
 import metrics from "../assets/Metrics";
 import { colors } from "../theme/colors";
 import FastImage from "react-native-fast-image";
-import { AppText, BLACK, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, OPECITY, TEN, TWELVE } from "./AppText";
+import { AppText, BLACK, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, TEN, TWELVE } from "./AppText";
 import { keywordRightArrow } from "../helper/ImageAssets";
 import { TouchableOpacityView } from "./TouchableOpacityView";
 
 const ButtonSheet = ({ Icons, headLines, titile, onPress, togleTure, togleShow, setToggleShow, edit, hidden, data, color }: any) => {
-    console.log(data,"datadatadatadatadata");
-    
+
     return (
         data?.length ?
             <TouchableOpacityView onPress={onPress} style={styles.listData}>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: metrics.hp0_5 }}>
                     {data?.map((item: any, index: any) => {
                         return (
                             <View key={index} style={styles.containerSelect}>
                                 <AppText type={TWELVE} weight={INTER_MEDIUM}>
-                                    {item}
+                                    {titile == "Add Language" ? item : item?.displayLabel}
                                 </AppText>
                             </View>
                         )
                     })}
                 </View>
-                <FastImage source={keywordRightArrow} resizeMode="contain" style={styles.keywordRightArrow} />
+                <View style={{
+                    position: "absolute",
+                    bottom: metrics.hp1_3,
+                    right: metrics.hp1,
+                    flexDirection: "row",
+                    alignItems: "center"
+                }}>
+                    {hidden == "Hidden" &&
+                        <AppText style={{ textTransform: "capitalize", marginBottom: metrics.hp0_3 }} color={OPECITY} weight={INTER_SEMI_BOLD} type={TEN}>
+                            {"Hidden"}{"   "}
+                        </AppText>
+                    }
+                    <FastImage source={keywordRightArrow} resizeMode="contain" style={[styles.keywordRightArrow, {}]} />
+                </View>
             </TouchableOpacityView> :
             <View style={[styles.headConatiner, {
                 paddingHorizontal: !edit ? metrics.hp2 : 0,
@@ -40,9 +52,12 @@ const ButtonSheet = ({ Icons, headLines, titile, onPress, togleTure, togleShow, 
                     : <></>}
                 <View style={styles.container}>
                     <TouchableOpacityView disabled={togleTure} onPress={onPress} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                        <AppText style={{ textTransform: "capitalize" }} type={TWELVE} color={color ? BLACK : titile == "Select" ? OPECITY : edit ? OPECITY : BLACK} weight={INTER_SEMI_BOLD}>
-                            {titile}
-                        </AppText>
+                        <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: metrics.hp0_5 }}>
+                            <AppText numberOfLines={1}
+                                ellipsizeMode="tail" style={{ textTransform: "capitalize", maxWidth: metrics.hp30, }} type={TWELVE} color={color ? BLACK : titile == "Select" ? OPECITY : edit ? OPECITY : BLACK} weight={INTER_SEMI_BOLD}>
+                                {titile}
+                            </AppText>
+                        </View>
                         {togleTure ?
                             <TouchableOpacityView onPress={() => setToggleShow(!togleShow)} style={[styles.slideContainer, { backgroundColor: togleShow ? colors.green : colors.nanoOpecity }]}>
                                 {togleShow ?
@@ -54,9 +69,9 @@ const ButtonSheet = ({ Icons, headLines, titile, onPress, togleTure, togleShow, 
                                     <View style={styles.slideUnSelect} />
                                 }
                             </TouchableOpacityView> :
-                            <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                <AppText type={TEN} weight={INTER_SEMI_BOLD} color={OPECITY}>
-                                    {hidden}{"   "}
+                            <View style={{ flexDirection: "row", alignItems: "center", }}>
+                                <AppText style={{ textTransform: "capitalize" }} color={hidden == "Hidden" ? OPECITY : LIGHT_BLACK} weight={INTER_SEMI_BOLD} type={hidden == "Hidden" ? TEN : TWELVE}>
+                                    {hidden == "Hidden" ? hidden : hidden}{"   "}
                                 </AppText>
                                 <FastImage source={keywordRightArrow} resizeMode="contain" style={styles.keywordRightArrow} />
                             </View>
@@ -71,7 +86,7 @@ export default ButtonSheet;
 const styles = StyleSheet.create({
     headConatiner: {
         paddingHorizontal: metrics.hp2,
-        marginTop: metrics.hp2
+        marginTop: metrics.hp2,
     },
     container: {
         paddingHorizontal: metrics.hp1_5,
@@ -86,7 +101,8 @@ const styles = StyleSheet.create({
     },
     keywordRightArrow: {
         height: metrics.hp2_4,
-        width: metrics.hp2_4
+        width: metrics.hp2_4,
+
     },
     slideContainer: {
         borderRadius: metrics.hp3,
@@ -114,7 +130,6 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp3
     },
     listData: {
-        height: metrics.hp6,
         borderWidth: metrics.hp0_1,
         borderColor: colors.nanoOpecity,
         marginTop: metrics.hp2,
@@ -122,7 +137,8 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: metrics.hp1,
-        justifyContent: "space-between"
+        justifyContent: "space-between",
+        paddingVertical: metrics.hp1
     },
     containerSelect: {
         height: metrics.hp3,
@@ -131,6 +147,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: colors.green,
-        marginLeft: metrics.hp1
+        marginLeft: metrics.hp1,
     }
 })

@@ -23,4 +23,10 @@ export default (appOperation: AppOperation) => ({
     appOperation.post(`dattingApp/users/me`, {}, CUSTOMER_TYPE),
   editProfileAPI: (data:any) =>
     appOperation.post(`dattingApp/users/edit-profile`, data, CUSTOMER_TYPE),
+  attributesAPI: () =>
+    appOperation.post(`attributes/getAttributes`, {}, CUSTOMER_TYPE),
+  editFilterAPI: (data:any) =>
+    appOperation.post(`dattingApp/users/edit-filters`, data, CUSTOMER_TYPE),
+  discoverAPI: () =>
+    appOperation.get(`datting-profile/discoveredProfiles`,  undefined, undefined, CUSTOMER_TYPE),
 });

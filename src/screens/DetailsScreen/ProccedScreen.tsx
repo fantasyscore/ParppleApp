@@ -7,12 +7,12 @@ import PurpuleButton from "../../common/PurpuleButton";
 import FastImage from "react-native-fast-image";
 import { basicDetailsBackground, doc } from "../../helper/ImageAssets";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_ADD_PHOTOS_SCREEN, NAVIGATION_EMAIL_SCREEN, NAVIGATION_RELATION_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_ADD_PHOTOS_SCREEN, NAVIGATION_EMAIL_SCREEN, NAVIGATION_NAME_SCREEN, NAVIGATION_RELATION_SCREEN } from "../../navigation/routes";
 
 const ProccedScreen = ({ route }: any) => {
     let comming = route?.params?.comming ?? "";
     const onGo = () => {
-        if (comming == "OTP") NavigationService.navigate(NAVIGATION_EMAIL_SCREEN);
+        if (comming == "OTP") NavigationService.navigate(NAVIGATION_NAME_SCREEN);
         if (comming == "languages") NavigationService.navigate(NAVIGATION_RELATION_SCREEN);
         if (comming == "About") NavigationService.navigate(NAVIGATION_ADD_PHOTOS_SCREEN)
     };

@@ -35,8 +35,8 @@ export const getAddressFromCoordinates = async (latitude: number, longitude: num
 };
 export const datingIntentionsFilter = (relationshipPreference: any) => {
   if (relationshipPreference == "longTermPartner") return "Long-term partner";
-  if (relationshipPreference == "longTermAndOpenToShort") return "Long-term ,\nOpen to short";
-  if (relationshipPreference == "OpenToShortAndlongTerm") return "Short-term,\nopen to long";
+  if (relationshipPreference == "longTermAndOpenToShort") return "Long-term ,Open to short";
+  if (relationshipPreference == "OpenToShortAndlongTerm") return "Short-term,open to long";
   if (relationshipPreference == "openToShort") return "Short-term fun";
   if (relationshipPreference == "friends") return "New friends";
   if (relationshipPreference == "notSure") return "Still figuring it out";

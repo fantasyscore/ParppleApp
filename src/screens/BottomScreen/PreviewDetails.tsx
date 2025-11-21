@@ -15,7 +15,7 @@ import { setListProfiles } from "../../slices/loginServices/authSlice";
 
 const { width, height } = Dimensions.get("window");
 const COLLAPSED_IMAGE_HEIGHT = height * 0.67;
-const PreviewDetails = ({ data, setModalVisible, ref, setSwipeRight, setSwipeUp, setSwipeLeft, ImageIndex, CurrentImageIndex }: any) => {
+const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setSwipeLeft, setProfileData, discover }: any) => {
     const dispatch = useDispatch();
     const cardWidthRef = useRef(0);
     const listProfilesData = useSelector((state: any) => state.auth.listProfiles);
@@ -23,25 +23,36 @@ const PreviewDetails = ({ data, setModalVisible, ref, setSwipeRight, setSwipeUp,
         const totalImages = profile?.gallery?.length || 0;
         if (!evt?.nativeEvent?.locationX || !cardWidthRef.current) return;
         const x = evt.nativeEvent.locationX;
-        const updatedProfiles = listProfilesData.map((p: any) => {
-            if (p._id === profile._id) {
-                let newIndex = p.index || 0;
-                if (x > cardWidthRef.current / 2) {
-                    newIndex = newIndex < totalImages - 1 ? newIndex + 1 : newIndex;
-                } else {
-                    newIndex = newIndex > 0 ? newIndex - 1 : newIndex;
-                }
-                return { ...p, index: newIndex };
+        if (discover) {
+            let newIndex = profile.index || 0;
+            if (x > cardWidthRef.current / 2) {
+                newIndex = newIndex < totalImages - 1 ? newIndex + 1 : newIndex;
+            } else {
+                newIndex = newIndex > 0 ? newIndex - 1 : newIndex;
             }
-            return p;
-        });
-        dispatch(setListProfiles(updatedProfiles));
+            const updatedObject = { ...profile, index: newIndex };
+            setProfileData(updatedObject);
+        } else {
+            const updatedProfiles = listProfilesData.map((p: any) => {
+                if (p._id === profile._id) {
+                    let newIndex = p.index || 0;
+                    if (x > cardWidthRef.current / 2) {
+                        newIndex = newIndex < totalImages - 1 ? newIndex + 1 : newIndex;
+                    } else {
+                        newIndex = newIndex > 0 ? newIndex - 1 : newIndex;
+                    }
+                    return { ...p, index: newIndex };
+                }
+                return p;
+            });
+            dispatch(setListProfiles(updatedProfiles));
+        }
     };
     const scrollViewRef: any = useRef(null);
 
     return (
         <AppSafeAreaView style={{ marginTop: -metrics.hp4 }}>
-            <PeopleHeader profile={false} userName={true} name={data?.name} age={data?.age} />
+            <PeopleHeader profile={false} userName={true} name={discover ? data?.firstName : data?.name} age={data?.age} />
             <ScrollView
                 ref={scrollViewRef}
                 style={styles.container}
@@ -88,14 +99,14 @@ const PreviewDetails = ({ data, setModalVisible, ref, setSwipeRight, setSwipeUp,
                         </TouchableOpacityView>
                     </ImageBackground>
                 </TouchableOpacityView>
-                <ProfileBottomDetails visibleCards={data} />
+                <ProfileBottomDetails visibleCards={data} discover={discover}/>
             </ScrollView>
             <View style={styles.likeUnLikeCOntainer}>
                 <View style={[styles.flasContaier, { opacity: 0 }]}>
                     <FastImage source={flashIcon} resizeMode="contain" style={styles.flasIcon} />
                 </View>
-                <View style={styles.unlickContainer} >
-                    <TouchableOpacityView onPress={() => {
+                <View style={[styles.unlickContainer, { opacity: discover ? 0 : 1 }]} >
+                    <TouchableOpacityView disabled={discover} onPress={() => {
                         scrollViewRef.current?.scrollTo({ y: 0, animated: true });
                         setTimeout(() => {
                             setModalVisible(false);
@@ -116,8 +127,8 @@ const PreviewDetails = ({ data, setModalVisible, ref, setSwipeRight, setSwipeUp,
                         <FastImage source={heartRed} resizeMode="contain" style={styles.flasIcon} />
                     </TouchableOpacityView>
                 </View>
-                <View style={styles.unlickContainer} >
-                    <TouchableOpacityView onPress={() => {
+                <View style={[styles.unlickContainer, { opacity: discover ? 0 : 1 }]} >
+                    <TouchableOpacityView disabled={discover} onPress={() => {
                         scrollViewRef.current?.scrollTo({ y: 0, animated: true });
                         setTimeout(() => {
                             setModalVisible(false);

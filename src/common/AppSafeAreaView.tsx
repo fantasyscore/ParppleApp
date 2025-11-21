@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { Platform, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "../theme/colors";
 import { AppSafeAreaViewProps } from "../types/common";
+import { useFocusEffect } from "@react-navigation/native";
 
 const AppSafeAreaView = ({
   children,
@@ -10,6 +11,16 @@ const AppSafeAreaView = ({
   statusColor,
   color,
 }: AppSafeAreaViewProps) => {
+  useFocusEffect(
+    useCallback(() => {
+      if (Platform.OS === 'android') {
+        setTimeout(() => {
+          StatusBar.setBackgroundColor('transparent')
+          StatusBar.setTranslucent(true)
+        }, 100)
+      }
+    }, [])
+  )
   return Platform.OS === "ios" ? (
     <View style={[{ flex: 1 }, style]}>
       <SafeAreaView

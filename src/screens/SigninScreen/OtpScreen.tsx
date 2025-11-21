@@ -11,58 +11,71 @@ import GoButton from "../../common/GoButton";
 import DubleTextLine from "../../common/DubleTextLine";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_PROCCED_SCREEN } from "../../navigation/routes";
+import LinearGradient from "react-native-linear-gradient";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 const OtpScreen = () => {
     const [otpNumber, setOtpNumber] = useState("");
     return (
         <AppSafeAreaView>
-            <HeaderCommon />
-            <View style={styles.container}>
-                <DubleTextLine firstText={"Enter your verification"} secondText={"code."} thirdText={"+91 89492 65256"} />
-                <OtpInput
-                    numberOfDigits={6}
-                    focusColor="transparnet"
-                    autoFocus={true}
-                    hideStick={true}
-                    placeholder=""
-                    blurOnFilled={true}
-                    disabled={false}
-                    type="numeric"
-                    secureTextEntry={false}
-                    focusStickBlinkingDuration={500}
-                    onFocus={() => console.log("Focused")}
-                    onBlur={() => console.log("Blurred")}
-                    onTextChange={(text) => setOtpNumber(text)}
-                    onFilled={(text) => console.log(`OTP is ${text}`)}
-                    textInputProps={{
-                        accessibilityLabel: "One-Time Password",
-                    }}
-                    textProps={{
-                        accessibilityRole: "text",
-                        accessibilityLabel: "OTP digit",
-                        allowFontScaling: false,
-                    }}
-                    theme={{
-                        containerStyle: styles.containerOTP,
-                        pinCodeContainerStyle: styles.pinCodeContainer,
-                        pinCodeTextStyle: styles.pinCodeText,
-                        focusStickStyle: styles.focusStick,
-                        focusedPinCodeContainerStyle: styles.activePinCodeContainer,
-                        placeholderTextStyle: styles.placeholderText,
-                        filledPinCodeContainerStyle: styles.filledPinCodeContainer,
-                        disabledPinCodeContainerStyle: styles.disabledPinCodeContainer,
-                    }}
-                />
-                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: metrics.hp1 }}>
-                    <AppText color={OPECITY} weight={INTER_MEDIUM} type={TWELVE}>
-                        Didn’t received code?
-                    </AppText>
-                    <AppText style={{ textDecorationLine: "underline", }} color={PURPLE} weight={INTER_MEDIUM} type={TWELVE}>
-                        Resend
-                    </AppText>
+            <KeyboardAwareScrollView
+                showsVerticalScrollIndicator={false}
+                enableOnAndroid={true}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ flexGrow: 1 }}>
+                <HeaderCommon />
+                <View style={styles.container}>
+                    <DubleTextLine firstText={"Enter your verification"} secondText={"code."} thirdText={"+91 89492 65256"} />
+                    <OtpInput
+                        numberOfDigits={6}
+                        focusColor="transparnet"
+                        autoFocus={true}
+                        hideStick={true}
+                        placeholder=""
+                        blurOnFilled={true}
+                        disabled={false}
+                        type="numeric"
+                        secureTextEntry={false}
+                        focusStickBlinkingDuration={500}
+                        onFocus={() => console.log("Focused")}
+                        onBlur={() => console.log("Blurred")}
+                        onTextChange={(text) => setOtpNumber(text)}
+                        onFilled={(text) => console.log(`OTP is ${text}`)}
+                        textInputProps={{
+                            accessibilityLabel: "One-Time Password",
+                        }}
+                        textProps={{
+                            accessibilityRole: "text",
+                            accessibilityLabel: "OTP digit",
+                            allowFontScaling: false,
+                        }}
+                        theme={{
+                            containerStyle: styles.containerOTP,
+                            pinCodeContainerStyle: styles.pinCodeContainer,
+                            pinCodeTextStyle: styles.pinCodeText,
+                            focusStickStyle: styles.focusStick,
+                            focusedPinCodeContainerStyle: styles.activePinCodeContainer,
+                            placeholderTextStyle: styles.placeholderText,
+                            filledPinCodeContainerStyle: styles.filledPinCodeContainer,
+                            disabledPinCodeContainerStyle: styles.disabledPinCodeContainer,
+                        }}
+                    />
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: metrics.hp1 }}>
+                        <AppText color={OPECITY} weight={INTER_MEDIUM} type={TWELVE}>
+                            Didn’t received code?
+                        </AppText>
+                        <AppText style={{ textDecorationLine: "underline", }} color={PURPLE} weight={INTER_MEDIUM} type={TWELVE}>
+                            Resend
+                        </AppText>
+                    </View>
                 </View>
-            </View>
-            <GoButton onPress={()=>NavigationService.navigate(NAVIGATION_PROCCED_SCREEN,{comming:"OTP"})}/>
+                <LinearGradient start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                    <View style={{ marginTop: metrics.hp9 }}>
+                        <GoButton onPress={() => NavigationService.navigate(NAVIGATION_PROCCED_SCREEN, { comming: "OTP" })} />
+                    </View>
+                </LinearGradient>
+            </KeyboardAwareScrollView>
         </AppSafeAreaView>
     )
 };

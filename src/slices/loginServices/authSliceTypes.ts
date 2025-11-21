@@ -151,7 +151,11 @@ export interface AuthState {
   viewByOtherData:undefined;
   viewYouData:undefined;
   otherUserProfile:undefined;
-  userData:undefined
+  userData:undefined;
+  attributes:[];
+  filterData:undefined;
+  discoverProfileData:[];
+  emailAuth:undefined;
 }
 export interface DeviceTokenParams {
   merchantId: string;

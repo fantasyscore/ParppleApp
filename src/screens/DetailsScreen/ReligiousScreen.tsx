@@ -24,9 +24,10 @@ const ReligiousScreen = ({ route }: any) => {
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
     const filter = route?.params?.filter ?? "";
     const dataFilter = route?.params?.data ?? "";
+    const fieldVisibility = route?.params?.fieldVisibility ?? "";
     const datalistnew = new Array(4).fill(null).map((_, index) => ({ id: String(index), }))
     const [selectPronoun, setSelectPronoun] = useState(dataFilter?.length ? dataFilter : []);
-    const [showProfile, setShowProfile] = useState(true);
+    const [showProfile, setShowProfile] = useState(fieldVisibility ? fieldVisibility?.relegiousBelief : true);
     const onSkip = () => {
         const dataToSave = {
             ...addProfileData,
@@ -41,6 +42,7 @@ const ReligiousScreen = ({ route }: any) => {
         if (filter) {
             const dataToSave = {
                 relegiousBelief: selectPronoun,
+                fieldVisibility: { relegiousBelief: showProfile }
             };
             dispatch(editProfile(dataToSave))
         } else {
@@ -73,8 +75,10 @@ const ReligiousScreen = ({ route }: any) => {
                 </View>
             </View>
             <LinearGradient start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }} colors={["#FFFFFF00", colors.white, colors.white]}>
-                <GoButton colortrue={selectPronoun?.length} onPress={() => onSubmit()} visiBleProfile={true} visible={showProfile} setShowProfile={setShowProfile} />
+                end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                <View style={{ marginTop: metrics.hp9 }}>
+                    <GoButton colortrue={selectPronoun?.length} onPress={() => onSubmit()} visiBleProfile={true} visible={showProfile} setShowProfile={setShowProfile} />
+                </View>
             </LinearGradient>
         </AppSafeAreaView>
     )
