@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Animated,
     ImageBackground,
@@ -29,7 +29,7 @@ import {
 } from "../../common/AppText";
 import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
-import { accountcircleIcon, blueTikeIcon, bussnisIcon, closeIcon, filterIcon, heartRed, locationCIon, moonIcon, recommonedICon } from "../../helper/ImageAssets";
+import { accountcircleIcon, blueTikeIcon, bussnisIcon, closeIcon, filterIcon, goldCard, heartRed, locationCIon, moonIcon, recommonedICon } from "../../helper/ImageAssets";
 import { datapersonal, editDiscover, editProfileData, profileDataDiscover, similarProfileFilter } from "../../common/UiltData";
 import { colors } from "../../theme/colors";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
@@ -41,14 +41,17 @@ import { discoverProfile, getOtherProfile, swipeLikeDisLike } from "../../action
 import { SwiperCardRefType } from "rn-swiper-list";
 import SuperLikeScreen from "../HomeScreens/SuperLikeScreen";
 import PreviewDetails from "../HomeScreens/PreviewDetails";
+import NavigationService from "../../navigation/NavigationService";
+import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 
 const { width } = Dimensions.get("window");
 const ITEM_WIDTH = metrics.hp34;
 const SPACING = metrics.hp1;
 const DiscoverScreen = () => {
     const discoverProfileData = useSelector((state: any) => state.auth.discoverProfileData);
+    const userData = useSelector((state: any) => state.auth.userData);
     const dispatch = useDispatch();
-    const ref = useRef<SwiperCardRefType>();
+    const ref = useRef<SwiperCardRefType>(null);
     const refFilter: any = useRef(null);
     const scrollX = useRef(new Animated.Value(0)).current;
     const [selectPronoun, setSelectPronoun] = useState(0);
@@ -56,9 +59,25 @@ const DiscoverScreen = () => {
     const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
     const [swipeUp, setSwipeUp] = useState(false);
     const [superLikeVisible, setSuperLikeVisible] = useState(false);
-    const [profileData, setProfileData] = useState();
+    const [profileData, setProfileData] = useState<any>(null);
+    const [remainingSuperLikes, setRemainingSuperLikes] = useState(userData?.superLikesRemaining ?? 0);
     console.log(profileData, "profileData");
+    
+    const subscriptionItem = useMemo(() => ({ id: '2', icon: goldCard, title: 'Gold' }), []);
 
+    // Sync remaining super likes whenever user data updates
+    useEffect(() => {
+        setRemainingSuperLikes(userData?.superLikesRemaining ?? 0);
+    }, [userData?.superLikesRemaining]);
+    
+    const canSuperLike = useCallback(() => {
+        if ((remainingSuperLikes ?? 0) <= 0) {
+            NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
+            return false;
+        }
+        return true;
+    }, [remainingSuperLikes, subscriptionItem]);
+    
     const datalist = [
         {
             id: "1",
@@ -185,7 +204,11 @@ const DiscoverScreen = () => {
                                             </AppText>
                                         </View>
                                     </View>
-                                    <TouchableOpacityView onPress={() => { setSuperLikeVisible(true),viewProfile(item, true)}} style={[styles.flasContaier]}>
+                                    <TouchableOpacityView onPress={() => {
+                                        if (!canSuperLike()) return;
+                                        setSuperLikeVisible(true);
+                                        viewProfile(item, true);
+                                    }} style={[styles.flasContaier]}>
                                         <FastImage source={heartRed} resizeMode="contain" style={styles.flasIcon} />
                                     </TouchableOpacityView>
                                 </View>
@@ -226,7 +249,11 @@ const DiscoverScreen = () => {
                                         }]}
                                     />
                                 </View>
-                                <TouchableOpacityView onPress={() => { setSuperLikeVisible(true),viewProfile(item, true)}} style={[styles.flasContaier, { marginLeft: metrics.hp1 }]}>
+                                <TouchableOpacityView onPress={() => {
+                                    if (!canSuperLike()) return;
+                                    setSuperLikeVisible(true);
+                                    viewProfile(item, true);
+                                }} style={[styles.flasContaier, { marginLeft: metrics.hp1 }]}>
                                     <FastImage source={heartRed} resizeMode="contain" style={styles.flasIcon} />
                                 </TouchableOpacityView>
                             </View>
@@ -238,18 +265,25 @@ const DiscoverScreen = () => {
     };
     useEffect(() => {
         if (!modalVisible && swipeUp) {
+            // Double-check if user can super like before dispatching
+            if (!canSuperLike()) {
+                setSuperLikeVisible(false);
+                setSwipeUp(false);
+                return;
+            }
             const timer = setTimeout(() => {
                 let datanew = {
                     "swipedId": profileData?._id,
                     "type": "superLike"
                 };
                 dispatch(swipeLikeDisLike(datanew));
+                setRemainingSuperLikes((prev: number) => Math.max((prev ?? 0) - 1, 0));
                 setSuperLikeVisible(false);
                 setSwipeUp(false);
             }, 200);
             return () => clearTimeout(timer);
         }
-    }, [modalVisible, swipeUp])
+    }, [modalVisible, swipeUp, canSuperLike])
 
     return (
         <AppSafeAreaView>
@@ -394,7 +428,8 @@ const DiscoverScreen = () => {
                     setSwipeUp={setSwipeUp} modalVisible={modalVisible}
                     setProfileData={setProfileData}
                     discover={true}
-                    setSuperLikeVisible={setSuperLikeVisible} />
+                    setSuperLikeVisible={setSuperLikeVisible}
+                    canSuperLike={canSuperLike} />
             </Modal>
             <Modal
                 animationType="fade"

@@ -15,7 +15,7 @@ import ProfileBottomDetails from "./ProfileBottomDetail";
 
 const { width, height } = Dimensions.get("window");
 const COLLAPSED_IMAGE_HEIGHT = height * 0.67;
-const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setSwipeLeft, setProfileData, discover, setSuperLikeVisible }: any) => {
+const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setSwipeLeft, setProfileData, discover, setSuperLikeVisible, canSuperLike }: any) => {
     const dispatch = useDispatch();
     const cardWidthRef = useRef(0);
     const listProfilesData = useSelector((state: any) => state.auth.listProfiles);
@@ -118,6 +118,10 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                 </View>
                 <View style={styles.flasContaier}>
                     <TouchableOpacityView onPress={() => {
+                        // Check if user can super like (for discover mode)
+                        if (discover && canSuperLike && !canSuperLike()) {
+                            return;
+                        }
                         scrollViewRef.current?.scrollTo({ y: 0, animated: true });
                         setTimeout(() => {
                             setSuperLikeVisible(true)

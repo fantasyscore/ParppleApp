@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { Dimensions, FlatList, Modal, PermissionsAndroid, Platform, StyleSheet, View } from "react-native";
 import HeaderCommon from "../../common/HeaderCommon";
@@ -51,20 +51,44 @@ const AddPhotoScreen = () => {
   );
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
+  const isPickerOpenRef = useRef(false);
+  
   const onLongPressImage = (imageUri: string) => {
     if (!imageUri) return;
     setPreviewImage(imageUri);
     setPreviewVisible(true);
   };
   const pickMultipleImages = async () => {
+    // Prevent multiple simultaneous picker launches
+    if (isPickerOpenRef.current) return;
+    
     const hasPermission = await requestGalleryPermission();
     if (!hasPermission) return;
 
-    launchImageLibrary({ mediaType: "photo", selectionLimit: 6 }, async (res: any) => {
-      if (res.didCancel || !res.assets || res.assets.length === 0) return;
+    isPickerOpenRef.current = true;
+
+    launchImageLibrary(
+      { 
+        mediaType: "photo", 
+        selectionLimit: 6,
+        quality: 0.8,
+        ...(Platform.OS === 'ios' && { presentationStyle: 'pageSheet' })
+      }, 
+      async (res: any) => {
+        // Always reset the flag when picker closes
+        isPickerOpenRef.current = false;
+        
+        // Handle cancellation or errors
+        if (res.didCancel) return;
+        if (res.errorCode || res.errorMessage) {
+          console.error("Image picker error:", res.errorMessage);
+          return;
+        }
+        if (!res.assets || res.assets.length === 0) return;
 
       const assets = res.assets.slice(0, 6);
 
+        // Set loading state
       setPhotos((prev) => {
         const updated = [...prev];
         let count = 0;
@@ -77,6 +101,7 @@ const AddPhotoScreen = () => {
         return updated;
       });
 
+        // Process uploads asynchronously after state update
       try {
         const uploadedUrls: string[] = [];
 
@@ -97,6 +122,7 @@ const AddPhotoScreen = () => {
           }
         }
 
+          // Update photos with uploaded URLs
         setPhotos((prev) => {
           const updated = [...prev];
           let uploadIndex = 0;
@@ -113,22 +139,46 @@ const AddPhotoScreen = () => {
         console.error("Upload failed:", err);
         setPhotos((prev) => prev.map((p) => ({ ...p, loading: false })));
       }
-    });
+      }
+    );
   };
 
   const pickSingleImage = async (index: number) => {
+    // Prevent multiple simultaneous picker launches
+    if (isPickerOpenRef.current) return;
+    
     const hasPermission = await requestGalleryPermission();
     if (!hasPermission) return;
 
-    launchImageLibrary({ mediaType: "photo", selectionLimit: 1 }, async (res: any) => {
-      if (res.didCancel || !res.assets || res.assets.length === 0) return;
+    isPickerOpenRef.current = true;
 
+    launchImageLibrary(
+      { 
+        mediaType: "photo", 
+        selectionLimit: 1,
+        quality: 0.8,
+        ...(Platform.OS === 'ios' && { presentationStyle: 'pageSheet' })
+      }, 
+      async (res: any) => {
+        // Always reset the flag when picker closes
+        isPickerOpenRef.current = false;
+        
+        // Handle cancellation or errors
+        if (res.didCancel) return;
+        if (res.errorCode || res.errorMessage) {
+          console.error("Image picker error:", res.errorMessage);
+          return;
+        }
+        if (!res.assets || res.assets.length === 0) return;
+
+        // Set loading state
       setPhotos((prev) => {
         const updated = [...prev];
         updated[index].loading = true;
         return updated;
       });
 
+        // Process upload asynchronously after state update
       try {
         const compressedUri = await ImageCompressor.compress(res.assets[0].uri, {
           compressionMethod: "auto",
@@ -152,7 +202,8 @@ const AddPhotoScreen = () => {
           return updated;
         });
       }
-    });
+      }
+    );
   };
 
 
