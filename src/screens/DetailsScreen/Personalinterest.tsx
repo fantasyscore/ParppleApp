@@ -26,7 +26,7 @@ import { colors } from "../../theme/colors";
 import MultyContainer from "../../common/MultyContainer";
 import GoButton from "../../common/GoButton";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_RELIGIOUS_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_DISTANCE_SCREEN, NAVIGATION_RELIGIOUS_SCREEN } from "../../navigation/routes";
 import { useDispatch, useSelector } from "react-redux";
 import { toastAlert } from "../../actions/UploadImageActions";
 import { setAddProfile } from "../../slices/loginServices/authSlice";
@@ -118,7 +118,7 @@ const Personalinterest = ({ route }: any) => {
             attribute: [...(addProfileData?.attribute || []), ...[]],
         };
         dispatch(setAddProfile(dataToSave));
-        NavigationService.navigate(NAVIGATION_RELIGIOUS_SCREEN);
+        NavigationService.navigate(NAVIGATION_DISTANCE_SCREEN);
     };
     const onSubmit = () => {
         if (filter) {
@@ -136,7 +136,7 @@ const Personalinterest = ({ route }: any) => {
                 attribute: [...(addProfileData?.attribute || []), ...selectedCategories],
             };
             dispatch(setAddProfile(dataToSave));
-            NavigationService.navigate(NAVIGATION_RELIGIOUS_SCREEN);
+            NavigationService.navigate(NAVIGATION_DISTANCE_SCREEN);
         }
     };
 

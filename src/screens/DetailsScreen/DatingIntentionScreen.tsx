@@ -12,7 +12,7 @@ import FastImage from "react-native-fast-image";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import GoButton from "../../common/GoButton";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_CHILDERN_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_CHILDERN_SCREEN, NAVIGATION_DISTANCE_SCREEN } from "../../navigation/routes";
 import { Screen } from "../../theme/dimens";
 import { useDispatch, useSelector } from "react-redux";
 import { setAddProfile } from "../../slices/loginServices/authSlice";
@@ -88,10 +88,14 @@ const DatingIntentionScreen = ({ route }: any) => {
             const data = {
                 ...addProfileData,
                 relationshipPreference: selectDating,
+                children: "",
+                familyPlanning:"",
+                attribute: [],
+                relegiousBelief: [],
                 fieldVisibility: { ...addProfileData?.fieldVisibility, relationshipPreference: showProfile }
             };
             dispatch(setAddProfile(data))
-            NavigationService.navigate(NAVIGATION_CHILDERN_SCREEN)
+            NavigationService.navigate(NAVIGATION_DISTANCE_SCREEN)
         }
     }
     return (

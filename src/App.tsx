@@ -7,7 +7,7 @@ import store from "./store/store";
 import { StatusBar, Text, View } from "react-native";
 import SplashScreen from "react-native-splash-screen";
 import ToastMessage from "./common/ToastMessage";
-
+import codePush from "@revopush/react-native-code-push";
 const App = () => {
   useEffect(() => {
     onAppStart(store);
@@ -26,4 +26,4 @@ const App = () => {
   );
 };
 
-export default App;
+export default codePush(App);

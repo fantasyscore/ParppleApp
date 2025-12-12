@@ -79,8 +79,8 @@ const AgeSlider = ({ Icons, headLines, range, setRange, innerUpertitle, underTit
                     <MultiSlider
                         values={range}
                         sliderLength={Screen.Width / 1.25}
-                        min={range[1] ? 18 : 1}
-                        max={range[1] ? 45 : 71}
+                        min={1}
+                        max={201}
                         step={1}
                         onValuesChange={setRange}
                         selectedStyle={{

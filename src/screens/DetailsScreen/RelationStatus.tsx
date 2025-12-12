@@ -17,6 +17,7 @@ import { setAddProfile } from "../../slices/loginServices/authSlice";
 import { relationShipStatus } from "../../common/UiltData";
 import { Screen } from "../../theme/dimens";
 import { editProfile } from "../../actions/authActions";
+import { toastAlert } from "../../actions/UploadImageActions";
 
 const RelationStatus = ({ route }: any) => {
     const dispatch = useDispatch();
@@ -24,7 +25,8 @@ const RelationStatus = ({ route }: any) => {
     const dataFilter = route?.params?.data ?? "";
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
     const datalistnew = new Array(12).fill(null).map((_, index) => ({ id: String(index), }))
-    const [selectPronoun, setSelectPronoun] = useState(dataFilter ? dataFilter : "single");
+    const [selectPronoun, setSelectPronoun] = useState(dataFilter ? dataFilter : "");
+    
     const onSubmit = () => {
         if (filter) {
             const dataToSave = {
@@ -32,13 +34,18 @@ const RelationStatus = ({ route }: any) => {
             };
             dispatch(editProfile(dataToSave))
         } else {
-            const data = {
-                ...addProfileData,
-                relationsShipStatus: selectPronoun,
-                fieldVisibility: { ...addProfileData?.fieldVisibility }
-            };
-            dispatch(setAddProfile(data))
-            NavigationService.navigate(NAVIGATION_DATE_SCREEN)
+            if (!selectPronoun) {
+                return toastAlert.showToastError("Please add relationship status")
+            }
+            else {
+                const data = {
+                    ...addProfileData,
+                    relationsShipStatus: selectPronoun,
+                    fieldVisibility: { ...addProfileData?.fieldVisibility }
+                };
+                dispatch(setAddProfile(data))
+                NavigationService.navigate(NAVIGATION_DATE_SCREEN)
+            }
         }
     }
     return (

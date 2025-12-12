@@ -19,7 +19,7 @@ import { colors } from "../../theme/colors";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import GoButton from "../../common/GoButton";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_EDUCATION_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_EDUCATION_SCREEN, NAVIGATION_LANGUAGE_SPEAK_SCREEN } from "../../navigation/routes";
 import { Screen } from "../../theme/dimens";
 import { scale, verticalScale } from "react-native-size-matters";
 import { useDispatch, useSelector } from "react-redux";
@@ -192,10 +192,16 @@ const HeightScreen = ({ route }: any) => {
       const data = {
         ...addProfileData,
         height: selectedHeight,
+        education: "",
+        homeTown: "",
+        work: "",
+        jobTitle: "",
+        zodiaSign: "",
         fieldVisibility: { ...addProfileData?.fieldVisibility }
       };
       dispatch(setAddProfile(data))
-      NavigationService.navigate(NAVIGATION_EDUCATION_SCREEN)
+      NavigationService.navigate(NAVIGATION_LANGUAGE_SPEAK_SCREEN)
+      // NavigationService.navigate(NAVIGATION_EDUCATION_SCREEN)
     }
   }
 

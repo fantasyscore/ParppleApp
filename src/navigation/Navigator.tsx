@@ -34,35 +34,36 @@ import MeetSomeOne from "../screens/DetailsScreen/MeetSomeOne";
 import ChildrenScreen from "../screens/DetailsScreen/ChildrenScreen";
 import AddPhotoScreen from "../screens/DetailsScreen/AddPhotosScreen";
 import AllsetScreen from "../screens/DetailsScreen/AllsetScreen";
-import PeopleScreen from "../screens/BottomScreen/PeopleScreen";
-import DiscoverScreen from "../screens/BottomScreen/DiscoverScreen";
-import ChatsScreen from "../screens/BottomScreen/ChatsScreen";
-import LikesYouScreen from "../screens/BottomScreen/LikesYouScreen";
-import ProfileScreen from "../screens/BottomScreen/ProfileScreen";
+import DiscoverScreen from "../screens/DiscoverScreens/DiscoverScreen";
+import ChatsScreen from "../screens/ChatScreens/ChatsScreen";
+import LikesYouScreen from "../screens/LikesYouScreens/LikesYouScreen";
+import ProfileScreen from "../screens/ProfileScreens/ProfileScreen";
 import CustomTabBar from "../common/CustomTabBar";
-import ProfileDetailsScreen from "../screens/BottomScreen/ProfileDetailsScreen";
+import ProfileDetailsScreen from "../screens/ProfileScreens/ProfileDetailsScreen";
 import LanguageSpeak from "../screens/DetailsScreen/LanguagesSpeak";
 import RelationStatus from "../screens/DetailsScreen/RelationStatus";
 import LifestyleScreen from "../screens/DetailsScreen/LifestyleScreen";
 import Adcenturouslife from "../screens/DetailsScreen/Adventurouslife";
 import Personalinterest from "../screens/DetailsScreen/Personalinterest";
 import AboutScreen from "../screens/DetailsScreen/AboutScreen";
-import FilterScreen from "../screens/BottomScreen/FilterScreen";
-import CommonSelectPage from "../screens/BottomScreen/CommonSelectPage";
-import MatchScreen from "../screens/BottomScreen/MatchScreen";
-import EditProfileScreen from "../screens/BottomScreen/EditProfileScreen";
-import ProfileStrength from "../screens/BottomScreen/ProfileStrength";
-import UserEditProfile from "../screens/BottomScreen/UserEditProfile";
-import SubscriptionScreen from "../screens/BottomScreen/SubscriptionScreen";
-import SettingScreen from "../screens/BottomScreen/SettingScreen";
-import TakingScreen from "../screens/BottomScreen/TakingScreen";
-import ReportScreen from "../screens/BottomScreen/ReportScreen";
-import ReportCommonScreen from "../screens/BottomScreen/ReportCommonScreen";
-import OtherReport from "../screens/BottomScreen/OtherReport";
-import SuceesReporting from "../screens/BottomScreen/SuceesReporting";
+import FilterScreen from "../screens/HomeScreens/FilterScreen";
+import CommonSelectPage from "../screens/ProfileScreens/CommonSelectPage";
+import MatchScreen from "../screens/HomeScreens/MatchScreen";
+import EditProfileScreen from "../screens/ProfileScreens/EditProfileScreen";
+import ProfileStrength from "../screens/ProfileScreens/ProfileStrength";
+import UserEditProfile from "../screens/ProfileScreens/UserEditProfile";
+import SubscriptionScreen from "../screens/ProfileScreens/SubscriptionScreen";
+import SettingScreen from "../screens/ProfileScreens/SettingScreen";
+import TakingScreen from "../screens/ChatScreens/TakingScreen";
+import ReportScreen from "../screens/ProfileScreens/ReportScreen";
+import ReportCommonScreen from "../screens/ProfileScreens/ReportCommonScreen";
+import OtherReport from "../screens/ProfileScreens/OtherReport";
+import SuceesReporting from "../screens/ProfileScreens/SuceesReporting";
 import ToastMessage from "../common/ToastMessage";
 import AuthLoding from "../screens/AuthLoding";
-import PreviewDetails from "../screens/BottomScreen/PreviewDetails";
+import SuperLikeScreen from "../screens/HomeScreens/SuperLikeScreen";
+import PeopleScreen from "../screens/HomeScreens/PeopleScreen";
+import PreviewDetails from "../screens/HomeScreens/PreviewDetails";
 
 const Navigator = () => {
   const Stack = createStackNavigator();
@@ -134,7 +135,6 @@ const Navigator = () => {
       <Stack.Screen name={routes.NAVIGATION_REPORT_COMMON_SCREEN} component={ReportCommonScreen} />
       <Stack.Screen name={routes.NAVIGATION_OHTER_REPORT_SCREEN} component={OtherReport} />
       <Stack.Screen name={routes.NAVIGATION_SUCCES_REPORTING_SCREEN} component={SuceesReporting} />
-
       </Stack.Navigator>
   );
 

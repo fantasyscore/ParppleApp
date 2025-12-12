@@ -10,6 +10,8 @@ export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) =
     try {
         const response: any = await appOperation.guest.login(data);
         if (response?.statusCode == 200) {
+            console.log(response,"responseresponseresponseresponse");
+            
             toastAlert.showToastError(response.message);
             appOperation.setCustomerToken(response?.data?.tokenData?.token);
             await AsyncStorage.setItem(USER_TOKEN_KEY, response?.data?.tokenData?.token);
@@ -19,9 +21,9 @@ export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) =
                 dispatch(discoverProfile())
             } else {
                 if (gmail) {
-                    NavigationService.navigate(NAVIGATION_PROCCED_SCREEN,{ comming: "OTP" })
+                    NavigationService.navigate(NAVIGATION_PROCCED_SCREEN, { comming: "OTP" })
                 } else {
-                    NavigationService.navigate(NAVIGATION_OTP_SCREEN)
+                    NavigationService.navigate(NAVIGATION_OTP_SCREEN, { PhoneNumber: data?.phoneNumber })
                 }
             }
         } else {
@@ -38,10 +40,10 @@ export const addProfile: any = (data: any) => async (dispatch: any) => {
             NavigationService.reset(NAVIGATION_ALL_SET_SCREEN)
             dispatch(listProfiles(true));
         } else {
-            toastAlert.showToastError(response.message);
+            // toastAlert.showToastError(response.message);
         }
     } catch (error: any) {
-        toastAlert.showToastError(error);
+        // toastAlert.showToastError(error);
     }
 };
 export const listProfiles: any = (navigate: any) => async (dispatch: any) => {
@@ -110,7 +112,7 @@ export const youView: any = () => async (dispatch: any) => {
         toastAlert.showToastError(error);
     }
 };
-export const getOtherProfile: any = (data: any, isNavigate: any, setProfileData: any) => async (dispatch: any) => {
+export const getOtherProfile: any = (data: any, isNavigate: any, setProfileData: any, profile:any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.otherDataProfileAPI(data);
         if (response?.statusCode == 200) {
@@ -119,11 +121,14 @@ export const getOtherProfile: any = (data: any, isNavigate: any, setProfileData:
                 ...response?.data,
                 index: 0
             };
-            setProfileData(dataWithIndex)
+            if (!profile) {
+                setProfileData(dataWithIndex)
+            }
+
             !isNavigate && NavigationService.navigate(NAVIGATION_USER_EDIT_PROFILE_SCREEN, { other: true })
         }
     } catch (error: any) {
-        toastAlert.showToastError(error);
+        console.log(error, "error");
     }
 };
 export const getProfile: any = (navigate: any) => async (dispatch: any) => {
@@ -135,7 +140,7 @@ export const getProfile: any = (navigate: any) => async (dispatch: any) => {
             !navigate && NavigationService.navigate(NAVIGATION_USER_EDIT_PROFILE_SCREEN, { other: false })
         }
     } catch (error: any) {
-        toastAlert.showToastError(error);
+        // toastAlert.showToastError(error);
     }
 };
 let isEditing = false;
@@ -147,8 +152,6 @@ export const editProfile: any = (data: any, navigate: any) => async (dispatch: a
     isEditing = true;
     try {
         const response: any = await appOperation.customer.editProfileAPI(data);
-        console.log(response, "responseresponse");
-
         if (response?.statusCode == 200) {
             dispatch(getProfile(true));
             navigate ? console.log() : NavigationService.goBack();
@@ -156,11 +159,10 @@ export const editProfile: any = (data: any, navigate: any) => async (dispatch: a
             toastAlert.showToastError(response?.message || "Something went wrong!");
         }
     } catch (error: any) {
-        console.log(error, "responserrorerrorerrorerrorerrorerroreresponse");
-
+        console.log(error, "error");
         toastAlert.showToastError(error);
     } finally {
-        isEditing = false; // unlock after response (success or fail)
+        isEditing = false; 
     }
 };
 
@@ -191,7 +193,7 @@ export const discoverProfile: any = () => async (dispatch: any) => {
             dispatch(setDiscoverData(response?.data))
         }
     } catch (error: any) {
-        toastAlert.showToastError(error);
+        // toastAlert.showToastError(error);
     }
 };
 export const userLogout: any = () => async () => {

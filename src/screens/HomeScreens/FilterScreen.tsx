@@ -12,7 +12,7 @@ import AgeSlider from "../../common/AgeSlider";
 import PurpuleButton from "../../common/PurpuleButton";
 import CheckBoxlist from "../../common/CheckBoxList";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_ADCENTUOURS_SCREEN, NAVIGATION_CHILDERN_SCREEN, NAVIGATION_COMMONSELECT_PAGE_SCREEN, NAVIGATION_EDUCATION_SCREEN, NAVIGATION_FAMILY_PLANING_SCREEN, NAVIGATION_LIFE_STYLE_SCREEN, NAVIGATION_PERSONAL_INTEREST_SCREEN, NAVIGATION_POLITICAL_SCREEN, NAVIGATION_RELATION_SCREEN, NAVIGATION_RELIGIOUS_SCREEN, NAVIGATION_ZODIACSING_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_ADCENTUOURS_SCREEN, NAVIGATION_CHILDERN_SCREEN, NAVIGATION_COMMONSELECT_PAGE_SCREEN, NAVIGATION_EDUCATION_SCREEN, NAVIGATION_FAMILY_PLANING_SCREEN, NAVIGATION_LANGUAGE_SPEAK_SCREEN, NAVIGATION_LIFE_STYLE_SCREEN, NAVIGATION_PERSONAL_INTEREST_SCREEN, NAVIGATION_POLITICAL_SCREEN, NAVIGATION_RELATION_SCREEN, NAVIGATION_RELIGIOUS_SCREEN, NAVIGATION_ZODIACSING_SCREEN } from "../../navigation/routes";
 import { DrinkData, ExerciseData, ganderDATA, LanguageData, LookignForData, relationShipStatus, SmokeData, womenData } from "../../common/UiltData";
 import { useDispatch, useSelector } from "react-redux";
 import { attributesGet, editFilter } from "../../actions/authActions";
@@ -73,7 +73,7 @@ const FilterScreen = () => {
     const onSubmit = () => {
         const data = {
             "preferredGender": filterData?.preferredGender ? filterData?.preferredGender : userData?.preferredGender,
-            "relationshipPreference": filterData?.relationshipPreference ? filterData?.relationshipPreference :  filterData?.relationsShipStatus,
+            "relationshipPreference": filterData?.relationshipPreference ? filterData?.relationshipPreference : filterData?.relationsShipStatus,
             "preferredAgeRange": {
                 "min": ageRange[0],
                 "max": ageRange[1]
@@ -121,13 +121,10 @@ const FilterScreen = () => {
                             underTitle={"Show people beyond my preference"} setRange={setKlMiter} Icons={social_distanceIcon} headLines={"How far are you looking for?"}
                             singleSilde={true} />
                         <ButtonSheet Icons={social_distanceIcon} headLines={"What’s your preferred language they speak?"}
-                            titile={userData?.languagePrefrence
-                                ?.map((item: any, index: any) =>
-                                    index === userData?.languagePrefrence
-                                        ?.length - 1 ? `${item}` : `${item}, `
-                                )
-                                .join('')}
-                            onPress={() => NavigationService.navigate(NAVIGATION_COMMONSELECT_PAGE_SCREEN, { headline: "Language they speak", data: LanguageData, secondHeadline: "Select your preferred language they speak." })} />
+                           titile={"Add Language"} 
+                            data={userData?.languages}
+                            onPress={() => NavigationService.navigate(NAVIGATION_LANGUAGE_SPEAK_SCREEN, { filter: "Add Language", data: userData?.languages, fieldVisibility: userData?.fieldVisibility })}/>
+                            {/* onPress={() => NavigationService.navigate(NAVIGATION_COMMONSELECT_PAGE_SCREEN, { headline: "Language they speak", data: LanguageData, secondHeadline: "Select your preferred language they speak." })} /> */}
                     </View>
                     :
                     <View style={{ flex: 1 }}>

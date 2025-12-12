@@ -29,6 +29,7 @@ import { setListProfiles } from '../../slices/loginServices/authSlice';
 import { createSocket } from '../../common/Socket';
 import MatchScreen from './MatchScreen';
 import Toast, { IToast } from '../../common/Toast';
+import SuperLikeScreen from './SuperLikeScreen';
 
 const { width, height } = Dimensions.get("window");
 const FULL_IMAGE_HEIGHT = height * 0.75;
@@ -45,8 +46,9 @@ const PeopleScreen = () => {
     const [swipeLeft, setSwipeLeft] = useState(false);
     const [swipeUp, setSwipeUp] = useState(false);
     const [matchVisible, setMatchVisible] = useState(false);
+    const [superLikeVisible, setSuperLikeVisible] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
-    const [matchData, setMatchData] = useState([])
+    const [matchData, setMatchData] = useState([]);
     const cardWidthRef = useRef(0);
     const url = `http://13.201.74.29/?userId=${userData?._id}`
     const socket = useMemo(() => createSocket(url), [url]);
@@ -102,7 +104,7 @@ const PeopleScreen = () => {
     }, []);
     const OverlayLabelTop = useCallback(() => {
         return (
-            <View style={{ backgroundColor: "red", top: metrics.hp25 }}>
+            <View style={{ backgroundColor: "red", top: metrics.hp25, opacity:0 }}>
                 <FastImage source={superlike} resizeMode='contain' style={{ height: metrics.hp20, width: metrics.hp25 }} />
             </View>
         );
@@ -180,7 +182,7 @@ const PeopleScreen = () => {
                                     </AppText>
                                 </View>}
                         </View>
-                        <TouchableOpacityView style={styles.upArrowContainer} onPress={() => setModalVisible(true)}>
+                        <TouchableOpacityView style={styles.upArrowContainer} onPress={() => { setModalVisible(true), setSwipeUp(false) }}>
                             <FastImage
                                 source={upArrowIcon}
                                 resizeMode="contain"
@@ -193,6 +195,7 @@ const PeopleScreen = () => {
 
         );
     });
+
     useEffect(() => {
         if (!modalVisible && swipeRight) {
             const timer = setTimeout(() => {
@@ -209,31 +212,35 @@ const PeopleScreen = () => {
         } else if (!modalVisible && swipeUp) {
             const timer = setTimeout(() => {
                 ref.current?.swipeTop();
-                setSwipeUp(false)
+                setSwipeUp(false);
             }, 200);
             return () => clearTimeout(timer);
         }
-    }, [swipeRight, modalVisible])
-    const swipeFunction = (index: any, swipe: any) => {
-        setGetCurrentIndex(index + 1);
+    }, [swipeRight, modalVisible, swipeLeft, swipeUp])
+    const swipeFunction = async (index: any, swipe: any) => {
         if (swipe === "like") {
+            setGetCurrentIndex(index + 1);
             let data = {
                 "swipedId": listProfilesData[index]?._id,
                 "type": "like"
             };
-            dispatch(swipeLikeDisLike(data))
+            dispatch(swipeLikeDisLike(data));
         } else if (swipe === "superLike") {
-            let data = {
+            console.log("i am there for you")
+            setGetCurrentIndex(getCurrentIndex + 1);
+            let datanew = {
                 "swipedId": listProfilesData[index]?._id,
                 "type": "superLike"
             };
-            dispatch(swipeLikeDisLike(data))
+            dispatch(swipeLikeDisLike(datanew));
+            setSuperLikeVisible(false);
         } else if (swipe === "dislike") {
+            setGetCurrentIndex(index + 1);
             let data = {
                 "swipedId": listProfilesData[index]?._id,
                 "type": "dislike"
             };
-            dispatch(swipeLikeDisLike(data))
+            dispatch(swipeLikeDisLike(data));
         }
     };
     const PulsingCircle = ({ size }: any) => {
@@ -324,6 +331,7 @@ const PeopleScreen = () => {
             </>
         );
     };
+
     // const toastRef = useRef<IToast>(null);
     // function show() {
     //     toastRef.current?.hide(() => {
@@ -355,8 +363,7 @@ const PeopleScreen = () => {
     //         toastRef.current?.show('Posted', 'success', 400);
     //     // })
     // },[])
-    console.log(listProfilesData,"listProfilesData");
-    
+
 
     return (
         <AppSafeAreaView>
@@ -365,6 +372,7 @@ const PeopleScreen = () => {
                 <View style={{ zIndex: 2, backgroundColor: colors.white }}>
                     <PeopleHeader profile={false} useName={true} />
                 </View>
+                {/* <View style={{flex:1, backgroundColor:colors.red, zIndex:10, position:"absolute"}}/> */}
                 <View style={styles.swiperContainer}>
                     {listProfilesData?.length === getCurrentIndex &&
                         <View style={{ alignItems: "center", justifyContent: "center", flex: 1, marginTop: -metrics.hp5 }}>
@@ -374,17 +382,20 @@ const PeopleScreen = () => {
                     {listProfilesData?.length !== getCurrentIndex &&
                         <Swiper
                             ref={ref}
-                            data={listProfilesData}
+                            data={listProfilesData} 
                             cardStyle={styles.cardStyle}
                             overlayLabelContainerStyle={styles.overlayLabelContainerStyle}
                             renderCard={renderCard}
                             disableBottomSwipe
+                            disableTopSwipe
                             OverlayLabelRight={OverlayLabelRight}
                             OverlayLabelLeft={OverlayLabelLeft}
                             OverlayLabelTop={OverlayLabelTop}
                             onSwipeRight={(index) => swipeFunction(index, "like")}
                             onSwipeLeft={(index) => swipeFunction(index, "dislike")}
                             onSwipeTop={(index) => swipeFunction(index, "superLike")}
+                            onSwipeActive={()=>console.log("askjdhakjdsahaksjhdjkahdkshas")}
+                           
                         />}
                 </View>
                 <View style={styles.likeUnLikeCOntainer}>
@@ -402,7 +413,7 @@ const PeopleScreen = () => {
                     </Animated.View>
                     <View style={styles.flasContaier}>
                         <TouchableOpacityView onPress={() => {
-                            ref.current?.swipeTop();
+                            setSuperLikeVisible(true)
                         }}>
                             <FastImage source={heartRed} resizeMode="contain" style={styles.flasIcon} />
                         </TouchableOpacityView>
@@ -430,14 +441,23 @@ const PeopleScreen = () => {
                         setSwipeLeft={setSwipeLeft}
                         setSwipeUp={setSwipeUp} modalVisible={modalVisible} ref={ref}
                         ImageIndex={currentImageIndex}
-                        CurrentImageIndex={setCurrentImageIndex} />
+                        CurrentImageIndex={setCurrentImageIndex}
+                        setSuperLikeVisible={setSuperLikeVisible} />
                 </Modal>
                 <Modal
                     animationType="fade"
                     transparent={true}
                     visible={matchVisible}
                     onRequestClose={() => setMatchVisible(false)}>
-                    <MatchScreen matchData={matchData} />
+                    <MatchScreen setMatchVisible={setMatchVisible} matchData={matchData} />
+                </Modal>
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={superLikeVisible}
+                    onRequestClose={() => setSuperLikeVisible(false)}>
+                    <SuperLikeScreen data={listProfilesData[getCurrentIndex]} setSuperLikeVisible={setSuperLikeVisible} setGetCurrentIndex={setGetCurrentIndex}
+                        setSwipeUp={setSwipeUp} ref={ref} getCurrentIndex={getCurrentIndex} />
                 </Modal>
             </View>
         </AppSafeAreaView>
@@ -495,11 +515,6 @@ const styles = StyleSheet.create({
         height: height * 0.75,
         position: "absolute",
         borderRadius: metrics.hp2,
-        shadowColor: "#000",
-        shadowOpacity: 0.2,
-        shadowOffset: { width: 0, height: 5 },
-        shadowRadius: metrics.hp1,
-        elevation: metrics.hp0_5,
         backgroundColor: "#fff",
         overflow: Platform.OS === "android" ? "hidden" : undefined,
     },
@@ -507,7 +522,7 @@ const styles = StyleSheet.create({
         width: '100%',
         borderRadius: 15,
         alignItems: 'center',
-        flex: 1
+        flex: 1,
     },
     overlayLabelContainer: {
         borderRadius: 15,

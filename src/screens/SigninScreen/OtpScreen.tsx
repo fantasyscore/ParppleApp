@@ -3,7 +3,7 @@ import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { StyleSheet, View } from "react-native";
 import HeaderCommon from "../../common/HeaderCommon";
 import metrics from "../../assets/Metrics";
-import { AppText, EIGHTEEN, fontSize, INTER_MEDIUM, OPECITY, OPECITY_DARK, PURPLE, SCHEHERAZADE_BOLD, TWELVE } from "../../common/AppText";
+import { AppText, fontSize, INTER_MEDIUM, OPECITY, PURPLE, TWELVE } from "../../common/AppText";
 import { OtpInput } from "react-native-otp-entry";
 import { colors } from "../../theme/colors";
 import { interBold } from "../../theme/typography";
@@ -13,9 +13,30 @@ import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_PROCCED_SCREEN } from "../../navigation/routes";
 import LinearGradient from "react-native-linear-gradient";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { toastAlert } from "../../actions/UploadImageActions";
 
-const OtpScreen = () => {
+const OtpScreen = ({ route }: any) => {
     const [otpNumber, setOtpNumber] = useState("");
+    const onSubmit = () => {
+        if (route?.params?.PhoneNumber === "1234567890") {
+            if (otpNumber === "123456") {
+                NavigationService.navigate(NAVIGATION_PROCCED_SCREEN, { comming: "OTP" })
+            } else {
+                toastAlert.showToastError("Please enter vaild otp")
+            }
+        } else {
+            // if (otpNumber?.length == 6) {
+                NavigationService.navigate(NAVIGATION_PROCCED_SCREEN, { comming: "OTP" })
+            // }else{
+            //     toastAlert.showToastError("Please enter vaild otp")
+            // }
+            // if (otpNumber == "000000") {
+            //     NavigationService.navigate(NAVIGATION_PROCCED_SCREEN, { comming: "OTP" })
+            // } else {
+            //     toastAlert.showToastError("Please enter vaild otp")
+            // }
+        }
+    }
     return (
         <AppSafeAreaView>
             <KeyboardAwareScrollView
@@ -25,7 +46,7 @@ const OtpScreen = () => {
                 contentContainerStyle={{ flexGrow: 1 }}>
                 <HeaderCommon />
                 <View style={styles.container}>
-                    <DubleTextLine firstText={"Enter your verification"} secondText={"code."} thirdText={"+91 89492 65256"} />
+                    <DubleTextLine firstText={"Enter your verification"} secondText={"code."} thirdText={`+91 ${route?.params?.PhoneNumber}`} />
                     <OtpInput
                         numberOfDigits={6}
                         focusColor="transparnet"
@@ -72,7 +93,7 @@ const OtpScreen = () => {
                 <LinearGradient start={{ x: 0, y: 0 }}
                     end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
                     <View style={{ marginTop: metrics.hp9 }}>
-                        <GoButton onPress={() => NavigationService.navigate(NAVIGATION_PROCCED_SCREEN, { comming: "OTP" })} />
+                        <GoButton colortrue={otpNumber?.length == 6 ? true : false} onPress={() => onSubmit()} />
                     </View>
                 </LinearGradient>
             </KeyboardAwareScrollView>

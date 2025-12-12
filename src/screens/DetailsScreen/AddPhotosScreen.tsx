@@ -157,7 +157,7 @@ const AddPhotoScreen = () => {
 
 
   const uploadedCount = photos.filter((p) => p.image !== "").length;
-  const minRequired = 4;
+  const minRequired = 2;
   const remaining = Math.max(0, minRequired - uploadedCount);
 
   const renderItem = ({ item, index }: { item: any; index: number }) => (
@@ -194,6 +194,8 @@ const AddPhotoScreen = () => {
       gallery: galleryData,
       fieldVisibility: { ...addProfileData?.fieldVisibility }
     };
+    console.log(data, "datadatadata");
+
     dispatch(addProfile(data));
     dispatch(getProfile(true));
     dispatch(discoverProfile())
@@ -205,9 +207,9 @@ const AddPhotoScreen = () => {
       <View style={styles.container}>
         <TopCommonLine icon={addPhotoIcon} datalist={datalistnew} />
         <View style={{ paddingHorizontal: metrics.hp2 }}>
-          <DubleTextLine firstText={"Where do you work?"} />
+          <DubleTextLine firstText={"Add your photos"} />
           <AppText style={{ marginTop: -metrics.hp2 }} type={TWELVE} weight={INTER_MEDIUM} color={OPECITY}>
-            Tell us about your working place.
+            Upload atleast 1 photos to start
           </AppText>
           <AppText style={{ marginTop: metrics.hp5, marginBottom: metrics.hp1 }} color={OPECITY_DARK} weight={INTER_MEDIUM} type={TWELVE}>
             Press hold to preview image

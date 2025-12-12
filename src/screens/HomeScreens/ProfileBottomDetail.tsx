@@ -228,7 +228,7 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover }: any) =
                     </View>
                     <View style={styles.wrapContainerTwo}>
                         {attributes?.map((item: any, idx: number) => (
-                            <View key={item.id} style={styles.containerSelect}>
+                            <View key={item?.id || `${item?.displayLabel}-${idx}`} style={styles.containerSelect}>
                                 <AppText type={TWELVE} weight={INTER_MEDIUM}>
                                     {item?.displayLabel}
                                 </AppText>

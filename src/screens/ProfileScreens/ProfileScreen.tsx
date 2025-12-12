@@ -2,12 +2,12 @@ import React, { useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { FlatList, ImageBackground, StyleSheet, View } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
-import { blueTikeIcon, pencilIcon, premiumIcon, profilebackGround, profileImage } from "../../helper/ImageAssets";
+import { blueTikeIcon, checkSafety, pencilIcon, premiumIcon, profilebackGround, profileImage } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
 import { colors } from "../../theme/colors";
 import Svg, { Circle } from "react-native-svg";
 import FastImage from "react-native-fast-image";
-import { AppText, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, OPECITY_DARK, PURPLE, RED, SKYBLUE, TEN, THIRTEEN, TWELVE, WHITE } from "../../common/AppText";
+import { AppText, BLACK, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, OPECITY_DARK, PURPLE, RED, SCHEHERAZADE_BOLD, SKYBLUE, TEN, THIRTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { premiumDetaiData, PurchaseCards } from "../../common/UiltData";
 import { Screen } from "../../theme/dimens";
@@ -20,8 +20,8 @@ const ProfileScreen = () => {
     const [percentage, setPercentage] = useState(25);
     const [tabSelect, setTabSelect] = useState("Premium");
     const userData = useSelector((state: any) => state.auth.userData);
-    console.log(userData,"userData");
-    
+    console.log(userData, "userData");
+
     const size = metrics.hp12;
     const strokeWidth = metrics.hp0_5;
     const radius = (size - strokeWidth) / 2;
@@ -39,7 +39,7 @@ const ProfileScreen = () => {
             </TouchableOpacityView>
         )
     };
-    
+
     return (
         <AppSafeAreaView>
             <ImageBackground
@@ -75,7 +75,7 @@ const ProfileScreen = () => {
                             />
                         </Svg>
                         <FastImage
-                            source={{uri:userData?.gallery[0]?.url}}
+                            source={{ uri: userData?.gallery[0]?.url }}
                             resizeMode="cover"
                             style={styles.imageContainer}
                         />
@@ -111,43 +111,70 @@ const ProfileScreen = () => {
                         <View style={[styles.tabLine, { backgroundColor: tabSelect == "Safety" ? colors.purple : colors.transparent }]} />
                     </TouchableOpacityView>
                 </View>
-                <View style={styles.bottomContainer}>
-                    <View style={styles.one}>
-                        {premiumDetaiData?.map((item, index) => {
-                            return (
-                                <View key={index} style={styles.subDetails}>
-                                    <FastImage source={item.icon} resizeMode="contain" style={styles.icons} />
-                                    <AppText color={index == 0 ? SKYBLUE : index == 1 ? RED : PURPLE} style={{ marginTop: metrics.hp2 }} type={FORTEEN} weight={INTER_BOLD}>
-                                        {item.numberText}
-                                    </AppText>
-                                    <AppText type={TEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                                        {item.title}
-                                    </AppText>
-                                    <View style={styles.getMoreContainer}>
-                                        <AppText weight={INTER_MEDIUM} type={TEN}>
-                                            {item.headLine}
+                {tabSelect == "Premium" &&
+                    <View style={styles.bottomContainer}>
+                        <View style={styles.one}>
+                            {premiumDetaiData?.map((item, index) => {
+                                return (
+                                    <View key={index} style={styles.subDetails}>
+                                        <FastImage source={item.icon} resizeMode="contain" style={styles.icons} />
+                                        <AppText color={index == 0 ? SKYBLUE : index == 1 ? RED : PURPLE} style={{ marginTop: metrics.hp2 }} type={FORTEEN} weight={INTER_BOLD}>
+                                            {item.numberText}
                                         </AppText>
+                                        <AppText type={TEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                            {item.title}
+                                        </AppText>
+                                        <View style={styles.getMoreContainer}>
+                                            <AppText weight={INTER_MEDIUM} type={TEN}>
+                                                {item.headLine}
+                                            </AppText>
+                                        </View>
                                     </View>
+                                )
+                            })}
+                        </View>
+                        <View style={styles.PremiumText}>
+                            <FastImage source={premiumIcon} resizeMode="contain" style={styles.pencilIcon} />
+                            <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>
+                                {"  "}Premium Plans
+                            </AppText>
+                        </View>
+                        <View>
+                            <FlatList
+                                data={PurchaseCards}
+                                renderItem={renderPurchaesCards}
+                                keyExtractor={(item) => item.id}
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={{ marginLeft: metrics.hp2, marginTop: metrics.hp3 }}
+                                horizontal={true} />
+                        </View>
+                    </View>
+                }
+                {tabSelect == "Safety" &&
+                    <View style={[styles.bottomContainer, { paddingHorizontal: metrics.hp2, }]}>
+                        <View style={styles.safetyComesContainer}>
+                            <FastImage source={checkSafety} resizeMode="contain" style={styles.checkSafetyIcon} />
+                            <AppText weight={SCHEHERAZADE_BOLD} type={EIGHTEEN} color={BLACK}>
+                                Your Safety Comes First
+                            </AppText>
+                            <AppText style={{ textAlign: "center", marginTop: -metrics.hp1 }} weight={INTER_SEMI_BOLD} color={OPECITY_DARK}>
+                                We’re committed to keeping you safe — from your first swipe to your first date.
+                            </AppText>
+                            <View style={styles.flexContainer}>
+                                <View style={styles.learnContainer}>
+                                    <AppText weight={INTER_SEMI_BOLD} color={WHITE}>
+                                        Learn Safety Tips
+                                    </AppText>
                                 </View>
-                            )
-                        })}
+                                <View style={styles.reportContainer}>
+                                    <AppText weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                        Report a Concern
+                                    </AppText>
+                                </View>
+                            </View>
+                        </View>
                     </View>
-                    <View style={styles.PremiumText}>
-                        <FastImage source={premiumIcon} resizeMode="contain" style={styles.pencilIcon} />
-                        <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>
-                            {"  "}Premium Plans
-                        </AppText>
-                    </View>
-                    <View>
-                        <FlatList
-                            data={PurchaseCards}
-                            renderItem={renderPurchaesCards}
-                            keyExtractor={(item) => item.id}
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={{ marginLeft: metrics.hp2, marginTop: metrics.hp3 }}
-                            horizontal={true} />
-                    </View>
-                </View>
+                }
             </ImageBackground>
         </AppSafeAreaView>
     );
@@ -158,6 +185,7 @@ export default ProfileScreen;
 const styles = StyleSheet.create({
     imgaeContainer: {
         flex: 1,
+
     },
     inContainer: {
         paddingHorizontal: metrics.hp2,
@@ -201,7 +229,7 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp5,
         justifyContent: "center",
         marginTop: metrics.hp1,
-        width:metrics.hp17
+        width: metrics.hp17
     },
     headerTabs: {
         flexDirection: "row",
@@ -269,4 +297,42 @@ const styles = StyleSheet.create({
         marginTop: metrics.hp4,
         paddingHorizontal: metrics.hp2
     },
+    safetyComesContainer: {
+        paddingHorizontal: metrics.hp2,
+        paddingVertical: metrics.hp2,
+        borderRadius: metrics.hp1_5,
+        borderColor: "#6F13F233",
+        backgroundColor: colors.white,
+        marginTop: metrics.hp2,
+        alignItems: "center",
+        borderWidth:metrics.hp0_1
+    },
+    checkSafetyIcon: {
+        height: metrics.hp5,
+        width: metrics.hp5
+    },
+    learnContainer: {
+        height: metrics.hp3,
+        width: "48%",
+        backgroundColor: colors.lightBlack,
+        borderRadius: metrics.hp4,
+        alignItems: "center",
+        justifyContent: "center"
+    },
+    reportContainer: {
+        height: metrics.hp3,
+        width: "48%",
+        borderRadius: metrics.hp4,
+        borderWidth: metrics.hp0_1,
+        borderColor: colors.lightBlack,
+        alignItems: "center",
+        justifyContent: "center"
+    },
+    flexContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        width: "100%",
+        marginTop: metrics.hp2
+    }
 });

@@ -11,7 +11,7 @@ import { Screen } from "../../theme/dimens";
 import { colors } from "../../theme/colors";
 import MultyContainer from "../../common/MultyContainer";
 import GoButton from "../../common/GoButton";
-import { NAVIGATION_ADCENTUOURS_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_ADCENTUOURS_SCREEN, NAVIGATION_DISTANCE_SCREEN } from "../../navigation/routes";
 import NavigationService from "../../navigation/NavigationService";
 import { useDispatch, useSelector } from "react-redux";
 import { toastAlert } from "../../actions/UploadImageActions";
@@ -52,9 +52,10 @@ const LifestyleScreen = ({ route }: any) => {
         const dataToSave = {
             ...addProfileData,
             attribute: [],
+            relegiousBelief: [],
         };
         dispatch(setAddProfile(dataToSave));
-        NavigationService.navigate(NAVIGATION_ADCENTUOURS_SCREEN);
+        NavigationService.navigate(NAVIGATION_DISTANCE_SCREEN);
     };
     const onSubmit = () => {
         if (filter) {
@@ -68,6 +69,8 @@ const LifestyleScreen = ({ route }: any) => {
             const dataToSave = {
                 ...addProfileData,
                 attribute: selectedCategories,
+                relegiousBelief: [],
+
             };
             dispatch(setAddProfile(dataToSave));
             NavigationService.navigate(NAVIGATION_ADCENTUOURS_SCREEN);

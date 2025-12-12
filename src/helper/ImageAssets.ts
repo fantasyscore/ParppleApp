@@ -165,3 +165,6 @@ export const viewsIcon = require("../assets/img/viewsIcon.png");
 export const mockLocationIcon = require("../assets/img/mockLocationIcon.png");
 export const DatingAuthLoding = require("../assets/img/DatingAuthLoding.gif");
 export const superlike = require("../assets/img/superlike.png");
+export const BackSuper = require("../assets/img/BackSuper.png");
+export const superLikeAnime = require("../assets/img/superLikeAnime.png");
+export const checkSafety = require("../assets/img/checkSafety.png");

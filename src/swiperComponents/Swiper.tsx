@@ -1,6 +1,6 @@
 import React, { useImperativeHandle, type ForwardedRef } from 'react';
 import { useAnimatedReaction } from 'react-native-reanimated';
-import { Dimensions, View } from 'react-native';
+import { Dimensions } from 'react-native';
 import type {
   SwiperCardRefType,
   SwiperOptions,
@@ -11,7 +11,6 @@ import { scheduleOnRN } from 'react-native-worklets';
 import useSwipeControls from './hooks/useSwipeControls';
 import SwiperCard from './SwipeableCard';
 import type { SpringConfig } from 'react-native-reanimated/lib/typescript/animation/spring';
-import metrics from '../assets/Metrics';
 
 const { width: windowWidth, height: windowHeight } = Dimensions.get('screen');
 
@@ -21,6 +20,8 @@ const SWIPE_SPRING_CONFIG: SpringConfig = {
   mass: 0.1,
   overshootClamping: false,
 };
+
+const MAX_STACK_CARDS = 4; // how many cards are actually mounted on screen
 
 const Swiper = <T,>(
   {
@@ -78,9 +79,12 @@ const Swiper = <T,>(
     0,
     Math.min(initialIndex, data.length - 1)
   );
-  const adjustedPrerenderItems = Math.min(
-    prerenderItems,
-    Math.max(data.length - clampedInitialIndex - 1, 1)
+
+  // limit how many cards we actually mount
+  const effectiveStackSize = Math.min(
+    Math.max(prerenderItems, 1),
+    MAX_STACK_CARDS,
+    data.length - clampedInitialIndex
   );
 
   const {
@@ -93,33 +97,35 @@ const Swiper = <T,>(
     swipeBottom,
   } = useSwipeControls(data, loop, clampedInitialIndex);
 
-  useImperativeHandle(ref, () => {
-    return {
+  useImperativeHandle(
+    ref,
+    () => ({
       swipeLeft,
       swipeRight,
       swipeBack,
       swipeTop,
       swipeBottom,
-    };
-  }, [swipeLeft, swipeRight, swipeBack, swipeTop, swipeBottom]);
+    }),
+    [swipeLeft, swipeRight, swipeBack, swipeTop, swipeBottom]
+  );
 
+  // when all swiped
   useAnimatedReaction(
-    () => {
-      return activeIndex.value >= data.length;
-    },
-    (isSwipingFinished: boolean) => {
-      if (isSwipingFinished && onSwipedAll) {
+    () => activeIndex.value >= data.length,
+    (isFinished) => {
+      if (isFinished && onSwipedAll) {
         scheduleOnRN(onSwipedAll);
       }
     },
     [data]
   );
 
+  // index change callback
   useAnimatedReaction(
     () => activeIndex.value,
-    (currentValue, previousValue) => {
-      if (currentValue !== previousValue && onIndexChange) {
-        scheduleOnRN(onIndexChange, currentValue);
+    (current, previous) => {
+      if (current !== previous && onIndexChange) {
+        scheduleOnRN(onIndexChange, current);
       }
     },
     []
@@ -131,9 +137,13 @@ const Swiper = <T,>(
     }
   >;
 
-  return data
-    .slice(clampedInitialIndex)
-    .map((item, index) => {
+  const visibleData = data.slice(
+    clampedInitialIndex,
+    clampedInitialIndex + effectiveStackSize
+  );
+
+  return visibleData
+    .map((item, index) => {  
       const actualIndex = index + clampedInitialIndex;
       return (
         <Card
@@ -141,7 +151,7 @@ const Swiper = <T,>(
           cardStyle={cardStyle}
           regularCardStyle={regularCardStyle}
           index={actualIndex}
-          prerenderItems={adjustedPrerenderItems}
+          prerenderItems={effectiveStackSize}
           disableRightSwipe={disableRightSwipe}
           disableLeftSwipe={disableLeftSwipe}
           disableTopSwipe={disableTopSwipe}
@@ -197,7 +207,7 @@ const Swiper = <T,>(
         </Card>
       );
     })
-    .reverse();
+    .reverse(); // keep top card rendered last
 };
 
 export default React.forwardRef(Swiper);

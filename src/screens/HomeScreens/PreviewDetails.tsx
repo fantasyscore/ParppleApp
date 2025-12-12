@@ -8,14 +8,14 @@ import { colors } from "../../theme/colors";
 import { CloseBlueIcon, flashIcon, heartGreen, heartRed, shareRedIcon, upArrowIcon } from "../../helper/ImageAssets";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import NavigationService from "../../navigation/NavigationService";
-import ProfileBottomDetails from "./ProfileBottomDetail";
 import { Screen } from "../../theme/dimens";
 import { useDispatch, useSelector } from "react-redux";
 import { setListProfiles } from "../../slices/loginServices/authSlice";
+import ProfileBottomDetails from "./ProfileBottomDetail";
 
 const { width, height } = Dimensions.get("window");
 const COLLAPSED_IMAGE_HEIGHT = height * 0.67;
-const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setSwipeLeft, setProfileData, discover }: any) => {
+const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setSwipeLeft, setProfileData, discover, setSuperLikeVisible }: any) => {
     const dispatch = useDispatch();
     const cardWidthRef = useRef(0);
     const listProfilesData = useSelector((state: any) => state.auth.listProfiles);
@@ -90,7 +90,7 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                         <View style={styles.flasContaierTwo}>
                             <FastImage source={shareRedIcon} resizeMode="contain" style={styles.flasIcon} />
                         </View>
-                        <TouchableOpacityView style={styles.upArrowContainer} onPress={() => setModalVisible(false)}>
+                        <TouchableOpacityView style={styles.upArrowContainer} onPress={() => {setModalVisible(false),setSwipeUp(false)}}>
                             <FastImage
                                 source={upArrowIcon}
                                 resizeMode="contain"
@@ -120,8 +120,9 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                     <TouchableOpacityView onPress={() => {
                         scrollViewRef.current?.scrollTo({ y: 0, animated: true });
                         setTimeout(() => {
+                            setSuperLikeVisible(true)
                             setModalVisible(false);
-                            setSwipeUp(true);
+                            // setSwipeUp(true);
                         }, 350);
                     }}>
                         <FastImage source={heartRed} resizeMode="contain" style={styles.flasIcon} />

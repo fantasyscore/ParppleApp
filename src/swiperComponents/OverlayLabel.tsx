@@ -25,8 +25,8 @@ const OverlayLabel = ({
     return {
       opacity: interpolate(
         opacityValue.value,
-        inputRange ?? [],
-        outputRange ?? [],
+        inputRange ?? [0, 1],
+        outputRange ?? [0, 1],
         'clamp'
       ),
       zIndex: 3,

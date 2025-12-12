@@ -37,9 +37,10 @@ import RBSheet from "react-native-raw-bottom-sheet";
 import ListCheckBox from "../../common/ListCheckbox";
 import PurpuleButton from "../../common/PurpuleButton";
 import { useDispatch, useSelector } from "react-redux";
-import { discoverProfile, getOtherProfile } from "../../actions/authActions";
-import PreviewDetails from "./PreviewDetails";
+import { discoverProfile, getOtherProfile, swipeLikeDisLike } from "../../actions/authActions";
 import { SwiperCardRefType } from "rn-swiper-list";
+import SuperLikeScreen from "../HomeScreens/SuperLikeScreen";
+import PreviewDetails from "../HomeScreens/PreviewDetails";
 
 const { width } = Dimensions.get("window");
 const ITEM_WIDTH = metrics.hp34;
@@ -54,6 +55,7 @@ const DiscoverScreen = () => {
     const [modalVisible, setModalVisible] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
     const [swipeUp, setSwipeUp] = useState(false);
+    const [superLikeVisible, setSuperLikeVisible] = useState(false);
     const [profileData, setProfileData] = useState();
     console.log(profileData, "profileData");
 
@@ -75,13 +77,21 @@ const DiscoverScreen = () => {
             title: "Communities in Common",
         },
     ];
-    const viewProfile = (item: any) => {
-        let data = {
-            "userId": item?._id
-        };
-        let isNavigate = true
-        dispatch(getOtherProfile(data, isNavigate, setProfileData));
-        setModalVisible(true)
+    const viewProfile = (item: any, onlyheart: any) => {
+        if (onlyheart) {
+            let data = {
+                "userId": item?._id
+            };
+            let isNavigate = true
+            dispatch(getOtherProfile(data, isNavigate, setProfileData));
+        } else {
+            let data = {
+                "userId": item?._id
+            };
+            let isNavigate = true
+            dispatch(getOtherProfile(data, isNavigate, setProfileData));
+            setModalVisible(true)
+        }
     }
     const discoverRender = ({ item, index }: any) => {
         const inputRange = [
@@ -103,7 +113,7 @@ const DiscoverScreen = () => {
         });
 
         return (
-            <TouchableOpacityView key={item?._id} onPress={() => viewProfile(item)} activeOpacity={1}>
+            <TouchableOpacityView key={item?._id} onPress={() => viewProfile(item, false)} activeOpacity={1}>
                 <Animated.View
                     style={{
                         transform: [{ scale }],
@@ -111,7 +121,7 @@ const DiscoverScreen = () => {
                         marginLeft: index === 0 ? metrics.hp2_5 : 0,
                         marginRight: SPACING,
                     }}>
-                 <ImageBackground
+                    <ImageBackground
                         resizeMode="cover"
                         imageStyle={{ borderRadius: metrics.hp1_5 }}
                         style={styles.discoverImage}
@@ -141,7 +151,7 @@ const DiscoverScreen = () => {
                                         {item.jobTitle}
                                     </AppText>
                                 </View>
-                                 <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
+                                <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
                                     <FastImage source={locationCIon} resizeMode="contain" style={styles.loctionIcon} />
                                     <AppText type={ELEVEN} color={WHITE} weight={INTER_MEDIUM}>
                                         {" "}
@@ -149,7 +159,7 @@ const DiscoverScreen = () => {
                                     </AppText>
                                 </View>
                                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: ITEM_WIDTH - metrics.hp4, marginBottom: -metrics.hp1 }}>
-                                     <View style={styles.wrapContainer}>
+                                    <View style={styles.wrapContainer}>
                                         <View style={styles.listContainer}>
                                             <FastImage
                                                 tintColor={colors.white}
@@ -162,7 +172,7 @@ const DiscoverScreen = () => {
                                                 {item.zodiaSign}
                                             </AppText>
                                         </View>
-                                         <View  style={styles.listContainer} >
+                                        <View style={styles.listContainer} >
                                             <FastImage
                                                 tintColor={colors.white}
                                                 source={locationCIon}
@@ -173,23 +183,23 @@ const DiscoverScreen = () => {
                                                 {"  "}
                                                 {item.city}
                                             </AppText>
-                                        </View> 
+                                        </View>
                                     </View>
-                                    <View style={[styles.flasContaier]}>
+                                    <TouchableOpacityView onPress={() => { setSuperLikeVisible(true),viewProfile(item, true)}} style={[styles.flasContaier]}>
                                         <FastImage source={heartRed} resizeMode="contain" style={styles.flasIcon} />
-                                    </View>
-                                </View> 
+                                    </TouchableOpacityView>
                                 </View>
+                            </View>
                         </View>
 
-                    </ImageBackground> 
+                    </ImageBackground>
                 </Animated.View>
             </TouchableOpacityView>
         );
     };
     const SimilarRender = ({ item, index }: any) => {
         return (
-            <TouchableOpacityView key={item?._id} onPress={() => viewProfile(item)} activeOpacity={1}>
+            <TouchableOpacityView key={item?._id} onPress={() => viewProfile(item, false)} activeOpacity={1}>
                 <Animated.View
                     style={{
                         marginLeft: index === 0 ? metrics.hp2_5 : 0,
@@ -201,8 +211,8 @@ const DiscoverScreen = () => {
                         style={styles.simlierImage}
                         source={{ uri: item?.profilePicture[0]?.url }}>
                         <View style={{ flex: 1 }} />
-                        <View style={[styles.bottomDetails, { marginLeft: metrics.hp1, marginBottom: metrics.hp1 }]}>
-                            <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" }}>
+                        <View style={[styles.newdetails, { marginBottom: metrics.hp1 }]}>
+                            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                                     <AppText type={FORTEEN} color={WHITE} weight={INTER_BOLD}>
                                         {item.firstName}, {item.age}{" "}
@@ -216,16 +226,31 @@ const DiscoverScreen = () => {
                                         }]}
                                     />
                                 </View>
-                                <View style={[styles.flasContaier, { marginLeft: metrics.hp1 }]}>
+                                <TouchableOpacityView onPress={() => { setSuperLikeVisible(true),viewProfile(item, true)}} style={[styles.flasContaier, { marginLeft: metrics.hp1 }]}>
                                     <FastImage source={heartRed} resizeMode="contain" style={styles.flasIcon} />
-                                </View>
+                                </TouchableOpacityView>
                             </View>
                         </View>
                     </ImageBackground>
                 </Animated.View>
             </TouchableOpacityView>
         )
-    }
+    };
+    useEffect(() => {
+        if (!modalVisible && swipeUp) {
+            const timer = setTimeout(() => {
+                let datanew = {
+                    "swipedId": profileData?._id,
+                    "type": "superLike"
+                };
+                dispatch(swipeLikeDisLike(datanew));
+                setSuperLikeVisible(false);
+                setSwipeUp(false);
+            }, 200);
+            return () => clearTimeout(timer);
+        }
+    }, [modalVisible, swipeUp])
+
     return (
         <AppSafeAreaView>
             <PeopleHeader profile={true} filter={true} />
@@ -366,9 +391,18 @@ const DiscoverScreen = () => {
                 visible={modalVisible}
                 onRequestClose={() => setModalVisible(false)}>
                 <PreviewDetails data={profileData} setModalVisible={setModalVisible}
-                    setSwipeUp={setSwipeUp} modalVisible={modalVisible} 
+                    setSwipeUp={setSwipeUp} modalVisible={modalVisible}
                     setProfileData={setProfileData}
-                    discover={true}/>
+                    discover={true}
+                    setSuperLikeVisible={setSuperLikeVisible} />
+            </Modal>
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={superLikeVisible}
+                onRequestClose={() => setSuperLikeVisible(false)}>
+                <SuperLikeScreen data={profileData} setSuperLikeVisible={setSuperLikeVisible}
+                    setSwipeUp={setSwipeUp} ref={ref} />
             </Modal>
         </AppSafeAreaView>
     );
@@ -392,6 +426,9 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
+    },
+    newdetails: {
+        paddingHorizontal: metrics.hp1
     },
     blueTikIcon: {
         height: metrics.hp2_5,

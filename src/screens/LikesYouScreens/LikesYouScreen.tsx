@@ -25,6 +25,9 @@ const LikesYouScreen = () => {
     const userData = useSelector((state: any) => state.auth.userData);
     const [likeYoue, setlikeYou] = useState('Likes You');
     const [ViewYoue, setViewYou] = useState('Viewed You');
+    const [profileData, setProfileData] = useState();
+    console.log(userData,"userData");
+    
     useEffect(() => {
         dispatch(likeByOther());
         dispatch(likeYou());
@@ -93,14 +96,12 @@ const LikesYouScreen = () => {
         let data = {
             "userId": item?.userId
         };
-        dispatch(getOtherProfile(data));
+        dispatch(getOtherProfile(data, true, setProfileData, true));
     }
     const renderItems = ({ item, index }: any) => {
-        console.log(item, "itemitemitem");
-
         return (
-            <TouchableOpacityView onPress={() => viewProfile(item)} key={index} style={[styles.upgradeDataContainer, { marginBottom: metrics.hp2 }]}>
-                <ImageBackground imageStyle={{ borderRadius: metrics.hp1_5 }} source={{ uri: item?.profilePicture[0]?.url }} resizeMode="cover" style={styles.profileImageTwo}>
+            <TouchableOpacityView disabled={item?.see == false ? true:false}  onPress={() => viewProfile(item)} key={index} style={[styles.upgradeDataContainer, { marginBottom: metrics.hp2, }]}>
+                <ImageBackground blurRadius={item?.see == false ? metrics.hp7 : metrics.hp0} imageStyle={{ borderRadius: metrics.hp1_5 }} source={{ uri: item?.profilePicture[0]?.url }} resizeMode="cover" style={styles.profileImageTwo}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
                         <AppText type={THIRTEEN} weight={INTER_BOLD} color={WHITE}>
                             {item.name}<AppText type={THIRTEEN} weight={INTER_SEMI_BOLD} color={WHITE}>
@@ -140,7 +141,7 @@ const LikesYouScreen = () => {
 
         if (tabSelect === "Likes" && likeYoue === "You Liked") {
             data = likeYouData?.length ? likeYouData : [];
-            return data.map((item) => ({ ...item, see: true })); // You can always see who you liked
+            return data.map((item) => ({ ...item, see: false })); // You can always see who you liked
         }
 
         if (tabSelect === "Views" && ViewYoue === "Viewed You") {
@@ -150,11 +151,12 @@ const LikesYouScreen = () => {
 
         if (tabSelect === "Views" && ViewYoue === "You Viewed") {
             data = viewByOtherData?.length ? viewByOtherData : [];
-            return data.map((item) => ({ ...item, see: true })); // You can see whom you viewed
+            return data.map((item) => ({ ...item, see: false })); // You can see whom you viewed
         }
 
         return [];
     };
+
     return (
         <AppSafeAreaView>
             <FastImage source={logoBlue} resizeMode="contain" style={styles.logo} />

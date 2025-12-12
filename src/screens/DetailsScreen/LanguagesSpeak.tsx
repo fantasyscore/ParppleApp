@@ -60,7 +60,7 @@ const LanguageSpeak = ({ route }: any) => {
     };
     return (
         <AppSafeAreaView>
-            <HeaderCommon onSkip={onSkip} title={filter} skip={filter ? false : true} />
+            <HeaderCommon onSkip={onSkip} title={filter} skip={false} />
             {filter ?
                 <View style={styles.singleLine} /> : <></>}
             <View style={styles.container}>

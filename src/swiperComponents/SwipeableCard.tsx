@@ -15,7 +15,6 @@ import Animated, {
   useDerivedValue,
   useSharedValue,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
 import type { SwiperCardOptions, SwiperCardRefType } from 'rn-swiper-list';
 import { scheduleOnRN, scheduleOnUI } from 'react-native-worklets';
@@ -28,18 +27,19 @@ const SwipeableCard = forwardRef(function SwipeableCard<T>(
 ) {
   const {
     index,
-    item,
     activeIndex,
-    prerenderItems = 5,
+    prerenderItems = 4,
     onSwipeLeft,
     onSwipeRight,
     onSwipeTop,
+    onSwipeBottom,
     cardStyle,
     regularCardStyle,
     children,
     disableRightSwipe,
     disableLeftSwipe,
     disableTopSwipe,
+    disableBottomSwipe,
     translateXRange,
     translateYRange,
     rotateInputRange,
@@ -50,9 +50,12 @@ const SwipeableCard = forwardRef(function SwipeableCard<T>(
     outputOverlayLabelLeftOpacityRange,
     inputOverlayLabelTopOpacityRange,
     outputOverlayLabelTopOpacityRange,
+    inputOverlayLabelBottomOpacityRange,
+    outputOverlayLabelBottomOpacityRange,
     OverlayLabelRight,
     OverlayLabelLeft,
     OverlayLabelTop,
+    OverlayLabelBottom,
     onSwipeStart,
     onSwipeActive,
     onSwipeEnd,
@@ -61,58 +64,102 @@ const SwipeableCard = forwardRef(function SwipeableCard<T>(
     swipeRightSpringConfig,
     swipeLeftSpringConfig,
     swipeTopSpringConfig,
+    swipeBottomSpringConfig,
     onPress,
     direction = 'y',
     overlayLabelContainerStyle,
+    swipeVelocityThreshold,
   } = props;
 
   const { width, height } = useWindowDimensions();
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
-  const nextActiveIndex = useSharedValue(0);
 
   const maxCardTranslation = width * 1.5;
   const maxCardTranslationY = height * 1.5;
 
-  // Swipe thresholds
   const SWIPE_THRESHOLD_X = width * 0.18;
-  const SWIPE_THRESHOLD_Y = height * 0.10;
+  const SWIPE_THRESHOLD_Y = height * 0.1;
 
   const swipeRight = useCallback(() => {
     onSwipeRight?.(index);
     scheduleOnUI(() => {
+      'worklet';
       translateX.value = withSpring(maxCardTranslation, {
         ...swipeRightSpringConfig,
         reduceMotion: ReduceMotion.Never,
       });
-      activeIndex.value++;
+      activeIndex.value = activeIndex.value + 1;
     });
-  }, [index, activeIndex, maxCardTranslation, onSwipeRight, translateX, swipeRightSpringConfig]);
+  }, [
+    index,
+    onSwipeRight,
+    translateX,
+    maxCardTranslation,
+    swipeRightSpringConfig,
+    activeIndex,
+  ]);
 
   const swipeLeft = useCallback(() => {
     onSwipeLeft?.(index);
     scheduleOnUI(() => {
+      'worklet';
       translateX.value = withSpring(-maxCardTranslation, {
         ...swipeLeftSpringConfig,
         reduceMotion: ReduceMotion.Never,
       });
-      activeIndex.value++;
+      activeIndex.value = activeIndex.value + 1;
     });
-  }, [index, activeIndex, maxCardTranslation, onSwipeLeft, translateX, swipeLeftSpringConfig]);
+  }, [
+    index,
+    onSwipeLeft,
+    translateX,
+    maxCardTranslation,
+    swipeLeftSpringConfig,
+    activeIndex,
+  ]);
 
   const swipeTop = useCallback(() => {
     onSwipeTop?.(index);
     scheduleOnUI(() => {
+      'worklet';
       translateY.value = withSpring(-maxCardTranslationY, {
         ...swipeTopSpringConfig,
         reduceMotion: ReduceMotion.Never,
       });
-      activeIndex.value++;
+      activeIndex.value = activeIndex.value + 1;
     });
-  }, [index, activeIndex, maxCardTranslationY, onSwipeTop, translateY, swipeTopSpringConfig]);
+  }, [
+    index,
+    onSwipeTop,
+    translateY,
+    maxCardTranslationY,
+    swipeTopSpringConfig,
+    activeIndex,
+  ]);
+
+  const swipeBottom = useCallback(() => {
+    onSwipeBottom?.(index);
+    scheduleOnUI(() => {
+      'worklet';
+      translateY.value = withSpring(maxCardTranslationY, {
+        ...swipeBottomSpringConfig,
+        reduceMotion: ReduceMotion.Never,
+      });
+      activeIndex.value = activeIndex.value + 1;
+    });
+  }, [
+    index,
+    onSwipeBottom,
+    translateY,
+    maxCardTranslationY,
+    swipeBottomSpringConfig,
+    activeIndex,
+  ]);
 
   const swipeBack = useCallback(() => {
     scheduleOnUI(() => {
+      'worklet';
       cancelAnimation(translateX);
       cancelAnimation(translateY);
       translateX.value = withSpring(0, {
@@ -133,12 +180,10 @@ const SwipeableCard = forwardRef(function SwipeableCard<T>(
       swipeRight,
       swipeBack,
       swipeTop,
+      swipeBottom,
     }),
-    [swipeLeft, swipeRight, swipeBack, swipeTop]
+    [swipeLeft, swipeRight, swipeBack, swipeTop, swipeBottom]
   );
-
-  const inputRangeX = translateXRange ?? [];
-  const inputRangeY = translateYRange ?? [];
 
   const rotateX = useDerivedValue(() =>
     interpolate(
@@ -149,37 +194,63 @@ const SwipeableCard = forwardRef(function SwipeableCard<T>(
     )
   );
 
+  const scale = useDerivedValue(() => {
+    const currentActive = Math.floor(activeIndex.value);
+    const indexDiff = index - currentActive;
+    // back cards smaller
+    return 1 - 0.04 * Math.min(Math.max(indexDiff, 0), prerenderItems - 1);
+  });
+
+  const rCardStyle = useAnimatedStyle(() => {
+    const currentActive = Math.floor(activeIndex.value);
+    const indexDiff = index - currentActive;
+
+    const shouldRender =
+      index < currentActive + prerenderItems && index >= currentActive - 1;
+
+    // slight vertical offset for stack effect
+    const stackOffsetY =
+      indexDiff > 0 ? Math.min(indexDiff, prerenderItems - 1) * 10 : 0;
+
+    return {
+      opacity: shouldRender && indexDiff < prerenderItems ? 1 : 0,
+      position: 'absolute',
+      // zIndex: 100 - Math.abs(indexDiff),
+      transform: [
+        { rotate: `${rotateX.value}rad` },
+        { scale: scale.value },
+        { translateX: translateX.value },
+        { translateY: translateY.value + stackOffsetY },
+      ],
+    };
+  });
+
   const tap = Gesture.Tap().onEnd((_event, success) => {
-    if (success && onPress) scheduleOnRN(onPress);
+    if (success && onPress) {
+      scheduleOnRN(onPress);
+    }
   });
 
   const pan = Gesture.Pan()
     .onBegin(() => {
-      nextActiveIndex.value = Math.floor(activeIndex.value);
+      const currentActive = Math.floor(activeIndex.value);
+      if (currentActive !== index) return;
       if (onSwipeStart) scheduleOnRN(onSwipeStart);
     })
     .onUpdate((event) => {
       const currentActive = Math.floor(activeIndex.value);
       if (currentActive !== index) return;
-      if (onSwipeActive) scheduleOnRN(onSwipeActive);
 
       translateX.value = event.translationX;
       translateY.value = event.translationY;
 
-      if (Math.abs(event.translationY) > height / 11) {
-        nextActiveIndex.value = interpolate(
-          translateY.value,
-          inputRangeY,
-          [currentActive + 1, currentActive, currentActive + 1],
-          'clamp'
-        );
-      } else {
-        nextActiveIndex.value = interpolate(
-          translateX.value,
-          inputRangeX,
-          [currentActive + 1, currentActive, currentActive + 1],
-          'clamp'
-        );
+      if (onSwipeActive) {
+        const vx = Math.abs(event.velocityX);
+        const vy = Math.abs(event.velocityY);
+        const vThreshold = swipeVelocityThreshold ?? 300;
+        if (vx > vThreshold || vy > vThreshold) {
+          scheduleOnRN(onSwipeActive);
+        }
       }
     })
     .onFinalize((event) => {
@@ -197,40 +268,28 @@ const SwipeableCard = forwardRef(function SwipeableCard<T>(
         scheduleOnRN(swipeLeft);
         return;
       }
-      if (translationY < -SWIPE_THRESHOLD_Y && !disableTopSwipe) {
-        scheduleOnRN(swipeTop);
-        return;
+
+      if (direction === 'y' || direction === 'both') {
+        if (translationY < -SWIPE_THRESHOLD_Y && !disableTopSwipe) {
+          scheduleOnRN(swipeTop);
+          return;
+        }
+        if (translationY > SWIPE_THRESHOLD_Y && !disableBottomSwipe) {
+          scheduleOnRN(swipeBottom);
+          return;
+        }
       }
 
-      translateX.value = withSpring(0, swipeBackXSpringConfig);
-      translateY.value = withSpring(0, swipeBackYSpringConfig);
+      // snap back
+      translateX.value = withSpring(0, {
+        ...swipeBackXSpringConfig,
+        reduceMotion: ReduceMotion.Never,
+      });
+      translateY.value = withSpring(0, {
+        ...swipeBackYSpringConfig,
+        reduceMotion: ReduceMotion.Never,
+      });
     });
-
-  const rCardStyle = useAnimatedStyle(() => {
-    const currentActive = Math.floor(activeIndex.value);
-    const shouldRender =
-      index < currentActive + prerenderItems && index >= currentActive - 1;
-    const indexDiff = index - currentActive;
-
-    return {
-      opacity: withTiming(
-        shouldRender && indexDiff < prerenderItems ? 1 : 0,
-        { reduceMotion: ReduceMotion.Never }
-      ),
-      position: 'absolute',
-      zIndex: -index,
-      transform: [
-        { rotate: `${rotateX.value}rad` },
-        {
-          scale: withTiming(1 - 0.07 * indexDiff, {
-            reduceMotion: ReduceMotion.Never,
-          }),
-        },
-        { translateX: translateX.value },
-        { translateY: translateY.value },
-      ],
-    };
-  });
 
   const composed = Gesture.Race(tap, pan);
 
@@ -261,6 +320,15 @@ const SwipeableCard = forwardRef(function SwipeableCard<T>(
             inputRange={inputOverlayLabelTopOpacityRange}
             outputRange={outputOverlayLabelTopOpacityRange}
             Component={OverlayLabelTop}
+            opacityValue={translateY}
+          />
+        )}
+        {OverlayLabelBottom && (
+          <OverlayLabel
+            overlayLabelContainerStyle={overlayLabelContainerStyle}
+            inputRange={inputOverlayLabelBottomOpacityRange}
+            outputRange={outputOverlayLabelBottomOpacityRange}
+            Component={OverlayLabelBottom}
             opacityValue={translateY}
           />
         )}

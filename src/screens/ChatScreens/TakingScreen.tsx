@@ -29,7 +29,7 @@ type ChatMessage = {
         name: string;
         avatar: any;
     };
-};
+}
 
 const initialMessages: ChatMessage[] = [
     {

@@ -16,7 +16,7 @@ import Geolocation, { GeoPosition } from "react-native-geolocation-service";
 import { useDispatch, useSelector } from "react-redux";
 import { setAddProfile } from "../../slices/loginServices/authSlice";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_PRONOUN_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_GANDER_SCREEN, NAVIGATION_PRONOUN_SCREEN } from "../../navigation/routes";
 import { getAddressFromCoordinates } from "../../helper/utility";
 import { Screen } from "../../theme/dimens";
 import LinearGradient from "react-native-linear-gradient";
@@ -110,6 +110,7 @@ const LocationScreen = () => {
               city:city,
               state: state,
               country: country,
+              pronouns: [],
             };
             dispatch(setAddProfile(dataToSave));
             console.log("📍 Location data:", dataToSave);
@@ -157,7 +158,8 @@ const LocationScreen = () => {
 
   const onSubmit = () => {
     if (!addressName) return toastAlert.showToastError("Please wait to fetch location")
-    NavigationService.navigate(NAVIGATION_PRONOUN_SCREEN)
+    // NavigationService.navigate(NAVIGATION_PRONOUN_SCREEN)
+    NavigationService.navigate(NAVIGATION_GANDER_SCREEN)
   };
   const handleMapPress = async (e: MapPressEvent) => {
     const { latitude, longitude } = e.nativeEvent.coordinate;
@@ -194,6 +196,7 @@ const LocationScreen = () => {
         city:city,
         state: state,
         country: country,
+        pronouns: [],
       };
       dispatch(setAddProfile(dataToSave));
       console.log("📍 Location data:", dataToSave);

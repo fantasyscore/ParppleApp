@@ -48,9 +48,7 @@ const createGlowingHeartAnimation = (delay: number, startY: number, finalY: numb
     return animatedStyle;
 };
 
-const MatchScreen = ({matchData}:any) => {
-    console.log(matchData,"matchData");
-    
+const MatchScreen = ({matchData,setMatchVisible}:any) => {
     const profile1TranslateX = useSharedValue(-200);
     const profile2TranslateX = useSharedValue(200);
     const profilesOpacity = useSharedValue(0);
@@ -125,10 +123,10 @@ const MatchScreen = ({matchData}:any) => {
             </View>
             <View style={styles.buttonsContainer}>
                 <AppText type={EIGHTEEN} color={WHITE} weight={INTER_MEDIUM}>Start a conversation now!</AppText>
-                <TouchableOpacityView onPress={()=>NavigationService.goBack()} style={styles.startButton}>
+                <TouchableOpacityView onPress={()=>setMatchVisible(false)} style={styles.startButton}>
                     <AppText type={FORTEEN} weight={INTER_SEMI_BOLD}>Start Chatting</AppText>
                 </TouchableOpacityView>
-                <TouchableOpacityView onPress={()=>NavigationService.goBack()}>
+                <TouchableOpacityView onPress={()=>setMatchVisible(false)}>
                     <AppText type={FORTEEN} color={WHITE} weight={INTER_MEDIUM} style={styles.notNowButtonText}>Not now</AppText>
                 </TouchableOpacityView>
             </View>
