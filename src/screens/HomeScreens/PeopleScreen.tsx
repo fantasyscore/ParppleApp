@@ -97,7 +97,6 @@ const PeopleScreen = () => {
         }
     }, []);
     
-    const subscriptionItem = useMemo(() => ({ id: '1', icon: silverCard, title: 'Silver' }), []);
 
     const visibleCards = useMemo(() => {
         if (!listProfilesData || listProfilesData.length === 0) return [];
@@ -455,7 +454,9 @@ const PeopleScreen = () => {
             dispatch(swipeLikeDisLike(data));
         }
     };
-    
+    useEffect(() => {
+        NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
+    }, []); 
     const PulsingCircle = ({ size }: any) => {
         const anim = useRef(new Animated.Value(0)).current;
         const animTwp = useRef(new Animated.Value(0)).current;
