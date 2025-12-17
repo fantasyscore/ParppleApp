@@ -51,7 +51,7 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
     const scrollViewRef: any = useRef(null);
 
     return (
-        <AppSafeAreaView style={{ marginTop: -metrics.hp4 }}>
+        <AppSafeAreaView>
             <PeopleHeader profile={false} userName={true} name={discover ? data?.firstName : data?.name} age={data?.age} />
             <ScrollView
                 ref={scrollViewRef}

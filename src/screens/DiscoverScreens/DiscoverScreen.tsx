@@ -422,6 +422,7 @@ const DiscoverScreen = () => {
             <Modal
                 animationType="slide"
                 transparent={true}
+                statusBarTranslucent
                 visible={modalVisible}
                 onRequestClose={() => setModalVisible(false)}>
                 <PreviewDetails data={profileData} setModalVisible={setModalVisible}

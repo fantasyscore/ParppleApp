@@ -9,7 +9,7 @@ import {
     View,
 } from 'react-native';
 import { AppText, ELEVEN, INTER_BOLD, INTER_MEDIUM, TWENTY_TWO, WHITE } from '../../common/AppText';
-import { blueTikeIcon, bussinessIcon, CloseBlueIcon, flashIcon, goldCard, heartGreen, heartRed, locationCIon, nopeIcon, shareRedIcon, superlike, upArrowIcon, yesIcon } from '../../helper/ImageAssets';
+import { blueTikeIcon, bussinessIcon, CloseBlueIcon, flashIcon, goldCard, heartGreen, heartRed, locationCIon, nopeIcon, shareRedIcon, silverCard, superlike, upArrowIcon, yesIcon } from '../../helper/ImageAssets';
 import metrics from '../../assets/Metrics';
 import FastImage from 'react-native-fast-image';
 import { colors } from '../../theme/colors';
@@ -32,6 +32,8 @@ import Toast, { IToast } from '../../common/Toast';
 import SuperLikeScreen from './SuperLikeScreen';
 import NavigationService from '../../navigation/NavigationService';
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from '../../navigation/routes';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SWIPES_PER_DAY_KEY, SWIPES_REMAINING_KEY, SUPER_LIKES_REMAINING_KEY } from '../../helper/Constants';
 
 const { width, height } = Dimensions.get("window");
 const FULL_IMAGE_HEIGHT = height * 0.75;
@@ -55,10 +57,47 @@ const PeopleScreen = () => {
     const cardWidthRef = useRef(0);
     const WINDOW_SIZE = 4;
     const LOAD_THRESHOLD = 2; 
-    const [remainingSwipes, setRemainingSwipes] = useState(userData?.swipesRemaining ?? 0);
-    const [remainingSuperLikes, setRemainingSuperLikes] = useState(userData?.superLikesRemaining ?? 0);
+    const [remainingSwipes, setRemainingSwipes] = useState(0);
+    const [remainingSuperLikes, setRemainingSuperLikes] = useState(0);
+    const [swipesPerDay, setSwipesPerDay] = useState(0);
     
-    const subscriptionItem = useMemo(() => ({ id: '2', icon: goldCard, title: 'Gold' }), []);
+    const loadStoredValues = useCallback(async () => {
+        try {
+            const storedSwipesRemaining = await AsyncStorage.getItem(SWIPES_REMAINING_KEY);
+            const storedSuperLikesRemaining = await AsyncStorage.getItem(SUPER_LIKES_REMAINING_KEY);
+            const storedSwipesPerDay = await AsyncStorage.getItem(SWIPES_PER_DAY_KEY);
+            
+            if (storedSwipesRemaining !== null) {
+                setRemainingSwipes(parseInt(storedSwipesRemaining, 10));
+            }
+            if (storedSuperLikesRemaining !== null) {
+                setRemainingSuperLikes(parseInt(storedSuperLikesRemaining, 10));
+            }
+            if (storedSwipesPerDay !== null) {
+                setSwipesPerDay(parseInt(storedSwipesPerDay, 10));
+            }
+        } catch (error) {
+            console.warn('Error loading stored values:', error);
+        }
+    }, []);
+    
+    const saveStoredValues = useCallback(async (swipes?: number, superLikes?: number, perDay?: number) => {
+        try {
+            if (swipes !== undefined) {
+                await AsyncStorage.setItem(SWIPES_REMAINING_KEY, swipes.toString());
+            }
+            if (superLikes !== undefined) {
+                await AsyncStorage.setItem(SUPER_LIKES_REMAINING_KEY, superLikes.toString());
+            }
+            if (perDay !== undefined) {
+                await AsyncStorage.setItem(SWIPES_PER_DAY_KEY, perDay.toString());
+            }
+        } catch (error) {
+            console.warn('Error saving stored values:', error);
+        }
+    }, []);
+    
+    const subscriptionItem = useMemo(() => ({ id: '1', icon: silverCard, title: 'Silver' }), []);
 
     const visibleCards = useMemo(() => {
         if (!listProfilesData || listProfilesData.length === 0) return [];
@@ -73,7 +112,6 @@ const PeopleScreen = () => {
     useEffect(() => {
         setRemainingSwipes(userData?.swipesRemaining ?? 0);
         socket.on('connect', () => {
-            console.log('Socket connected ✅', socket.id);
         });
         socket.on('newMatch', (response) => {
             if (response) {
@@ -103,44 +141,60 @@ const PeopleScreen = () => {
         outputRange: [colors.singleButtonGreen, colors.white],
         extrapolate: 'clamp',
     });
-    // Track if we're returning from subscription screen to prevent index reset
     const returningFromSubscriptionRef = useRef(false);
     const isInitialMountRef = useRef(true);
     
     useEffect(() => {
-        if (!IsFocused) return; // Only run when screen is focused
+        loadStoredValues();
+    }, [loadStoredValues]);
+    
+    useEffect(() => {
+        if (userData && (userData.swipesRemaining !== undefined || userData.superLikesRemaining !== undefined || userData.swipesPerDay !== undefined)) {
+            const swipesRemaining = userData?.swipesRemaining ?? 0;
+            const superLikesRemaining = userData?.superLikesRemaining ?? 0;
+            const swipesPerDayValue = userData?.swipesPerDay ?? 0;
+            setRemainingSwipes(swipesRemaining);
+            setRemainingSuperLikes(superLikesRemaining);
+            setSwipesPerDay(swipesPerDayValue);
+            saveStoredValues(swipesRemaining, superLikesRemaining, swipesPerDayValue);
+        }
+    }, [userData, saveStoredValues]);
+    
+    useEffect(() => {
+        if (!IsFocused) return;
         
         dispatch(getProfile(true))
         dispatch(listProfiles(true));
         
-        // Only reset index/window on initial mount, not when returning from subscription
         if (isInitialMountRef.current) {
             setWindowStartIndex(0);
             setGetCurrentIndex(0);
             isInitialMountRef.current = false;
         } else if (returningFromSubscriptionRef.current) {
-            // Preserve current index when returning from subscription
-            // Don't reset the index/window - keep showing the same profile
-            returningFromSubscriptionRef.current = false; // Reset flag after preserving
+            returningFromSubscriptionRef.current = false; 
         } else {
-            // Normal focus - reset index
             setWindowStartIndex(0);
             setGetCurrentIndex(0);
         }
-        
-        setRemainingSwipes(userData?.swipesRemaining ?? 0);
-        setRemainingSuperLikes(userData?.superLikesRemaining ?? 0);
     }, [IsFocused])
-
-    // Sync remaining swipes whenever user data updates
-    useEffect(() => {
-        setRemainingSwipes(userData?.swipesRemaining ?? 0);
-    }, [userData?.swipesRemaining]);
     
-    // Sync remaining super likes whenever user data updates
     useEffect(() => {
-        setRemainingSuperLikes(userData?.superLikesRemaining ?? 0);
-    }, [userData?.superLikesRemaining]);
+        if (remainingSwipes !== undefined) {
+            saveStoredValues(remainingSwipes, undefined, undefined);
+        }
+    }, [remainingSwipes, saveStoredValues]);
+    
+    useEffect(() => {
+        if (remainingSuperLikes !== undefined) {
+            saveStoredValues(undefined, remainingSuperLikes, undefined);
+        }
+    }, [remainingSuperLikes, saveStoredValues]);
+    
+    useEffect(() => {
+        if (swipesPerDay !== undefined) {
+            saveStoredValues(undefined, undefined, swipesPerDay);
+        }
+    }, [swipesPerDay, saveStoredValues]);
     
     useEffect(() => {
         if (getCurrentIndex >= LOAD_THRESHOLD && listProfilesData && listProfilesData.length > 0) {
@@ -155,24 +209,25 @@ const PeopleScreen = () => {
     }, [getCurrentIndex, windowStartIndex, listProfilesData]);
 
     const canSwipeRight = useCallback(() => {
-        if ((remainingSwipes ?? 0) <= 0) {
-            // Mark that we're navigating to subscription screen
+        const swipes = remainingSwipes ?? userData?.swipesRemaining ?? 0;
+        if (swipes <= 0) {
             returningFromSubscriptionRef.current = true;
             NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
             return false;
         }
         return true;
-    }, [remainingSwipes, subscriptionItem]);
+    }, [remainingSwipes, userData?.swipesRemaining, subscriptionItem]);
     
     const canSuperLike = useCallback(() => {
-        if ((remainingSuperLikes ?? 0) <= 0) {
-            // Mark that we're navigating to subscription screen
+        // Use state value (which is synced with AsyncStorage)
+        const superLikes = remainingSuperLikes ?? userData?.superLikesRemaining ?? 0;
+        if (superLikes <= 0) {
             returningFromSubscriptionRef.current = true;
             NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
             return false;
         }
         return true;
-    }, [remainingSuperLikes, subscriptionItem]);
+    }, [remainingSuperLikes, userData?.superLikesRemaining, subscriptionItem]);
     const OverlayLabelRight = useCallback(() => {
         return (
             <View style={styles.leftIconOverlay}>
@@ -190,7 +245,7 @@ const PeopleScreen = () => {
     }, []);
     const OverlayLabelTop = useCallback(() => {
         return (
-            <View style={{ backgroundColor: "red", top: metrics.hp25, opacity:0 }}>
+            <View style={{ top: metrics.hp25, alignItems: 'center', justifyContent: 'center' }}>
                 <FastImage source={superlike} resizeMode='contain' style={{ height: metrics.hp20, width: metrics.hp25 }} />
             </View>
         );
@@ -209,12 +264,10 @@ const PeopleScreen = () => {
                     newIndex = newIndex > 0 ? newIndex - 1 : newIndex;
                 }
                 
-                // Preload the target image immediately with high priority
                 if (newIndex !== p.index && p.gallery && p.gallery[newIndex]?.url) {
                     const targetImageUrl = p.gallery[newIndex].url;
                     FastImage.preload([{ uri: targetImageUrl, priority: FastImage.priority.high }]);
                     
-                    // Preload adjacent images for smooth future navigation
                     if (newIndex > 0 && p.gallery[newIndex - 1]?.url) {
                         FastImage.preload([{ uri: p.gallery[newIndex - 1].url, priority: FastImage.priority.normal }]);
                     }
@@ -271,7 +324,6 @@ const PeopleScreen = () => {
                         if (layout?.width) cardWidthRef.current = layout.width;
                     }}>
                     <View style={styles.imageContainer}>
-                        {/* Preload adjacent images (hidden) */}
                         {prevImage?.url && (
                             <FastImage
                                 source={{ uri: prevImage.url }}
@@ -377,9 +429,6 @@ const PeopleScreen = () => {
         const actualProfileIndex = windowStartIndex + index;
         const profile = listProfilesData[actualProfileIndex];
         if (!profile) return;
-        
-        // At this point, we've already checked canSwipeRight in onSwipeRight/onSwipeTop
-        // So we can proceed with the swipe
         if (swipe === "like") {
             setGetCurrentIndex(index + 1);
             setRemainingSwipes((prev: number) => Math.max((prev ?? 0) - 1, 0));
@@ -406,7 +455,6 @@ const PeopleScreen = () => {
             dispatch(swipeLikeDisLike(data));
         }
     };
-    console.log(userData,"userData");
     
     const PulsingCircle = ({ size }: any) => {
         const anim = useRef(new Animated.Value(0)).current;
@@ -537,7 +585,6 @@ const PeopleScreen = () => {
                 <View style={{ zIndex: 2, backgroundColor: colors.white }}>
                     <PeopleHeader profile={false} useName={true} />
                 </View>
-                {/* <View style={{flex:1, backgroundColor:colors.red, zIndex:10, position:"absolute"}}/> */}
                 <View style={styles.swiperContainer}>
                     {(visibleCards.length === 0 || (windowStartIndex + getCurrentIndex >= listProfilesData?.length)) &&
                         <View style={{ alignItems: "center", justifyContent: "center", flex: 1, marginTop: -metrics.hp5 }}>
@@ -546,41 +593,40 @@ const PeopleScreen = () => {
                         </View>}
                     {visibleCards.length > 0 && (windowStartIndex + getCurrentIndex < listProfilesData?.length) &&
                         <Swiper
-                            key={`swiper-${windowStartIndex}`} // Force remount when window shifts
+                            key={`swiper-${windowStartIndex}`} 
                             ref={ref}
                             data={visibleCards} 
                             cardStyle={styles.cardStyle}
                             overlayLabelContainerStyle={styles.overlayLabelContainerStyle}
                             renderCard={renderCard}
                             disableBottomSwipe
-                            disableTopSwipe
                             OverlayLabelRight={OverlayLabelRight}
                             OverlayLabelLeft={OverlayLabelLeft}
                             OverlayLabelTop={OverlayLabelTop}
                             onSwipeRight={(index) => {
-                                // Check if we can swipe before processing
-                                if (!canSwipeRight()) {
-                                    // Card has already swiped away, bring it back
-                                    // Use requestAnimationFrame to ensure swipe animation has started
+                                const swipes = remainingSwipes ?? userData?.swipesRemaining ?? 0;
+                                if (swipes <= 0) {
+                                    returningFromSubscriptionRef.current = true;
+                                    NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
                                     requestAnimationFrame(() => {
                                         ref.current?.swipeBack && ref.current?.swipeBack();
                                     });
-                                    return; // Don't call swipeFunction, so index doesn't advance
+                                    return; 
                                 }
                                 swipeFunction(index, "like");
                             }}
                             onSwipeLeft={(index) => swipeFunction(index, "dislike")}
                             onSwipeTop={(index) => {
-                                // Check if we can super like before processing
-                                if (!canSuperLike()) {
-                                    // Card has already swiped away, bring it back
-                                    // Use requestAnimationFrame to ensure swipe animation has started
+                                const superLikes = remainingSuperLikes ?? userData?.superLikesRemaining ?? 0;
+                                if (superLikes <= 0) {
+                                    returningFromSubscriptionRef.current = true;
+                                    NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
                                     requestAnimationFrame(() => {
                                         ref.current?.swipeBack && ref.current?.swipeBack();
                                     });
-                                    return; // Don't call swipeFunction, so index doesn't advance
+                                    return; 
                                 }
-                                swipeFunction(index, "superLike");
+                                swipeFunction(index, "like");
                             }}
                             initialIndex={getCurrentIndex}
                             prerenderItems={4}
@@ -609,7 +655,12 @@ const PeopleScreen = () => {
                     </View>
                     <Animated.View style={[styles.unlickContainer, { backgroundColor: yesColor }]} >
                         <TouchableOpacityView onPress={() => {
-                            if (!canSwipeRight()) return;
+                            const swipes = remainingSwipes ?? userData?.swipesRemaining ?? 0;
+                            if (swipes <= 0) {
+                                returningFromSubscriptionRef.current = true;
+                                NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
+                                return;
+                            }
                             ref.current?.swipeRight();
                         }}>
                             <Animated.Image source={heartGreen} resizeMode="contain" style={[styles.flasIconClose, {
@@ -624,6 +675,7 @@ const PeopleScreen = () => {
                 <Modal
                     animationType="fade"
                     visible={modalVisible}
+                    statusBarTranslucent
                     onRequestClose={() => setModalVisible(false)}>
                     <PreviewDetails data={visibleCards[getCurrentIndex] || listProfilesData[windowStartIndex + getCurrentIndex]} setModalVisible={setModalVisible}
                         setSwipeRight={setSwipeRight}
@@ -636,6 +688,7 @@ const PeopleScreen = () => {
                 <Modal
                     animationType="fade"
                     transparent={true}
+                    statusBarTranslucent
                     visible={matchVisible}
                     onRequestClose={() => setMatchVisible(false)}>
                     <MatchScreen setMatchVisible={setMatchVisible} matchData={matchData} />
@@ -643,6 +696,7 @@ const PeopleScreen = () => {
                 <Modal
                     animationType="fade"
                     transparent={true}
+                    statusBarTranslucent
                     visible={superLikeVisible}
                     onRequestClose={() => setSuperLikeVisible(false)}>
                     <SuperLikeScreen data={visibleCards[getCurrentIndex] || listProfilesData[windowStartIndex + getCurrentIndex]} setSuperLikeVisible={setSuperLikeVisible} setGetCurrentIndex={setGetCurrentIndex}
@@ -687,13 +741,13 @@ const styles = StyleSheet.create({
         height: FULL_IMAGE_HEIGHT,
         borderRadius: metrics.hp2,
         overflow: 'hidden',
-        backgroundColor: '#000', // Black background to prevent white flash
+        backgroundColor: '#000', 
     },
     image: {
         borderRadius: metrics.hp2,
         width: "100%",
         height: "100%",
-        backgroundColor: '#000', // Black background
+        backgroundColor: '#000', 
     },
     hiddenImage: {
         position: 'absolute',
@@ -721,7 +775,7 @@ const styles = StyleSheet.create({
         height: height * 0.75,
         position: "absolute",
         borderRadius: metrics.hp2,
-        backgroundColor: "#000", // Black background to prevent white flash
+        backgroundColor: "#000", 
         overflow: Platform.OS === "android" ? "hidden" : undefined,
     },
     cardStyle: {
