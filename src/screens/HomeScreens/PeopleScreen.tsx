@@ -97,6 +97,7 @@ const PeopleScreen = () => {
         }
     }, []);
     
+    const subscriptionItem = useMemo(() => ({ id: '1', icon: silverCard, title: 'Silver' }), []);
 
     const visibleCards = useMemo(() => {
         if (!listProfilesData || listProfilesData.length === 0) return [];

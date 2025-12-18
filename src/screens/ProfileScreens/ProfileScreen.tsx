@@ -12,7 +12,7 @@ import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { premiumDetaiData, PurchaseCards } from "../../common/UiltData";
 import { Screen } from "../../theme/dimens";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_EDIT_PROFILE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_EDIT_PROFILE_SCREEN, NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN, NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from "../../navigation/routes";
 import { useDispatch, useSelector } from "react-redux";
 
 const ProfileScreen = () => {
@@ -39,7 +39,12 @@ const ProfileScreen = () => {
             </TouchableOpacityView>
         )
     };
+    const navigateButton = (item: any) => {
+        if (item?.title === "Boost") return NavigationService.navigate(NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN);
+        if (item?.title === "Super Like") return NavigationService.navigate(NAVIGATION_SUPERLIKE_PURCHESE_SCREEN);
+        if (item?.title === "Subscription") return NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN);
 
+    }
     return (
         <AppSafeAreaView>
             <ImageBackground
@@ -116,7 +121,7 @@ const ProfileScreen = () => {
                         <View style={styles.one}>
                             {premiumDetaiData?.map((item, index) => {
                                 return (
-                                    <View key={index} style={styles.subDetails}>
+                                    <TouchableOpacityView onPress={() => navigateButton(item)} key={index} style={styles.subDetails}>
                                         <FastImage source={item.icon} resizeMode="contain" style={styles.icons} />
                                         <AppText color={index == 0 ? SKYBLUE : index == 1 ? RED : PURPLE} style={{ marginTop: metrics.hp2 }} type={FORTEEN} weight={INTER_BOLD}>
                                             {item.numberText}
@@ -129,7 +134,7 @@ const ProfileScreen = () => {
                                                 {item.headLine}
                                             </AppText>
                                         </View>
-                                    </View>
+                                    </TouchableOpacityView>
                                 )
                             })}
                         </View>
@@ -305,7 +310,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.white,
         marginTop: metrics.hp2,
         alignItems: "center",
-        borderWidth:metrics.hp0_1
+        borderWidth: metrics.hp0_1
     },
     checkSafetyIcon: {
         height: metrics.hp5,

@@ -65,6 +65,9 @@ import SuperLikeScreen from "../screens/HomeScreens/SuperLikeScreen";
 import PeopleScreen from "../screens/HomeScreens/PeopleScreen";
 import PreviewDetails from "../screens/HomeScreens/PreviewDetails";
 import InAppPurchaseScreen from "../screens/InAppPurchaseScreen";
+import ProfileBoostPurchase from "../screens/ProfileScreens/ProfileBoostPurchase";
+import SuperLikePurchese from "../screens/ProfileScreens/SuperLikePurchese";
+import CrushNotePurchase from "../screens/ProfileScreens/CrushNotePurchase";
 
 const Navigator = () => {
   const Stack = createStackNavigator();
@@ -137,6 +140,10 @@ const Navigator = () => {
       <Stack.Screen name={routes.NAVIGATION_REPORT_COMMON_SCREEN} component={ReportCommonScreen} />
       <Stack.Screen name={routes.NAVIGATION_OHTER_REPORT_SCREEN} component={OtherReport} />
       <Stack.Screen name={routes.NAVIGATION_SUCCES_REPORTING_SCREEN} component={SuceesReporting} />
+      <Stack.Screen name={routes.NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN} component={ProfileBoostPurchase} />
+      <Stack.Screen name={routes.NAVIGATION_SUPERLIKE_PURCHESE_SCREEN} component={SuperLikePurchese} />
+      <Stack.Screen name={routes.NAVIGATION_CRUSH_PURCHESE_SCREEN} component={CrushNotePurchase} />
+
       </Stack.Navigator>
   );
 
