@@ -10,6 +10,8 @@ import { AppText, EIGHT, ELEVEN, FORTEEN, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_
 import { SilverPurchasedis } from "../../common/UiltData";
 import { colors } from "../../theme/colors";
 import * as RNIap from 'react-native-iap';
+import { useSelector } from "react-redux";
+import { usePurchaseVerification } from "../../hooks/usePurchaseVerification";
 
 // All Subscription SKUs
 const ALL_SUBSCRIPTION_SKUS = Platform.select({
@@ -132,7 +134,9 @@ const SubscriptionScreen = ({ route }: any) => {
     const [allProducts, setAllProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState<string | null>(null);
-
+    const userData = useSelector((state: any) => state.auth.userData);
+    const { handlePurchaseSuccess } = usePurchaseVerification();
+    
     const getHeaderImage = () => {
         if (selectedTier === "Silver") return silverHeader;
         if (selectedTier === "Gold") return goldHeader;
@@ -156,8 +160,8 @@ const SubscriptionScreen = ({ route }: any) => {
                 });
 
                 if (availableProducts && availableProducts.length > 0) {
-                    // Format all products
-                    const formattedProducts = availableProducts.map(prod => {
+                    // First pass: calculate all products with weekly pricing
+                    const productsWithPricing = availableProducts.map(prod => {
                         const periodInfo = extractSubscriptionPeriod(prod);
                         const fullPriceStr = extractPrice(prod);
                         const priceInfo = extractPriceNumber(fullPriceStr);
@@ -170,14 +174,6 @@ const SubscriptionScreen = ({ route }: any) => {
                         
                         // Rule: Assign any remaining amount to the final week
                         const lastWeekAmount = Number((total - (weeklyFixed * (n - 1))).toFixed(2));
-                        
-                        // Determine discount based on plan period
-                        let discount = "";
-                        if (periodInfo.planOf === "1 Month") {
-                            discount = "Save 25%";
-                        } else if (periodInfo.planOf === "6 Months") {
-                            discount = "Save 37%";
-                        }
 
                         const weeklyPriceStr = `${priceInfo.currency}${weeklyFixed.toFixed(2)}`;
                         
@@ -190,12 +186,51 @@ const SubscriptionScreen = ({ route }: any) => {
                             planOf: periodInfo.planOf,
                             amount: `${weeklyPriceStr} /`,
                             ofPu: "wk",
-                            discount,
                             periodOrder: periodInfo.periodOrder,
                             displayPrice: fullPriceStr,
+                            weeklyPriceAmount: weeklyFixed,
+                            weeksCount: n,
+                            totalAmount: total,
+                            currency: priceInfo.currency,
                             storeTitle: (prod as any).title || (prod as any).localizedTitle || (prod as any).name || '',
                             storeDescription: (prod as any).description || (prod as any).localizedDescription || '',
                             rawSubscription: prod,
+                        };
+                    });
+
+                    // Second pass: calculate discounts for each tier
+                    const formattedProducts = productsWithPricing.map(prod => {
+                        // Find base weekly price (1 Week plan) for this tier
+                        const oneWeekPlan = productsWithPricing.find(
+                            (p: any) => p.tier === prod.tier && p.weeksCount === 1
+                        );
+                        const baseWeeklyPrice = oneWeekPlan?.weeklyPriceAmount || 0;
+
+                        let discount = "";
+                        let discountPercent = 0;
+                        let label = "";
+
+                        // Only calculate discount for plans longer than 1 week
+                        if (prod.weeksCount > 1 && baseWeeklyPrice > 0) {
+                            // Calculate discount: (baseWeeklyPrice - planWeeklyPrice) / baseWeeklyPrice * 100
+                            const weeklySavings = baseWeeklyPrice - prod.weeklyPriceAmount;
+                            discountPercent = Number(((weeklySavings / baseWeeklyPrice) * 100).toFixed(2));
+                            const roundedDiscount = Math.round(discountPercent);
+
+                            // UI Rules: Show discount badge if ≥ 10%, add "Best Value" if ≥ 25%
+                            if (roundedDiscount >= 10) {
+                                discount = `Save ${roundedDiscount}%`;
+                            }
+                            if (roundedDiscount >= 25) {
+                                label = 'Best Value';
+                            }
+                        }
+
+                        return {
+                            ...prod,
+                            discount,
+                            discountPercent,
+                            label,
                         };
                     });
 
@@ -210,11 +245,33 @@ const SubscriptionScreen = ({ route }: any) => {
 
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
             try {
-                await RNIap.finishTransaction({ purchase, isConsumable: false });
                 setProcessing(null);
-                Alert.alert('Success', `Subscription activated successfully!`, [{ text: 'OK', onPress: () => NavigationService.goBack() }]);
+                
+                // Handle purchase verification workflow
+                await handlePurchaseSuccess(
+                    purchase,
+                    'subscription',
+                    () => {
+                        // Success callback
+                        Alert.alert(
+                            'Success',
+                            'Subscription activated successfully!',
+                            [{ text: 'OK', onPress: () => NavigationService.goBack() }]
+                        );
+                    },
+                    (error) => {
+                        // Error callback
+                        console.error('[Subscription] Verification error:', error);
+                        Alert.alert(
+                            'Purchase Recorded',
+                            'Your purchase was successful, but verification is pending. You will receive your subscription once verification completes.',
+                            [{ text: 'OK', onPress: () => NavigationService.goBack() }]
+                        );
+                    }
+                );
             } catch (err) {
                 setProcessing(null);
+                console.error('[Subscription] Purchase handler error:', err);
             }
         });
 

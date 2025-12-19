@@ -10,6 +10,7 @@ import { AppText, EIGHT, FORTEEN, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR,
 import { colors } from "../../theme/colors";
 import * as RNIap from 'react-native-iap';
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
+import { usePurchaseVerification } from "../../hooks/usePurchaseVerification";
 
 // One-time Product SKUs
 const PRODUCT_SKUS = Platform.select({
@@ -30,6 +31,7 @@ const SuperLikePurchese = () => {
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState<string | null>(null);
+    const { handlePurchaseSuccess } = usePurchaseVerification();
 
     useEffect(() => {
         let purchaseUpdateSubscription: any;
@@ -47,8 +49,8 @@ const SuperLikePurchese = () => {
                 });
 
                 if (availableProducts && availableProducts.length > 0) {
-                    // Format and calculate per-item pricing
-                    const formattedProducts = availableProducts.map((prod: any) => {
+                    // First pass: calculate all products with per-item pricing
+                    const productsWithPricing = availableProducts.map((prod: any) => {
                         const productId = (prod.productId || prod.id || '').toString();
                         const likeCountStr = productId.match(/\d+/)?.[0] || '1';
                         const n = parseInt(likeCountStr);
@@ -74,16 +76,43 @@ const SuperLikePurchese = () => {
 
                         const perItemPriceStr = `${priceInfo.currency}${perItemFixed.toFixed(2)}`;
 
-                        let discount = "";
-                        if (n === 3) discount = "Save 16%";
-                        else if (n === 10) discount = "Save 25%";
-
                         return {
                             ...prod,
                             likeCount: n,
                             displayPrice: fullPriceStr,
                             perItemPrice: perItemPriceStr,
+                            perItemPriceAmount: perItemFixed,
+                            totalAmount: total,
+                            currency: priceInfo.currency,
+                        };
+                    });
+
+                    // Find base price (single unit pack)
+                    const singleUnitPack = productsWithPricing.find((p: any) => p.likeCount === 1);
+                    const baseUnitPrice = singleUnitPack?.perItemPriceAmount || 0;
+
+                    // Second pass: calculate discounts
+                    const formattedProducts = productsWithPricing.map((prod: any) => {
+                        const n = prod.likeCount;
+                        let discount = "";
+                        let discountPercent = 0;
+
+                        if (n > 1 && baseUnitPrice > 0) {
+                            // Calculate discount: (baseUnitPrice - perUnitPackPrice) / baseUnitPrice * 100
+                            const perUnitSavings = baseUnitPrice - prod.perItemPriceAmount;
+                            discountPercent = Number(((perUnitSavings / baseUnitPrice) * 100).toFixed(2));
+                            const roundedDiscount = Math.round(discountPercent);
+
+                            // UI Rules: Show discount badge if ≥ 10%
+                            if (roundedDiscount >= 10) {
+                                discount = `Save ${roundedDiscount}%`;
+                            }
+                        }
+
+                        return {
+                            ...prod,
                             discount,
+                            discountPercent,
                         };
                     });
 
@@ -101,11 +130,33 @@ const SuperLikePurchese = () => {
 
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
             try {
-                await RNIap.finishTransaction({ purchase, isConsumable: true });
                 setProcessing(null);
-                Alert.alert('Success', `Super Likes added successfully!`, [{ text: 'OK', onPress: () => NavigationService.goBack() }]);
+                
+                // Handle purchase verification workflow
+                await handlePurchaseSuccess(
+                    purchase,
+                    'one-time',
+                    () => {
+                        // Success callback
+                        Alert.alert(
+                            'Success',
+                            'Super Likes added successfully!',
+                            [{ text: 'OK', onPress: () => NavigationService.goBack() }]
+                        );
+                    },
+                    (error) => {
+                        // Error callback
+                        console.error('[Super Like] Verification error:', error);
+                        Alert.alert(
+                            'Purchase Recorded',
+                            'Your purchase was successful, but verification is pending. You will receive your Super Likes once verification completes.',
+                            [{ text: 'OK', onPress: () => NavigationService.goBack() }]
+                        );
+                    }
+                );
             } catch (err) {
                 setProcessing(null);
+                console.error('[Super Like] Purchase handler error:', err);
             }
         });
 

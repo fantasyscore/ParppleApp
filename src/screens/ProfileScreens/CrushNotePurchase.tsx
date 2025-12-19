@@ -11,6 +11,7 @@ import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import * as RNIap from 'react-native-iap';
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
+import { usePurchaseVerification } from "../../hooks/usePurchaseVerification";
 
 // One-time Product SKUs
 const PRODUCT_SKUS = Platform.select({
@@ -31,6 +32,7 @@ const CrushNotePurchase = () => {
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState<string | null>(null);
+    const { handlePurchaseSuccess } = usePurchaseVerification();
 
     useEffect(() => {
         let purchaseUpdateSubscription: any;
@@ -48,7 +50,8 @@ const CrushNotePurchase = () => {
                 });
 
                 if (availableProducts && availableProducts.length > 0) {
-                    const formattedProducts = availableProducts.map((prod: any) => {
+                    // First pass: calculate all products with per-item pricing
+                    const productsWithPricing = availableProducts.map((prod: any) => {
                         const productId = (prod.productId || prod.id || '').toString();
                         const countStr = productId.match(/\d+/)?.[0] || '1';
                         const n = parseInt(countStr);
@@ -67,17 +70,50 @@ const CrushNotePurchase = () => {
 
                         const perItemPriceStr = `${priceInfo.currency}${perItemFixed.toFixed(2)}`;
 
-                        let discount = "";
-                        if (n === 3) discount = "Save 17%";
-                        else if (n === 10) discount = "Save 25%";
-
                         return {
                             ...prod,
                             count: n,
                             displayPrice: fullPriceStr,
                             perItemPrice: perItemPriceStr,
+                            perItemPriceAmount: perItemFixed,
+                            totalAmount: total,
+                            currency: priceInfo.currency,
+                        };
+                    });
+
+                    // Find base price (single unit pack)
+                    const singleUnitPack = productsWithPricing.find((p: any) => p.count === 1);
+                    const baseUnitPrice = singleUnitPack?.perItemPriceAmount || 0;
+
+                    // Second pass: calculate discounts and labels
+                    const formattedProducts = productsWithPricing.map((prod: any) => {
+                        const n = prod.count;
+                        let discount = "";
+                        let discountPercent = 0;
+                        let label = "";
+
+                        if (n > 1 && baseUnitPrice > 0) {
+                            // Calculate discount: (baseUnitPrice - perUnitPackPrice) / baseUnitPrice * 100
+                            const perUnitSavings = baseUnitPrice - prod.perItemPriceAmount;
+                            discountPercent = Number(((perUnitSavings / baseUnitPrice) * 100).toFixed(2));
+                            const roundedDiscount = Math.round(discountPercent);
+
+                            // UI Rules: Show discount badge if ≥ 10%, add "Best Value" if ≥ 25%
+                            if (roundedDiscount >= 10) {
+                                discount = `Save ${roundedDiscount}%`;
+                            }
+                            if (roundedDiscount >= 25) {
+                                label = 'Best Value';
+                            } else if (n === 3) {
+                                label = 'Most Popular';
+                            }
+                        }
+
+                        return {
+                            ...prod,
                             discount,
-                            label: n === 10 ? 'Best Value' : n === 3 ? 'Most Popular' : ''
+                            discountPercent,
+                            label,
                         };
                     });
 
@@ -94,11 +130,33 @@ const CrushNotePurchase = () => {
 
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
             try {
-                await RNIap.finishTransaction({ purchase, isConsumable: true });
                 setProcessing(null);
-                Alert.alert('Success', `Crush Notes added successfully!`, [{ text: 'OK', onPress: () => NavigationService.goBack() }]);
+                
+                // Handle purchase verification workflow
+                await handlePurchaseSuccess(
+                    purchase,
+                    'one-time',
+                    () => {
+                        // Success callback
+                        Alert.alert(
+                            'Success',
+                            'Crush Notes added successfully!',
+                            [{ text: 'OK', onPress: () => NavigationService.goBack() }]
+                        );
+                    },
+                    (error) => {
+                        // Error callback
+                        console.error('[Crush Note] Verification error:', error);
+                        Alert.alert(
+                            'Purchase Recorded',
+                            'Your purchase was successful, but verification is pending. You will receive your Crush Notes once verification completes.',
+                            [{ text: 'OK', onPress: () => NavigationService.goBack() }]
+                        );
+                    }
+                );
             } catch (err) {
                 setProcessing(null);
+                console.error('[Crush Note] Purchase handler error:', err);
             }
         });
 

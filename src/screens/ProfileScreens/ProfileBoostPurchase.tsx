@@ -11,6 +11,7 @@ import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import * as RNIap from 'react-native-iap';
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
+import { usePurchaseVerification } from "../../hooks/usePurchaseVerification";
 
 // One-time Product SKUs
 const PRODUCT_SKUS = Platform.select({
@@ -31,6 +32,7 @@ const ProfileBoostPurchase = () => {
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState<string | null>(null);
+    const { handlePurchaseSuccess } = usePurchaseVerification();
 
     useEffect(() => {
         let purchaseUpdateSubscription: any;
@@ -49,8 +51,8 @@ const ProfileBoostPurchase = () => {
                 });
 
                 if (availableProducts && availableProducts.length > 0) {
-                    // Sort products by boost count (10, 3, 1)
-                    const formattedProducts = availableProducts.map((prod: any) => {
+                    // First pass: calculate all products with per-boost pricing
+                    const productsWithPricing = availableProducts.map((prod: any) => {
                         const productId = (prod.productId || prod.id || '').toString();
                         const boostCountStr = productId.match(/\d+/)?.[0] || '1';
                         const n = parseInt(boostCountStr);
@@ -77,18 +79,50 @@ const ProfileBoostPurchase = () => {
 
                         const perBoostPriceStr = `${priceInfo.currency}${perBoostFixed.toFixed(2)}`;
 
-                        let discount = "";
-                        if (n === 3) discount = "Save 11%";
-                        else if (n === 10) discount = "Save 33%";
-
                         return {
                             ...prod,
                             boostCount: n,
                             displayPrice: fullPriceStr,
                             perBoostPrice: perBoostPriceStr,
+                            perBoostPriceAmount: perBoostFixed,
+                            totalAmount: total,
+                            currency: priceInfo.currency,
+                        };
+                    });
+
+                    // Find base price (single unit pack)
+                    const singleUnitPack = productsWithPricing.find((p: any) => p.boostCount === 1);
+                    const baseUnitPrice = singleUnitPack?.perBoostPriceAmount || 0;
+
+                    // Second pass: calculate discounts and labels
+                    const formattedProducts = productsWithPricing.map((prod: any) => {
+                        const n = prod.boostCount;
+                        let discount = "";
+                        let discountPercent = 0;
+                        let label = "";
+
+                        if (n > 1 && baseUnitPrice > 0) {
+                            // Calculate discount: (baseUnitPrice - perUnitPackPrice) / baseUnitPrice * 100
+                            const perUnitSavings = baseUnitPrice - prod.perBoostPriceAmount;
+                            discountPercent = Number(((perUnitSavings / baseUnitPrice) * 100).toFixed(2));
+                            const roundedDiscount = Math.round(discountPercent);
+
+                            // UI Rules: Show discount badge if ≥ 10%, add "Best Value" if ≥ 25%
+                            if (roundedDiscount >= 10) {
+                                discount = `Save ${roundedDiscount}%`;
+                            }
+                            if (roundedDiscount >= 25) {
+                                label = 'Best Value';
+                            } else if (n === 3) {
+                                label = 'Most Popular';
+                            }
+                        }
+
+                        return {
+                            ...prod,
                             discount,
-                            // Custom labels based on count
-                            label: n === 10 ? 'Best Value' : n === 3 ? 'Most Popular' : ''
+                            discountPercent,
+                            label,
                         };
                     });
 
@@ -106,12 +140,33 @@ const ProfileBoostPurchase = () => {
 
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
             try {
-                // Consumable products must be acknowledged and consumed
-                await RNIap.finishTransaction({ purchase, isConsumable: true });
                 setProcessing(null);
-                Alert.alert('Success', `Boost added successfully!`, [{ text: 'OK', onPress: () => NavigationService.goBack() }]);
+                
+                // Handle purchase verification workflow
+                await handlePurchaseSuccess(
+                    purchase,
+                    'one-time',
+                    () => {
+                        // Success callback
+                        Alert.alert(
+                            'Success',
+                            'Boost added successfully!',
+                            [{ text: 'OK', onPress: () => NavigationService.goBack() }]
+                        );
+                    },
+                    (error) => {
+                        // Error callback
+                        console.error('[Boost] Verification error:', error);
+                        Alert.alert(
+                            'Purchase Recorded',
+                            'Your purchase was successful, but verification is pending. You will receive your Boost once verification completes.',
+                            [{ text: 'OK', onPress: () => NavigationService.goBack() }]
+                        );
+                    }
+                );
             } catch (err) {
                 setProcessing(null);
+                console.error('[Boost] Purchase handler error:', err);
             }
         });
 
