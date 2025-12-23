@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { ActivityIndicator, Alert, FlatList, ImageBackground, Platform, StyleSheet, View } from "react-native";
 import OneTimeProductHeader from "../../common/OneTimeProductHeader";
-import { crushParBack, flasIcon, goldCard, orBottomIcon, Platinum, platnumPurches, premiumIcon, superlIkeBackGround, upgradPlan } from "../../helper/ImageAssets";
+import { crushParBack, flasIcon, goldCard, orBottomIcon, Platinum, platinumUpgrade, premiumIcon, superlIkeBackGround, upgradPlan } from "../../helper/ImageAssets";
 import { AppText, BLACK, EIGHT, FORTEEN, INTER_BOLD, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TEN, THIRTEEN, TWELVE, TWENTY_TWO, WHITE } from "../../common/AppText";
 import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
@@ -274,7 +274,7 @@ const CrushNotePurchase = () => {
                 />
                 <FastImage source={orBottomIcon} resizeMode="contain" style={{ height: metrics.hp2_4, width: "100%", marginTop: metrics.hp4 }} />
                 <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem })}>
-                    <FastImage source={platnumPurches} resizeMode="contain" style={{ height: metrics.hp10, width: "100%", marginTop: metrics.hp3, marginBottom: metrics.hp4 }} />
+                    <FastImage source={platinumUpgrade} resizeMode="contain" style={styles.imageiContainer} />
                 </TouchableOpacityView>
                 <View style={styles.bottomcontainer}>
                     <AppText weight={INTER_REGULAR} type={TEN}>
@@ -350,4 +350,12 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
+    imageiContainer: {
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: metrics.hp1_2 },
+        shadowOpacity: 0.22,
+        shadowRadius: metrics.hp1,
+        elevation: 8,
+        height: metrics.hp10, width: "100%", marginTop: metrics.hp3, marginBottom:metrics.hp4,
+    }
 });

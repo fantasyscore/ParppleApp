@@ -1,4 +1,4 @@
-import { accountcircleIcon, blackIcon, blueTikeIcon, drikingIcon, flasIcon, goldCard, lifeStyleIcon, locationCIon, locIcon, moonIcon, petsIcon, Platinum, profileImage, pronounIcon, purpleHeart, redHeart, reportProfileIcon, schoolIcon, searchIcon, silverCard, smookingIcon, straightenIcon, unMatchProfileIcon, workIcon } from "../helper/ImageAssets";
+import { accountcircleIcon, blackIcon, blueTikeIcon, drikingIcon, flasIcon, goldCard, lifeStyleIcon, locationCIon, locIcon, moonIcon, petsIcon, Platinum, profileImage, pronounIcon, pText, purpleHeart, redHeart, reportProfileIcon, schoolIcon, searchIcon, silverCard, smookingIcon, straightenIcon, unMatchProfileIcon, workIcon } from "../helper/ImageAssets";
 export const GOOGLE_API_KEY = 'AIzaSyBlbpgR6GCn6ZOPcZsv16dHixcsiaaBTX8';
 
 export const womenData = [
@@ -162,7 +162,7 @@ export const similarProfileFilter = [
 export const premiumDetaiData = [
     { id: "1", icon: flasIcon, numberText: "5", title: "Boost", headLine: "Get more" },
     { id: "2", icon: redHeart, numberText: "10", title: "Super Like", headLine: "Get more" },
-    { id: "3", icon: purpleHeart, numberText: "Free", title: "Subscription", headLine: "Purchase" },
+    { id: "3", icon: pText, numberText:  "Get\nSubscription", title: "", headLine: "Purchase" },
 ];
 export const PurchaseCards = [
     { id: "1", icon: silverCard, title: "Silver" },
@@ -175,13 +175,49 @@ export const SilverPurchase = [
     { id: "3", planOf: "3 Month", amount: "₹2,249 /", ofPu: "Month", discount: "Save 20%" },
     { id: "4", planOf: "1 Year", amount: "₹3,459 /", ofPu: "Year", discount: "Save 30%" },
 ];
+// Silver Plan – Essential Premium Experience
 export const SilverPurchasedis = [
-    { id: "1", title: "Unlimited Likes" },
-    { id: "2", title: "See who liked your profile" },
-    { id: "3", title: "Profile Boost / month" },
-    { id: "5", title: "Ad-free experience" },
-    { id: "6", title: "Priority Customer Support" },
-    { id: "7", title: "Access to exclusive app themes" },
+    { id: "1", title: "Unlimited Likes", subTitle: "Like as many profiles as you want without daily limits." },
+    { id: "2", title: "See Who Likes You", subTitle: "Instantly view people who have already liked your profile." },
+    { id: "3", title: "Top Picks", subTitle: "Get curated profiles selected specially for you every day." },
+    { id: "4", title: "Advanced Filters", subTitle: "Filter matches by preferences that matter most to you." },
+    { id: "5", title: "Unlimited Re-Swipe", subTitle: "Go back and change your last swipe anytime." },
+    { id: "6", title: "Who Viewed You", subTitle: "See who has checked out your profile." },
+    { id: "7", title: "Control Your Profile", subTitle: "Manage visibility and how your profile appears to others." },
+    { id: "8", title: "Control Who You Viewed", subTitle: "Decide whether profiles you view are notified or tracked." },
+    { id: "9", title: "Hide Ads", subTitle: "Enjoy a smooth, ad-free dating experience." },
+];
+
+// Gold Plan – More Matches, More Visibility
+export const GoldPurchasedis = [
+    { id: "1", title: "Unlimited Likes", subTitle: "Swipe and like without any restrictions." },
+    { id: "2", title: "See Who Likes You", subTitle: "Match faster by seeing who's already interested." }, 
+    { id: "3", title: "Top Picks", subTitle: "Access daily hand-picked profiles matched to your taste." },
+    { id: "4", title: "1 Free Boost per Month", subTitle: "Get more profile visibility instantly." },
+    { id: "5", title: "2 Super Likes per Week", subTitle: "Stand out and show strong interest." },
+    { id: "6", title: "Advanced Filters", subTitle: "Find better matches with detailed preferences." },
+    { id: "7", title: "Unlimited Re-Swipe", subTitle: "Undo swipes and revisit profiles anytime." },
+    { id: "8", title: "Who Viewed You", subTitle: "Know who's checking out your profile." },
+    { id: "9", title: "Control Your Profile", subTitle: "Customize how and when your profile is shown." },
+    { id: "10", title: "Control Who You Viewed", subTitle: "Decide how your browsing activity is shared." },
+    { id: "11", title: "Hide Ads", subTitle: "Enjoy uninterrupted premium browsing." },
+];
+
+// Platinum Plan – Elite & Priority Experience
+export const PlatinumPurchasedis = [
+    { id: "1", title: "Unlimited Likes", subTitle: "Unlimited freedom to like and connect." },
+    { id: "2", title: "Priority Likes", subTitle: "Your likes are shown first to increase match chances." },
+    { id: "3", title: "See Who Likes You", subTitle: "Instantly view and match with interested profiles." },
+    { id: "4", title: "Top Picks", subTitle: "Get premium, highly compatible recommendations daily." },
+    { id: "5", title: "1 Free Boost per Month", subTitle: "Maximize your visibility." },
+    { id: "6", title: "3 Super Likes per Week", subTitle: "Make bold first moves." },
+    { id: "7", title: "3 Free Crush Notes per Week", subTitle: "Send personalized notes before matching." },
+    { id: "8", title: "Advanced Filters", subTitle: "Unlock complete control over who you match with." },
+    { id: "9", title: "Who Viewed You", subTitle: "See who's interested in your profile." },   
+    { id: "10", title: "Unlimited Re-Swipe", subTitle: "Never miss a connection due to a wrong swipe." },
+    { id: "11", title: "Control Your Profile", subTitle: "Full control over profile visibility." },
+    { id: "12", title: "Control Who You Viewed", subTitle: "Decide if your profile views are visible." },
+    { id: "13", title: "Hide Ads", subTitle: "Enjoy a completely ad-free premium experience." },
 ];
 export const profileDataDiscover = [
     {

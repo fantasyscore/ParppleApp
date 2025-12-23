@@ -6,8 +6,8 @@ import metrics from "../../assets/Metrics";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import NavigationService from "../../navigation/NavigationService";
 import FastImage from "react-native-fast-image";
-import { AppText, EIGHT, ELEVEN, FORTEEN, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, TEN, TWELVE, WHITE } from "../../common/AppText";
-import { SilverPurchasedis } from "../../common/UiltData";
+import { AppText, BLACK, EIGHT, ELEVEN, FORTEEN, INTER_BOLD, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, TEN, TWELVE, WHITE } from "../../common/AppText";
+import { SilverPurchasedis, GoldPurchasedis, PlatinumPurchasedis } from "../../common/UiltData";
 import { colors } from "../../theme/colors";
 import * as RNIap from 'react-native-iap';
 import { useSelector } from "react-redux";
@@ -136,7 +136,7 @@ const SubscriptionScreen = ({ route }: any) => {
     const [processing, setProcessing] = useState<string | null>(null);
     const userData = useSelector((state: any) => state.auth.userData);
     const { handlePurchaseSuccess } = usePurchaseVerification();
-    
+
     const getHeaderImage = () => {
         if (selectedTier === "Silver") return silverHeader;
         if (selectedTier === "Gold") return goldHeader;
@@ -165,18 +165,18 @@ const SubscriptionScreen = ({ route }: any) => {
                         const periodInfo = extractSubscriptionPeriod(prod);
                         const fullPriceStr = extractPrice(prod);
                         const priceInfo = extractPriceNumber(fullPriceStr);
-                        
+
                         const n = periodInfo.weeksCount;
                         const total = priceInfo.amount;
-                        
+
                         // Rule: Calculate exact weekly value, then floor to 2 decimal places for weeks 1 to (n-1)
                         const weeklyFixed = Math.floor((total / n) * 100) / 100;
-                        
+
                         // Rule: Assign any remaining amount to the final week
                         const lastWeekAmount = Number((total - (weeklyFixed * (n - 1))).toFixed(2));
 
                         const weeklyPriceStr = `${priceInfo.currency}${weeklyFixed.toFixed(2)}`;
-                        
+
                         const productId = (prod as any).id || (prod as any).productId || '';
                         const tier = getTierFromProductId(productId);
 
@@ -246,7 +246,7 @@ const SubscriptionScreen = ({ route }: any) => {
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
             try {
                 setProcessing(null);
-                
+
                 // Handle purchase verification workflow
                 await handlePurchaseSuccess(
                     purchase,
@@ -344,7 +344,7 @@ const SubscriptionScreen = ({ route }: any) => {
                         <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: metrics.hp2 }}>
                             {currentTierPlans.map((item, index) => (
                                 <TouchableOpacityView
-                                activeOpacity={0.8}
+                                    activeOpacity={0.8}
                                     key={item.id}
                                     onPress={() => setSelectedPlanIndex(index)}
                                     style={[styles.planCard, {
@@ -360,7 +360,7 @@ const SubscriptionScreen = ({ route }: any) => {
                                             </AppText>
                                         </View>
                                     ) : null}
-                                   
+
                                     <AppText type={TWELVE} weight={INTER_MEDIUM} color={selectedPlanIndex === index ? WHITE : LIGHT_BLACK}>
                                         {item.planOf}
                                     </AppText>
@@ -383,14 +383,27 @@ const SubscriptionScreen = ({ route }: any) => {
                             <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>{"  "}Included with {selectedTier}</AppText>
                         </View>
                         <View style={{ marginTop: metrics.hp2, paddingHorizontal: metrics.hp2, paddingBottom: metrics.hp10 }}>
-                        {SilverPurchasedis?.map((item, index) => {
-                            return (
-                                <View key={item.id || index.toString()} style={styles.benefitRow}>
-                                    <FastImage source={stylesRightArrow} resizeMode="contain" style={styles.pencilIcon} />
-                                    <AppText type={ELEVEN} weight={INTER_SEMI_BOLD} color={OPECITY_DARK}>{"   "}{item.title}</AppText>
-                                </View>
-                            )
-                        })}
+                            {(() => {
+                                // Get benefits based on selected tier
+                                let benefits = SilverPurchasedis;
+                                if (selectedTier === "Gold") {
+                                    benefits = GoldPurchasedis;
+                                } else if (selectedTier === "Platinum") {
+                                    benefits = PlatinumPurchasedis;
+                                }
+
+                                return benefits?.map((item, index) => {
+                                    return (
+                                        <View key={item.id || index.toString()} style={styles.benefitRow}>
+                                            <FastImage source={stylesRightArrow} resizeMode="contain" style={styles.pencilIcon} />
+                                            <View style={{ marginLeft: metrics.hp1 }}>
+                                                <AppText type={TWELVE} weight={INTER_BOLD} color={BLACK}>{item.title}</AppText>
+                                                <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>{item.subTitle}</AppText>
+                                            </View>
+                                        </View>
+                                    )
+                                })
+                            })()}
                         </View>
                     </>
                 ) : (
@@ -428,11 +441,11 @@ export default SubscriptionScreen;
 const styles = StyleSheet.create({
     headerContainer: { height: metrics.hp28, width: "100%", marginTop: metrics.hp5 },
     closeButton: { height: metrics.hp5, width: metrics.hp8 },
-    pencilIcon: { height: metrics.hp2, width: metrics.hp2 },
+    pencilIcon: { height: metrics.hp2, width: metrics.hp2, marginTop:metrics.hp0_5 },
     PremiumText: { flexDirection: "row", alignItems: "center", marginTop: metrics.hp2, paddingHorizontal: metrics.hp2 },
     planCard: { height: metrics.hp16, width: metrics.hp12, backgroundColor: colors.white, borderRadius: metrics.hp1_5, alignItems: "center", justifyContent: "center" },
     dotContainer: { height: metrics.hp2_5, width: metrics.hp2_5, marginTop: metrics.hp1_5, borderRadius: metrics.hp50 },
-    benefitRow: { flexDirection: "row", alignItems: "center", marginBottom: metrics.hp2 },
+    benefitRow: { flexDirection: "row", marginBottom: metrics.hp2 },
     bottomcontainer: { paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp1, backgroundColor: colors.white },
     buttonContiner: { height: metrics.hp5, borderRadius: metrics.hp4, backgroundColor: colors.purple, alignItems: "center", justifyContent: "center", marginTop: metrics.hp2, marginBottom: metrics.hp1 },
     buttonDisabled: { opacity: 0.5 },

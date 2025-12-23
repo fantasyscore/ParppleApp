@@ -17,6 +17,8 @@ import RBSheet from 'react-native-raw-bottom-sheet';
 import { threeDotData } from '../../common/UiltData';
 import NavigationService from '../../navigation/NavigationService';
 import { NAVIGATION_REPORT_SCREEN } from '../../navigation/routes';
+import { useDispatch, useSelector } from 'react-redux';
+import { getOtherProfile, userBlockAPI, userUnmatchAPI } from '../../actions/authActions';
 
 const USER_ID = 1;
 
@@ -53,17 +55,26 @@ const initialMessages: ChatMessage[] = [
 ];
 
 const TakingScreen = () => {
+    const dispatch = useDispatch();
+    const matchChatUserDetails = useSelector((state: any) => state.auth.matchChatUserDetails);
+    const otherUserProfile = useSelector((state: any) => state.auth.otherUserProfile);
+
     const refFilter: any = useRef(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [tabSelect, setTabSelect] = useState('Chat');
     const [inputText, setInputText] = useState('');
     const [emojiVisible, setEmojiVisible] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
-    const [saveReportTitle, setSaveReportTitle] = useState("")
+    const [saveReportTitle, setSaveReportTitle] = useState("");
+    const [profileData, setProfileData] = useState();
+
     useEffect(() => {
+            let data = {
+                "userId": matchChatUserDetails?.userId
+            };
+            dispatch(getOtherProfile(data, true, setProfileData, true));
         setMessages(initialMessages);
     }, []);
-
     useEffect(() => {
         const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
             setEmojiVisible(false);
@@ -111,12 +122,26 @@ const TakingScreen = () => {
         if (props.currentMessage.user._id === USER_ID) return null; // hide sent avatars
         return (
             <FastImage
-                source={props.currentMessage.user.avatar}
+                source={matchChatUserDetails?.profilePicture[0]?.url ? { uri: matchChatUserDetails?.profilePicture[0]?.url } : profileImage}
+                resizeMode='cover'
                 style={{ width: metrics.hp4, height: metrics.hp4, borderRadius: metrics.hp2, marginBottom: metrics.hp1_5 }}
             />
         );
     };
-
+    const unMatchButton = () => {
+        const data = {
+            matchId: matchChatUserDetails?.matchId
+        }
+        dispatch(userUnmatchAPI(data))
+        setModalVisible(false)
+    }
+    const unBlockButton = () => {
+        const data = {
+            matchId: matchChatUserDetails?.matchId
+        }
+        dispatch(userBlockAPI(data))
+        setModalVisible(false)
+    }
     const renderTime = (props: any) => <Time {...props} timeTextStyle={{ left: { color: colors.darkOpecity }, right: { color: colors.darkOpecity } }} containerStyle={{ left: { marginTop: 2 }, right: { marginTop: 2 } }} />;
 
     const renderCustomInput = () => (
@@ -236,7 +261,7 @@ const TakingScreen = () => {
                             <AppText style={{ marginTop: -metrics.hp3, textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK}>
                                 Unmatch this user?
                             </AppText>
-                            <TouchableOpacityView onPress={() => setModalVisible(false)} style={[styles.ediButton, { backgroundColor: colors.purple, marginTop: metrics.hp0 }]}>
+                            <TouchableOpacityView onPress={() => unMatchButton()} style={[styles.ediButton, { backgroundColor: colors.purple, marginTop: metrics.hp0 }]}>
                                 <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
                                     Yes, Unmatch
                                 </AppText>
@@ -256,7 +281,7 @@ const TakingScreen = () => {
                             <AppText style={{ marginTop: -metrics.hp2, textAlign: "center" }} type={TWELVE} weight={INTER_MEDIUM} color={OPECITY_DARK}>
                                 You won’t be able to undo this. You sure{'\n'} to continue?
                             </AppText>
-                            <TouchableOpacityView onPress={() => setModalVisible(false)} style={[styles.ediButton, { backgroundColor: colors.purple, marginTop: metrics.hp2 }]}>
+                            <TouchableOpacityView onPress={() => unBlockButton()} style={[styles.ediButton, { backgroundColor: colors.purple, marginTop: metrics.hp2 }]}>
                                 <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
                                     Yes, Block
                                 </AppText>

@@ -7,14 +7,17 @@ import { colors } from "../theme/colors";
 import { AppText, EIGHTEEN, INTER_BOLD, INTER_MEDIUM, TWELVE } from "./AppText";
 import { TouchableOpacityView } from "./TouchableOpacityView";
 import NavigationService from "../navigation/NavigationService";
+import { useSelector } from "react-redux";
 
 const ChatHeader = ({ onPress }: any) => {
+    const matchChatUserDetails = useSelector((state: any) => state.auth.matchChatUserDetails);
+
     return (
         <View style={styles.container}>
-            <TouchableOpacityView onPress={()=>NavigationService.goBack()} style={{ flexDirection: "row", alignItems: "center" }}>
+            <TouchableOpacityView onPress={() => NavigationService.goBack()} style={{ flexDirection: "row", alignItems: "center" }}>
                 <FastImage source={backIcon} resizeMode="contain" style={styles.backIcon} />
-                <FastImage source={profileImage} resizeMode="contain" style={styles.profileImage} />
-                <AppText type={TWELVE} weight={INTER_BOLD}>{"  "}Dikhsha,<AppText type={TWELVE} weight={INTER_MEDIUM}> 21{"  "}</AppText>
+                <FastImage source={matchChatUserDetails?.profilePicture[0]?.url ? { uri: matchChatUserDetails?.profilePicture[0]?.url } : profileImage} resizeMode="cover" style={styles.profileImage} />
+                <AppText type={TWELVE} weight={INTER_BOLD}>{"  "}{matchChatUserDetails?.name},<AppText type={TWELVE} weight={INTER_MEDIUM}> {/* 21{"  "} */}</AppText>
                 </AppText>
                 <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />
             </TouchableOpacityView>
@@ -29,7 +32,7 @@ const styles = StyleSheet.create({
     container: {
         paddingHorizontal: metrics.hp2, flexDirection: "row", alignItems: "center", justifyContent: "space-between",
         backgroundColor: colors.white,
-        marginTop:metrics.hp5
+        marginTop: metrics.hp5
     },
     backIcon: {
         height: metrics.hp2_5,

@@ -29,4 +29,10 @@ export default (appOperation: AppOperation) => ({
     appOperation.post(`dattingApp/users/edit-filters`, data, CUSTOMER_TYPE),
   discoverAPI: () =>
     appOperation.get(`datting-profile/discoveredProfiles`,  undefined, undefined, CUSTOMER_TYPE),
+  newMatchesAPI: () =>
+    appOperation.post(`matches/newMatches`,  {}, CUSTOMER_TYPE),
+  userUnMatchApi: (data:any) =>
+    appOperation.post(`app/Useraction/unmatch`,  data, CUSTOMER_TYPE),
+  userBlockAPI: (data:any) =>
+    appOperation.post(`app/Useraction/block`,  data, CUSTOMER_TYPE),
 });

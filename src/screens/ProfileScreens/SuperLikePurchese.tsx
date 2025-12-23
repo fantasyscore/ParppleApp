@@ -3,7 +3,7 @@ import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { ActivityIndicator, Alert, ImageBackground, Platform, StyleSheet, View } from "react-native";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import NavigationService from "../../navigation/NavigationService";
-import { goldCard, orBottomIcon, premiumIcon, superLikeHeader, upgradPlan } from "../../helper/ImageAssets";
+import { goldCard, goldForSuperLIke, orBottomIcon, premiumIcon, superLikeHeader, upgradPlan } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
 import { AppText, EIGHT, FORTEEN, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, TEN, TWELVE, WHITE } from "../../common/AppText";
@@ -260,7 +260,7 @@ const SuperLikePurchese = () => {
             </View>
             <FastImage source={orBottomIcon} resizeMode="contain" style={{ height: metrics.hp2_4, width: "100%", marginTop: metrics.hp4 }} />
             <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem })}>
-                <FastImage source={upgradPlan} resizeMode="contain" style={{ height: metrics.hp10, width: "100%", marginTop: metrics.hp3 }} />
+                <FastImage source={goldForSuperLIke} resizeMode="contain" style={styles.imageiContainer} />
             </TouchableOpacityView>
             <View style={styles.bottomcontainer}>
                 <AppText weight={INTER_REGULAR} type={TEN}>
@@ -326,4 +326,12 @@ const styles = StyleSheet.create({
         position: "absolute",
         top: -metrics.hp0_6
     },
+    imageiContainer: {
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: metrics.hp1_2 },
+        shadowOpacity: 0.22,
+        shadowRadius: metrics.hp1,
+        elevation: 8,
+        height: metrics.hp10, width: "100%", marginTop: metrics.hp3, marginBottom:metrics.hp4,
+    }
 });

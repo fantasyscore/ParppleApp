@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { FlatList, ImageBackground, StyleSheet, View } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
@@ -13,9 +13,19 @@ import SearchContainer from "../../common/SearchContainer";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_SUBSCRIPTION_SCREEN, NAVIGATION_TAKING_SCREEN } from "../../navigation/routes";
 import { Screen } from "../../theme/dimens";
+import { useDispatch, useSelector } from "react-redux";
+import { getNewMatches } from "../../actions/authActions";
+import { matchChatDetails } from "../../slices/loginServices/authSlice";
 
 const ChatsScreen = () => {
     const [search, setSearch] = useState("");
+    const newMatches = useSelector((state: any) => state.auth.newMatches);
+
+    const dispatch = useDispatch();
+    useEffect(() => {
+        dispatch(getNewMatches())
+    }, [])
+
     const emptyScreen = () => {
         let item = { id: "2", icon: goldCard, title: "Gold" }
         return (
@@ -90,16 +100,16 @@ const ChatsScreen = () => {
                     </View>
                 </View>
                 <FlatList
-                    data={newMatchData}
+                    data={newMatches}
                     horizontal
-                    keyExtractor={(item) => item.id}
+                    keyExtractor={(item) => item.userId}
                     renderItem={({ item, index }: any) => {
                         return (
-                            <View key={index} style={[styles.newmatchContainer, {
-                                marginLeft: newMatchData?.length + 1 == index ? 0 : metrics.hp2,
-                                marginRight: newMatchData?.length - 1 == index ? metrics.hp2 : 0
+                            <TouchableOpacityView  onPress={() => {dispatch(matchChatDetails(item)), NavigationService.navigate(NAVIGATION_TAKING_SCREEN)}}  key={item?.userId} style={[styles.newmatchContainer, {
+                                marginLeft: newMatches?.length + 1 == index ? 0 : metrics.hp2,
+                                marginRight: newMatches?.length - 1 == index ? metrics.hp2 : 0
                             }]}>
-                                <ImageBackground source={item.profile} resizeMode="contain" style={styles.newMatchProfile}>
+                                <ImageBackground source={{uri:item?.profilePicture[0]?.url}} resizeMode="cover" style={styles.newMatchProfile}>
                                     {index == 0 &&
                                         <View style={styles.numbersMatchContainer}>
                                             <AppText type={FORTEEN} color={WHITE} weight={INTER_BOLD}>
@@ -112,9 +122,9 @@ const ChatsScreen = () => {
                                     {item.name}
                                 </AppText>
                                 {index == 0 &&
-                                    <ImageBackground source={matchRoundCircle} resizeMode="contain" style={styles.matchRoudImage} />
+                                    <ImageBackground source={matchRoundCircle} resizeMode="cover" style={styles.matchRoudImage} />
                                 }
-                            </View>
+                            </TouchableOpacityView>
                         )
                     }}
                 />

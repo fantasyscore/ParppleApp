@@ -68,6 +68,7 @@ import InAppPurchaseScreen from "../screens/InAppPurchaseScreen";
 import ProfileBoostPurchase from "../screens/ProfileScreens/ProfileBoostPurchase";
 import SuperLikePurchese from "../screens/ProfileScreens/SuperLikePurchese";
 import CrushNotePurchase from "../screens/ProfileScreens/CrushNotePurchase";
+import SubscriptionAllScreen from "../screens/ProfileScreens/SubscriptionAllScreen";
 
 const Navigator = () => {
   const Stack = createStackNavigator();
@@ -143,6 +144,8 @@ const Navigator = () => {
       <Stack.Screen name={routes.NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN} component={ProfileBoostPurchase} />
       <Stack.Screen name={routes.NAVIGATION_SUPERLIKE_PURCHESE_SCREEN} component={SuperLikePurchese} />
       <Stack.Screen name={routes.NAVIGATION_CRUSH_PURCHESE_SCREEN} component={CrushNotePurchase} />
+      <Stack.Screen name={routes.NAVIGATION_SUBSCRIPTION_ALL_SCREEN} component={SubscriptionAllScreen} />
+
 
       </Stack.Navigator>
   );

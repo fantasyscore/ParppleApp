@@ -287,7 +287,7 @@ const ProfileBoostPurchase = () => {
                 />
                    <FastImage source={orBottomIcon} resizeMode="contain" style={{ height: metrics.hp2_4, width: "100%", marginTop: metrics.hp4 }} />
             <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem })}>
-                <FastImage source={upgradPlan} resizeMode="contain" style={{ height: metrics.hp10, width: "100%", marginTop: metrics.hp3, marginBottom:metrics.hp4 }} />
+                <FastImage source={upgradPlan} resizeMode="contain" style={styles.imageiContainer} />
             </TouchableOpacityView>
                 <View style={styles.bottomcontainer}>
                     <AppText weight={INTER_REGULAR} type={TEN}>
@@ -366,4 +366,12 @@ const styles = StyleSheet.create({
         // top: metrics.hp1,
         // right: metrics.hp2,
     },
+    imageiContainer: {
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: metrics.hp1_2 },
+        shadowOpacity: 0.22,
+        shadowRadius: metrics.hp1,
+        elevation: 8,
+        height: metrics.hp10, width: "100%", marginTop: metrics.hp3, marginBottom:metrics.hp4,
+    }
 });

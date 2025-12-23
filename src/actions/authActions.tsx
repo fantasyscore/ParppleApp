@@ -2,9 +2,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { appOperation } from "../appOperation";
 import { USER_TOKEN_KEY } from "../helper/Constants";
 import NavigationService from "../navigation/NavigationService";
-import { NAVIGATION_ALL_SET_SCREEN, NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_OTP_SCREEN, NAVIGATION_PROCCED_SCREEN, NAVIGATION_USER_EDIT_PROFILE_SCREEN, NAVIGATION_WELCOME_SCREEN } from "../navigation/routes";
+import { NAVIGATION_ALL_SET_SCREEN, NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_CHATS_SCREEN, NAVIGATION_OTP_SCREEN, NAVIGATION_PROCCED_SCREEN, NAVIGATION_USER_EDIT_PROFILE_SCREEN, NAVIGATION_WELCOME_SCREEN } from "../navigation/routes";
 import { toastAlert } from "./UploadImageActions";
-import { setAttributes, setDiscoverData, setGetProfile, setLikeByOther, setLikeYou, setListProfiles, setOtherUserProfile, setViewByOhter, setViewYou } from "../slices/loginServices/authSlice";
+import { setAttributes, setDiscoverData, setGetProfile, setLikeByOther, setLikeYou, setListProfiles, setNewMatches, setOtherUserProfile, setViewByOhter, setViewYou } from "../slices/loginServices/authSlice";
 
 export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) => {
     try {
@@ -193,6 +193,41 @@ export const discoverProfile: any = () => async (dispatch: any) => {
             dispatch(setDiscoverData(response?.data))
         }
     } catch (error: any) {
+        // toastAlert.showToastError(error);
+    }
+};
+export const getNewMatches: any = () => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.newMatchesAPI();
+        if (response?.statusCode == 200) {
+            dispatch(setNewMatches(response?.data))
+        }
+    } catch (error: any) {
+        // toastAlert.showToastError(error);
+    }
+};
+export const userUnmatchAPI: any = (data:any) => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.userUnMatchApi(data);
+        if (response?.statusCode == 200) {
+            dispatch(getNewMatches())
+            return NavigationService.navigate(NAVIGATION_CHATS_SCREEN)
+        }
+    } catch (error: any) {
+
+        // toastAlert.showToastError(error);
+    }
+};
+export const userBlockAPI: any = (data:any) => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.userBlockAPI(data);
+        if (response?.statusCode == 200) {
+            console.log(response,"responseresponseresponse");
+            dispatch(getNewMatches())
+           return NavigationService.navigate(NAVIGATION_CHATS_SCREEN)
+        }
+    } catch (error: any) {
+
         // toastAlert.showToastError(error);
     }
 };

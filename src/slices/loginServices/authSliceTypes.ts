@@ -156,6 +156,8 @@ export interface AuthState {
   filterData:undefined;
   discoverProfileData:[];
   emailAuth:undefined;
+  newMatches:[];
+  matchChatUserDetails:undefined;
 }
 export interface DeviceTokenParams {
   merchantId: string;

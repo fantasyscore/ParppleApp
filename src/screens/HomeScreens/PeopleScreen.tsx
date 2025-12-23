@@ -31,7 +31,7 @@ import MatchScreen from './MatchScreen';
 import Toast, { IToast } from '../../common/Toast';
 import SuperLikeScreen from './SuperLikeScreen';
 import NavigationService from '../../navigation/NavigationService';
-import { NAVIGATION_SUBSCRIPTION_SCREEN } from '../../navigation/routes';
+import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from '../../navigation/routes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SWIPES_PER_DAY_KEY, SWIPES_REMAINING_KEY, SUPER_LIKES_REMAINING_KEY } from '../../helper/Constants';
 
@@ -455,9 +455,7 @@ const PeopleScreen = () => {
             dispatch(swipeLikeDisLike(data));
         }
     };
-    useEffect(() => {
-        NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
-    }, []); 
+
     const PulsingCircle = ({ size }: any) => {
         const anim = useRef(new Animated.Value(0)).current;
         const animTwp = useRef(new Animated.Value(0)).current;
@@ -635,9 +633,9 @@ const PeopleScreen = () => {
                         />}
                 </View>
                 <View style={styles.likeUnLikeCOntainer}>
-                    <View style={styles.flasContaier}>
+                    <TouchableOpacityView onPress={()=> NavigationService.navigate(NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN)} style={styles.flasContaier}>
                         <FastImage source={flashIcon} resizeMode="contain" style={styles.flasIcon} />
-                    </View>
+                    </TouchableOpacityView>
                     <Animated.View style={[styles.unlickContainer, { backgroundColor: nopeColor }]} >
                         <TouchableOpacityView onPress={() => {
                             ref.current?.swipeLeft();
@@ -670,9 +668,9 @@ const PeopleScreen = () => {
                             }]} />
                         </TouchableOpacityView>
                     </Animated.View>
-                    <View style={styles.flasContaier}>
+                    <TouchableOpacityView onPress={()=>NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN)} style={styles.flasContaier}>
                         <FastImage source={shareRedIcon} resizeMode="contain" style={styles.flasIcon} />
-                    </View>
+                    </TouchableOpacityView>
                 </View>
                 <Modal
                     animationType="fade"

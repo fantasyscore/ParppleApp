@@ -12,7 +12,7 @@ import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { premiumDetaiData, PurchaseCards } from "../../common/UiltData";
 import { Screen } from "../../theme/dimens";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_EDIT_PROFILE_SCREEN, NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN, NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_EDIT_PROFILE_SCREEN, NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN, NAVIGATION_SUBSCRIPTION_ALL_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN, NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from "../../navigation/routes";
 import { useDispatch, useSelector } from "react-redux";
 
 const ProfileScreen = () => {
@@ -42,7 +42,7 @@ const ProfileScreen = () => {
     const navigateButton = (item: any) => {
         if (item?.title === "Boost") return NavigationService.navigate(NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN);
         if (item?.title === "Super Like") return NavigationService.navigate(NAVIGATION_SUPERLIKE_PURCHESE_SCREEN);
-        if (item?.title === "Subscription") return NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN);
+        if (item?.headLine === "Purchase") return NavigationService.navigate(NAVIGATION_SUBSCRIPTION_ALL_SCREEN);
 
     }
     return (
@@ -123,14 +123,14 @@ const ProfileScreen = () => {
                                 return (
                                     <TouchableOpacityView onPress={() => navigateButton(item)} key={index} style={styles.subDetails}>
                                         <FastImage source={item.icon} resizeMode="contain" style={styles.icons} />
-                                        <AppText color={index == 0 ? SKYBLUE : index == 1 ? RED : PURPLE} style={{ marginTop: metrics.hp2 }} type={FORTEEN} weight={INTER_BOLD}>
+                                        <AppText color={index == 0 ? SKYBLUE : index == 1 ? RED : PURPLE} style={{ marginTop: index == 2 ? metrics.hp2: metrics.hp2 }} type={index == 2 ? TWELVE: FORTEEN} weight={INTER_BOLD}>
                                             {item.numberText}
                                         </AppText>
                                         <AppText type={TEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
                                             {item.title}
                                         </AppText>
                                         <View style={styles.getMoreContainer}>
-                                            <AppText weight={INTER_MEDIUM} type={TEN}>
+                                            <AppText style={{marginTop:-metrics.hp0_1}} weight={INTER_MEDIUM} color={WHITE} type={TEN}>
                                                 {item.headLine}
                                             </AppText>
                                         </View>
@@ -144,7 +144,7 @@ const ProfileScreen = () => {
                                 {"  "}Premium Plans
                             </AppText>
                         </View>
-                        <View>
+                        {/* <View> */}
                             <FlatList
                                 data={PurchaseCards}
                                 renderItem={renderPurchaesCards}
@@ -152,7 +152,7 @@ const ProfileScreen = () => {
                                 showsHorizontalScrollIndicator={false}
                                 contentContainerStyle={{ marginLeft: metrics.hp2, marginTop: metrics.hp3 }}
                                 horizontal={true} />
-                        </View>
+                        {/* </View> */}
                     </View>
                 }
                 {tabSelect == "Safety" &&
@@ -283,8 +283,8 @@ const styles = StyleSheet.create({
         paddingVertical: metrics.hp0_1,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: colors.singleButtonGreen,
-        borderRadius: metrics.hp0_8,
+        backgroundColor: colors.black,
+        borderRadius: metrics.hp1,
         width: metrics.hp7,
         alignSelf: "center",
         position: "absolute",
@@ -295,6 +295,11 @@ const styles = StyleSheet.create({
         width: Screen.Width / 1.12,
         marginRight: metrics.hp1,
         borderRadius: metrics.hp1_5, // ✅ container radius
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: metrics.hp0_5 },
+        shadowOpacity: 1,
+        shadowRadius: metrics.hp1,
+        elevation: 9,
     },
     PremiumText: {
         flexDirection: "row",
