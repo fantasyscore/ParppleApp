@@ -1,22 +1,19 @@
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import LinearGradient from "react-native-linear-gradient";
 import { colors } from "../theme/colors";
 import metrics from "../assets/Metrics";
 import { TouchableOpacityView } from "./TouchableOpacityView";
 import FastImage from "react-native-fast-image";
-import { AppText, BLACK, ELEVEN, INTER_MEDIUM, OPECITY, PURPLE, TEN, TWELVE } from "./AppText";
+import { AppText, ELEVEN, INTER_MEDIUM, OPECITY, PURPLE} from "./AppText";
 import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_CHATS_SCREEN, NAVIGATION_DISCOVER_SCREEN, NAVIGATION_LIKES_YOU_SCREEN, NAVIGATION_PEOPLE_SCREEN, NAVIGATION_PROFILE_SCREEN } from "../navigation/routes";
-import { chats, chatTab, explore, explorTab, likeTab, likeyou, people, peopleColourTab, pepoleTab, profile, profileTab } from "../helper/ImageAssets";
+import { chats, chatTab, explore, explorTab, likeTab, likeyou, people, pepoleTab, profile, profileTab } from "../helper/ImageAssets";
 import { useSelector } from "react-redux";
 
 
 const CustomTabBar = ({ state }: BottomTabBarProps) => {
     const bottomRemove = useSelector((state: any) => state.auth.bottomRemove);
-
-
     const navigate = (route: any) => {
         if (route === 'NAVIGATION_PEOPLE_SCREEN') return NavigationService.navigate(NAVIGATION_PEOPLE_SCREEN)
         if (route === 'NAVIGATION_DISCOVER_SCREEN') return NavigationService.navigate(NAVIGATION_DISCOVER_SCREEN)
@@ -33,7 +30,7 @@ const CustomTabBar = ({ state }: BottomTabBarProps) => {
                     <View style={{ alignItems: "center", justifyContent: "center" }}>
                         <FastImage source={isFocused ? people : pepoleTab} resizeMode="contain" style={styles.icons} />
                         <AppText type={ELEVEN} weight={INTER_MEDIUM} color={isFocused ? PURPLE: OPECITY}>
-                            People
+                            Home
                         </AppText>
                     </View>
                 ) : route === "NAVIGATION_DISCOVER_SCREEN" ? (

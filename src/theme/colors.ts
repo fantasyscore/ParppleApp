@@ -2,6 +2,7 @@ export const colors = {
   transparent: "transparent",
   white: "#ffffff",
   black: "#000000",
+  blackEighty: "#00000095",
   opecity:"#B6B6B6",
   nanoOpecity:"#EDEDED",
   purple:"#6F13F2",

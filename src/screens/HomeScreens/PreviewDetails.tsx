@@ -1,17 +1,20 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Dimensions, Image, ImageBackground, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Dimensions, Image, ImageBackground, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
 import FastImage from "react-native-fast-image";
 import metrics from "../../assets/Metrics";
 import { colors } from "../../theme/colors";
-import { CloseBlueIcon, flashIcon, heartGreen, heartRed, shareRedIcon, upArrowIcon } from "../../helper/ImageAssets";
+import { CloseBlueIcon, flashIcon, heartGreen, heartRed, shareRedIcon, superlikeiconwhite, upArrowIcon } from "../../helper/ImageAssets";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import NavigationService from "../../navigation/NavigationService";
 import { Screen } from "../../theme/dimens";
 import { useDispatch, useSelector } from "react-redux";
 import { setListProfiles } from "../../slices/loginServices/authSlice";
 import ProfileBottomDetails from "./ProfileBottomDetail";
+import LinearGradient from "react-native-linear-gradient";
+import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from "react-native-svg";
+import { NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from "../../navigation/routes";
 
 const { width, height } = Dimensions.get("window");
 const COLLAPSED_IMAGE_HEIGHT = height * 0.67;
@@ -30,6 +33,20 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
             } else {
                 newIndex = newIndex > 0 ? newIndex - 1 : newIndex;
             }
+            
+            // Preload images when index changes
+            if (newIndex !== profile.index && profile.gallery && profile.gallery[newIndex]?.url) {
+                const targetImageUrl = profile.gallery[newIndex].url;
+                FastImage.preload([{ uri: targetImageUrl, priority: FastImage.priority.high }]);
+                
+                if (newIndex > 0 && profile.gallery[newIndex - 1]?.url) {
+                    FastImage.preload([{ uri: profile.gallery[newIndex - 1].url, priority: FastImage.priority.normal }]);
+                }
+                if (newIndex < totalImages - 1 && profile.gallery[newIndex + 1]?.url) {
+                    FastImage.preload([{ uri: profile.gallery[newIndex + 1].url, priority: FastImage.priority.normal }]);
+                }
+            }
+            
             const updatedObject = { ...profile, index: newIndex };
             setProfileData(updatedObject);
         } else {
@@ -41,6 +58,20 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                     } else {
                         newIndex = newIndex > 0 ? newIndex - 1 : newIndex;
                     }
+                    
+                    // Preload images when index changes
+                    if (newIndex !== p.index && p.gallery && p.gallery[newIndex]?.url) {
+                        const targetImageUrl = p.gallery[newIndex].url;
+                        FastImage.preload([{ uri: targetImageUrl, priority: FastImage.priority.high }]);
+                        
+                        if (newIndex > 0 && p.gallery[newIndex - 1]?.url) {
+                            FastImage.preload([{ uri: p.gallery[newIndex - 1].url, priority: FastImage.priority.normal }]);
+                        }
+                        if (newIndex < totalImages - 1 && p.gallery[newIndex + 1]?.url) {
+                            FastImage.preload([{ uri: p.gallery[newIndex + 1].url, priority: FastImage.priority.normal }]);
+                        }
+                    }
+                    
                     return { ...p, index: newIndex };
                 }
                 return p;
@@ -49,6 +80,26 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
         }
     };
     const scrollViewRef: any = useRef(null);
+
+    // Preload images when component mounts or data changes
+    useEffect(() => {
+        if (data?.gallery && data.gallery.length > 0) {
+            const currentIndex = data.index || 0;
+            const gallery = data.gallery;
+            
+            const imagesToPreload = [
+                gallery[currentIndex]?.url,
+                currentIndex > 0 ? gallery[currentIndex - 1]?.url : null,
+                currentIndex < gallery.length - 1 ? gallery[currentIndex + 1]?.url : null,
+            ].filter(Boolean);
+            
+            imagesToPreload.forEach((url: string) => {
+                if (url) {
+                    FastImage.preload([{ uri: url, priority: FastImage.priority.normal }]);
+                }
+            });
+        }
+    }, [data]);
 
     return (
         <AppSafeAreaView>
@@ -106,42 +157,139 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                     <FastImage source={flashIcon} resizeMode="contain" style={styles.flasIcon} />
                 </View>
                 <View style={[styles.unlickContainer, { opacity: discover ? 0 : 1 }]} >
-                    <TouchableOpacityView disabled={discover} onPress={() => {
-                        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-                        setTimeout(() => {
+                    <Pressable
+                        disabled={discover}
+                        onPress={() => {
+                            // Tinder-style: instant tap feedback reset + trigger swipe immediately (no timeouts)
+                            scrollViewRef.current?.scrollTo({ y: 0, animated: false });
                             setModalVisible(false);
+                            // Trigger swipe via the same lifecycle used by HomeScreen
                             setSwipeLeft(true);
-                        }, 350);
-                    }}>
-                        <Image source={CloseBlueIcon} resizeMode="contain" style={styles.flasIconClose} />
-                    </TouchableOpacityView>
+                        }}
+                        style={{ width: metrics.hp7_2, height: metrics.hp7_2, alignItems: "center", justifyContent: "center" }}
+                    >
+                        {({ pressed }) => (
+                            <>
+                                {pressed && (
+                                    <LinearGradient
+                                        colors={["#6F13F2", "#400B8C"]}
+                                        start={{ x: 0.5, y: 0 }}
+                                        end={{ x: 0.5, y: 1 }}
+                                        style={StyleSheet.absoluteFill}
+                                    />
+                                )}
+                                {pressed && (
+                                    <Svg width="100%" height="100%" viewBox="0 0 100 100" style={StyleSheet.absoluteFill}>
+                                        <Defs>
+                                            <SvgLinearGradient id="nopeBorderPreview" x1="0" y1="0.5" x2="1" y2="0.5">
+                                                <Stop offset="0" stopColor="#6F13F2" />
+                                                <Stop offset="1" stopColor="#400B8C" />
+                                            </SvgLinearGradient>
+                                        </Defs>
+                                        <Circle cx="50" cy="50" r="48" fill="none" stroke="url(#nopeBorderPreview)" strokeWidth="3" />
+                                    </Svg>
+                                )}
+                                <View style={{ width: metrics.hp4, height: metrics.hp4 }}>
+                                    <Image source={CloseBlueIcon} resizeMode="contain" style={styles.flasIconClose} />
+                                    {pressed && (
+                                        <Image
+                                            source={CloseBlueIcon}
+                                            resizeMode="contain"
+                                            style={[styles.flasIconClose, { position: "absolute", top: 0, left: 0, tintColor: colors.white }]}
+                                        />
+                                    )}
+                                </View>
+                            </>
+                        )}
+                    </Pressable>
                 </View>
                 <View style={styles.flasContaier}>
-                    <TouchableOpacityView onPress={() => {
-                        // Check if user can super like (for discover mode)
-                        if (discover && canSuperLike && !canSuperLike()) {
-                            return;
-                        }
-                        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-                        setTimeout(() => {
-                            setSuperLikeVisible(true)
+                    <Pressable
+                        onPress={() => {
+                            // If user has 0 superlikes -> go to purchase
+                            if (canSuperLike && !canSuperLike()) {
+                                NavigationService.navigate(NAVIGATION_SUPERLIKE_PURCHESE_SCREEN);
+                                return;
+                            }
+                            scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+                            setSuperLikeVisible(true);
                             setModalVisible(false);
-                            // setSwipeUp(true);
-                        }, 350);
-                    }}>
-                        <FastImage source={heartRed} resizeMode="contain" style={styles.flasIcon} />
-                    </TouchableOpacityView>
+                        }}
+                        style={{ width: metrics.hp6_5, height: metrics.hp6_5, alignItems: "center", justifyContent: "center" }}
+                    >
+                        {({ pressed }) => (
+                            <>
+                                {pressed && (
+                                    <LinearGradient
+                                        colors={["#FF1A00", "#991000"]}
+                                        start={{ x: 0.5, y: 0 }}
+                                        end={{ x: 0.5, y: 1 }}
+                                        style={StyleSheet.absoluteFill}
+                                    />
+                                )}
+                                {pressed && (
+                                    <Svg width="100%" height="100%" viewBox="0 0 100 100" style={StyleSheet.absoluteFill}>
+                                        <Circle cx="50" cy="50" r="48" fill="none" stroke="#FF0000" strokeWidth="3" />
+                                    </Svg>
+                                )}
+                                <View style={{ width: metrics.hp3_5, height: metrics.hp3_5 }}>
+                                    <FastImage source={heartRed} resizeMode="contain" style={styles.flasIcon} />
+                                    {pressed && (
+                                        <FastImage
+                                            source={superlikeiconwhite}
+                                            resizeMode="contain"
+                                            style={[styles.flasIcon, { position: "absolute", top: 0, left: 0 }]}
+                                        />
+                                    )}
+                                </View>
+                            </>
+                        )}
+                    </Pressable>
                 </View>
                 <View style={[styles.unlickContainer, { opacity: discover ? 0 : 1 }]} >
-                    <TouchableOpacityView disabled={discover} onPress={() => {
-                        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-                        setTimeout(() => {
+                    <Pressable
+                        disabled={discover}
+                        onPress={() => {
+                            scrollViewRef.current?.scrollTo({ y: 0, animated: false });
                             setModalVisible(false);
                             setSwipeRight(true);
-                        }, 350);
-                    }}>
-                        <Image source={heartGreen} resizeMode="contain" style={styles.flasIconClose} />
-                    </TouchableOpacityView>
+                        }}
+                        style={{ width: metrics.hp7_2, height: metrics.hp7_2, alignItems: "center", justifyContent: "center" }}
+                    >
+                        {({ pressed }) => (
+                            <>
+                                {pressed && (
+                                    <LinearGradient
+                                        colors={["#CCF63D", "#779024"]}
+                                        start={{ x: 0.5, y: 0 }}
+                                        end={{ x: 0.5, y: 1 }}
+                                        style={StyleSheet.absoluteFill}
+                                    />
+                                )}
+                                {pressed && (
+                                    <Svg width="100%" height="100%" viewBox="0 0 100 100" style={StyleSheet.absoluteFill}>
+                                        <Defs>
+                                            <SvgLinearGradient id="likeBorderPreview" x1="0" y1="0.5" x2="1" y2="0.5">
+                                                <Stop offset="0" stopColor="#C7FF09" />
+                                                <Stop offset="1" stopColor="#8FB800" />
+                                            </SvgLinearGradient>
+                                        </Defs>
+                                        <Circle cx="50" cy="50" r="48" fill="none" stroke="url(#likeBorderPreview)" strokeWidth="3" />
+                                    </Svg>
+                                )}
+                                <View style={{ width: metrics.hp4, height: metrics.hp4 }}>
+                                    <Image source={heartGreen} resizeMode="contain" style={styles.flasIconClose} />
+                                    {pressed && (
+                                        <Image
+                                            source={heartGreen}
+                                            resizeMode="contain"
+                                            style={[styles.flasIconClose, { position: "absolute", top: 0, left: 0, tintColor: colors.white }]}
+                                        />
+                                    )}
+                                </View>
+                            </>
+                        )}
+                    </Pressable>
                 </View>
                 <View style={[styles.flasContaier, { opacity: 0 }]}>
                     <FastImage source={shareRedIcon} resizeMode="contain" style={styles.flasIcon} />
@@ -235,6 +383,7 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp50,
         alignItems: "center",
         justifyContent: "center",
+        overflow: "hidden",
         shadowColor: "#000",
         shadowOpacity: 0.2,
         shadowOffset: { width: 0, height: 5 },
@@ -252,6 +401,7 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp50,
         alignItems: "center",
         justifyContent: "center",
+        overflow: "hidden",
         shadowColor: "#000",
         shadowOpacity: 0.2,
         shadowOffset: { width: 0, height: 5 },

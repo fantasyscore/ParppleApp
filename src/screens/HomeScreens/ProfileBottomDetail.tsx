@@ -10,7 +10,7 @@ import { datapersonal } from "../../common/UiltData";
 import { datingIntentionsFilter } from "../../helper/utility";
 
 
-const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover }: any) => {
+const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover,share }: any) => {
     const attributesRemove = visibleCards?.attributes?.filter((item: any) =>
         ["smoke", "drink", "workout", "pets"].includes(item?.type)
     );
@@ -237,6 +237,8 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover }: any) =
                     </View>
                 </View>
             }
+            {!share && 
+            <>
             <View style={styles.shareDetailsContaier}>
                 <FastImage source={shareIcon} resizeMode="contain" style={styles.shareIcon} />
                 <AppText color={DARKGREEN} weight={INTER_BOLD} type={TWELVE}>
@@ -258,6 +260,8 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover }: any) =
                     Report
                 </AppText>
             </View>
+            </>
+            }
         </View>
     )
 };

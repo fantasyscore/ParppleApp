@@ -62,7 +62,7 @@ import SuceesReporting from "../screens/ProfileScreens/SuceesReporting";
 import ToastMessage from "../common/ToastMessage";
 import AuthLoding from "../screens/AuthLoding";
 import SuperLikeScreen from "../screens/HomeScreens/SuperLikeScreen";
-import PeopleScreen from "../screens/HomeScreens/PeopleScreen";
+import PeopleScreen from "../screens/HomeScreens/HomeScreen";
 import PreviewDetails from "../screens/HomeScreens/PreviewDetails";
 import InAppPurchaseScreen from "../screens/InAppPurchaseScreen";
 import ProfileBoostPurchase from "../screens/ProfileScreens/ProfileBoostPurchase";
@@ -145,6 +145,7 @@ const Navigator = () => {
       <Stack.Screen name={routes.NAVIGATION_SUPERLIKE_PURCHESE_SCREEN} component={SuperLikePurchese} />
       <Stack.Screen name={routes.NAVIGATION_CRUSH_PURCHESE_SCREEN} component={CrushNotePurchase} />
       <Stack.Screen name={routes.NAVIGATION_SUBSCRIPTION_ALL_SCREEN} component={SubscriptionAllScreen} />
+      <Stack.Screen name={routes.NAVIGATION_CRUSH_NOTE_SENDER_SCREEN} component={CrushNotePurchase} />
 
 
       </Stack.Navigator>

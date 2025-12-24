@@ -1,5 +1,5 @@
 import React, { useImperativeHandle, type ForwardedRef } from 'react';
-import { useAnimatedReaction } from 'react-native-reanimated';
+import { type SharedValue, useAnimatedReaction } from 'react-native-reanimated';
 import { Dimensions, View } from 'react-native';
 import type {
   SwiperCardRefType,
@@ -20,6 +20,16 @@ const SWIPE_SPRING_CONFIG: SpringConfig = {
   stiffness: 60,
   mass: 0.1,
   overshootClamping: false,
+};
+
+type TinderSharedState = {
+  sharedTranslateX?: SharedValue<number>;
+  sharedTranslateY?: SharedValue<number>;
+};
+
+type TinderDeniedCallbacks = {
+  onSwipeRightDenied?: () => void;
+  onSwipeTopDenied?: () => void;
 };
 
 const Swiper = <T,>(
@@ -71,7 +81,12 @@ const Swiper = <T,>(
     direction = 'y',
     overlayLabelContainerStyle,
     initialIndex = 0,
-  }: SwiperOptions<T>,
+    // Tinder-style: optional shared values exposed to parent
+    sharedTranslateX,
+    sharedTranslateY,
+    onSwipeRightDenied,
+    onSwipeTopDenied,
+  }: SwiperOptions<T> & TinderSharedState & TinderDeniedCallbacks,
   ref: ForwardedRef<SwiperCardRefType>
 ) => {
   const clampedInitialIndex = Math.max(
@@ -91,6 +106,7 @@ const Swiper = <T,>(
     swipeBack,
     swipeTop,
     swipeBottom,
+    flipCard,
   } = useSwipeControls(data, loop, clampedInitialIndex);
 
   useImperativeHandle(ref, () => {
@@ -100,8 +116,9 @@ const Swiper = <T,>(
       swipeBack,
       swipeTop,
       swipeBottom,
+      flipCard,
     };
-  }, [swipeLeft, swipeRight, swipeBack, swipeTop, swipeBottom]);
+  }, [swipeLeft, swipeRight, swipeBack, swipeTop, swipeBottom, flipCard]);
 
   useAnimatedReaction(
     () => {
@@ -128,6 +145,10 @@ const Swiper = <T,>(
   const Card = SwiperCard as unknown as React.ComponentType<
     React.PropsWithChildren<SwiperCardOptions<T>> & {
       ref?: React.Ref<SwiperCardRefType>;
+      sharedTranslateX?: SharedValue<number>;
+      sharedTranslateY?: SharedValue<number>;
+      onSwipeRightDenied?: () => void;
+      onSwipeTopDenied?: () => void;
     }
   >;
 
@@ -192,6 +213,10 @@ const Swiper = <T,>(
           item={item}
           direction={direction}
           overlayLabelContainerStyle={overlayLabelContainerStyle}
+          sharedTranslateX={sharedTranslateX}
+          sharedTranslateY={sharedTranslateY}
+          onSwipeRightDenied={onSwipeRightDenied}
+          onSwipeTopDenied={onSwipeTopDenied}
         >
           {renderCard(item, actualIndex)}
         </Card>

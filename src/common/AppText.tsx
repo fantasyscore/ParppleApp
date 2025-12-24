@@ -48,6 +48,8 @@ export const DARKGREEN = "DARKGREEN"
 export const SKYBLUE = "SKYBLUE"
 export const DARK_GREEN = "DARK_GREEN"
 export const LIGHT_GREEN = "LIGHT_GREEN"
+export const BLACK_EIGHTY = "BLACK_EIGHTY"
+
 
 export const TWENTY_ONE_L = "TWENTY_ONE_L";
 export const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -224,6 +226,9 @@ const getTextStyle = (
       case DARK_GREEN:
         style["color"] = colors.darGreen;
         break;
+        case BLACK_EIGHTY:
+          style["color"] = colors.blackEighty;
+          break;
     default:
       style["color"] = colors.black;
       break;
