@@ -7,9 +7,9 @@ import { searchIcon } from "../helper/ImageAssets";
 import { fontSize, INTER_MEDIUM } from "./AppText";
 import { Screen } from "../theme/dimens";
 
-const SearchContainer = ({placeholder,value, onChangeText}:any) => {
+const SearchContainer = ({placeholder,value, onChangeText,style}:any) => {
     return (
-        <View style={styles.container}>
+        <View style={[styles.container,style]}>
             <FastImage source={searchIcon} resizeMode="contain" tintColor={colors.darkOpecity} style={styles.iconSearch} />
             <TextInput
                 allowFontScaling={false}

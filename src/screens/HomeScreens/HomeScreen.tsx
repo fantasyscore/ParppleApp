@@ -58,7 +58,7 @@ const PeopleScreen = () => {
     const userData = useSelector((state: any) => state.auth.userData);
     const position: any = useRef(new Animated.ValueXY()).current;
     const [getCurrentIndex, setGetCurrentIndex] = useState(0);
-    const [windowStartIndex, setWindowStartIndex] = useState(0); 
+    const [windowStartIndex, setWindowStartIndex] = useState(0);
     const [modalVisible, setModalVisible] = useState(false);
     const [crushNotesSednder, setCrushNotesSender] = useState(false);
     const [swipeRight, setSwipeRight] = useState(false);
@@ -70,15 +70,15 @@ const PeopleScreen = () => {
     const [matchData, setMatchData] = useState([]);
     const cardWidthRef = useRef(0);
     const WINDOW_SIZE = 4;
-    const LOAD_THRESHOLD = 2; 
+    const LOAD_THRESHOLD = 2;
     const [remainingSwipes, setRemainingSwipes] = useState(0);
     const [remainingSuperLikes, setRemainingSuperLikes] = useState(0);
     const [swipesPerDay, setSwipesPerDay] = useState(0);
     const [boostModalVisible, setBoostModalVisible] = useState(false);
     const [boostEndAtMs, setBoostEndAtMs] = useState<number | null>(null);
     const [boostsAvailable, setBoostsAvailable] = useState<number>(() => 3);
-    console.log(remainingSwipes,"remainingSwipes");
-    console.log(userData,"userdata");
+    console.log(remainingSwipes, "remainingSwipes");
+    console.log(userData, "userdata");
 
     // Tinder-style: a single source of truth for swipe gesture state (shared from swiper)
     const sharedTranslateX = useSharedValue(0);
@@ -213,13 +213,13 @@ const PeopleScreen = () => {
             setBoostEndAtMs(null);
         }
     }, [boostEndAtMs, boostTimer.isRunning]);
-    
+
     const loadStoredValues = useCallback(async () => {
         try {
             const storedSwipesRemaining = await AsyncStorage.getItem(SWIPES_REMAINING_KEY);
             const storedSuperLikesRemaining = await AsyncStorage.getItem(SUPER_LIKES_REMAINING_KEY);
             const storedSwipesPerDay = await AsyncStorage.getItem(SWIPES_PER_DAY_KEY);
-            
+
             if (storedSwipesRemaining !== null) {
                 setRemainingSwipes(parseInt(storedSwipesRemaining, 10));
             }
@@ -233,7 +233,7 @@ const PeopleScreen = () => {
             console.warn('Error loading stored values:', error);
         }
     }, []);
-    
+
     const saveStoredValues = useCallback(async (swipes?: number, superLikes?: number, perDay?: number) => {
         try {
             if (swipes !== undefined) {
@@ -249,7 +249,7 @@ const PeopleScreen = () => {
             console.warn('Error saving stored values:', error);
         }
     }, []);
-    
+
     const subscriptionItem = useMemo(() => ({ id: '1', icon: silverCard, title: 'Silver' }), []);
 
     const visibleCards = useMemo(() => {
@@ -278,11 +278,11 @@ const PeopleScreen = () => {
     // The swipe gesture state comes from the card swiper via `sharedTranslateX`.
     const returningFromSubscriptionRef = useRef(false);
     const isInitialMountRef = useRef(true);
-    
+
     useEffect(() => {
         loadStoredValues();
     }, [loadStoredValues]);
-    
+
     useEffect(() => {
         if (userData && (userData.swipesRemaining !== undefined || userData.superLikesRemaining !== undefined || userData.swipesPerDay !== undefined)) {
             const swipesRemaining = userData?.swipesRemaining ?? 0;
@@ -294,51 +294,51 @@ const PeopleScreen = () => {
             saveStoredValues(swipesRemaining, superLikesRemaining, swipesPerDayValue);
         }
     }, [userData, saveStoredValues]);
-    
+
     useEffect(() => {
         if (!IsFocused) return;
-        
+
         dispatch(getProfile(true))
         dispatch(listProfiles(true));
-        
+
         if (isInitialMountRef.current) {
             setWindowStartIndex(0);
             setGetCurrentIndex(0);
             isInitialMountRef.current = false;
         } else if (returningFromSubscriptionRef.current) {
-            returningFromSubscriptionRef.current = false; 
+            returningFromSubscriptionRef.current = false;
         } else {
             setWindowStartIndex(0);
             setGetCurrentIndex(0);
         }
     }, [IsFocused])
-    
+
     useEffect(() => {
         if (remainingSwipes !== undefined) {
             saveStoredValues(remainingSwipes, undefined, undefined);
         }
     }, [remainingSwipes, saveStoredValues]);
-    
+
     useEffect(() => {
         if (remainingSuperLikes !== undefined) {
             saveStoredValues(undefined, remainingSuperLikes, undefined);
         }
     }, [remainingSuperLikes, saveStoredValues]);
-    
+
     useEffect(() => {
         if (swipesPerDay !== undefined) {
             saveStoredValues(undefined, undefined, swipesPerDay);
         }
     }, [swipesPerDay, saveStoredValues]);
-    
+
     useEffect(() => {
         if (getCurrentIndex >= LOAD_THRESHOLD && listProfilesData && listProfilesData.length > 0) {
             const newWindowStart = windowStartIndex + LOAD_THRESHOLD;
             const remainingCards = listProfilesData.length - newWindowStart;
-            
+
             if (remainingCards > 0) {
                 setWindowStartIndex(newWindowStart);
-                setGetCurrentIndex(0); 
+                setGetCurrentIndex(0);
             }
         }
     }, [getCurrentIndex, windowStartIndex, listProfilesData]);
@@ -352,7 +352,7 @@ const PeopleScreen = () => {
         }
         return true;
     }, [remainingSwipes, userData?.swipesRemaining, subscriptionItem]);
-    
+
     const canSuperLike = useCallback(() => {
         // Use state value (which is synced with AsyncStorage)
         const superLikes = remainingSuperLikes ?? userData?.superLikesRemaining ?? 0;
@@ -389,7 +389,7 @@ const PeopleScreen = () => {
         const totalImages = profile?.gallery?.length || 0;
         if (!evt?.nativeEvent?.locationX || !cardWidthRef.current) return;
         const x = evt.nativeEvent.locationX;
-        
+
         const updatedProfiles = listProfilesData.map((p: any) => {
             if (p._id === profile._id) {
                 let newIndex = p.index || 0;
@@ -398,11 +398,11 @@ const PeopleScreen = () => {
                 } else {
                     newIndex = newIndex > 0 ? newIndex - 1 : newIndex;
                 }
-                
+
                 if (newIndex !== p.index && p.gallery && p.gallery[newIndex]?.url) {
                     const targetImageUrl = p.gallery[newIndex].url;
                     FastImage.preload([{ uri: targetImageUrl, priority: FastImage.priority.high }]);
-                    
+
                     if (newIndex > 0 && p.gallery[newIndex - 1]?.url) {
                         FastImage.preload([{ uri: p.gallery[newIndex - 1].url, priority: FastImage.priority.normal }]);
                     }
@@ -410,12 +410,12 @@ const PeopleScreen = () => {
                         FastImage.preload([{ uri: p.gallery[newIndex + 1].url, priority: FastImage.priority.normal }]);
                     }
                 }
-                
+
                 return { ...p, index: newIndex };
             }
             return p;
         });
-        
+
         dispatch(setListProfiles(updatedProfiles));
     };
 
@@ -425,13 +425,13 @@ const PeopleScreen = () => {
                 if (profile?.gallery && profile?.gallery.length > 0) {
                     const currentIndex = profile.index || 0;
                     const gallery = profile.gallery;
-                    
+
                     const imagesToPreload = [
                         gallery[currentIndex]?.url,
                         currentIndex > 0 ? gallery[currentIndex - 1]?.url : null,
                         currentIndex < gallery.length - 1 ? gallery[currentIndex + 1]?.url : null,
                     ].filter(Boolean);
-                    
+
                     imagesToPreload.forEach((url: string) => {
                         if (url) {
                             FastImage.preload([{ uri: url, priority: FastImage.priority.normal }]);
@@ -441,14 +441,14 @@ const PeopleScreen = () => {
             });
         }
     }, [listProfilesData]);
-    
+
     const renderCard = ((profile: any, index: any) => {
         const currentImageIndex = profile?.index || 0;
         const gallery = profile?.gallery || [];
         const currentImage = gallery[currentImageIndex];
         const prevImage = currentImageIndex > 0 ? gallery[currentImageIndex - 1] : null;
         const nextImage = currentImageIndex < gallery.length - 1 ? gallery[currentImageIndex + 1] : null;
-        
+
         return (
             <View style={styles.card}>
                 <TouchableOpacity
@@ -476,7 +476,7 @@ const PeopleScreen = () => {
                         {/* Main visible image */}
                         {currentImage?.url ? (
                             <FastImage
-                                source={{ 
+                                source={{
                                     uri: currentImage.url,
                                     priority: FastImage.priority.high,
                                 }}
@@ -722,9 +722,9 @@ const PeopleScreen = () => {
                         </View>}
                     {visibleCards.length > 0 && (windowStartIndex + getCurrentIndex < listProfilesData?.length) &&
                         <Swiper
-                            key={`swiper-${windowStartIndex}`} 
+                            key={`swiper-${windowStartIndex}`}
                             ref={ref}
-                            data={visibleCards} 
+                            data={visibleCards}
                             cardStyle={styles.cardStyle}
                             overlayLabelContainerStyle={styles.overlayLabelContainerStyle}
                             renderCard={renderCard}
@@ -750,7 +750,7 @@ const PeopleScreen = () => {
                                     requestAnimationFrame(() => {
                                         ref.current?.swipeBack && ref.current?.swipeBack();
                                     });
-                                    return; 
+                                    return;
                                 }
                                 swipeFunction(index, "like");
                             }}
@@ -765,130 +765,132 @@ const PeopleScreen = () => {
                             prerenderItems={4}
                         />}
                 </View>
-                <View style={styles.likeUnLikeCOntainer}>
-                    <TouchableOpacityView activeOpacity={0.8} onPress={() => {
-                        if (boostsAvailable <= 0 && !boostTimer.isRunning) {
-                            NavigationService.navigate(NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN);
-                        } else {
-                            setBoostModalVisible(true);
-                        }
-                    }} style={styles.flasContaier}>
-                        <BoostLiquidButton
-                            size={metrics.hp6_5}
-                            isRunning={boostTimer.isRunning}
-                            remainingFraction={boostTimer.remainingFraction}
-                            timerText={boostTimer.remainingLabel}
-                            iconSource={flashIcon}
-                        />
-                    </TouchableOpacityView>
-                    <View style={styles.unlickContainer} >
-                        <Animated2.View style={[StyleSheet.absoluteFill, nopeBgStyle]}>
-                            <LinearGradient
-                                colors={["#6F13F2", "#400B8C"]}
-                                start={{ x: 0.5, y: 0 }}
-                                end={{ x: 0.5, y: 1 }}
-                                style={StyleSheet.absoluteFill}
-                            />
-                        </Animated2.View>
-                        <Animated2.View style={[StyleSheet.absoluteFill, nopeBorderStyle]}>
-                            <Svg width="100%" height="100%" viewBox="0 0 100 100">
-                                <Defs>
-                                    <SvgLinearGradient id="nopeBorder" x1="0" y1="0.5" x2="1" y2="0.5">
-                                        <Stop offset="0" stopColor="#6F13F2" />
-                                        <Stop offset="1" stopColor="#400B8C" />
-                                    </SvgLinearGradient>
-                                </Defs>
-                                <Circle cx="50" cy="50" r="48" fill="none" stroke="url(#nopeBorder)" strokeWidth="3" />
-                            </Svg>
-                        </Animated2.View>
-                        <TouchableOpacityView
-                            onPressIn={() => { tapNope.value = 1; }}
-                            onPressOut={() => { tapNope.value = 0; }}
-                            onPress={() => {
-                                tapNope.value = 0; // hard reset (no delay)
-                                triggerNope();
-                            }}>
-                            <View style={styles.iconStack}>
-                                <Animated2.Image source={CloseBlueIcon} resizeMode="contain" style={[styles.flasIconClose, nopeBaseIconStyle]} />
-                                <Animated2.Image source={CloseBlueIcon} resizeMode="contain" style={[styles.flasIconClose, styles.iconAbs, nopeWhiteIconStyle]} tintColor={colors.white} />
-                            </View>
-                        </TouchableOpacityView>
-                    </View>
-                    <View style={[styles.flasContaier, { overflow: "hidden" }]}>
-                        <Animated2.View style={[StyleSheet.absoluteFill, superLikeBgStyle]}>
-                            <LinearGradient
-                                colors={["#FF1A00", "#991000"]}
-                                start={{ x: 0.5, y: 0 }}
-                                end={{ x: 0.5, y: 1 }}
-                                style={StyleSheet.absoluteFill}
-                            />
-                        </Animated2.View>
-                        <Animated2.View style={[StyleSheet.absoluteFill, superLikeBorderStyle]}>
-                            <Svg width="100%" height="100%" viewBox="0 0 100 100">
-                                <Circle cx="50" cy="50" r="48" fill="none" stroke="#FF0000" strokeWidth="3" />
-                            </Svg>
-                        </Animated2.View>
-                        <TouchableOpacityView
-                            onPressIn={() => { tapSuperLike.value = 1; }}
-                            onPressOut={() => { tapSuperLike.value = 0; }}
-                            onPress={() => {
-                                tapSuperLike.value = 0; // hard reset (no delay)
-                                const superLikes = remainingSuperLikes ?? userData?.superLikesRemaining ?? 0;
-                                if (superLikes <= 0) {
-                                    NavigationService.navigate(NAVIGATION_SUPERLIKE_PURCHESE_SCREEN);
-                                    return;
-                                }
-                                setSuperLikeVisible(true);
-                            }}>
-                            <View style={styles.iconStack}>
-                                <Animated2.Image source={heartRed} resizeMode="contain" style={[styles.flasIcon, superLikeBaseIconStyle]} />
-                                <Animated2.Image source={superlikeiconwhite} resizeMode="contain" style={[styles.flasIcon, styles.iconAbs, superLikeWhiteIconStyle,{top:metrics.hp0_3, left:metrics.hp0_2}]} />
-                            </View>
-                        </TouchableOpacityView>
-                    </View>
-                    <View style={styles.unlickContainer} >
-                        <Animated2.View style={[StyleSheet.absoluteFill, likeBgStyle]}>
-                            <LinearGradient
-                                colors={["#CCF63D", "#779024"]}
-                                start={{ x: 0.5, y: 0 }}
-                                end={{ x: 0.5, y: 1 }}
-                                style={StyleSheet.absoluteFill}
-                            />
-                        </Animated2.View>
-                        <Animated2.View style={[StyleSheet.absoluteFill, likeBorderStyle]}>
-                            <Svg width="100%" height="100%" viewBox="0 0 100 100">
-                                <Defs>
-                                    <SvgLinearGradient id="likeBorder" x1="0" y1="0.5" x2="1" y2="0.5">
-                                        <Stop offset="0" stopColor="#C7FF09" />
-                                        <Stop offset="1" stopColor="#8FB800" />
-                                    </SvgLinearGradient>
-                                </Defs>
-                                <Circle cx="50" cy="50" r="48" fill="none" stroke="url(#likeBorder)" strokeWidth="3" />
-                            </Svg>
-                        </Animated2.View>
-                        <TouchableOpacityView
-                            onPressIn={() => { tapLike.value = 1; }}
-                            onPressOut={() => { tapLike.value = 0; }}
-                            onPress={() => {
-                            const swipes = remainingSwipes ?? userData?.swipesRemaining ?? 0;
-                            if (swipes <= 0) {
-                                returningFromSubscriptionRef.current = true;
-                                NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
-                                return;
+                {visibleCards.length > 0 && (windowStartIndex + getCurrentIndex < listProfilesData?.length) &&
+                    <View style={styles.likeUnLikeCOntainer}>
+                        <TouchableOpacityView activeOpacity={0.8} onPress={() => {
+                            if (boostsAvailable <= 0 && !boostTimer.isRunning) {
+                                NavigationService.navigate(NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN);
+                            } else {
+                                setBoostModalVisible(true);
                             }
-                            tapLike.value = 0; // hard reset (no delay)
-                            triggerLike();
-                        }}>
-                            <View style={styles.iconStack}>
-                                <Animated2.Image source={heartGreen} resizeMode="contain" style={[styles.flasIconClose, likeBaseIconStyle]} />
-                                <Animated2.Image source={heartGreen} resizeMode="contain" style={[styles.flasIconClose, styles.iconAbs, likeWhiteIconStyle]} tintColor={colors.white} />
-                            </View>
+                        }} style={styles.flasContaier}>
+                            <BoostLiquidButton
+                                size={metrics.hp6_5}
+                                isRunning={boostTimer.isRunning}
+                                remainingFraction={boostTimer.remainingFraction}
+                                timerText={boostTimer.remainingLabel}
+                                iconSource={flashIcon}
+                            />
+                        </TouchableOpacityView>
+                        <View style={styles.unlickContainer} >
+                            <Animated2.View style={[StyleSheet.absoluteFill, nopeBgStyle]}>
+                                <LinearGradient
+                                    colors={["#6F13F2", "#400B8C"]}
+                                    start={{ x: 0.5, y: 0 }}
+                                    end={{ x: 0.5, y: 1 }}
+                                    style={StyleSheet.absoluteFill}
+                                />
+                            </Animated2.View>
+                            <Animated2.View style={[StyleSheet.absoluteFill, nopeBorderStyle]}>
+                                <Svg width="100%" height="100%" viewBox="0 0 100 100">
+                                    <Defs>
+                                        <SvgLinearGradient id="nopeBorder" x1="0" y1="0.5" x2="1" y2="0.5">
+                                            <Stop offset="0" stopColor="#6F13F2" />
+                                            <Stop offset="1" stopColor="#400B8C" />
+                                        </SvgLinearGradient>
+                                    </Defs>
+                                    <Circle cx="50" cy="50" r="48" fill="none" stroke="url(#nopeBorder)" strokeWidth="3" />
+                                </Svg>
+                            </Animated2.View>
+                            <TouchableOpacityView
+                                onPressIn={() => { tapNope.value = 1; }}
+                                onPressOut={() => { tapNope.value = 0; }}
+                                onPress={() => {
+                                    tapNope.value = 0; // hard reset (no delay)
+                                    triggerNope();
+                                }}>
+                                <View style={styles.iconStack}>
+                                    <Animated2.Image source={CloseBlueIcon} resizeMode="contain" style={[styles.flasIconClose, nopeBaseIconStyle]} />
+                                    <Animated2.Image source={CloseBlueIcon} resizeMode="contain" style={[styles.flasIconClose, styles.iconAbs, nopeWhiteIconStyle]} tintColor={colors.white} />
+                                </View>
+                            </TouchableOpacityView>
+                        </View>
+                        <View style={[styles.flasContaier, { overflow: "hidden" }]}>
+                            <Animated2.View style={[StyleSheet.absoluteFill, superLikeBgStyle]}>
+                                <LinearGradient
+                                    colors={["#FF1A00", "#991000"]}
+                                    start={{ x: 0.5, y: 0 }}
+                                    end={{ x: 0.5, y: 1 }}
+                                    style={StyleSheet.absoluteFill}
+                                />
+                            </Animated2.View>
+                            <Animated2.View style={[StyleSheet.absoluteFill, superLikeBorderStyle]}>
+                                <Svg width="100%" height="100%" viewBox="0 0 100 100">
+                                    <Circle cx="50" cy="50" r="48" fill="none" stroke="#FF0000" strokeWidth="3" />
+                                </Svg>
+                            </Animated2.View>
+                            <TouchableOpacityView
+                                onPressIn={() => { tapSuperLike.value = 1; }}
+                                onPressOut={() => { tapSuperLike.value = 0; }}
+                                onPress={() => {
+                                    tapSuperLike.value = 0; // hard reset (no delay)
+                                    const superLikes = remainingSuperLikes ?? userData?.superLikesRemaining ?? 0;
+                                    if (superLikes <= 0) {
+                                        NavigationService.navigate(NAVIGATION_SUPERLIKE_PURCHESE_SCREEN);
+                                        return;
+                                    }
+                                    setSuperLikeVisible(true);
+                                }}>
+                                <View style={styles.iconStack}>
+                                    <Animated2.Image source={heartRed} resizeMode="contain" style={[styles.flasIcon, superLikeBaseIconStyle]} />
+                                    <Animated2.Image source={superlikeiconwhite} resizeMode="contain" style={[styles.flasIcon, styles.iconAbs, superLikeWhiteIconStyle, { top: metrics.hp0_3, left: metrics.hp0_2 }]} />
+                                </View>
+                            </TouchableOpacityView>
+                        </View>
+                        <View style={styles.unlickContainer} >
+                            <Animated2.View style={[StyleSheet.absoluteFill, likeBgStyle]}>
+                                <LinearGradient
+                                    colors={["#CCF63D", "#779024"]}
+                                    start={{ x: 0.5, y: 0 }}
+                                    end={{ x: 0.5, y: 1 }}
+                                    style={StyleSheet.absoluteFill}
+                                />
+                            </Animated2.View>
+                            <Animated2.View style={[StyleSheet.absoluteFill, likeBorderStyle]}>
+                                <Svg width="100%" height="100%" viewBox="0 0 100 100">
+                                    <Defs>
+                                        <SvgLinearGradient id="likeBorder" x1="0" y1="0.5" x2="1" y2="0.5">
+                                            <Stop offset="0" stopColor="#C7FF09" />
+                                            <Stop offset="1" stopColor="#8FB800" />
+                                        </SvgLinearGradient>
+                                    </Defs>
+                                    <Circle cx="50" cy="50" r="48" fill="none" stroke="url(#likeBorder)" strokeWidth="3" />
+                                </Svg>
+                            </Animated2.View>
+                            <TouchableOpacityView
+                                onPressIn={() => { tapLike.value = 1; }}
+                                onPressOut={() => { tapLike.value = 0; }}
+                                onPress={() => {
+                                    const swipes = remainingSwipes ?? userData?.swipesRemaining ?? 0;
+                                    if (swipes <= 0) {
+                                        returningFromSubscriptionRef.current = true;
+                                        NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
+                                        return;
+                                    }
+                                    tapLike.value = 0; // hard reset (no delay)
+                                    triggerLike();
+                                }}>
+                                <View style={styles.iconStack}>
+                                    <Animated2.Image source={heartGreen} resizeMode="contain" style={[styles.flasIconClose, likeBaseIconStyle]} />
+                                    <Animated2.Image source={heartGreen} resizeMode="contain" style={[styles.flasIconClose, styles.iconAbs, likeWhiteIconStyle]} tintColor={colors.white} />
+                                </View>
+                            </TouchableOpacityView>
+                        </View>
+                        <TouchableOpacityView onPress={() => setCrushNotesSender(true) /* NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN) */} style={styles.flasContaier}>
+                            <FastImage source={shareRedIcon} resizeMode="contain" style={styles.flasIcon} />
                         </TouchableOpacityView>
                     </View>
-                    <TouchableOpacityView onPress={()=>setCrushNotesSender(true) /* NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN) */} style={styles.flasContaier}>
-                        <FastImage source={shareRedIcon} resizeMode="contain" style={styles.flasIcon} />
-                    </TouchableOpacityView>
-                </View>
+                }
                 <Modal
                     animationType="fade"
                     visible={modalVisible}
@@ -987,13 +989,13 @@ const styles = StyleSheet.create({
         height: FULL_IMAGE_HEIGHT,
         borderRadius: metrics.hp2,
         overflow: 'hidden',
-        backgroundColor: '#000', 
+        backgroundColor: '#000',
     },
     image: {
         borderRadius: metrics.hp2,
         width: "100%",
         height: "100%",
-        backgroundColor: '#000', 
+        backgroundColor: '#000',
     },
     hiddenImage: {
         position: 'absolute',
@@ -1021,7 +1023,7 @@ const styles = StyleSheet.create({
         height: height * 0.75,
         position: "absolute",
         borderRadius: metrics.hp2,
-        backgroundColor: "#000", 
+        backgroundColor: "#000",
         overflow: Platform.OS === "android" ? "hidden" : undefined,
     },
     cardStyle: {

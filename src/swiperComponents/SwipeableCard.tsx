@@ -102,8 +102,8 @@ const SwipeableCard = forwardRef(function SwipeableCard<T>(
       translateX.value = withSpring(
         maxCardTranslation,
         {
-          ...swipeRightSpringConfig,
-          reduceMotion: ReduceMotion.Never,
+        ...swipeRightSpringConfig,
+        reduceMotion: ReduceMotion.Never,
         },
         (finished) => {
           // Hard reset (no animation) once the card is off-screen.
@@ -135,8 +135,8 @@ const SwipeableCard = forwardRef(function SwipeableCard<T>(
       translateX.value = withSpring(
         -maxCardTranslation,
         {
-          ...swipeLeftSpringConfig,
-          reduceMotion: ReduceMotion.Never,
+        ...swipeLeftSpringConfig,
+        reduceMotion: ReduceMotion.Never,
         },
         (finished) => {
           // Hard reset (no animation) once the card is off-screen.
@@ -167,8 +167,8 @@ const SwipeableCard = forwardRef(function SwipeableCard<T>(
       translateY.value = withSpring(
         -maxCardTranslationY,
         {
-          ...swipeTopSpringConfig,
-          reduceMotion: ReduceMotion.Never,
+        ...swipeTopSpringConfig,
+        reduceMotion: ReduceMotion.Never,
         },
         (finished) => {
           // Hard reset (no animation) once the card is off-screen.
@@ -427,16 +427,16 @@ const SwipeableCard = forwardRef(function SwipeableCard<T>(
       translateX.value = withSpring(
         0,
         {
-          ...swipeBackXSpringConfig,
-          reduceMotion: ReduceMotion.Never,
+        ...swipeBackXSpringConfig,
+        reduceMotion: ReduceMotion.Never,
         },
         // No delayed reset — already done above.
       );
       translateY.value = withSpring(
         0,
         {
-          ...swipeBackYSpringConfig,
-          reduceMotion: ReduceMotion.Never,
+        ...swipeBackYSpringConfig,
+        reduceMotion: ReduceMotion.Never,
         },
         // No delayed reset — already done above.
       );

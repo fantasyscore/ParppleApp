@@ -43,6 +43,7 @@ const metrics = {
   // height
   hp0: hp(0),
   hp0_2: hp(0.2),
+  hp0_29: hp(0.25),
   hp0_3: hp(0.3),
   hp0_1: hp(0.1),
   hp0_4: hp(0.4),

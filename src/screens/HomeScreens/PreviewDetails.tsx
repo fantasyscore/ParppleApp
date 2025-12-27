@@ -190,7 +190,7 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                                     </Svg>
                                 )}
                                 <View style={{ width: metrics.hp4, height: metrics.hp4 }}>
-                                    <Image source={CloseBlueIcon} resizeMode="contain" style={styles.flasIconClose} />
+                        <Image source={CloseBlueIcon} resizeMode="contain" style={styles.flasIconClose} />
                                     {pressed && (
                                         <Image
                                             source={CloseBlueIcon}
@@ -209,8 +209,8 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                             // If user has 0 superlikes -> go to purchase
                             if (canSuperLike && !canSuperLike()) {
                                 NavigationService.navigate(NAVIGATION_SUPERLIKE_PURCHESE_SCREEN);
-                                return;
-                            }
+                            return;
+                        }
                             scrollViewRef.current?.scrollTo({ y: 0, animated: false });
                             setSuperLikeVisible(true);
                             setModalVisible(false);
@@ -233,7 +233,7 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                                     </Svg>
                                 )}
                                 <View style={{ width: metrics.hp3_5, height: metrics.hp3_5 }}>
-                                    <FastImage source={heartRed} resizeMode="contain" style={styles.flasIcon} />
+                        <FastImage source={heartRed} resizeMode="contain" style={styles.flasIcon} />
                                     {pressed && (
                                         <FastImage
                                             source={superlikeiconwhite}
@@ -278,7 +278,7 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                                     </Svg>
                                 )}
                                 <View style={{ width: metrics.hp4, height: metrics.hp4 }}>
-                                    <Image source={heartGreen} resizeMode="contain" style={styles.flasIconClose} />
+                        <Image source={heartGreen} resizeMode="contain" style={styles.flasIconClose} />
                                     {pressed && (
                                         <Image
                                             source={heartGreen}

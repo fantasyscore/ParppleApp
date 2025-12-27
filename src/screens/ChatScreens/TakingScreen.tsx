@@ -1,9 +1,9 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Bubble, GiftedChat, Time } from 'react-native-gifted-chat';
-import { blockModalImage, emojiIcon, profileImage, sendButton, unmatchModalImage } from '../../helper/ImageAssets';
+import { blackIcon, blockModalImage, check, checks, emojiIcon, noccce, profileImage, rightBlack, sendButton, unmatchModalImage } from '../../helper/ImageAssets';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 import ChatHeader from '../../common/ChatHeader';
-import { StyleSheet, View, TextInput, KeyboardAvoidingView, Keyboard, Dimensions, Modal } from 'react-native';
+import { StyleSheet, View, TextInput, KeyboardAvoidingView, Keyboard, Dimensions, Modal, Animated } from 'react-native';
 import { colors } from '../../theme/colors';
 import metrics from '../../assets/Metrics';
 import { AppText, fontSize, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, PURPLE, SCHEHERAZADE_BOLD, SIXTEEN, TEN, TWELVE, TWENTY_FOUR, WHITE } from '../../common/AppText';
@@ -19,47 +19,36 @@ import NavigationService from '../../navigation/NavigationService';
 import { NAVIGATION_REPORT_SCREEN } from '../../navigation/routes';
 import { useDispatch, useSelector } from 'react-redux';
 import { getOtherProfile, userBlockAPI, userUnmatchAPI } from '../../actions/authActions';
+import { createSocket } from '../../common/Socket';
+import { appOperation } from '../../appOperation';
+import { ActivityIndicator } from 'react-native';
 
 const USER_ID = 1;
 
 type ChatMessage = {
-    _id: number;
+    _id: number | string;
     text: string;
     createdAt: Date;
+    isMine:Boolean;
     user: {
-        _id: number;
+        _id: number | string;
         name: string;
         avatar: any;
     };
+    isRead?: boolean; // Read receipt status
 }
 
-const initialMessages: ChatMessage[] = [
-    {
-        _id: 5,
-        text: "That sounds great! I'm looking forward to it.",
-        createdAt: new Date(),
-        user: { _id: 2, name: 'Jane Doe', avatar: profileImage },
-    },
-    {
-        _id: 4,
-        text: 'We should meet next week to discuss the project 🗓️.',
-        createdAt: new Date(2025, 8, 25, 14, 10, 0),
-        user: { _id: USER_ID, name: 'Gaurav User', avatar: profileImage },
-    },
-    {
-        _id: 3,
-        text: 'Hello there! How are you doing today?',
-        createdAt: new Date(2025, 8, 29, 17, 20, 0),
-        user: { _id: 2, name: 'Jane Doe', avatar: profileImage },
-    },
-];
+
 
 const TakingScreen = () => {
     const dispatch = useDispatch();
     const matchChatUserDetails = useSelector((state: any) => state.auth.matchChatUserDetails);
     const otherUserProfile = useSelector((state: any) => state.auth.otherUserProfile);
-
+    const userData = useSelector((state: any) => state.auth.userData);
+    const chatHistory = useSelector((state: any) => state.auth.chatHistory);
     const refFilter: any = useRef(null);
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const hasLoadedInitialMessages = useRef(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [tabSelect, setTabSelect] = useState('Chat');
     const [inputText, setInputText] = useState('');
@@ -67,14 +56,407 @@ const TakingScreen = () => {
     const [modalVisible, setModalVisible] = useState(false);
     const [saveReportTitle, setSaveReportTitle] = useState("");
     const [profileData, setProfileData] = useState();
+    const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
+    const [typingUserName, setTypingUserName] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [hasMoreMessages, setHasMoreMessages] = useState(true);
+    const [isInitialLoading, setIsInitialLoading] = useState(false);
+
+    const transformChatHistoryToMessages = useCallback((history: any[]): ChatMessage[] => {
+        if (!history || !Array.isArray(history) || history.length === 0) {
+            return [];
+        }
+
+        const transformed = history.map((item: any) => {
+            // Extract message text - handle both string and object cases
+            let messageText = '';
+            if (typeof item.message === 'string') {
+                messageText = item.message;
+            } else if (typeof item.text === 'string') {
+                messageText = item.text;
+            } else if (item.message && typeof item.message === 'object') {
+                // If message is an object, try to extract text from it
+                messageText = item.message.text || item.message.content || JSON.stringify(item.message);
+            } else if (item.text && typeof item.text === 'object') {
+                messageText = item.text.text || item.text.content || JSON.stringify(item.text);
+            }
+
+            const messageId = item._id || item.id || Date.now() + Math.random();
+            const isMine = item.isMine === true || item.isMine === 'true';
+            const avatar = isMine
+                ? (userData?.profilePicture?.[0]?.url || userData?.gallery?.[0]?.url || profileImage)
+                : (otherUserProfile?.profilePicture?.[0]?.url || matchChatUserDetails?.profilePicture?.[0]?.url || profileImage);
+
+            let createdAt: Date;
+            if (item.createdAt) {
+                createdAt = typeof item.createdAt === 'string'
+                    ? new Date(item.createdAt)
+                    : new Date(item.createdAt);
+            } else {
+                createdAt = new Date();
+            }
+            const isRead = item.isRead === true || item.isRead === 'true';
+            const userId = isMine ? 1 : 2;
+            return {
+                _id: messageId,
+                text: String(messageText || ''), // Ensure text is always a string
+                createdAt: createdAt,
+                user: {
+                    _id: userId,
+                    name: '',
+                    avatar: avatar,
+                },
+                isRead: isRead,
+                isMine:isMine
+            };
+        });
+
+        // Sort by createdAt to ensure proper order (oldest first, then reverse for GiftedChat)
+        transformed.sort((a, b) => {
+            const timeA = a.createdAt.getTime();
+            const timeB = b.createdAt.getTime();
+            return timeA - timeB;
+        });
+
+        // Reverse for GiftedChat (newest first)
+        return transformed.reverse();
+    }, [userData, otherUserProfile, matchChatUserDetails]);
+
+    const transformedMessages = useMemo(() => {
+        return transformChatHistoryToMessages(chatHistory);
+    }, [chatHistory, transformChatHistoryToMessages]);
+
+    const socketUrl = useMemo(() => {
+        const currentUserId = userData?._id;
+        if (!currentUserId) return null;
+        return `http://13.201.74.29/?userId=${currentUserId}`;
+    }, [userData?._id]);
+
+    const socket = useMemo(() => {
+        if (!socketUrl) return null;
+        return createSocket(socketUrl);
+    }, [socketUrl]);
 
     useEffect(() => {
-            let data = {
-                "userId": matchChatUserDetails?.userId
+        if (!socket) return;
+        const handleConnected = (data: any) => {
+            console.log('Socket connected:', data);
+        };
+        const handleNewMatch = (response: any) => {
+            console.log('New match received:', response);
+        };
+        const handleSuperLike = (response: any) => {
+            console.log('Super like received:', response);
+        };
+        const handleMessageSent = (response: any) => {
+            console.log('Message sent confirmation:', response);
+        };
+        const handleMessagesRead = (response: any) => {
+            console.log('Messages read confirmation:', response);
+            setMessages((prevMessages) =>
+                prevMessages.map((msg) => ({ ...msg, isRead: true }))
+            );
+        };
+        const handleMessageMarkedRead = (response: any) => {
+            console.log('Message marked read event received:', response);
+        };
+        const handleUserTyping = (response: any) => {
+            console.log('User typing event received:', response);
+            if (!response) return;
+            const isTyping = response.isTyping === true || response.isTyping === 'true';
+            const senderName = response.senderName || matchChatUserDetails?.name || 'Someone';
+            setIsOtherUserTyping(isTyping);
+            setTypingUserName(senderName);
+            if (isTyping) {
+                setMessages((prevMessages) => {
+                    const hasTypingIndicator = prevMessages.some((msg) => msg._id === 'typing-indicator');
+                    if (hasTypingIndicator) {
+                        return prevMessages;
+                    }
+                    const typingMessage: ChatMessage = {
+                        _id: 'typing-indicator',
+                        text: '',
+                        createdAt: new Date(),
+                        isMine:false,
+                        user: {
+                            _id: 'typing-indicator-user',
+                            name: senderName,
+                            avatar: matchChatUserDetails?.profilePicture?.[0]?.url || profileImage,
+                        },
+                    };
+                    return GiftedChat.append(prevMessages, [typingMessage]);
+                });
+            } else {
+                setMessages((prevMessages) =>
+                    prevMessages.filter((msg) => msg._id !== 'typing-indicator')
+                );
+            }
+        };
+        const handleIncomingMessage = (response: any) => {
+            console.log('Incoming message received:', response);
+            if (!response) return;
+            try {
+                // Extract message text - handle both string and object cases
+                let messageText = '';
+                if (typeof response.message === 'string') {
+                    messageText = response.message;
+                } else if (typeof response.text === 'string') {
+                    messageText = response.text;
+                } else if (typeof response.content === 'string') {
+                    messageText = response.content;
+                } else if (response.message && typeof response.message === 'object') {
+                    // If message is an object, try to extract text from it
+                    messageText = response.message.text || response.message.content || JSON.stringify(response.message);
+                } else if (response.text && typeof response.text === 'object') {
+                    messageText = response.text.text || response.text.content || JSON.stringify(response.text);
+                }
+
+                const isMine = response.isMine === true || response.isMine === 'true';
+                const avatar = isMine
+                    ? (userData?.profilePicture?.[0]?.url || userData?.gallery?.[0]?.url || profileImage)
+                    : (otherUserProfile?.profilePicture?.[0]?.url || matchChatUserDetails?.profilePicture?.[0]?.url || profileImage);
+                let createdAt: Date;
+                if (response.createdAt) {
+                    createdAt = typeof response.createdAt === 'string'
+                        ? new Date(response.createdAt)
+                        : new Date(response.createdAt);
+                } else if (response.timestamp) {
+                    createdAt = typeof response.timestamp === 'string'
+                        ? new Date(response.timestamp)
+                        : new Date(response.timestamp);
+                } else {
+                    createdAt = new Date();
+                }
+                const messageId = response._id || response.messageId || response.id || Date.now() + Math.random();
+                if (!isMine) {
+                    const userId = response.sender?._id || matchChatUserDetails?.userId || 'other';
+                    const newMessage: ChatMessage = {
+                        _id: messageId,
+                        text: String(messageText || ''), // Ensure text is always a string
+                        createdAt: createdAt,
+                        isMine: false,
+                        user: {
+                            _id: userId,
+                            name: '',
+                            avatar: avatar,
+                        },
+                    };
+                    setMessages((prevMessages) => {
+                        const updated = GiftedChat.append(prevMessages, [newMessage]);
+                        // Ensure messages are sorted by createdAt (newest first for GiftedChat)
+                        return updated.sort((a, b) => {
+                            const timeA = a.createdAt.getTime();
+                            const timeB = b.createdAt.getTime();
+                            return timeB - timeA; // Descending (newest first)
+                        });
+                    });
+                    if (socket && matchChatUserDetails?.userId) {
+                        const payload = {
+                            senderId: matchChatUserDetails.userId,
+                        };
+                        socket.emit('mark_read', payload);
+                    }
+                }
+            } catch (error) {
+                console.error('Error parsing incoming message:', error, response);
+            }
+        };
+        socket.on('connected', handleConnected);
+        socket.on('newMatch', handleNewMatch);
+        socket.on('superLike', handleSuperLike);
+        socket.on('messageSent', handleMessageSent);
+        socket.on('messagesRead', handleMessagesRead);
+        socket.on('newMessage', handleIncomingMessage);
+        socket.on('message_marked_read', handleMessageMarkedRead);
+        socket.on('user_typing', handleUserTyping);
+        return () => {
+            socket.off('connected', handleConnected);
+            socket.off('newMatch', handleNewMatch);
+            socket.off('superLike', handleSuperLike);
+            socket.off('messageSent', handleMessageSent);
+            socket.off('messagesRead', handleMessagesRead);
+            socket.off('newMessage', handleIncomingMessage);
+            socket.off('message_marked_read', handleMessageMarkedRead);
+            socket.off('user_typing', handleUserTyping);
+        };
+    }, [socket]);
+
+    useEffect(() => {
+        if (!socket || !matchChatUserDetails?.userId) return;
+        const payload = {
+            senderId: matchChatUserDetails.userId,
+        };
+        socket.emit('mark_read', payload);
+    }, [socket, matchChatUserDetails?.userId]);
+
+    useEffect(() => {
+        return () => {
+            if (socket && socket.connected) {
+                socket.disconnect();
+            }
+            // Cleanup typing timeout
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+                typingTimeoutRef.current = null;
+            }
+        };
+    }, [socket]);
+    const sendMessageViaSocket = useCallback((message: string, messageType: string = 'text') => {
+        if (!socket || !matchChatUserDetails?.userId) {
+            console.warn('Cannot send message: socket or receiverId not available');
+            return;
+        }
+
+        const payload = {
+            receiverId: matchChatUserDetails.userId,
+            message: message,
+            messageType: messageType,
+        };
+
+        console.log('Sending message via socket:', payload);
+        socket.emit('send_message', payload);
+    }, [socket, matchChatUserDetails?.userId]);
+
+    const emitTypingStatus = useCallback((isTyping: boolean) => {
+        if (!socket || !matchChatUserDetails?.userId) {
+            return;
+        }
+        const payload = {
+            otherUserId: matchChatUserDetails.userId,
+            isTyping: isTyping,
+        };
+        console.log(payload, "asdasdsaad");
+
+        socket.emit('typing', payload);
+    }, [socket, matchChatUserDetails?.userId]);
+
+    const handleTypingStart = useCallback(() => {
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = null;
+        }
+
+        emitTypingStatus(true);
+    }, [emitTypingStatus]);
+
+    const handleTypingStop = useCallback(() => {
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+
+        typingTimeoutRef.current = setTimeout(() => {
+            emitTypingStatus(false);
+            typingTimeoutRef.current = null;
+        }, 2000);
+    }, [emitTypingStatus]);
+
+    const loadOlderMessages = useCallback(async () => {
+        console.log('loadOlderMessages called', { isLoadingMore, hasMoreMessages, currentPage, userId: matchChatUserDetails?.userId });
+        if (isLoadingMore || !hasMoreMessages || !matchChatUserDetails?.userId) {
+            console.log('loadOlderMessages early return', { isLoadingMore, hasMoreMessages, userId: matchChatUserDetails?.userId });
+            return;
+        }
+        setIsLoadingMore(true);
+        try {
+            const nextPage = currentPage + 1;
+            const params = {
+                page: nextPage,
+                limit: 50,
             };
-            dispatch(getOtherProfile(data, true, setProfileData, true));
-        setMessages(initialMessages);
-    }, []);
+            const data = {
+                otherUserId: matchChatUserDetails.userId,
+                matchId: matchChatUserDetails.matchId,
+            }
+
+            console.log('Loading older messages with params:', params);
+            const response: any = await appOperation.customer.loadChatMessagesAPI(params, data);
+            console.log('API Response:', response);
+
+            if (response?.statusCode === 200 && response?.data) {
+                const olderMessages = response.data;
+                console.log('Older messages received:', olderMessages?.length, 'messages');
+
+                if (olderMessages && Array.isArray(olderMessages) && olderMessages.length > 0) {
+                    const transformedOlderMessages = transformChatHistoryToMessages(olderMessages);
+                    console.log('Transformed older messages:', transformedOlderMessages.length);
+                    setMessages((prevMessages) => {
+                        const combined = [...transformedOlderMessages, ...prevMessages];
+                        combined.sort((a, b) => {
+                            const timeA = a.createdAt.getTime();
+                            const timeB = b.createdAt.getTime();
+                            return timeB - timeA; // Descending (newest first for GiftedChat)
+                        });
+                        console.log('Total messages after prepend:', combined.length);
+                        return combined;
+                    });
+
+                    setCurrentPage(nextPage);
+                    // If we got less than 50 messages, there are no more
+                    const hasMore = olderMessages.length >= 50;
+                    setHasMoreMessages(hasMore);
+                    console.log('Has more messages:', hasMore);
+                } else {
+                    console.log('No older messages found, setting hasMoreMessages to false');
+                    setHasMoreMessages(false);
+                }
+            } else {
+                console.log('API response not successful or no data:', response);
+                setHasMoreMessages(false);
+            }
+        } catch (error) {
+            console.error('Error loading older messages:', error);
+            setHasMoreMessages(false);
+        } finally {
+            setIsLoadingMore(false);
+        }
+    }, [currentPage, isLoadingMore, hasMoreMessages, matchChatUserDetails?.userId, transformChatHistoryToMessages]);
+
+    useEffect(() => {
+        // Only show loader on initial load (first time chatHistory becomes available)
+        if (!hasLoadedInitialMessages.current && chatHistory) {
+            // Show loader immediately when chatHistory is available
+            setIsInitialLoading(true);
+            hasLoadedInitialMessages.current = true;
+        }
+
+        if (transformedMessages.length > 0) {
+            // Set messages immediately to prevent layout shift
+            setMessages(transformedMessages);
+            
+            // Hide loader after 1 second (smooth fade out)
+            const timer = setTimeout(() => {
+                setIsInitialLoading(false);
+            }, 1000);
+
+            // Reset pagination when chat history is loaded initially
+            setCurrentPage(1);
+            // Assume more messages if we got 50 (or more) - this indicates there might be more pages
+            const hasMore = transformedMessages.length >= 50;
+            setHasMoreMessages(hasMore);
+
+            return () => clearTimeout(timer);
+        } else if (chatHistory && chatHistory.length === 0) {
+            // If chatHistory is empty array, hide loader after 1 second
+            const timer = setTimeout(() => {
+                setIsInitialLoading(false);
+            }, 1000);
+            setHasMoreMessages(true);
+            return () => clearTimeout(timer);
+        }
+    }, [transformedMessages, chatHistory]);
+
+    useEffect(() => {
+        // Show loader immediately when screen opens (before messages load)
+        if (matchChatUserDetails?.userId && !hasLoadedInitialMessages.current) {
+            setIsInitialLoading(true);
+        }
+
+        let data = {
+            "userId": matchChatUserDetails?.userId
+        };
+        dispatch(getOtherProfile(data, true, setProfileData, true));
+    }, [matchChatUserDetails?.userId]);
     useEffect(() => {
         const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
             setEmojiVisible(false);
@@ -83,11 +465,28 @@ const TakingScreen = () => {
     }, []);
 
     const onSend = useCallback((newMessages: ChatMessage[] = []) => {
-        setMessages(prev => GiftedChat.append(prev, newMessages));
+        setMessages(prev => {
+            const updated = GiftedChat.append(prev, newMessages);
+            // Ensure messages are sorted by createdAt (newest first for GiftedChat)
+            return updated.sort((a, b) => {
+                const timeA = a.createdAt.getTime();
+                const timeB = b.createdAt.getTime();
+                return timeB - timeA; // Descending (newest first)
+            });
+        });
         setInputText('');
-    }, []);
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = null;
+        }
+        emitTypingStatus(false);
+        if (newMessages.length > 0 && newMessages[0].text) {
+            sendMessageViaSocket(newMessages[0].text, 'text');
+        }
+    }, [sendMessageViaSocket, emitTypingStatus]);
 
-    const renderDay = (props: any) => {
+    const renderDay = useCallback((props: any) => {
+        if (props.currentMessage?._id === 'typing-indicator') return null;
         const date = props.currentMessage?.createdAt ? new Date(props.currentMessage.createdAt) : null;
         if (!date) return null;
 
@@ -100,34 +499,61 @@ const TakingScreen = () => {
         return (
             <View style={{ alignSelf: 'center', marginVertical: 10 }}>
                 <AppText color={OPECITY_DARK} weight={INTER_SEMI_BOLD} type={TEN}>{displayText}</AppText>
+
             </View>
         );
-    };
+    }, []);
 
-    const renderBubble = (props: any) => (
-        <Bubble
-            {...props}
-            wrapperStyle={{
-                left: { backgroundColor: '#FFFFFF', borderRadius: metrics.hp0_5, padding: metrics.hp0_2, marginBottom: metrics.hp1_2 },
-                right: { backgroundColor: '#EDE0FF', borderRadius: metrics.hp0_5, padding: metrics.hp0_2, marginBottom: metrics.hp1_2, marginRight: 0 },
-            }}
-            textStyle={{
-                left: { color: 'black', fontSize: fontSize(14), fontFamily: interSemiBold },
-                right: { color: 'black', fontSize: fontSize(14), fontFamily: interSemiBold },
-            }}
-        />
-    );
+    const renderBubble = useCallback((props: any) => {
+        const isCurrentUser = props.currentMessage?.user?._id === userData?._id || props.currentMessage?.user?._id === USER_ID;
+        const isRead = props.currentMessage?.isRead === true;
+        const isTypingIndicator = props.currentMessage?._id === 'typing-indicator';
+        if (isTypingIndicator) {
+            return <TypingIndicatorBubble />;
+        }
 
-    const renderAvatar = (props: any) => {
-        if (props.currentMessage.user._id === USER_ID) return null; // hide sent avatars
+        return (
+            <View style={isCurrentUser ? styles.bubbleWrapperRight : null}>
+                <Bubble
+                    {...props}
+                    wrapperStyle={{
+                        left: { backgroundColor: '#FFFFFF', borderRadius: metrics.hp0_5, padding: metrics.hp0_2, marginBottom: metrics.hp1_2 },
+                        right: { backgroundColor: '#EDE0FF', borderRadius: metrics.hp0_5, padding: metrics.hp0_2, paddingRight: metrics.hp3, marginBottom: metrics.hp1_2, marginRight: metrics.hp1, position: 'relative' },
+                    }}
+                    textStyle={{
+                        left: { color: 'black', fontSize: fontSize(14), fontFamily: interSemiBold },
+                        right: { color: 'black', fontSize: fontSize(14), fontFamily: interSemiBold },
+                    }}
+                />
+                {isCurrentUser && (
+                    <View style={styles.readReceiptContainer}>
+                        <FastImage
+                            source={isRead ? checks : check}
+                            resizeMode="contain"
+                            style={[
+                                isRead ? styles.readReceiptIcon : styles.readReceiptIconUnread,
+                            ]}
+                        />
+                    </View>
+                )}
+
+            </View>
+        );
+    }, [userData?._id]);
+
+    const renderAvatar = useCallback((props: any) => {
+        if (props.currentMessage.user._id === USER_ID) return null;
+        if (props.currentMessage._id === 'typing-indicator' || props.currentMessage.user._id === 'typing-indicator-user') {
+            return null;
+        }
         return (
             <FastImage
-                source={matchChatUserDetails?.profilePicture[0]?.url ? { uri: matchChatUserDetails?.profilePicture[0]?.url } : profileImage}
+                source={matchChatUserDetails?.profilePicture?.url ? { uri: matchChatUserDetails?.profilePicture?.url } : profileImage}
                 resizeMode='cover'
                 style={{ width: metrics.hp4, height: metrics.hp4, borderRadius: metrics.hp2, marginBottom: metrics.hp1_5 }}
             />
         );
-    };
+    }, [matchChatUserDetails?.profilePicture]);
     const unMatchButton = () => {
         const data = {
             matchId: matchChatUserDetails?.matchId
@@ -142,7 +568,120 @@ const TakingScreen = () => {
         dispatch(userBlockAPI(data))
         setModalVisible(false)
     }
-    const renderTime = (props: any) => <Time {...props} timeTextStyle={{ left: { color: colors.darkOpecity }, right: { color: colors.darkOpecity } }} containerStyle={{ left: { marginTop: 2 }, right: { marginTop: 2 } }} />;
+    const renderTime = (props: any) => {
+        if (props.currentMessage?._id === 'typing-indicator') return null;
+        return (
+            <View>
+                <Time {...props} timeTextStyle={{ left: { color: colors.darkOpecity }, right: { color: colors.darkOpecity } }} containerStyle={{ left: { marginTop: 2 }, right: { marginTop: 2 } }} />
+                {props?.currentMessage?.isMine ?
+                    <FastImage source={noccce} resizeMode='contain' style={{
+                        height: metrics.hp2, width: metrics.hp2_3, position: 'absolute',
+                        bottom: -metrics.hp0_29,
+                        right: -metrics.hp3_7,
+                    }} tintColor={"#EDE0FF"} /> :
+                    <FastImage
+                        source={noccce} resizeMode='contain' style={{
+                            height: metrics.hp2, width: metrics.hp2_3, position: 'absolute',
+                            bottom: -metrics.hp0_29,
+                            left: -metrics.hp1,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}  />
+                }
+            </View>
+        );
+    };
+
+    const TypingIndicatorBubble = () => {
+        const dot1 = useRef(new Animated.Value(0)).current;
+        const dot2 = useRef(new Animated.Value(0)).current;
+        const dot3 = useRef(new Animated.Value(0)).current;
+
+        useEffect(() => {
+            const animateDot = (dot: Animated.Value, delay: number) => {
+                return Animated.loop(
+                    Animated.sequence([
+                        Animated.delay(delay),
+                        Animated.timing(dot, {
+                            toValue: 1,
+                            duration: 400,
+                            useNativeDriver: true,
+                        }),
+                        Animated.timing(dot, {
+                            toValue: 0,
+                            duration: 400,
+                            useNativeDriver: true,
+                        }),
+                    ])
+                );
+            };
+
+            const animations = [
+                animateDot(dot1, 0),
+                animateDot(dot2, 200),
+                animateDot(dot3, 400),
+            ];
+
+            animations.forEach((anim) => anim.start());
+
+            return () => {
+                animations.forEach((anim) => anim.stop());
+            };
+        }, [dot1, dot2, dot3]);
+
+        const dotSize = metrics.hp0_8;
+        const dotOpacity1 = dot1.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.3, 1],
+        });
+        const dotOpacity2 = dot2.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.3, 1],
+        });
+        const dotOpacity3 = dot3.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.3, 1],
+        });
+
+        return (
+            <View style={styles.typingBubbleWrapper}>
+                <View style={styles.typingBubble}>
+                    <View style={styles.typingDotsContainer}>
+                        <Animated.View
+                            style={[
+                                styles.typingDot,
+                                {
+                                    width: dotSize,
+                                    height: dotSize,
+                                    opacity: dotOpacity1,
+                                },
+                            ]}
+                        />
+                        <Animated.View
+                            style={[
+                                styles.typingDot,
+                                {
+                                    width: dotSize,
+                                    height: dotSize,
+                                    opacity: dotOpacity2,
+                                },
+                            ]}
+                        />
+                        <Animated.View
+                            style={[
+                                styles.typingDot,
+                                {
+                                    width: dotSize,
+                                    height: dotSize,
+                                    opacity: dotOpacity3,
+                                },
+                            ]}
+                        />
+                    </View>
+                </View>
+            </View>
+        );
+    };
 
     const renderCustomInput = () => (
         <KeyboardAvoidingView keyboardVerticalOffset={80} style={styles.inputContainer}>
@@ -150,7 +689,31 @@ const TakingScreen = () => {
                 <TextInput
                     style={styles.textInput}
                     value={inputText}
-                    onChangeText={setInputText}
+                    onChangeText={(text) => {
+                        setInputText(text);
+                        if (text.length > 0) {
+                            handleTypingStart();
+                            handleTypingStop();
+                        } else {
+                            if (typingTimeoutRef.current) {
+                                clearTimeout(typingTimeoutRef.current);
+                                typingTimeoutRef.current = null;
+                            }
+                            emitTypingStatus(false);
+                        }
+                    }}
+                    onFocus={() => {
+                        if (inputText.length > 0) {
+                            handleTypingStart();
+                        }
+                    }}
+                    onBlur={() => {
+                        if (typingTimeoutRef.current) {
+                            clearTimeout(typingTimeoutRef.current);
+                            typingTimeoutRef.current = null;
+                        }
+                        emitTypingStatus(false);
+                    }}
                     placeholder="Type a message..."
                     multiline
                 />
@@ -164,6 +727,7 @@ const TakingScreen = () => {
                             _id: Math.random(),
                             text: inputText,
                             createdAt: new Date(),
+                            isMine:true,
                             user: { _id: USER_ID, name: 'Gurrent User', avatar: profileImage }
                         }]);
                     }
@@ -197,6 +761,7 @@ const TakingScreen = () => {
                     </TouchableOpacityView>
                 </View>
             </View>
+
             {tabSelect == "Chat" ?
                 <View style={{ flex: 1 }}>
                     <View style={styles.containerChat}>
@@ -210,11 +775,33 @@ const TakingScreen = () => {
                             renderTime={renderTime}
                             renderInputToolbar={renderCustomInput}
                             showUserAvatar={false}
-
+                            onLoadEarlier={loadOlderMessages}
+                            loadEarlier={hasMoreMessages && !isLoadingMore}
+                            isLoadingEarlier={isLoadingMore}
+                            infiniteScroll={true}
+                            renderLoadEarlier={() => {
+                                if (!hasMoreMessages) return null;
+                                if (isLoadingMore) {
+                                    return (
+                                        <View style={{ paddingVertical: 10, alignItems: 'center' }}>
+                                            <ActivityIndicator size="small" color={colors.purple} />
+                                        </View>
+                                    );
+                                }
+                                return null;
+                            }}
                         />
                     </View>
+                    {isInitialLoading && (
+                        <View style={styles.loaderContainer}>
+                            <ActivityIndicator size="large" color={colors.purple} />
+                            <AppText style={{ marginTop: metrics.hp1 }} type={FORTEEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                Loading messages...
+                            </AppText>
+                        </View>
+                    )}
                 </View> :
-                <ChatProfileScreen />
+                <ChatProfileScreen always={true}/>
             }
             <RBSheet ref={refFilter} openDuration={100}
                 height={Dimensions.get('window').height / 3.10}
@@ -326,7 +913,6 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp2,
     },
     bdyBack: {
-        // width: Screen.Width / 1.20,/
         height: metrics.hp17,
         borderTopRightRadius: metrics.hp2,
         borderTopLeftRadius: metrics.hp2,
@@ -341,5 +927,60 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         width: "40%",
         alignSelf: "center",
+    },
+    bubbleWrapperRight: {
+        position: 'relative',
+        alignSelf: 'flex-end',
+    },
+    loaderContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: '#F5F7FA',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+    },
+    readReceiptContainer: {
+        position: 'absolute',
+        bottom: metrics.hp1_2,
+        right: metrics.hp2,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    readReceiptIcon: {
+        height: metrics.hp2_5,
+        width: metrics.hp2_5,
+    },
+    readReceiptIconUnread: {
+        height: metrics.hp2,
+        width: metrics.hp2,
+        marginBottom: metrics.hp0_5,
+        marginLeft: metrics.hp0_5,
+    },
+    typingBubbleWrapper: {
+        marginBottom: metrics.hp1_2,
+        marginLeft: metrics.hp2,
+        alignSelf: 'flex-start',
+    },
+    typingBubble: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: metrics.hp1_5,
+        paddingHorizontal: metrics.hp1,
+        paddingVertical: metrics.hp0_5,
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginLeft: metrics.hp1_7,
+    },
+    typingDotsContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: metrics.hp0_5,
+    },
+    typingDot: {
+        backgroundColor: colors.darkOpecity,
+        borderRadius: metrics.hp0_5,
     },
 });

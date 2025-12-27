@@ -15,12 +15,12 @@ const { height } = Dimensions.get("window");
 const FULL_IMAGE_HEIGHT = height * 0.80; // Adjust this value as needed
 const COLLAPSED_IMAGE_HEIGHT = height * 0.4; // Adjust this value as needed
 
-const ChatProfileScreen = () => {
+const ChatProfileScreen = ({ always }: any) => {
     const otherUserProfile = useSelector((state: any) => state.auth.otherUserProfile);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [updown, setupdown] = useState(false);
     const animationValue = useRef(new Animated.Value(0)).current;
-    
+
     // Extract attributes from otherUserProfile
     const attributes = otherUserProfile?.attributes?.filter(
         (item: any) => !["smoke", "drink", "workout", "pets"].includes(item?.type)
@@ -29,7 +29,7 @@ const ChatProfileScreen = () => {
     const smoke = otherUserProfile?.attributes?.find((item: any) => item.type === "smoke");
     const drink = otherUserProfile?.attributes?.find((item: any) => item.type === "drink");
     const pets = otherUserProfile?.attributes?.find((item: any) => item.type === "pets");
-    
+
     // Get gallery length for progress indicators
     const galleryLength = otherUserProfile?.gallery?.length || 0;
 
@@ -85,13 +85,13 @@ const ChatProfileScreen = () => {
         if (otherUserProfile?.gallery && otherUserProfile.gallery.length > 0) {
             const currentIndex = currentPhotoIndex;
             const gallery = otherUserProfile.gallery;
-            
+
             const imagesToPreload = [
                 gallery[currentIndex]?.url,
                 currentIndex > 0 ? gallery[currentIndex - 1]?.url : null,
                 currentIndex < gallery.length - 1 ? gallery[currentIndex + 1]?.url : null,
             ].filter(Boolean);
-            
+
             imagesToPreload.forEach((url: string) => {
                 if (url) {
                     FastImage.preload([{ uri: url, priority: FastImage.priority.normal }]);
@@ -105,12 +105,12 @@ const ChatProfileScreen = () => {
         if (otherUserProfile?.gallery && otherUserProfile.gallery.length > 0) {
             const currentIndex = currentPhotoIndex;
             const gallery = otherUserProfile.gallery;
-            
+
             // Preload current image with high priority
             if (gallery[currentIndex]?.url) {
                 FastImage.preload([{ uri: gallery[currentIndex].url, priority: FastImage.priority.high }]);
             }
-            
+
             // Preload adjacent images with normal priority
             if (currentIndex > 0 && gallery[currentIndex - 1]?.url) {
                 FastImage.preload([{ uri: gallery[currentIndex - 1].url, priority: FastImage.priority.normal }]);
@@ -129,12 +129,12 @@ const ChatProfileScreen = () => {
             } else {
                 newIndex = 0;
             }
-            
+
             // Preload images before changing index
             if (otherUserProfile?.gallery && otherUserProfile.gallery[newIndex]?.url) {
                 const targetImageUrl = otherUserProfile.gallery[newIndex].url;
                 FastImage.preload([{ uri: targetImageUrl, priority: FastImage.priority.high }]);
-                
+
                 // Preload adjacent images
                 if (newIndex > 0 && otherUserProfile.gallery[newIndex - 1]?.url) {
                     FastImage.preload([{ uri: otherUserProfile.gallery[newIndex - 1].url, priority: FastImage.priority.normal }]);
@@ -143,7 +143,7 @@ const ChatProfileScreen = () => {
                     FastImage.preload([{ uri: otherUserProfile.gallery[newIndex + 1].url, priority: FastImage.priority.normal }]);
                 }
             }
-            
+
             setCurrentPhotoIndex(newIndex);
         }
     };
@@ -156,12 +156,12 @@ const ChatProfileScreen = () => {
             } else {
                 newIndex = galleryLength - 1;
             }
-            
+
             // Preload images before changing index
             if (otherUserProfile?.gallery && otherUserProfile.gallery[newIndex]?.url) {
                 const targetImageUrl = otherUserProfile.gallery[newIndex].url;
                 FastImage.preload([{ uri: targetImageUrl, priority: FastImage.priority.high }]);
-                
+
                 // Preload adjacent images
                 if (newIndex > 0 && otherUserProfile.gallery[newIndex - 1]?.url) {
                     FastImage.preload([{ uri: otherUserProfile.gallery[newIndex - 1].url, priority: FastImage.priority.normal }]);
@@ -170,7 +170,7 @@ const ChatProfileScreen = () => {
                     FastImage.preload([{ uri: otherUserProfile.gallery[newIndex + 1].url, priority: FastImage.priority.normal }]);
                 }
             }
-            
+
             setCurrentPhotoIndex(newIndex);
         }
     };
@@ -210,7 +210,7 @@ const ChatProfileScreen = () => {
         );
     };
     return (
-        <View style={{flex:1}}>
+        <View style={{ flex: 1 }}>
             {/* {!updown && <Animated.View style={{ opacity: topTextOpacityon }}>{renderProgressLine(false)}</Animated.View>} */}
             <Animated.ScrollView
                 style={[
@@ -228,7 +228,7 @@ const ChatProfileScreen = () => {
                         source={{ uri: otherUserProfile?.gallery?.[currentPhotoIndex]?.url || otherUserProfile?.gallery?.[0]?.url }}
                         style={styles.imageBackground}
                         imageStyle={{ borderRadius: 20 }}>
-                       <View >{renderProgressLine(true)}</View>
+                        <View >{renderProgressLine(true)}</View>
                         <View style={{ flex: 1 }} />
                         <Animated.View style={{ opacity: bottomDetailsOpacity }}>
                             <LinearGradient start={{ x: 1, y: 1 }}
@@ -330,225 +330,225 @@ const ChatProfileScreen = () => {
                         </Animated.View>
                     </ImageBackground>
                 </Animated.View>
-                <Animated.View style={{opacity:scrollContentOpacity}}> 
-                {otherUserProfile?.relationshipPreference && (
-                    <View style={styles.longContainer}>
-                        <View style={{ flexDirection: "row", alignItems: "center" }}>
-                            <FastImage source={searchIcon} tintColor={colors.darkOpecity} resizeMode="contain" style={styles.searchIcon} />
-                            <AppText type={ELEVEN} weight={INTER_SEMI_BOLD} color={OPECITY_DARK}>
-                                {"   "}Dating Intentions
+                <Animated.View style={{ opacity: scrollContentOpacity }}>
+                    {otherUserProfile?.relationshipPreference && (
+                        <View style={styles.longContainer}>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <FastImage source={searchIcon} tintColor={colors.darkOpecity} resizeMode="contain" style={styles.searchIcon} />
+                                <AppText type={ELEVEN} weight={INTER_SEMI_BOLD} color={OPECITY_DARK}>
+                                    {"   "}Dating Intentions
+                                </AppText>
+                            </View>
+                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1, marginLeft: metrics.hp3 }}>
+                                <FastImage source={oneIconDating} resizeMode="contain" style={styles.searchIcon} />
+                                <AppText type={FORTEEN} weight={INTER_BOLD} color={BLACK}>
+                                    {"   "}{datingIntentionsFilter(otherUserProfile?.relationshipPreference) || 'Not specified'}
+                                </AppText>
+                            </View>
+                        </View>
+                    )}
+                    {otherUserProfile?.bio && (
+                        <View style={styles.bioContinaer}>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <FastImage source={bioqutes} resizeMode="contain" style={styles.bioIcon} />
+                                <AppText type={ELEVEN} weight={INTER_SEMI_BOLD} color={OPECITY_DARK}>
+                                    {" "}My bio
+                                </AppText>
+                            </View>
+                            <AppText style={{ paddingVertical: metrics.hp1, }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={OPECITY_DARK}>
+                                {otherUserProfile?.bio}
                             </AppText>
                         </View>
-                        <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1, marginLeft: metrics.hp3 }}>
-                            <FastImage source={oneIconDating} resizeMode="contain" style={styles.searchIcon} />
-                            <AppText type={FORTEEN} weight={INTER_BOLD} color={BLACK}>
-                                {"   "}{datingIntentionsFilter(otherUserProfile?.relationshipPreference) || 'Not specified'}
-                            </AppText>
-                        </View>
-                    </View>
-                )}
-                {otherUserProfile?.bio && (
-                    <View style={styles.bioContinaer}>
-                        <View style={{ flexDirection: "row", alignItems: "center" }}>
-                            <FastImage source={bioqutes} resizeMode="contain" style={styles.bioIcon} />
-                            <AppText type={ELEVEN} weight={INTER_SEMI_BOLD} color={OPECITY_DARK}>
-                                {" "}My bio
-                            </AppText>
-                        </View>
-                        <AppText style={{ paddingVertical: metrics.hp1, }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={OPECITY_DARK}>
-                            {otherUserProfile?.bio}
-                        </AppText>
-                    </View>
-                )}
-                {/* My Vitals Section */}
-                {(otherUserProfile?.education || otherUserProfile?.jobTitle || otherUserProfile?.homeTown) && (
-                    <View style={styles.bioContinaer}>
-                        <View style={{ flexDirection: "row", alignItems: "center" }}>
-                            <FastImage tintColor={colors.darkOpecity} source={accountcircleIcon} resizeMode="contain" style={styles.iconsFrom} />
-                            <AppText type={ELEVEN} weight={INTER_BOLD} color={OPECITY_DARK}>
-                                {"  "}My Vitals
-                            </AppText>
-                        </View>
-                        {otherUserProfile?.education && (
-                            <View style={[styles.insideContainer, { marginTop: metrics.hp1 }]}>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <FastImage tintColor={colors.darkOpecity} source={schoolIcon} resizeMode="contain" style={styles.bioIcon} />
-                                    <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                                        {"    "}Education
-                                    </AppText>
-                                </View>
-                                <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                    {otherUserProfile?.education}
+                    )}
+                    {/* My Vitals Section */}
+                    {(otherUserProfile?.education || otherUserProfile?.jobTitle || otherUserProfile?.homeTown) && (
+                        <View style={styles.bioContinaer}>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <FastImage tintColor={colors.darkOpecity} source={accountcircleIcon} resizeMode="contain" style={styles.iconsFrom} />
+                                <AppText type={ELEVEN} weight={INTER_BOLD} color={OPECITY_DARK}>
+                                    {"  "}My Vitals
                                 </AppText>
                             </View>
-                        )}
-                        {otherUserProfile?.jobTitle && (
-                            <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <FastImage tintColor={colors.darkOpecity} source={searchIcon} resizeMode="contain" style={styles.bioIcon} />
-                                    <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                                        {"    "}Job
-                                    </AppText>
-                                </View>
-                                <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                    {otherUserProfile?.jobTitle}
-                                </AppText>
-                            </View>
-                        )}
-                        {otherUserProfile?.homeTown && (
-                            <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <FastImage tintColor={colors.darkOpecity} source={locationCIon} resizeMode="contain" style={styles.bioIcon} />
-                                    <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                                        {"    "}Location
-                                    </AppText>
-                                </View>
-                                <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                    {otherUserProfile?.homeTown}
-                                </AppText>
-                            </View>
-                        )}
-                    </View>
-                )}
-                {/* About Me Section */}
-                {(otherUserProfile?.pronouns?.length > 0 || otherUserProfile?.height || otherUserProfile?.zodiaSign) && (
-                    <View style={styles.bioContinaer}>
-                        <View style={{ flexDirection: "row", alignItems: "center" }}>
-                            <FastImage tintColor={colors.darkOpecity} source={accountcircleIcon} resizeMode="contain" style={styles.iconsFrom} />
-                            <AppText type={ELEVEN} weight={INTER_BOLD} color={OPECITY_DARK}>
-                                {"  "}About me
-                            </AppText>
-                        </View>
-                        {otherUserProfile?.pronouns?.length > 0 && (
-                            <View style={[styles.insideContainer, { marginTop: metrics.hp1 }]}>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <FastImage tintColor={colors.darkOpecity} source={pronounIcon} resizeMode="contain" style={styles.bioIcon} />
-                                    <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                                        {"    "}Pronoun
-                                    </AppText>
-                                </View>
-                                <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", marginTop: metrics.hp0_5 }}>
-                                    {otherUserProfile?.pronouns?.map((value: any, index: any) => (
-                                        <AppText key={index} style={{ marginRight: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                            {value}
-                                        </AppText>
-                                    ))}
-                                </View>
-                            </View>
-                        )}
-                        {otherUserProfile?.height && (
-                            <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <FastImage tintColor={colors.darkOpecity} source={straightenIcon} resizeMode="contain" style={styles.bioIcon} />
-                                    <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                                        {"    "}Height
-                                    </AppText>
-                                </View>
-                                <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                    {otherUserProfile?.height}
-                                </AppText>
-                            </View>
-                        )}
-                        {otherUserProfile?.zodiaSign && (
-                            <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <FastImage tintColor={colors.darkOpecity} source={moonIcon} resizeMode="contain" style={styles.bioIcon} />
-                                    <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                                        {"    "}Zodiac
-                                    </AppText>
-                                </View>
-                                <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                    {otherUserProfile?.zodiaSign}
-                                </AppText>
-                            </View>
-                        )}
-                    </View>
-                )}
-                {/* Lifestyle Section */}
-                {(smoke || drink || workout || pets) && (
-                    <View style={styles.bioContinaer}>
-                        <View style={{ flexDirection: "row", alignItems: "center" }}>
-                            <FastImage tintColor={colors.darkOpecity} source={lifeStyleIcon} resizeMode="contain" style={styles.iconsFrom} />
-                            <AppText type={ELEVEN} weight={INTER_BOLD} color={OPECITY_DARK}>
-                                {"  "}Lifestyle
-                            </AppText>
-                        </View>
-                        {smoke && (
-                            <View style={[styles.insideContainer, { marginTop: metrics.hp1 }]}>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <FastImage tintColor={colors.darkOpecity} source={smookingIcon} resizeMode="contain" style={styles.bioIcon} />
-                                    <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                                        {"    "}Smoke
-                                    </AppText>
-                                </View>
-                                <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                    {smoke?.displayLabel}
-                                </AppText>
-                            </View>
-                        )}
-                        {drink && (
-                            <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <FastImage tintColor={colors.darkOpecity} source={drikingIcon} resizeMode="contain" style={styles.bioIcon} />
-                                    <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                                        {"    "}Drink
-                                    </AppText>
-                                </View>
-                                <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                    {drink?.displayLabel}
-                                </AppText>
-                            </View>
-                        )}
-                        {workout && (
-                            <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <FastImage tintColor={colors.darkOpecity} source={workoutIcon} resizeMode="contain" style={styles.bioIcon} />
-                                    <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                                        {"    "}Workout
-                                    </AppText>
-                                </View>
-                                <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                    {workout?.displayLabel}
-                                </AppText>
-                            </View>
-                        )}
-                        {pets && (
-                            <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <FastImage tintColor={colors.darkOpecity} source={petsIcon} resizeMode="contain" style={styles.bioIcon} />
-                                    <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                                        {"    "}Pets
-                                    </AppText>
-                                </View>
-                                <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                    {pets?.displayLabel}
-                                </AppText>
-                            </View>
-                        )}
-                    </View>
-                )}
-                {/* Interests Section */}
-                {attributes && attributes.length > 0 && (
-                    <View style={styles.bioContinaer}>
-                        <View style={{ flexDirection: "row", alignItems: "center" }}>
-                            <FastImage tintColor={colors.darkOpecity} source={personHeartIcon} resizeMode="contain" style={styles.iconsFrom} />
-                            <AppText type={ELEVEN} weight={INTER_BOLD} color={OPECITY_DARK}>
-                                {"  "}Interests
-                            </AppText>
-                        </View>
-                        <View style={styles.wrapContainerTwo}>
-                            {attributes?.map((item: any, index: any) => {
-                                return (
-                                    <View key={item._id || index} style={styles.containerSelect}>
-                                        <AppText type={TWELVE} weight={INTER_MEDIUM}>
-                                            {item?.displayLabel}
+                            {otherUserProfile?.education && (
+                                <View style={[styles.insideContainer, { marginTop: metrics.hp1 }]}>
+                                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                        <FastImage tintColor={colors.darkOpecity} source={schoolIcon} resizeMode="contain" style={styles.bioIcon} />
+                                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                            {"    "}Education
                                         </AppText>
                                     </View>
-                                )
-                            })}
+                                    <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                        {otherUserProfile?.education}
+                                    </AppText>
+                                </View>
+                            )}
+                            {otherUserProfile?.jobTitle && (
+                                <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
+                                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                        <FastImage tintColor={colors.darkOpecity} source={searchIcon} resizeMode="contain" style={styles.bioIcon} />
+                                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                            {"    "}Job
+                                        </AppText>
+                                    </View>
+                                    <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                        {otherUserProfile?.jobTitle}
+                                    </AppText>
+                                </View>
+                            )}
+                            {otherUserProfile?.homeTown && (
+                                <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
+                                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                        <FastImage tintColor={colors.darkOpecity} source={locationCIon} resizeMode="contain" style={styles.bioIcon} />
+                                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                            {"    "}Location
+                                        </AppText>
+                                    </View>
+                                    <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                        {otherUserProfile?.homeTown}
+                                    </AppText>
+                                </View>
+                            )}
                         </View>
-                    </View>
-                )}
+                    )}
+                    {/* About Me Section */}
+                    {(otherUserProfile?.pronouns?.length > 0 || otherUserProfile?.height || otherUserProfile?.zodiaSign) && (
+                        <View style={styles.bioContinaer}>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <FastImage tintColor={colors.darkOpecity} source={accountcircleIcon} resizeMode="contain" style={styles.iconsFrom} />
+                                <AppText type={ELEVEN} weight={INTER_BOLD} color={OPECITY_DARK}>
+                                    {"  "}About me
+                                </AppText>
+                            </View>
+                            {otherUserProfile?.pronouns?.length > 0 && (
+                                <View style={[styles.insideContainer, { marginTop: metrics.hp1 }]}>
+                                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                        <FastImage tintColor={colors.darkOpecity} source={pronounIcon} resizeMode="contain" style={styles.bioIcon} />
+                                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                            {"    "}Pronoun
+                                        </AppText>
+                                    </View>
+                                    <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", marginTop: metrics.hp0_5 }}>
+                                        {otherUserProfile?.pronouns?.map((value: any, index: any) => (
+                                            <AppText key={index} style={{ marginRight: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                                {value}
+                                            </AppText>
+                                        ))}
+                                    </View>
+                                </View>
+                            )}
+                            {otherUserProfile?.height && (
+                                <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
+                                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                        <FastImage tintColor={colors.darkOpecity} source={straightenIcon} resizeMode="contain" style={styles.bioIcon} />
+                                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                            {"    "}Height
+                                        </AppText>
+                                    </View>
+                                    <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                        {otherUserProfile?.height}
+                                    </AppText>
+                                </View>
+                            )}
+                            {otherUserProfile?.zodiaSign && (
+                                <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
+                                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                        <FastImage tintColor={colors.darkOpecity} source={moonIcon} resizeMode="contain" style={styles.bioIcon} />
+                                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                            {"    "}Zodiac
+                                        </AppText>
+                                    </View>
+                                    <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                        {otherUserProfile?.zodiaSign}
+                                    </AppText>
+                                </View>
+                            )}
+                        </View>
+                    )}
+                    {/* Lifestyle Section */}
+                    {(smoke || drink || workout || pets) && (
+                        <View style={styles.bioContinaer}>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <FastImage tintColor={colors.darkOpecity} source={lifeStyleIcon} resizeMode="contain" style={styles.iconsFrom} />
+                                <AppText type={ELEVEN} weight={INTER_BOLD} color={OPECITY_DARK}>
+                                    {"  "}Lifestyle
+                                </AppText>
+                            </View>
+                            {smoke && (
+                                <View style={[styles.insideContainer, { marginTop: metrics.hp1 }]}>
+                                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                        <FastImage tintColor={colors.darkOpecity} source={smookingIcon} resizeMode="contain" style={styles.bioIcon} />
+                                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                            {"    "}Smoke
+                                        </AppText>
+                                    </View>
+                                    <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                        {smoke?.displayLabel}
+                                    </AppText>
+                                </View>
+                            )}
+                            {drink && (
+                                <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
+                                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                        <FastImage tintColor={colors.darkOpecity} source={drikingIcon} resizeMode="contain" style={styles.bioIcon} />
+                                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                            {"    "}Drink
+                                        </AppText>
+                                    </View>
+                                    <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                        {drink?.displayLabel}
+                                    </AppText>
+                                </View>
+                            )}
+                            {workout && (
+                                <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
+                                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                        <FastImage tintColor={colors.darkOpecity} source={workoutIcon} resizeMode="contain" style={styles.bioIcon} />
+                                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                            {"    "}Workout
+                                        </AppText>
+                                    </View>
+                                    <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                        {workout?.displayLabel}
+                                    </AppText>
+                                </View>
+                            )}
+                            {pets && (
+                                <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
+                                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                        <FastImage tintColor={colors.darkOpecity} source={petsIcon} resizeMode="contain" style={styles.bioIcon} />
+                                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                            {"    "}Pets
+                                        </AppText>
+                                    </View>
+                                    <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                        {pets?.displayLabel}
+                                    </AppText>
+                                </View>
+                            )}
+                        </View>
+                    )}
+                    {/* Interests Section */}
+                    {attributes && attributes.length > 0 && (
+                        <View style={styles.bioContinaer}>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <FastImage tintColor={colors.darkOpecity} source={personHeartIcon} resizeMode="contain" style={styles.iconsFrom} />
+                                <AppText type={ELEVEN} weight={INTER_BOLD} color={OPECITY_DARK}>
+                                    {"  "}Interests
+                                </AppText>
+                            </View>
+                            <View style={styles.wrapContainerTwo}>
+                                {attributes?.map((item: any, index: any) => {
+                                    return (
+                                        <View key={item._id || index} style={styles.containerSelect}>
+                                            <AppText type={TWELVE} weight={INTER_MEDIUM}>
+                                                {item?.displayLabel}
+                                            </AppText>
+                                        </View>
+                                    )
+                                })}
+                            </View>
+                        </View>
+                    )}
                 </Animated.View>
             </Animated.ScrollView>
         </View>
@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: metrics.hp1,
         paddingVertical: metrics.hp1,
         height: metrics.hp9,
-        marginHorizontal:metrics.hp2
+        marginHorizontal: metrics.hp2
     },
     searchIcon: {
         height: metrics.hp2_5,
@@ -679,7 +679,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.lightBack,
         borderRadius: metrics.hp1_5,
         marginTop: metrics.hp1,
-        marginHorizontal:metrics.hp2
+        marginHorizontal: metrics.hp2
     },
     bioIcon: {
         height: metrics.hp2,

@@ -16,8 +16,8 @@ const ChatHeader = ({ onPress }: any) => {
         <View style={styles.container}>
             <TouchableOpacityView onPress={() => NavigationService.goBack()} style={{ flexDirection: "row", alignItems: "center" }}>
                 <FastImage source={backIcon} resizeMode="contain" style={styles.backIcon} />
-                <FastImage source={matchChatUserDetails?.profilePicture[0]?.url ? { uri: matchChatUserDetails?.profilePicture[0]?.url } : profileImage} resizeMode="cover" style={styles.profileImage} />
-                <AppText type={TWELVE} weight={INTER_BOLD}>{"  "}{matchChatUserDetails?.name},<AppText type={TWELVE} weight={INTER_MEDIUM}> {/* 21{"  "} */}</AppText>
+                <FastImage source={matchChatUserDetails?.profilePicture?.url ? { uri: matchChatUserDetails?.profilePicture?.url } : profileImage} resizeMode="cover" style={styles.profileImage} />
+                <AppText type={TWELVE} weight={INTER_BOLD}>{"  "}{matchChatUserDetails?.name},
                 </AppText>
                 <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />
             </TouchableOpacityView>
@@ -47,7 +47,6 @@ const styles = StyleSheet.create({
     blueTickIcon: {
         height: metrics.hp2,
         width: metrics.hp2,
-        marginTop: metrics.hp0_5
     },
     threeDots: {
         height: metrics.hp2_5,
