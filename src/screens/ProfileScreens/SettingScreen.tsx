@@ -11,10 +11,13 @@ import HeadLineContiner from "../../common/HeadLineContiner";
 import EditButtonCommon from "../../common/EditButtonCommon";
 import App from "../../App";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { userLogout } from "../../actions/authActions";
+import NavigationService from "../../navigation/NavigationService";
+import { NAVIGATION_SUBSCRIPTION_ALL_SCREEN } from "../../navigation/routes";
 
 const SettingScreen = () => {
+    const userData = useSelector((state: any) => state.auth.userData);
     const dispatch = useDispatch();
     const [toggleOne, setToggleOne] = useState(false);
     const [toggleTwo, setToggleTwo] = useState(false);
@@ -26,7 +29,7 @@ const SettingScreen = () => {
         <AppSafeAreaView>
             <HeaderCommon title={"Settings"} />
             <ScrollView contentContainerStyle={{ paddingBottom: metrics.hp10 }} showsVerticalScrollIndicator={false}>
-                <View style={styles.containerHead}>
+                <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_ALL_SCREEN)} style={styles.containerHead}>
                     <View style={styles.upgradeContainer}>
                         <FastImage source={lineGreen} resizeMode="contain" style={styles.lineContainer} />
                         <View style={{ marginTop: -metrics.hp1 }}>
@@ -38,21 +41,21 @@ const SettingScreen = () => {
                             </AppText>
                         </View>
                     </View>
-                </View>
+                </TouchableOpacityView>
                 <View style={{ paddingHorizontal: metrics.hp2 }}>
-                    <HeadLineContiner
+                    {/* <HeadLineContiner
                         headLines={"My Interests"} setting={true} />
                     <EditButtonCommon
                         setting={true}
                         title={"Profile Preferences"}
-                    />
-                    <EditButtonCommon
+                    /> */}
+                    {/* <EditButtonCommon
                         setting={true}
                         title={"Show Last Active Status"}
                         togleShow={toggleOne}
                         setToggleShow={setToggleOne}
                         toggle={true}
-                    />
+                    /> */}
                     <View style={styles.singleLine} />
                     <HeadLineContiner
                         headLines={"Profile Discovery"} setting={true} />
@@ -66,8 +69,8 @@ const SettingScreen = () => {
                     <AppText style={{ marginTop: metrics.hp1 }} type={TEN} weight={INTER_MEDIUM} color={OPECITY}>
                         Your profile visibility will be hidden to people. People you have already liked may still see you and match you.
                     </AppText>
-                    <View style={styles.singleLine} />
-                    <HeadLineContiner
+                    {/* <View style={styles.singleLine} /> */}
+                    {/* <HeadLineContiner
                         headLines={"Message Control"} setting={true} />
                     <EditButtonCommon
                         setting={true}
@@ -78,18 +81,21 @@ const SettingScreen = () => {
                     />
                     <AppText style={{ marginTop: metrics.hp1 }} type={TEN} weight={INTER_MEDIUM} color={OPECITY}>
                         Make a first move and start a conversation, unless they won’t be able to message you first.
-                    </AppText>
+                    </AppText> */}
                     <View style={styles.singleLine} />
                     <HeadLineContiner
                         headLines={"Account Settings"} setting={true} />
-                    <EditButtonCommon
-                        setting={true}
-                        title={"Phone number"}
-                        filluptext={"+91 69874 26589"} />
-                    <EditButtonCommon
-                        setting={true}
-                        title={"Email Id"}
-                        filluptext={"example@gmail.com"} />
+                    {userData?.phoneNumber &&
+                        <EditButtonCommon
+                            setting={true}
+                            title={"Phone number"}
+                            filluptext={userData?.phoneNumber} />}
+                    {userData?.email &&
+                        <EditButtonCommon
+                            setting={true}
+                            title={"Email Id"}
+                            filluptext={userData?.email} />
+                    }
                     <AppText style={{ marginTop: metrics.hp1 }} type={TEN} weight={INTER_MEDIUM} color={OPECITY}>
                         Updated phone number & email id keeps your account safe & secure.
                     </AppText>
@@ -99,9 +105,9 @@ const SettingScreen = () => {
                     <EditButtonCommon
                         setting={true}
                         title={"Push Notifications"} />
-                    <EditButtonCommon
+                    {/* <EditButtonCommon
                         setting={true}
-                        title={"Emails"} />
+                        title={"Emails"} /> */}
                     <View style={styles.singleLine} />
                     <HeadLineContiner
                         headLines={"Blocked Users"} setting={true} />
@@ -112,13 +118,14 @@ const SettingScreen = () => {
                     <HeadLineContiner
                         headLines={"Subscription"} setting={true} />
                     <EditButtonCommon
+                        onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_ALL_SCREEN)}
                         setting={true}
                         title={"Subscribe to Let’s Meet"} />
-                    <EditButtonCommon
+                    {/* <EditButtonCommon
                         setting={true}
-                        title={"Restore Subscription"} />
-                    <View style={styles.singleLine} />
-                    <HeadLineContiner
+                        title={"Restore Subscription"} /> */}
+                    {/* <View style={styles.singleLine} /> */}
+                    {/* <HeadLineContiner
                         headLines={"Measurement Units"} setting={true} />
                     <EditButtonCommon
                         setting={true}
@@ -137,7 +144,7 @@ const SettingScreen = () => {
                         Distance={true}
                         inText={"FT"}
                         inTextTwo={"CM"}
-                    />
+                    /> */}
                     <View style={styles.singleLine} />
 
                     <HeadLineContiner
@@ -180,7 +187,7 @@ const SettingScreen = () => {
                         </View>
                         <FastImage source={leftFair} resizeMode="contain" style={styles.rightFair} />
                     </View>
-                    <TouchableOpacityView onPress={()=> dispatch(userLogout())} style={[styles.shareDetailsContaier, { marginTop: metrics.hp6 }]}>
+                    <TouchableOpacityView onPress={() => dispatch(userLogout())} style={[styles.shareDetailsContaier, { marginTop: metrics.hp6 }]}>
                         <FastImage source={logOutIcon} resizeMode="contain" style={styles.shareIcon} />
                         <AppText color={RED} weight={INTER_SEMI_BOLD} type={TWELVE}>
                             {"  "}
@@ -259,8 +266,8 @@ const styles = StyleSheet.create({
         borderColor: "#ECE4F8",
         height: metrics.hp9
     },
-    textVersion:{
-        textAlign:"center",
-        marginTop:metrics.hp5
+    textVersion: {
+        textAlign: "center",
+        marginTop: metrics.hp5
     }
 })

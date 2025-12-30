@@ -243,6 +243,20 @@ export const chatHistoryAPI: any = (data:any,params:any) => async (dispatch: any
         // toastAlert.showToastError(error);
     }
 };
+export const subscriptionVerifyAPI: any = (data:any,params:any) => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.subscriptionverifyAPI(data);
+        if (response?.statusCode == 200) {
+            // Keep existing toast behavior, but ensure we pass a readable string.
+            toastAlert.showToastError(response?.message || "Subscription verified and activated");
+        }
+        return response;
+    } catch (error: any) {
+
+        // toastAlert.showToastError(error);
+        throw error;
+    }
+};
 export const userLogout: any = () => async () => {
     appOperation.setCustomerToken('');
     await AsyncStorage.removeItem(USER_TOKEN_KEY);

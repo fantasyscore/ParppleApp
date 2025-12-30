@@ -31,6 +31,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { setAddProfile } from "../../slices/loginServices/authSlice";
 import MultiSlider from "@ptomasroos/react-native-multi-slider";
 import { Screen } from "../../theme/dimens";
+import EditButtonCommon from "../../common/EditButtonCommon";
 
 const labels = ["25km", "50km", "100km", "150km", "200km"];
 const min = 1;
@@ -41,14 +42,15 @@ const DispatchSelectScreen = () => {
     const dispatch = useDispatch();
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
     const [range, setRange] = useState([1]);
+    const [toggleGlobel, setToggleGlobel] = useState(true);
     const sliderValue = range[0];
-    console.log(range, "range");
 
     const onSubmit = () => {
         const data = {
             ...addProfileData,
             preferredDistanceKm: sliderValue,
             bio: "Please tell me about your self",
+            globalSearch: toggleGlobel,
             fieldVisibility: { ...addProfileData?.fieldVisibility }
         };
 
@@ -110,6 +112,14 @@ const DispatchSelectScreen = () => {
                     />
 
                 </View>
+                <EditButtonCommon
+                    style={{ backgroundColor: colors.transparent }}
+                    setting={true}
+                    title={"Search Globel"}
+                    togleShow={toggleGlobel}
+                    setToggleShow={setToggleGlobel}
+                    toggle={true}
+                />
                 <AppText
                     style={{ textAlign: "center", marginTop: metrics.hp2 }}
                     type={TWELVE}

@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { ActivityIndicator, Alert, ImageBackground, Platform, ScrollView, StyleSheet, View } from "react-native";
-import { goldHeader, infinityICon, platinumHeader, premiumIcon, silverHeader, stylesRightArrow } from "../../helper/ImageAssets";
+import { ActivityIndicator, Alert, Animated, ImageBackground, Modal, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { goldHeader, infinityICon, logoBlue, platinumHeader, premiumIcon, silverHeader, stylesRightArrow } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import NavigationService from "../../navigation/NavigationService";
@@ -10,12 +10,14 @@ import { AppText, BLACK, EIGHT, ELEVEN, FORTEEN, INTER_BOLD, INTER_EXTRA_BOLD, I
 import { SilverPurchasedis, GoldPurchasedis, PlatinumPurchasedis } from "../../common/UiltData";
 import { colors } from "../../theme/colors";
 import * as RNIap from 'react-native-iap';
-import { useSelector } from "react-redux";
-import { usePurchaseVerification } from "../../hooks/usePurchaseVerification";
+import { useDispatch, useSelector } from "react-redux";
+import { subscriptionVerifyAPI } from "../../actions/authActions";
+import LinearGradient from "react-native-linear-gradient";
 
 // All Subscription SKUs
 const ALL_SUBSCRIPTION_SKUS = Platform.select({
     android: [
+        'testing_key',
         'silver_week', 'silver_month', 'silver_6month',
         'gold_week', 'gold_month', 'gold_6month',
         'platinum_week', 'platinum_month', 'platinum_6month'
@@ -135,7 +137,26 @@ const SubscriptionScreen = ({ route }: any) => {
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState<string | null>(null);
     const userData = useSelector((state: any) => state.auth.userData);
-    const { handlePurchaseSuccess } = usePurchaseVerification();
+    const dispatch = useDispatch();
+
+    const [verifyModalVisible, setVerifyModalVisible] = useState(false);
+    const [verifyStage, setVerifyStage] = useState<'verifying' | 'success' | 'error'>('verifying');
+    const [verifyError, setVerifyError] = useState<string>('');
+    const [verifyResponse, setVerifyResponse] = useState<any>(null);
+    const lastVerifiedKeyRef = useRef<string | null>(null);
+    const isVerifyingRef = useRef(false);
+    const payModalScale = useRef(new Animated.Value(0.96)).current;
+    const payModalOpacity = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (!verifyModalVisible) return;
+        payModalOpacity.setValue(0);
+        payModalScale.setValue(0.96);
+        Animated.parallel([
+            Animated.timing(payModalOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
+            Animated.timing(payModalScale, { toValue: 1, duration: 180, useNativeDriver: true }),
+        ]).start();
+    }, [payModalOpacity, payModalScale, verifyModalVisible]);
 
     const getHeaderImage = () => {
         if (selectedTier === "Silver") return silverHeader;
@@ -197,6 +218,7 @@ const SubscriptionScreen = ({ route }: any) => {
                             rawSubscription: prod,
                         };
                     });
+                    console.log(productsWithPricing, "productsWithPricing");
 
                     // Second pass: calculate discounts for each tier
                     const formattedProducts = productsWithPricing.map(prod => {
@@ -245,33 +267,49 @@ const SubscriptionScreen = ({ route }: any) => {
 
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
             try {
-                setProcessing(null);
+                const key = (purchase?.transactionId || purchase?.orderId || purchase?.purchaseToken || purchase?.productId || '').toString();
+                if (isVerifyingRef.current) return;
+                if (key && lastVerifiedKeyRef.current === key) return;
 
-                // Handle purchase verification workflow
-                await handlePurchaseSuccess(
-                    purchase,
-                    'subscription',
-                    () => {
-                        // Success callback
-                        Alert.alert(
-                            'Success',
-                            'Subscription activated successfully!',
-                            [{ text: 'OK', onPress: () => NavigationService.goBack() }]
-                        );
-                    },
-                    (error) => {
-                        // Error callback
-                        console.error('[Subscription] Verification error:', error);
-                        Alert.alert(
-                            'Purchase Recorded',
-                            'Your purchase was successful, but verification is pending. You will receive your subscription once verification completes.',
-                            [{ text: 'OK', onPress: () => NavigationService.goBack() }]
-                        );
-                    }
-                );
+                isVerifyingRef.current = true;
+                lastVerifiedKeyRef.current = key || null;
+
+                setVerifyModalVisible(true);
+                setVerifyStage('verifying');
+                setVerifyError('');
+                setVerifyResponse(null);
+
+                setProcessing(purchase?.productId || 'verifying');
+
+                // Required payload
+                const data = {
+                    productId: purchase.productId,
+                    purchaseToken: purchase.purchaseToken,
+                    platform: Platform.OS === 'ios' ? 'ios' : 'android',
+                };
+
+                const response: any = await dispatch(subscriptionVerifyAPI(data));
+                const isOk =
+                    response?.statusCode === 200 &&
+                    response?.success === true &&
+                    response?.data?.success === true;
+
+                if (!isOk) {
+                    throw new Error(response?.message || response?.data?.message || 'Subscription verification failed');
+                }
+
+                setVerifyResponse(response);
+                setVerifyStage('success');
+
+                // Finish/acknowledge the transaction once verification is successful
+                await RNIap.finishTransaction({ purchase, isConsumable: false });
             } catch (err) {
-                setProcessing(null);
                 console.error('[Subscription] Purchase handler error:', err);
+                setVerifyStage('error');
+                setVerifyError((err as any)?.message || 'Something went wrong while verifying your subscription.');
+            } finally {
+                setProcessing(null);
+                isVerifyingRef.current = false;
             }
         });
 
@@ -413,11 +451,116 @@ const SubscriptionScreen = ({ route }: any) => {
                 )}
             </ScrollView>
 
+            <Modal
+                visible={verifyModalVisible}
+                transparent
+                animationType="fade"
+                statusBarTranslucent
+                hardwareAccelerated
+                // Dismissible only via button
+                onRequestClose={() => { }}
+            >
+                <View style={styles.payBackdrop}>
+                    <Animated.View style={[styles.payCard, { opacity: payModalOpacity, transform: [{ scale: payModalScale }] }]}>
+                        <View style={styles.payContent}>
+                            <View style={styles.payIconRing}>
+                                <FastImage source={logoBlue} resizeMode="contain" style={styles.payIcon} />
+                            </View>
+
+                            <AppText
+                                type={FORTEEN}
+                                weight={INTER_EXTRA_BOLD}
+                                color={LIGHT_BLACK}
+                                style={{ textAlign: "center", marginTop: metrics.hp1 }}
+                            >
+                                {verifyStage === "success"
+                                    ? "Payment Successful"
+                                    : verifyStage === "error"
+                                        ? "Payment Verification Failed"
+                                        : "Verifying Payment"}
+                            </AppText>
+
+                            {verifyStage === "success" ? (
+                                <>
+                                    <AppText
+                                        type={ELEVEN}
+                                        weight={INTER_REGULAR}
+                                        color={OPECITY_DARK}
+                                        style={{ textAlign: "center", marginTop: metrics.hp1 }}
+                                    >
+                                        Your payment has been completed successfully. Enjoy all the premium features without any interruption.
+                                    </AppText>
+                                    <AppText
+                                        type={ELEVEN}
+                                        weight={INTER_MEDIUM}
+                                        color={OPECITY_DARK}
+                                        style={{ textAlign: "center", marginTop: metrics.hp1 }}
+                                    >
+                                        Enjoy unlimited access and exclusive benefits!
+                                    </AppText>
+
+                                    {verifyResponse?.data?.transactionId ? (
+                                        <View style={styles.payMetaBox}>
+                                            <AppText type={TEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                                Transaction ID
+                                            </AppText>
+                                            <AppText type={TEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ marginTop: metrics.hp0_5 }}>
+                                                {verifyResponse?.data?.transactionId}
+                                            </AppText>
+                                        </View>
+                                    ) : null}
+                                </>
+                            ) : verifyStage === "error" ? (
+                                <AppText
+                                    type={ELEVEN}
+                                    weight={INTER_REGULAR}
+                                    color={OPECITY_DARK}
+                                    style={{ textAlign: "center", marginTop: metrics.hp1 }}
+                                >
+                                    {verifyError || "We couldn’t verify your subscription right now. Please try again."}
+                                </AppText>
+                            ) : (
+                                <View style={styles.payVerifyingRow}>
+                                    <ActivityIndicator size="small" color={colors.purple} />
+                                    <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ marginLeft: metrics.hp1 }}>
+                                        Please wait…
+                                    </AppText>
+                                </View>
+                            )}
+
+                            <TouchableOpacityView
+                                activeOpacity={0.9}
+                                disabled={verifyStage === "verifying"}
+                                onPress={() => {
+                                    if (verifyStage === "verifying") return;
+                                    setVerifyModalVisible(false);
+                                    if (verifyStage === "success") {
+                                        NavigationService.goBack();
+                                    }
+                                }}
+                                style={[styles.payBtnWrap, verifyStage === "verifying" && { opacity: 0.6 }]}
+                            >
+                                <LinearGradient
+                                    colors={verifyStage === "error" ? [colors.red, "#FF5B6B"] : ["#6F13F2", "#2B7CFF"]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.payBtn}
+                                >
+                                    <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={FORTEEN}>
+                                        {verifyStage === "success" ? "Done" : verifyStage === "error" ? "OK" : "Verifying…"}
+                                    </AppText>
+                                </LinearGradient>
+                            </TouchableOpacityView>
+                        </View>
+                    </Animated.View>
+                </View>
+            </Modal>
+
             <View style={styles.bottomcontainer}>
-                <AppText weight={INTER_REGULAR} type={TEN}>
+                {/* <AppText weight={INTER_REGULAR} type={TEN}>
                     By tapping Upgrade, your payment will be charged, your subscriptions auto-renew unless canceled at least 24 hours before the current period ends. Manage your subscription anytime in settings and you agree to our
                     <AppText style={{ textDecorationLine: "underline" }} weight={INTER_SEMI_BOLD} type={TEN}> Terms</AppText>
-                </AppText>
+                </AppText> */}
                 <TouchableOpacityView
                     onPress={handlePurchase}
                     disabled={!!processing || currentTierPlans.length === 0}
@@ -441,7 +584,7 @@ export default SubscriptionScreen;
 const styles = StyleSheet.create({
     headerContainer: { height: metrics.hp28, width: "100%", marginTop: metrics.hp5 },
     closeButton: { height: metrics.hp5, width: metrics.hp8 },
-    pencilIcon: { height: metrics.hp2, width: metrics.hp2, marginTop:metrics.hp0_5 },
+    pencilIcon: { height: metrics.hp2, width: metrics.hp2, marginTop: metrics.hp0_5 },
     PremiumText: { flexDirection: "row", alignItems: "center", marginTop: metrics.hp2, paddingHorizontal: metrics.hp2 },
     planCard: { height: metrics.hp16, width: metrics.hp12, backgroundColor: colors.white, borderRadius: metrics.hp1_5, alignItems: "center", justifyContent: "center" },
     dotContainer: { height: metrics.hp2_5, width: metrics.hp2_5, marginTop: metrics.hp1_5, borderRadius: metrics.hp50 },
@@ -459,5 +602,80 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         position: "absolute",
         top: -metrics.hp0_6
+    },
+    payBackdrop: {
+        flex: 1,
+        backgroundColor: "#00000066",
+        justifyContent: "center",
+        paddingHorizontal: metrics.hp2,
+    },
+    payCard: {
+        borderRadius: metrics.hp2,
+        backgroundColor: colors.white,
+        overflow: "hidden",
+        shadowColor: "#000",
+        shadowOpacity: 0.18,
+        shadowOffset: { width: 0, height: 10 },
+        shadowRadius: 18,
+        elevation: 12,
+    },
+    payAccent: {
+        height: metrics.hp1,
+        width: "100%",
+    },
+    payContent: {
+        paddingHorizontal: metrics.hp2_5,
+        paddingTop: metrics.hp2_5,
+        paddingBottom: metrics.hp2,
+        alignItems: "center",
+    },
+    payIconRing: {
+        height: metrics.hp10,
+        width: metrics.hp10,
+        borderRadius: metrics.hp50,
+        backgroundColor: "#FFFFFF",
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: metrics.hp0_1,
+        borderColor: "#6F13F233",
+        shadowColor: "#6F13F2",
+        shadowOpacity: 0.12,
+        shadowOffset: { width: 0, height: 8 },
+        shadowRadius: 14,
+        elevation: 6,
+    },
+    payIcon: {
+        height: metrics.hp7,
+        width: metrics.hp7,
+    },
+    payVerifyingRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: metrics.hp2,
+    },
+    payMetaBox: {
+        marginTop: metrics.hp2,
+        width: "100%",
+        borderRadius: metrics.hp1_5,
+        borderWidth: metrics.hp0_1,
+        borderColor: colors.nanoOpecity,
+        backgroundColor: "#FFFFFF",
+        paddingVertical: metrics.hp1,
+        paddingHorizontal: metrics.hp1_5,
+        alignItems: "center",
+    },
+    payBtnWrap: {
+        width: "100%",
+        marginTop: metrics.hp2_5,
+        borderRadius: metrics.hp4,
+        overflow: "hidden",
+    },
+    payBtn: {
+        height: metrics.hp5_5,
+        width: "100%",
+        borderRadius: metrics.hp4,
+        alignItems: "center",
+        justifyContent: "center",
     },
 });

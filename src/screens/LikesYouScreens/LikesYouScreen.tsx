@@ -26,8 +26,8 @@ const LikesYouScreen = () => {
     const [likeYoue, setlikeYou] = useState('Likes You');
     const [ViewYoue, setViewYou] = useState('Viewed You');
     const [profileData, setProfileData] = useState();
-    console.log(userData,"userData");
-    
+    console.log(userData, "userDatauserData");
+
     useEffect(() => {
         dispatch(likeByOther());
         dispatch(likeYou());
@@ -100,7 +100,7 @@ const LikesYouScreen = () => {
     }
     const renderItems = ({ item, index }: any) => {
         return (
-            <TouchableOpacityView disabled={item?.see == false ? true:false}  onPress={() => viewProfile(item)} key={index} style={[styles.upgradeDataContainer, { marginBottom: metrics.hp2, }]}>
+            <TouchableOpacityView disabled={item?.see == false ? true : false} onPress={() => viewProfile(item)} key={index} style={[styles.upgradeDataContainer, { marginBottom: metrics.hp2, }]}>
                 <ImageBackground blurRadius={item?.see == false ? metrics.hp7 : metrics.hp0} imageStyle={{ borderRadius: metrics.hp1_5 }} source={{ uri: item?.profilePicture[0]?.url }} resizeMode="cover" style={styles.profileImageTwo}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
                         <AppText type={THIRTEEN} weight={INTER_BOLD} color={WHITE}>
@@ -124,6 +124,7 @@ const LikesYouScreen = () => {
             </TouchableOpacityView>
         )
     };
+
     const dataCorrect = () => {
         const { subscription } = userData || {};
         const { perks = {}, plan } = subscription || {};
@@ -141,7 +142,7 @@ const LikesYouScreen = () => {
 
         if (tabSelect === "Likes" && likeYoue === "You Liked") {
             data = likeYouData?.length ? likeYouData : [];
-            return data.map((item) => ({ ...item, see: false })); // You can always see who you liked
+            return data.map((item) => ({ ...item, see: true })); // You can always see who you liked
         }
 
         if (tabSelect === "Views" && ViewYoue === "Viewed You") {
@@ -151,7 +152,7 @@ const LikesYouScreen = () => {
 
         if (tabSelect === "Views" && ViewYoue === "You Viewed") {
             data = viewByOtherData?.length ? viewByOtherData : [];
-            return data.map((item) => ({ ...item, see: false })); // You can see whom you viewed
+            return data.map((item) => ({ ...item, see: true })); // You can see whom you viewed
         }
 
         return [];
@@ -211,16 +212,26 @@ const LikesYouScreen = () => {
                 contentContainerStyle={{ paddingHorizontal: metrics.hp2, marginTop: metrics.hp2, paddingBottom: metrics.hp10 }}
                 ListEmptyComponent={tabSelect == "Views" ? renderEmptyView : renderEmptyLikes}
                 ListFooterComponent={() => {
-                    return likeYoue == "You Liked" && tabSelect == "Likes" ? (
+                    return likeYoue == "Likes You" && tabSelect === "Likes" &&userData?.subscription?.plan === "FREE" ? (
                         <AppText style={{ textAlign: "center", marginTop: metrics.hp2 }} type={TWELVE} weight={INTER_MEDIUM} color={LIGHT_BLACK}>
                             Upgrade to gold to see people who have already{'\n'}liked you
                         </AppText>
-                    ) : (<></>)
+                    ) : (
+                        ViewYoue == "Viewed You" && tabSelect == "Views" && userData?.subscription?.plan === "FREE"? (
+                            <AppText style={{ textAlign: "center", marginTop: metrics.hp2 }} type={TWELVE} weight={INTER_MEDIUM} color={LIGHT_BLACK}>
+                                Upgrade to gold to see people who have already{'\n'}liked you
+                            </AppText>
+                        ) : (<></>)
+                    )
                 }} />
-            {likeYoue == "You Liked" && tabSelect == "Likes" &&
+            {likeYoue == "Likes You" && tabSelect === "Likes" && userData?.subscription?.plan === "FREE"?
                 <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: item })} >
                     <FastImage source={upgradPlan} resizeMode="contain" style={{ height: metrics.hp10, width: Screen.Width / 1, marginBottom: metrics.hp3 }} />
-                </TouchableOpacityView>
+                </TouchableOpacityView> :
+                ViewYoue == "Viewed You" && tabSelect == "Views" &&userData?.subscription?.plan === "FREE" ?
+                    <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: item })} >
+                        <FastImage source={upgradPlan} resizeMode="contain" style={{ height: metrics.hp10, width: Screen.Width / 1, marginBottom: metrics.hp3 }} />
+                    </TouchableOpacityView> : <></>
             }
         </AppSafeAreaView>
     )

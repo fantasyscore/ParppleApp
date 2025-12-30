@@ -24,7 +24,7 @@ import FastImage from "react-native-fast-image";
 
 import metrics from "../../assets/Metrics";
 import { colors } from "../../theme/colors";
-import { fontSize, INTER_BOLD } from "../AppText";
+import { AppText, fontSize, INTER_BOLD } from "../AppText";
 import { interBold } from "../../theme/typography";
 
 type Props = {
@@ -226,6 +226,183 @@ export const BoostLiquidButton: React.FC<Props> = ({
       ) : null}
 
       {/* Timer is rendered inside SVG above; keep RN layer clean to avoid flicker */}
+    </View>
+  );
+};
+
+export const BoostLiquidPill: React.FC<{
+  width: number;
+  height: number;
+  remainingFraction: number;
+  timerText: string;
+  isRunning: boolean;
+  gradientColors?: [string, string];
+}> = ({
+  width,
+  height,
+  remainingFraction,
+  timerText,
+  isRunning,
+  gradientColors = ["#6F13F2", "#400B8C"],
+}) => {
+  // Smoothly animate level to avoid "steppy" per-second updates
+  const level = useSharedValue(clamp01(remainingFraction));
+  // Horizontal wave motion phase
+  const phase = useSharedValue(0);
+
+  useEffect(() => {
+    level.value = withTiming(clamp01(remainingFraction), {
+      duration: 450,
+      easing: Easing.linear,
+    });
+  }, [level, remainingFraction]);
+
+  useEffect(() => {
+    // Subtle left-right wave motion (premium feel)
+    phase.value = 0;
+    phase.value = withRepeat(
+      withTiming(2 * Math.PI, { duration: 1800, easing: Easing.linear }),
+      -1,
+      false
+    );
+  }, [phase]);
+
+  const animatedProps = useAnimatedProps(() => {
+    "worklet";
+    const f = clamp01(level.value);
+    const w = width;
+    const h = height;
+
+    // Drain top -> bottom: at start f=1 => topY ~ 0 ; end f=0 => topY ~ h
+    const topY = h - h * f;
+
+    // Subtle wave settings (scaled)
+    const amp = Math.max(1.5, h * 0.045);
+    const wavelength = Math.max(40, w * 0.9);
+    const steps = 28; // more steps => smoother edge
+
+    let d = "";
+    for (let i = 0; i <= steps; i++) {
+      const x = (w * i) / steps;
+      const y =
+        topY +
+        Math.sin((2 * Math.PI * x) / wavelength + phase.value) * amp;
+      if (i === 0) d += `M ${x} ${y}`;
+      else d += ` L ${x} ${y}`;
+    }
+
+    // Close shape down to bottom
+    d += ` L ${w} ${h}`;
+    d += ` L 0 ${h} Z`;
+
+    return { d };
+  }, [width, height]);
+
+  // Avoid id collisions if multiple instances are on screen
+  const clipId = useMemo(() => `boostLiquidPillClip-${Math.random().toString(36).slice(2)}`, []);
+  const gradId = useMemo(() => `boostLiquidPillGrad-${Math.random().toString(36).slice(2)}`, []);
+  const textGradId = useMemo(() => `boostPillTextGrad-${Math.random().toString(36).slice(2)}`, []);
+  const liquidMaskId = useMemo(() => `boostPillTextLiquidMask-${Math.random().toString(36).slice(2)}`, []);
+  const airMaskId = useMemo(() => `boostPillTextAirMask-${Math.random().toString(36).slice(2)}`, []);
+
+  // Typography (match AppText TEN + INTER_SEMI_BOLD)
+  const textSize = fontSize(10);
+  const textBoxH = textSize * 1.25;
+  const textTopY = height / 2 - textBoxH / 2;
+  const textBottomY = height / 2 + textBoxH / 2;
+
+  // Smooth crossfade based on intersection between liquid top and timer text bounding box
+  const whiteTextAnimatedProps = useAnimatedProps(() => {
+    "worklet";
+    const f = clamp01(level.value);
+    const h = height;
+    const topY = h - h * f;
+    const coverage = Math.max(0, Math.min(1, (textBottomY - topY) / textBoxH));
+    return { opacity: coverage };
+  }, [height, textBottomY, textBoxH]);
+
+  const gradTextAnimatedProps = useAnimatedProps(() => {
+    "worklet";
+    const f = clamp01(level.value);
+    const h = height;
+    const topY = h - h * f;
+    const coverage = Math.max(0, Math.min(1, (textBottomY - topY) / textBoxH));
+    return { opacity: 1 - coverage };
+  }, [height, textBottomY, textBoxH]);
+
+  return (
+    <View style={{ width, height }}>
+      {isRunning && (
+        <Svg width={width} height={height} style={StyleSheet.absoluteFill}>
+          <Defs>
+            <ClipPath id={clipId}>
+              <Rect x="0" y="0" width={width} height={height} rx={metrics.hp3} />
+            </ClipPath>
+            <LinearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor={gradientColors[0]} />
+              <Stop offset="1" stopColor={gradientColors[1]} />
+            </LinearGradient>
+            <LinearGradient id={textGradId} x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor={gradientColors[0]} />
+              <Stop offset="1" stopColor={gradientColors[1]} />
+            </LinearGradient>
+
+            {/* Text masks (liquid vs air) */}
+            <Mask id={liquidMaskId}>
+              <Rect x="0" y="0" width={width} height={height} fill="black" />
+              <AnimatedPath animatedProps={animatedProps} fill="white" />
+            </Mask>
+            <Mask id={airMaskId}>
+              <Rect x="0" y="0" width={width} height={height} fill="white" />
+              <AnimatedPath animatedProps={animatedProps} fill="black" />
+            </Mask>
+          </Defs>
+
+          <G clipPath={`url(#${clipId})`}>
+            {/* Liquid body */}
+            <AnimatedPath animatedProps={animatedProps} fill={`url(#${gradId})`} />
+
+            {/* Timer text: white where it overlaps liquid */}
+            <G mask={`url(#${liquidMaskId})`}>
+              <AnimatedSvgText
+                animatedProps={whiteTextAnimatedProps}
+                x={width / 2}
+                y={height / 2 + textSize * 0.35}
+                fill={colors.white}
+                fontSize={textSize}
+                fontFamily={interBold}
+                textAnchor="middle"
+              >
+                {timerText}
+              </AnimatedSvgText>
+            </G>
+
+            {/* Timer text: gradient where it's above liquid */}
+            <G mask={`url(#${airMaskId})`}>
+              <AnimatedSvgText
+                animatedProps={gradTextAnimatedProps}
+                x={width / 2}
+                y={height / 2 + textSize * 0.35}
+                fill={`url(#${textGradId})`}
+                fontSize={textSize}
+                fontFamily={interBold}
+                textAnchor="middle"
+              >
+                {timerText}
+              </AnimatedSvgText>
+            </G>
+          </G>
+        </Svg>
+      )}
+
+      {/* Timer text overlay - always visible */}
+      <View style={StyleSheet.absoluteFill}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <AppText type="TEN" weight="INTER_SEMI_BOLD" color={colors.purple}>
+            {timerText}
+          </AppText>
+        </View>
+      </View>
     </View>
   );
 };

@@ -25,7 +25,7 @@ const FilterScreen = () => {
     const [ageRange, setAgeRange] = useState([18, 45]);
     const [klMiter, setKlMiter] = useState(userData?.preferredDistanceKm ? [userData?.preferredDistanceKm] : [1]);
     const [lookingShow, setlookinShow] = useState(false);
-    const [kiloKMShow, setkiloKMShow] = useState(false);
+    const [kiloKMShow, setkiloKMShow] = useState(userData?.globalSearch ? userData?.globalSearch : false);
     const [verifiedTogle, setVerifiedTogel] = useState(false);
     const [heightRange, setHeightRange] = useState([18, 45]);
     const [heightTogle, setHeightTogel] = useState(false);
@@ -78,7 +78,8 @@ const FilterScreen = () => {
                 "min": ageRange[0],
                 "max": ageRange[1]
             },
-            "preferredDistanceKm": klMiter[0]
+            "preferredDistanceKm": klMiter[0],
+            "globalSearch": kiloKMShow,
         };
         dispatch(editFilter(data))
     }
@@ -121,10 +122,10 @@ const FilterScreen = () => {
                             underTitle={"Show people beyond my preference"} setRange={setKlMiter} Icons={social_distanceIcon} headLines={"How far are you looking for?"}
                             singleSilde={true} />
                         <ButtonSheet Icons={social_distanceIcon} headLines={"What’s your preferred language they speak?"}
-                           titile={"Add Language"} 
+                            titile={"Add Language"}
                             data={userData?.languages}
-                            onPress={() => NavigationService.navigate(NAVIGATION_LANGUAGE_SPEAK_SCREEN, { filter: "Add Language", data: userData?.languages, fieldVisibility: userData?.fieldVisibility })}/>
-                            {/* onPress={() => NavigationService.navigate(NAVIGATION_COMMONSELECT_PAGE_SCREEN, { headline: "Language they speak", data: LanguageData, secondHeadline: "Select your preferred language they speak." })} /> */}
+                            onPress={() => NavigationService.navigate(NAVIGATION_LANGUAGE_SPEAK_SCREEN, { filter: "Add Language", data: userData?.languages, fieldVisibility: userData?.fieldVisibility })} />
+                        {/* onPress={() => NavigationService.navigate(NAVIGATION_COMMONSELECT_PAGE_SCREEN, { headline: "Language they speak", data: LanguageData, secondHeadline: "Select your preferred language they speak." })} /> */}
                     </View>
                     :
                     <View style={{ flex: 1 }}>

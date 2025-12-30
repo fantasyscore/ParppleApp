@@ -55,6 +55,7 @@ const PeopleScreen = () => {
     const ref = useRef<SwiperCardRefType>(null);
     const IsFocused = useIsFocused();
     const listProfilesData = useSelector((state: any) => state.auth.listProfiles);
+    // const listProfilesData:any = [];
     const userData = useSelector((state: any) => state.auth.userData);
     const position: any = useRef(new Animated.ValueXY()).current;
     const [getCurrentIndex, setGetCurrentIndex] = useState(0);
@@ -77,8 +78,6 @@ const PeopleScreen = () => {
     const [boostModalVisible, setBoostModalVisible] = useState(false);
     const [boostEndAtMs, setBoostEndAtMs] = useState<number | null>(null);
     const [boostsAvailable, setBoostsAvailable] = useState<number>(() => 3);
-    console.log(remainingSwipes, "remainingSwipes");
-    console.log(userData, "userdata");
 
     // Tinder-style: a single source of truth for swipe gesture state (shared from swiper)
     const sharedTranslateX = useSharedValue(0);
@@ -344,6 +343,12 @@ const PeopleScreen = () => {
     }, [getCurrentIndex, windowStartIndex, listProfilesData]);
 
     const canSwipeRight = useCallback(() => {
+        // Check subscription perks for unlimited likes
+        const unlimitedLikes = userData?.subscription?.perks?.unlimitedLikes;
+        if (unlimitedLikes === true) {
+            return true; // Allow unlimited swipes
+        }
+
         const swipes = remainingSwipes ?? userData?.swipesRemaining ?? 0;
         if (swipes <= 0) {
             returningFromSubscriptionRef.current = true;
@@ -351,9 +356,17 @@ const PeopleScreen = () => {
             return false;
         }
         return true;
-    }, [remainingSwipes, userData?.swipesRemaining, subscriptionItem]);
+    }, [remainingSwipes, userData?.swipesRemaining, userData?.subscription?.perks?.unlimitedLikes, subscriptionItem]);
 
     const canSuperLike = useCallback(() => {
+        // Check subscription perks for super like limit
+        const superLikePerks = userData?.subscription?.perks?.superLike;
+        if (superLikePerks === 0) {
+            returningFromSubscriptionRef.current = true;
+            NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
+            return false;
+        }
+
         // Use state value (which is synced with AsyncStorage)
         const superLikes = remainingSuperLikes ?? userData?.superLikesRemaining ?? 0;
         if (superLikes <= 0) {
@@ -362,7 +375,7 @@ const PeopleScreen = () => {
             return false;
         }
         return true;
-    }, [remainingSuperLikes, userData?.superLikesRemaining]);
+    }, [remainingSuperLikes, userData?.superLikesRemaining, userData?.subscription?.perks?.superLike, subscriptionItem]);
     const OverlayLabelRight = useCallback(() => {
         return (
             <View style={styles.leftIconOverlay}>
@@ -560,7 +573,11 @@ const PeopleScreen = () => {
         if (!profile) return;
         if (swipe === "like") {
             setGetCurrentIndex(index + 1);
-            setRemainingSwipes((prev: number) => Math.max((prev ?? 0) - 1, 0));
+            // Only decrement remaining swipes if unlimited likes is not active
+            const unlimitedLikes = userData?.subscription?.perks?.unlimitedLikes;
+            if (unlimitedLikes !== true) {
+                setRemainingSwipes((prev: number) => Math.max((prev ?? 0) - 1, 0));
+            }
             let data = {
                 "swipedId": profile._id,
                 "type": "like"
@@ -712,7 +729,27 @@ const PeopleScreen = () => {
             {/* <Toast ref={toastRef} onHide={showSuccess} /> */}
             <View>
                 <View style={{ zIndex: 2, backgroundColor: colors.white }}>
-                    <PeopleHeader profile={false} useName={true} />
+                    <PeopleHeader 
+                        profile={false} 
+                        useName={true}
+                        showBooster={visibleCards.length === 0 || (windowStartIndex + getCurrentIndex >= listProfilesData?.length)}
+                        boostIcon={flashIcon}
+                        boostTimerText={boostTimer.isRunning ? boostTimer.remainingLabel : null}
+                        onBoostPress={() => {
+                            // Check subscription perks for boost limit
+                            const boostPerMonth = userData?.subscription?.perks?.boostPerMonth;
+                            if (boostPerMonth === 0) {
+                                NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
+                                return;
+                            }
+
+                            if (boostsAvailable <= 0 && !boostTimer.isRunning) {
+                                NavigationService.navigate(NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN);
+                            } else {
+                                setBoostModalVisible(true);
+                            }
+                        }}
+                    />
                 </View>
                 <View style={styles.swiperContainer}>
                     {(visibleCards.length === 0 || (windowStartIndex + getCurrentIndex >= listProfilesData?.length)) &&
@@ -729,18 +766,30 @@ const PeopleScreen = () => {
                             overlayLabelContainerStyle={styles.overlayLabelContainerStyle}
                             renderCard={renderCard}
                             disableBottomSwipe
-                            disableRightSwipe={(remainingSwipes ?? userData?.swipesRemaining ?? 0) <= 0}
-                            disableTopSwipe={(remainingSuperLikes ?? userData?.superLikesRemaining ?? 0) <= 0}
+                            disableRightSwipe={userData?.subscription?.perks?.unlimitedLikes !== true && (remainingSwipes ?? userData?.swipesRemaining ?? 0) <= 0}
+                            disableTopSwipe={userData?.subscription?.perks?.superLike !== 0 && (remainingSuperLikes ?? userData?.superLikesRemaining ?? 0) <= 0}
                             OverlayLabelRight={OverlayLabelRight}
                             OverlayLabelLeft={OverlayLabelLeft}
                             OverlayLabelTop={OverlayLabelTop}
                             onSwipeRightDenied={() => {
+                                // Check if unlimited likes perk is active
+                                const unlimitedLikes = userData?.subscription?.perks?.unlimitedLikes;
+                                if (unlimitedLikes === true) {
+                                    return; // Should not happen, but just in case
+                                }
                                 returningFromSubscriptionRef.current = true;
                                 NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
                             }}
                             onSwipeTopDenied={() => {
-                                returningFromSubscriptionRef.current = true;
-                                NavigationService.navigate(NAVIGATION_SUPERLIKE_PURCHESE_SCREEN);
+                                // Check if super like perk is available
+                                const superLikePerks = userData?.subscription?.perks?.superLike;
+                                if (superLikePerks === 0) {
+                                    returningFromSubscriptionRef.current = true;
+                                    NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
+                                } else {
+                                    returningFromSubscriptionRef.current = true;
+                                    NavigationService.navigate(NAVIGATION_SUPERLIKE_PURCHESE_SCREEN);
+                                }
                             }}
                             onSwipeRight={(index) => {
                                 const swipes = remainingSwipes ?? userData?.swipesRemaining ?? 0;
@@ -768,6 +817,13 @@ const PeopleScreen = () => {
                 {visibleCards.length > 0 && (windowStartIndex + getCurrentIndex < listProfilesData?.length) &&
                     <View style={styles.likeUnLikeCOntainer}>
                         <TouchableOpacityView activeOpacity={0.8} onPress={() => {
+                            // Check subscription perks for boost limit
+                            const boostPerMonth = userData?.subscription?.perks?.boostPerMonth;
+                            if (boostPerMonth === 0) {
+                                NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
+                                return;
+                            }
+
                             if (boostsAvailable <= 0 && !boostTimer.isRunning) {
                                 NavigationService.navigate(NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN);
                             } else {
@@ -834,6 +890,14 @@ const PeopleScreen = () => {
                                 onPressOut={() => { tapSuperLike.value = 0; }}
                                 onPress={() => {
                                     tapSuperLike.value = 0; // hard reset (no delay)
+
+                                    // Check subscription perks for super like limit
+                                    const superLikePerks = userData?.subscription?.perks?.superLike;
+                                    if (superLikePerks === 0) {
+                                        NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
+                                        return;
+                                    }
+
                                     const superLikes = remainingSuperLikes ?? userData?.superLikesRemaining ?? 0;
                                     if (superLikes <= 0) {
                                         NavigationService.navigate(NAVIGATION_SUPERLIKE_PURCHESE_SCREEN);
@@ -871,11 +935,15 @@ const PeopleScreen = () => {
                                 onPressIn={() => { tapLike.value = 1; }}
                                 onPressOut={() => { tapLike.value = 0; }}
                                 onPress={() => {
-                                    const swipes = remainingSwipes ?? userData?.swipesRemaining ?? 0;
-                                    if (swipes <= 0) {
-                                        returningFromSubscriptionRef.current = true;
-                                        NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
-                                        return;
+                                    // Check subscription perks for unlimited likes
+                                    const unlimitedLikes = userData?.subscription?.perks?.unlimitedLikes;
+                                    if (unlimitedLikes !== true) {
+                                        const swipes = remainingSwipes ?? userData?.swipesRemaining ?? 0;
+                                        if (swipes <= 0) {
+                                            returningFromSubscriptionRef.current = true;
+                                            NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
+                                            return;
+                                        }
                                     }
                                     tapLike.value = 0; // hard reset (no delay)
                                     triggerLike();

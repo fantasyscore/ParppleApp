@@ -1108,4 +1108,36 @@ export const dataNew = [
         "lastName": "",
         "distanceInKm": 3
     },
+];
+export const SafetyTips = [
+    {
+        id:"1",
+        line:"Meet in public for your first few dates.",
+    },
+    {
+        id:"2",
+        line:"Don’t share personal info too soon.",
+    },
+    {
+        id:"3",
+        line:"Trust your instincts — if it feels off, it probably is.",
+    },
+    {
+        id:"4",
+        line:"Tell a friend where you’re going.",
+    },
+];
+export const TrustTransparency = [
+    {
+        id:"1",
+        line:"All reports are reviewed within 24 hours.",
+    },
+    {
+        id:"2",
+        line:"Your data and chats are encrypted.",
+    },
+    {
+        id:"3",
+        line:"We never share your location without consent.",
+    },
 ]

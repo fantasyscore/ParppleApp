@@ -3,13 +3,13 @@ import { Animated, StyleSheet, View } from "react-native";
 import FastImage from "react-native-fast-image";
 import { filterIcon, logoBlue, reversIcoin, settingIcon } from "../helper/ImageAssets";
 import metrics from "../assets/Metrics";
-import { AppText, EIGHTEEN, INTER_BOLD, INTER_MEDIUM, TWENTY } from "./AppText";
+import { AppText, EIGHTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, PURPLE, TEN, TWENTY } from "./AppText";
 import { TouchableOpacityView } from "./TouchableOpacityView";
 import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_FILTER_SCREEN, NAVIGATION_SETTING_SCREEN } from "../navigation/routes";
 import { colors } from "../theme/colors";
 
-const PeopleHeader = ({ userName, profile, bottomDetailsOpacity, topTextOpacityRevers, filter, name, age }: any) => {
+const PeopleHeader = ({ userName, profile, bottomDetailsOpacity, topTextOpacityRevers, filter, name, age, showBooster, boostIcon, boostTimerText, onBoostPress }: any) => {
 
 
     return (
@@ -27,9 +27,24 @@ const PeopleHeader = ({ userName, profile, bottomDetailsOpacity, topTextOpacityR
             }
             {!filter &&
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <TouchableOpacityView onPress={() => profile ? NavigationService.navigate(NAVIGATION_FILTER_SCREEN) : console.log("I am in ")}>
-                        <FastImage source={profile ? filterIcon : reversIcoin} resizeMode="contain" style={[styles.filterIcon, { marginRight: metrics.hp2 }]} />
-                    </TouchableOpacityView>
+                    {showBooster && boostIcon ? (
+                        <View style={{ flexDirection: "row", alignItems: "center", marginRight: metrics.hp2 }}>
+                            <TouchableOpacityView onPress={onBoostPress} activeOpacity={0.8}>
+                                <FastImage source={boostIcon} resizeMode="contain" style={styles.filterIcon} />
+                            </TouchableOpacityView>
+                            {boostTimerText && (
+                                <View style={styles.timerPill}>
+                                    <AppText type={TEN} weight={INTER_SEMI_BOLD} color={PURPLE}>
+                                        {boostTimerText}
+                                    </AppText>
+                                </View>
+                            )}
+                        </View>
+                    ) : (
+                        <TouchableOpacityView onPress={() => profile ? NavigationService.navigate(NAVIGATION_FILTER_SCREEN) : console.log("I am in ")}>
+                            <FastImage source={profile ? filterIcon : reversIcoin} resizeMode="contain" style={[styles.filterIcon, { marginRight: metrics.hp2 }]} />
+                        </TouchableOpacityView>
+                    )}
                     <TouchableOpacityView onPress={() => profile ? NavigationService.navigate(NAVIGATION_SETTING_SCREEN) : NavigationService.navigate(NAVIGATION_FILTER_SCREEN)}>
                         <FastImage source={profile ? settingIcon : filterIcon} resizeMode="contain" style={styles.filterIcon} />
                     </TouchableOpacityView>
@@ -58,5 +73,14 @@ const styles = StyleSheet.create({
     filterIcon: {
         height: metrics.hp2_5,
         width: metrics.hp2_5
+    },
+    timerPill: {
+        marginLeft: metrics.hp1,
+        paddingHorizontal: metrics.hp1_5,
+        paddingVertical: metrics.hp0_5,
+        borderRadius: metrics.hp3,
+        backgroundColor: "#6F13F210",
+        borderWidth: metrics.hp0_1,
+        borderColor: "#6F13F230",
     }
 })

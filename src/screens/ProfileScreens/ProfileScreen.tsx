@@ -1,15 +1,15 @@
 import React, { useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { FlatList, ImageBackground, StyleSheet, View } from "react-native";
+import { FlatList, ImageBackground, ScrollView, StyleSheet, View } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
-import { blueTikeIcon, checkSafety, pencilIcon, premiumIcon, profilebackGround, profileImage } from "../../helper/ImageAssets";
+import { arrowBackForSafety, blockPurppleIcon, blueTikeIcon, callIcon, checkSafety, flasIcon, goldCardSmall, locationPurppleIcon, pencilIcon, platniumCardSmall, premiumIcon, profilebackGround, profileImage, pText, redHeart, rightArrow, sliverCardSmall, stylesRightArrow } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
 import { colors } from "../../theme/colors";
 import Svg, { Circle } from "react-native-svg";
 import FastImage from "react-native-fast-image";
-import { AppText, BLACK, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, OPECITY_DARK, PURPLE, RED, SCHEHERAZADE_BOLD, SKYBLUE, TEN, THIRTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
+import { AppText, BLACK, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, NINE, OPECITY, OPECITY_DARK, PURPLE, RED, SCHEHERAZADE_BOLD, SKYBLUE, TEN, THIRTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
-import { premiumDetaiData, PurchaseCards } from "../../common/UiltData";
+import { premiumDetaiData, PurchaseCards, SafetyTips, TrustTransparency } from "../../common/UiltData";
 import { Screen } from "../../theme/dimens";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_EDIT_PROFILE_SCREEN, NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN, NAVIGATION_SUBSCRIPTION_ALL_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN, NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from "../../navigation/routes";
@@ -20,13 +20,17 @@ const ProfileScreen = () => {
     const [percentage, setPercentage] = useState(25);
     const [tabSelect, setTabSelect] = useState("Premium");
     const userData = useSelector((state: any) => state.auth.userData);
-    console.log(userData, "userData");
-
+    
     const size = metrics.hp12;
     const strokeWidth = metrics.hp0_5;
     const radius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
     const progress = (percentage / 100) * circumference;
+    const premiumDetaiData = [
+        { id: "1", icon: flasIcon, numberText: "5", title: "Boost", headLine: "Get more" },
+        { id: "2", icon: redHeart, numberText: "10", title: "Super Like", headLine: "Get more" },
+        { id: "3", icon: pText, numberText: userData?.subscription?.plan !== "FREE" ? `${userData?.subscription?.plan}\nSubscription` : "Get\nSubscription", title: "", headLine: userData?.subscription?.plan === "SILVER" || userData?.subscription?.plan === "GOLD" ? "Upgrade" : userData?.subscription?.plan === "PLATNIUM" ? "Elite" : "Purchase" },
+    ];
     const renderPurchaesCards = ({ item, index }: any) => {
         return (
             <TouchableOpacityView activeOpacity={1} onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: item })} style={{ marginRight: index == 2 ? metrics.hp2 : 0 }}>
@@ -44,7 +48,7 @@ const ProfileScreen = () => {
         if (item?.title === "Super Like") return NavigationService.navigate(NAVIGATION_SUPERLIKE_PURCHESE_SCREEN);
         if (item?.headLine === "Purchase") return NavigationService.navigate(NAVIGATION_SUBSCRIPTION_ALL_SCREEN);
 
-    }
+    };
     return (
         <AppSafeAreaView>
             <ImageBackground
@@ -120,17 +124,30 @@ const ProfileScreen = () => {
                     <View style={styles.bottomContainer}>
                         <View style={styles.one}>
                             {premiumDetaiData?.map((item, index) => {
-                                return (
-                                    <TouchableOpacityView onPress={() => navigateButton(item)} key={index} style={styles.subDetails}>
+                                return userData?.subscription?.plan !== "FREE" && item.id === "3" ? (
+                                    <ImageBackground source={userData?.subscription?.plan === "SILVER" ? sliverCardSmall :
+                                        userData?.subscription?.plan === "GOLD" ? goldCardSmall : platniumCardSmall
+                                    } resizeMode="contain" style={{
+                                        height: metrics.hp13,
+                                        width: metrics.hp13,
+                                    }}>
+                                        <View style={styles.getMoreContainer}>
+                                            <AppText style={{ marginTop: -metrics.hp0_1 }} weight={INTER_MEDIUM} color={WHITE} type={TEN}>
+                                                {item.headLine}
+                                            </AppText>
+                                        </View>
+                                    </ImageBackground>
+                                ) : (
+                                    <TouchableOpacityView onPress={() => navigateButton(item)} key={index} style={[styles.subDetails, { marginLeft: item.id == "2" ? metrics.hp0_5 : 0 }]}>
                                         <FastImage source={item.icon} resizeMode="contain" style={styles.icons} />
-                                        <AppText color={index == 0 ? SKYBLUE : index == 1 ? RED : PURPLE} style={{ marginTop: index == 2 ? metrics.hp2: metrics.hp2 }} type={index == 2 ? TWELVE: FORTEEN} weight={INTER_BOLD}>
+                                        <AppText color={index == 0 ? SKYBLUE : index == 1 ? RED : PURPLE} style={{ marginTop: index == 2 ? metrics.hp2 : metrics.hp2 }} type={index == 2 ? TWELVE : FORTEEN} weight={INTER_BOLD}>
                                             {item.numberText}
                                         </AppText>
                                         <AppText type={TEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
                                             {item.title}
                                         </AppText>
                                         <View style={styles.getMoreContainer}>
-                                            <AppText style={{marginTop:-metrics.hp0_1}} weight={INTER_MEDIUM} color={WHITE} type={TEN}>
+                                            <AppText style={{ marginTop: -metrics.hp0_1 }} weight={INTER_MEDIUM} color={WHITE} type={TEN}>
                                                 {item.headLine}
                                             </AppText>
                                         </View>
@@ -144,19 +161,17 @@ const ProfileScreen = () => {
                                 {"  "}Premium Plans
                             </AppText>
                         </View>
-                        {/* <View> */}
-                            <FlatList
-                                data={PurchaseCards}
-                                renderItem={renderPurchaesCards}
-                                keyExtractor={(item) => item.id}
-                                showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={{ marginLeft: metrics.hp2, marginTop: metrics.hp3 }}
-                                horizontal={true} />
-                        {/* </View> */}
+                        <FlatList
+                            data={PurchaseCards}
+                            renderItem={renderPurchaesCards}
+                            keyExtractor={(item) => item.id}
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={{ marginLeft: metrics.hp2, marginTop: metrics.hp3 }}
+                            horizontal={true} />
                     </View>
                 }
                 {tabSelect == "Safety" &&
-                    <View style={[styles.bottomContainer, { paddingHorizontal: metrics.hp2, }]}>
+                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: metrics.hp5 }} style={[styles.bottomContainer, { paddingHorizontal: metrics.hp2, }]}>
                         <View style={styles.safetyComesContainer}>
                             <FastImage source={checkSafety} resizeMode="contain" style={styles.checkSafetyIcon} />
                             <AppText weight={SCHEHERAZADE_BOLD} type={EIGHTEEN} color={BLACK}>
@@ -178,7 +193,138 @@ const ProfileScreen = () => {
                                 </View>
                             </View>
                         </View>
-                    </View>
+                        <AppText style={{ marginTop: metrics.hp2 }} type={TWELVE} weight={INTER_SEMI_BOLD} color={BLACK}>
+                            Safety Tools
+                        </AppText>
+                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: metrics.hp1 }}>
+                            <View style={styles.boxes}>
+                                <FastImage source={blockPurppleIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} />
+                                <AppText style={{ marginTop: metrics.hp1 }} color={LIGHT_BLACK} type={TWELVE} weight={INTER_SEMI_BOLD}>
+                                    Block user{`\n`}
+                                    Instantly
+                                </AppText>
+                                <AppText style={{ marginTop: metrics.hp0_1 }} color={OPECITY_DARK} type={TEN} weight={INTER_MEDIUM}>
+                                    Stop unwanted chats with{`\n`}
+                                    one tap.
+                                </AppText>
+                                <AppText style={{ marginTop: metrics.hp0_5 }} color={PURPLE} type={TEN} weight={INTER_SEMI_BOLD}>
+                                    Learn How
+                                </AppText>
+                            </View>
+                            <View style={styles.boxes}>
+                                <FastImage source={locationPurppleIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} />
+                                <AppText style={{ marginTop: metrics.hp1 }} color={LIGHT_BLACK} type={TWELVE} weight={INTER_SEMI_BOLD}>
+                                    Location Sharing{`\n`}
+                                    Controls
+                                </AppText>
+                                <AppText style={{ marginTop: metrics.hp0_1 }} color={OPECITY_DARK} type={TEN} weight={INTER_MEDIUM}>
+                                    Choose who can see your{`\n`}
+                                    location.
+                                </AppText>
+                                <AppText style={{ marginTop: metrics.hp0_5 }} color={PURPLE} type={TEN} weight={INTER_SEMI_BOLD}>
+                                    Change
+                                </AppText>
+                            </View>
+                        </View>
+                        <AppText style={{ marginTop: metrics.hp3 }} type={TWELVE} weight={INTER_SEMI_BOLD} color={BLACK}>
+                            Safety Tips
+                        </AppText>
+                        <View style={styles.sefetyContainer}>
+                            {SafetyTips?.map((item) => {
+                                return (
+                                    <View style={styles.innerLines}>
+                                        <FastImage source={stylesRightArrow} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} />
+                                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                            {"  "}{item.line}
+                                        </AppText>
+                                    </View>
+                                )
+                            })}
+                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
+                                <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={PURPLE}>
+                                    Real All Tips{" "}
+                                </AppText>
+                                <FastImage source={arrowBackForSafety} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2_5, marginTop: metrics.hp0_5 }} />
+                            </View>
+                        </View>
+                        <AppText style={{ marginTop: metrics.hp2 }} type={TEN} weight={INTER_SEMI_BOLD} color={BLACK}>
+                            Reporting & Support
+                        </AppText>
+                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: metrics.hp1 }}>
+                            <View style={[styles.boxes, { height: metrics.hp13 }]}>
+                                <FastImage source={blockPurppleIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} />
+                                <AppText style={{ marginTop: metrics.hp1 }} color={LIGHT_BLACK} type={TWELVE} weight={INTER_SEMI_BOLD}>
+                                    Report a User
+                                </AppText>
+                                <AppText style={{ marginTop: metrics.hp0_1 }} color={OPECITY_DARK} type={TEN} weight={INTER_MEDIUM}>
+                                    Harassment / Fake Profile /{`\n`}
+                                    Scams
+                                </AppText>
+                                <AppText style={{ marginTop: metrics.hp0_5 }} color={PURPLE} type={TEN} weight={INTER_SEMI_BOLD}>
+                                    Report Now
+                                </AppText>
+                            </View>
+                            <View style={[styles.boxes, { height: metrics.hp13 }]}>
+                                <FastImage source={locationPurppleIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} />
+                                <AppText style={{ marginTop: metrics.hp1 }} color={LIGHT_BLACK} type={TWELVE} weight={INTER_SEMI_BOLD}>
+                                    Contact Support
+                                </AppText>
+                                <AppText style={{ marginTop: metrics.hp0_1 }} color={OPECITY_DARK} type={TEN} weight={INTER_MEDIUM}>
+                                    Write an email to our safety{`\n`}
+                                    team.
+                                </AppText>
+                                <AppText style={{ marginTop: metrics.hp0_5 }} color={PURPLE} type={TEN} weight={INTER_SEMI_BOLD}>
+                                    Write now
+                                </AppText>
+                            </View>
+                        </View>
+                        <AppText style={{ marginTop: metrics.hp3 }} type={TWELVE} weight={INTER_SEMI_BOLD} color={BLACK}>
+                            Trust & Transparency
+                        </AppText>
+                        <View style={[styles.sefetyContainer, { height: metrics.hp15 }]}>
+                            {TrustTransparency?.map((item) => {
+                                return (
+                                    <View style={styles.innerLines}>
+                                        <FastImage source={stylesRightArrow} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} />
+                                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                            {"  "}{item.line}
+                                        </AppText>
+                                    </View>
+                                )
+                            })}
+                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
+                                <AppText type={TEN} weight={INTER_SEMI_BOLD} color={PURPLE}>
+                                    Read Our Safety Policy
+                                </AppText>
+                            </View>
+                        </View>
+                        <AppText style={{ marginTop: metrics.hp2 }} type={TEN} weight={INTER_SEMI_BOLD} color={BLACK}>
+                            Resources & Partnerships
+                        </AppText>
+                        <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp2 }}>
+                            <FastImage source={callIcon} resizeMode="contain" style={{ height: metrics.hp1_5, width: metrics.hp1_5 }} />
+                            <AppText>
+                                {"  "}National Cyber Crime Helpline
+                            </AppText>
+                        </View>
+                        <View style={styles.visitBox}>
+                            <AppText type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                Visit Website
+                            </AppText>
+                        </View>
+                        <View style={{height:metrics.hp0_1, backgroundColor:colors.persentageBorder,marginTop:metrics.hp2,}}/>
+                        <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp2 }}>
+                            <FastImage source={callIcon} resizeMode="contain" style={{ height: metrics.hp1_5, width: metrics.hp1_5 }} />
+                            <AppText>
+                                {"  "}Relationship Safety Support NGO
+                            </AppText>
+                        </View>
+                        <View style={styles.visitBox}>
+                            <AppText type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                Visit Website
+                            </AppText>
+                        </View>
+                    </ScrollView>
                 }
             </ImageBackground>
         </AppSafeAreaView>
@@ -315,7 +461,12 @@ const styles = StyleSheet.create({
         backgroundColor: colors.white,
         marginTop: metrics.hp2,
         alignItems: "center",
-        borderWidth: metrics.hp0_1
+        borderWidth: metrics.hp0_1,
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: metrics.hp1 },
+        shadowOpacity: 0.18,
+        shadowRadius: metrics.hp1,
+        elevation: 6,
     },
     checkSafetyIcon: {
         height: metrics.hp5,
@@ -344,5 +495,43 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         width: "100%",
         marginTop: metrics.hp2
+    },
+    boxes: {
+        width: "48%",
+        height: metrics.hp15,
+        borderWidth: metrics.hp0_1,
+        borderColor: "#E2E2E2",
+        paddingHorizontal: metrics.hp1,
+        paddingVertical: metrics.hp1,
+        borderRadius: metrics.hp1_5,
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: metrics.hp1 },
+        shadowOpacity: 0.18,
+        shadowRadius: metrics.hp1,
+        elevation: 3,
+        backgroundColor: colors.white
+    },
+    sefetyContainer: {
+        paddingVertical: metrics.hp1,
+        paddingHorizontal: metrics.hp1,
+        height: metrics.hp19,
+        borderColor: "#E2E2E2",
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: metrics.hp1 },
+        shadowOpacity: 0.18,
+        shadowRadius: metrics.hp1,
+        elevation: 3,
+        backgroundColor: colors.white,
+        borderRadius: metrics.hp1_5,
+        marginTop: metrics.hp1
+    },
+    innerLines: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: metrics.hp0_6
+    },
+    visitBox: {
+        height: metrics.hp2_7, width: metrics.hp13, backgroundColor: colors.white, alignItems: "center", justifyContent: "center", borderRadius: metrics.hp1_5, borderColor: colors.black, borderWidth: metrics.hp0_1, marginTop: metrics.hp1
     }
+
 });

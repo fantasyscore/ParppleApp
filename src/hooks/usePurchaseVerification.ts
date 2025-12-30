@@ -13,6 +13,7 @@ import {
   verifyPurchaseWithBackend,
   shouldRetryVerification,
 } from '../services/purchaseVerificationService';
+import { subscriptionVerifyAPI } from '../actions/authActions';
 
 /**
  * Hook to handle purchase verification workflow
@@ -24,7 +25,7 @@ export const usePurchaseVerification = () => {
   const pendingPurchases = useSelector((state: any) => state.purchase.pendingPurchases);
   const isVerifying = useSelector((state: any) => state.purchase.isVerifying);
   const pendingPurchasesRef = useRef(pendingPurchases);
-  
+
   // Keep ref in sync with state
   pendingPurchasesRef.current = pendingPurchases;
 
@@ -47,7 +48,12 @@ export const usePurchaseVerification = () => {
 
         // Extract purchase data
         const purchaseData = extractPurchaseData(purchase, userId, purchaseType);
-
+        const data = {
+          productId: purchaseData.productId,
+          purchaseType: purchaseData.purchaseToken,
+          platform:"android"
+        }
+        dispatch(subscriptionVerifyAPI(data))
         // Validate required fields
         if (!purchaseData.orderId || !purchaseData.productId || !purchaseData.purchaseToken) {
           throw new Error('Invalid purchase data received from store');
@@ -82,7 +88,12 @@ export const usePurchaseVerification = () => {
     ) => {
       try {
         dispatch(setVerifying(true));
-
+        const data = {
+          productId: purchaseData.productId,
+          purchaseType: purchaseData.purchaseToken,
+          platform:"android"
+        }
+        dispatch(subscriptionVerifyAPI(data))
         const success = await verifyPurchaseWithBackend(purchaseData);
 
         if (success) {
@@ -120,7 +131,7 @@ export const usePurchaseVerification = () => {
             const freshPurchase = freshPurchases.find(
               (p: any) => p.orderId === purchaseData.orderId && p.productId === purchaseData.productId
             );
-            
+
             if (freshPurchase && shouldRetryVerification(freshPurchase)) {
               verifyPurchaseInBackground(freshPurchase, onSuccess, onError);
             } else {

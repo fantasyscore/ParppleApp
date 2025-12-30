@@ -29,7 +29,7 @@ type ChatMessage = {
     _id: number | string;
     text: string;
     createdAt: Date;
-    isMine:Boolean;
+    isMine: Boolean;
     user: {
         _id: number | string;
         name: string;
@@ -108,7 +108,7 @@ const TakingScreen = () => {
                     avatar: avatar,
                 },
                 isRead: isRead,
-                isMine:isMine
+                isMine: isMine
             };
         });
 
@@ -178,7 +178,7 @@ const TakingScreen = () => {
                         _id: 'typing-indicator',
                         text: '',
                         createdAt: new Date(),
-                        isMine:false,
+                        isMine: false,
                         user: {
                             _id: 'typing-indicator-user',
                             name: senderName,
@@ -423,7 +423,7 @@ const TakingScreen = () => {
         if (transformedMessages.length > 0) {
             // Set messages immediately to prevent layout shift
             setMessages(transformedMessages);
-            
+
             // Hide loader after 1 second (smooth fade out)
             const timer = setTimeout(() => {
                 setIsInitialLoading(false);
@@ -586,7 +586,7 @@ const TakingScreen = () => {
                             left: -metrics.hp1,
                             alignItems: 'center',
                             justifyContent: 'center',
-                        }}  />
+                        }} />
                 }
             </View>
         );
@@ -727,7 +727,7 @@ const TakingScreen = () => {
                             _id: Math.random(),
                             text: inputText,
                             createdAt: new Date(),
-                            isMine:true,
+                            isMine: true,
                             user: { _id: USER_ID, name: 'Gurrent User', avatar: profileImage }
                         }]);
                     }
@@ -744,7 +744,7 @@ const TakingScreen = () => {
     }
     return (
         <AppSafeAreaView>
-            <ChatHeader onPress={() => refFilter?.current?.open()} />
+            <ChatHeader setTabSelect={setTabSelect} onPress={() => refFilter?.current?.open()} />
 
             <View style={styles.tabContainer}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -801,7 +801,9 @@ const TakingScreen = () => {
                         </View>
                     )}
                 </View> :
-                <ChatProfileScreen always={true}/>
+                <View style={{ flex: 1 }}>
+                    <ChatProfileScreen always={true} />
+                </View>
             }
             <RBSheet ref={refFilter} openDuration={100}
                 height={Dimensions.get('window').height / 3.10}

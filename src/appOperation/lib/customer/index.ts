@@ -39,6 +39,8 @@ export default (appOperation: AppOperation) => ({
     appOperation.post(`chat/conversation?page=${params?.page}&limit=${params?.limit}`, data, CUSTOMER_TYPE),
   loadChatMessagesAPI: (params: any,data:any) =>
     appOperation.post(`chat/conversation?page=${params?.page}&limit=${params?.limit}`, data, CUSTOMER_TYPE),
+  subscriptionverifyAPI: (data: any) =>
+    appOperation.post(`subscription/verify`, data, CUSTOMER_TYPE),
   // Alternative: If API requires POST instead of GET
   // loadChatMessagesAPI: (data: any) =>
   //   appOperation.post(`chat/conversation`, data, CUSTOMER_TYPE),

@@ -9,18 +9,22 @@ import { TouchableOpacityView } from "./TouchableOpacityView";
 import NavigationService from "../navigation/NavigationService";
 import { useSelector } from "react-redux";
 
-const ChatHeader = ({ onPress }: any) => {
+const ChatHeader = ({ onPress, setTabSelect }: any) => {
     const matchChatUserDetails = useSelector((state: any) => state.auth.matchChatUserDetails);
 
     return (
         <View style={styles.container}>
-            <TouchableOpacityView onPress={() => NavigationService.goBack()} style={{ flexDirection: "row", alignItems: "center" }}>
-                <FastImage source={backIcon} resizeMode="contain" style={styles.backIcon} />
-                <FastImage source={matchChatUserDetails?.profilePicture?.url ? { uri: matchChatUserDetails?.profilePicture?.url } : profileImage} resizeMode="cover" style={styles.profileImage} />
-                <AppText type={TWELVE} weight={INTER_BOLD}>{"  "}{matchChatUserDetails?.name},
-                </AppText>
-                <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />
-            </TouchableOpacityView>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <TouchableOpacityView onPress={() => NavigationService.goBack()}>
+                    <FastImage source={backIcon} resizeMode="contain" style={styles.backIcon} />
+                </TouchableOpacityView>
+                <TouchableOpacityView style={{ flexDirection: "row", alignItems: "center" }} onPress={() => setTabSelect('Profile')}>
+                    <FastImage source={matchChatUserDetails?.profilePicture?.url ? { uri: matchChatUserDetails?.profilePicture?.url } : profileImage} resizeMode="cover" style={styles.profileImage} />
+                    <AppText type={TWELVE} weight={INTER_BOLD}>{"  "}{matchChatUserDetails?.name},
+                    </AppText>
+                    <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />
+                </TouchableOpacityView>
+            </View>
             <TouchableOpacityView style={{ padding: metrics.hp1 }} onPress={onPress}>
                 <FastImage source={treeDotIcon} resizeMode="contain" style={styles.threeDots} />
             </TouchableOpacityView>

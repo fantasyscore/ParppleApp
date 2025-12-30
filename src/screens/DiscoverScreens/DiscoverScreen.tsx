@@ -62,14 +62,14 @@ const DiscoverScreen = () => {
     const [profileData, setProfileData] = useState<any>(null);
     const [remainingSuperLikes, setRemainingSuperLikes] = useState(userData?.superLikesRemaining ?? 0);
     console.log(profileData, "profileData");
-    
+
     const subscriptionItem = useMemo(() => ({ id: '2', icon: goldCard, title: 'Gold' }), []);
 
     // Sync remaining super likes whenever user data updates
     useEffect(() => {
         setRemainingSuperLikes(userData?.superLikesRemaining ?? 0);
     }, [userData?.superLikesRemaining]);
-    
+
     const canSuperLike = useCallback(() => {
         if ((remainingSuperLikes ?? 0) <= 0) {
             NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
@@ -77,7 +77,7 @@ const DiscoverScreen = () => {
         }
         return true;
     }, [remainingSuperLikes, subscriptionItem]);
-    
+
     const datalist = [
         {
             id: "1",
@@ -96,6 +96,14 @@ const DiscoverScreen = () => {
             title: "Communities in Common",
         },
     ];
+    const dataCorrect = () => {
+        const { subscription } = userData || {};
+        const { perks = {}, plan } = subscription || {};
+        const canSeeLikes = perks?.canSeediscovery || plan !== "FREE";
+        let data: any[] = [];
+        data = discoverProfileData?.length ? discoverProfileData : [];
+        return data.map((item) => ({ ...item, see: canSeeLikes }));
+    }
     const viewProfile = (item: any, onlyheart: any) => {
         if (onlyheart) {
             let data = {
@@ -132,7 +140,7 @@ const DiscoverScreen = () => {
         });
 
         return (
-            <TouchableOpacityView key={item?._id} onPress={() => viewProfile(item, false)} activeOpacity={1}>
+            <TouchableOpacityView key={item?._id} onPress={() => item.see == false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem }) : viewProfile(item, false)} activeOpacity={1}>
                 <Animated.View
                     style={{
                         transform: [{ scale }],
@@ -141,6 +149,7 @@ const DiscoverScreen = () => {
                         marginRight: SPACING,
                     }}>
                     <ImageBackground
+                        blurRadius={item?.see == false ? metrics.hp7 : metrics.hp0}
                         resizeMode="cover"
                         imageStyle={{ borderRadius: metrics.hp1_5 }}
                         style={styles.discoverImage}
@@ -205,7 +214,11 @@ const DiscoverScreen = () => {
                                         </View>
                                     </View>
                                     <TouchableOpacityView onPress={() => {
-                                        if (!canSuperLike()) return;
+                                        if (item.see == false) {
+                                            NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem })
+                                            return;
+                                        }
+                                        else if (!canSuperLike()) return;
                                         setSuperLikeVisible(true);
                                         viewProfile(item, true);
                                     }} style={[styles.flasContaier]}>
@@ -222,7 +235,7 @@ const DiscoverScreen = () => {
     };
     const SimilarRender = ({ item, index }: any) => {
         return (
-            <TouchableOpacityView key={item?._id} onPress={() => viewProfile(item, false)} activeOpacity={1}>
+            <TouchableOpacityView key={item?._id} onPress={() => item.see == false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem }) : viewProfile(item, false)} activeOpacity={1}>
                 <Animated.View
                     style={{
                         marginLeft: index === 0 ? metrics.hp2_5 : 0,
@@ -230,6 +243,7 @@ const DiscoverScreen = () => {
                     }}>
                     <ImageBackground
                         resizeMode="cover"
+                        blurRadius={item?.see == false ? metrics.hp7 : metrics.hp0}
                         imageStyle={{ borderRadius: metrics.hp1_5 }}
                         style={styles.simlierImage}
                         source={{ uri: item?.profilePicture[0]?.url }}>
@@ -250,7 +264,11 @@ const DiscoverScreen = () => {
                                     />
                                 </View>
                                 <TouchableOpacityView onPress={() => {
-                                    if (!canSuperLike()) return;
+                                    if (item.see == false) {
+                                        NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem })
+                                        return;
+                                    }
+                                    else if (!canSuperLike()) return;
                                     setSuperLikeVisible(true);
                                     viewProfile(item, true);
                                 }} style={[styles.flasContaier, { marginLeft: metrics.hp1 }]}>
@@ -323,7 +341,7 @@ const DiscoverScreen = () => {
                 </View>
                 <View>
                     <Animated.FlatList
-                        data={discoverProfileData}
+                        data={dataCorrect()}
                         renderItem={discoverRender}
                         keyExtractor={(item) => item?._id}
                         horizontal
@@ -380,7 +398,7 @@ const DiscoverScreen = () => {
                         </TouchableOpacityView>
                     </View> */}
                     <FlatList
-                        data={discoverProfileData}
+                        data={dataCorrect()}
                         renderItem={SimilarRender}
                         keyExtractor={(item) => String(item?._id)}
                         horizontal
