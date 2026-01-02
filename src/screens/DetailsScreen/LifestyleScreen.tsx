@@ -15,7 +15,7 @@ import { NAVIGATION_ADCENTUOURS_SCREEN, NAVIGATION_DISTANCE_SCREEN } from "../..
 import NavigationService from "../../navigation/NavigationService";
 import { useDispatch, useSelector } from "react-redux";
 import { toastAlert } from "../../actions/UploadImageActions";
-import { setAddProfile } from "../../slices/loginServices/authSlice";
+import { setAddProfile, setfilterData } from "../../slices/loginServices/authSlice";
 import { editProfile } from "../../actions/authActions";
 
 const LifestyleScreen = ({ route }: any) => {
@@ -23,8 +23,11 @@ const LifestyleScreen = ({ route }: any) => {
     const filter = route?.params?.filter ?? "";
     const dataFilter = route?.params?.data ?? [];
     const ids = route?.params?.ids ?? [];
+    const isAdvanceFilter = route?.params?.isAdvanceFilter ?? false;
+    const advanceFilterKey = route?.params?.advanceFilterKey ?? "prefferedLifestyleAttributes";
     const attributes = useSelector((state: any) => state.auth.attributes);
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
+    const filterData = useSelector((state: any) => state?.auth?.filterData);
     const workout = attributes.find((item: any) => item._id === "workout");
     const smoke = attributes.find((item: any) => item._id === "smoke");
     const drink = attributes.find((item: any) => item._id === "drink");
@@ -59,11 +62,21 @@ const LifestyleScreen = ({ route }: any) => {
     };
     const onSubmit = () => {
         if (filter) {
-            const combined = [...ids, ...selectedCategories];
-            const dataToSave = {
-                attribute: combined,
-            };
-            dispatch(editProfile(dataToSave))
+            const combined = [...ids, ...selectedCategories].filter(Boolean);
+            if (isAdvanceFilter) {
+                const unique = Array.from(new Set(combined));
+                const dataToSave = {
+                    ...filterData,
+                    [advanceFilterKey]: unique,
+                };
+                dispatch(setfilterData(dataToSave));
+                NavigationService.goBack();
+            } else {
+                const dataToSave = {
+                    attribute: combined,
+                };
+                dispatch(editProfile(dataToSave))
+            }
         } else {
             if (selectedCategories.length != 4) return toastAlert.showToastError(`Please select ${4 - selectedCategories?.length} answer`);
             const dataToSave = {

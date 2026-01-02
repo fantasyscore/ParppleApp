@@ -3,7 +3,7 @@ import { AppSafeAreaView } from "../common/AppSafeAreaView";
 import { useDispatch } from "react-redux";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { USER_TOKEN_KEY } from "../helper/Constants";
-import { discoverProfile, getProfile, listProfiles } from "../actions/authActions";
+import { discoverProfile, getNewMatches, getProfile, listProfiles } from "../actions/authActions";
 import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_WELCOME_SCREEN } from "../navigation/routes";
 import FastImage from "react-native-fast-image";
@@ -24,6 +24,7 @@ const AuthLoding = () => {
           dispatch(listProfiles());
           dispatch(getProfile(true));
           dispatch(discoverProfile())
+          dispatch(getNewMatches())
         } else {
           NavigationService.navigate(NAVIGATION_WELCOME_SCREEN);
         }

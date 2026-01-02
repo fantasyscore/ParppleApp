@@ -22,6 +22,9 @@ import { getOtherProfile, userBlockAPI, userUnmatchAPI } from '../../actions/aut
 import { createSocket } from '../../common/Socket';
 import { appOperation } from '../../appOperation';
 import { ActivityIndicator } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { clearActiveChat, setActiveChatMatchId } from '../../slices/inAppNotificationSlice';
+import { chatHistoryDetails } from '../../slices/loginServices/authSlice';
 
 const USER_ID = 1;
 
@@ -50,6 +53,8 @@ const TakingScreen = () => {
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const hasLoadedInitialMessages = useRef(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
+    // Prevent "flash" of previous chat: only render messages that belong to the currently active matchId.
+    const [messagesOwnerMatchId, setMessagesOwnerMatchId] = useState<string | undefined>(matchChatUserDetails?.matchId);
     const [tabSelect, setTabSelect] = useState('Chat');
     const [inputText, setInputText] = useState('');
     const [emojiVisible, setEmojiVisible] = useState(false);
@@ -61,7 +66,60 @@ const TakingScreen = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
+    // WhatsApp-like: show chat instantly (no blocking loader overlay)
     const [isInitialLoading, setIsInitialLoading] = useState(false);
+
+    // Keep latest chat identifiers in refs so socket listeners never use stale chat context.
+    const activeMatchIdRef = useRef<string | undefined>(matchChatUserDetails?.matchId);
+    const activeOtherUserIdRef = useRef<string | undefined>(matchChatUserDetails?.userId);
+    const matchChatUserDetailsRef = useRef<any>(matchChatUserDetails);
+    const otherUserProfileRef = useRef<any>(otherUserProfile);
+    const userDataRef = useRef<any>(userData);
+
+    useEffect(() => {
+        activeMatchIdRef.current = matchChatUserDetails?.matchId;
+        activeOtherUserIdRef.current = matchChatUserDetails?.userId;
+        matchChatUserDetailsRef.current = matchChatUserDetails;
+    }, [matchChatUserDetails?.matchId, matchChatUserDetails?.userId, matchChatUserDetails]);
+
+    useEffect(() => {
+        otherUserProfileRef.current = otherUserProfile;
+    }, [otherUserProfile]);
+
+    useEffect(() => {
+        userDataRef.current = userData;
+    }, [userData]);
+
+    // Mandatory: strict message isolation when switching between chats
+    useEffect(() => {
+        if (!matchChatUserDetails?.matchId) return;
+        // Clear global chatHistory immediately to avoid stale redux data being applied to the new chat
+        dispatch(chatHistoryDetails([]));
+        setMessages([]);
+        setMessagesOwnerMatchId(matchChatUserDetails?.matchId);
+        setIsOtherUserTyping(false);
+        setTypingUserName('');
+        setEmojiVisible(false);
+        setInputText('');
+        setCurrentPage(1);
+        setHasMoreMessages(true);
+        setIsLoadingMore(false);
+        setIsInitialLoading(false);
+        hasLoadedInitialMessages.current = false;
+    }, [matchChatUserDetails?.matchId]);
+
+    // Global: mark which chat is currently open so in-app notifications can be suppressed for that chat user.
+    useFocusEffect(
+        useCallback(() => {
+            const matchId = matchChatUserDetails?.matchId;
+            if (matchId) {
+                dispatch(setActiveChatMatchId(matchId));
+            }
+            return () => {
+                dispatch(clearActiveChat());
+            };
+        }, [dispatch, matchChatUserDetails?.matchId])
+    );
 
     const transformChatHistoryToMessages = useCallback((history: any[]): ChatMessage[] => {
         if (!history || !Array.isArray(history) || history.length === 0) {
@@ -124,8 +182,30 @@ const TakingScreen = () => {
     }, [userData, otherUserProfile, matchChatUserDetails]);
 
     const transformedMessages = useMemo(() => {
-        return transformChatHistoryToMessages(chatHistory);
-    }, [chatHistory, transformChatHistoryToMessages]);
+        const activeMatchId = matchChatUserDetails?.matchId;
+        const scopedHistory = Array.isArray(chatHistory)
+            ? chatHistory.filter((m: any) => {
+                // If API provides matchId per message, enforce it; otherwise keep item.
+                if (!activeMatchId) return true;
+                if (m?.matchId) return String(m.matchId) === String(activeMatchId);
+                if (m?.conversationId) return String(m.conversationId) === String(activeMatchId);
+                return true;
+            })
+            : chatHistory;
+        return transformChatHistoryToMessages(scopedHistory as any);
+    }, [chatHistory, transformChatHistoryToMessages, matchChatUserDetails?.matchId]);
+
+    const displayedMessages = useMemo(() => {
+        const activeMatchId = matchChatUserDetails?.matchId;
+        if (!activeMatchId) return [];
+        return messagesOwnerMatchId === activeMatchId ? messages : [];
+    }, [messages, messagesOwnerMatchId, matchChatUserDetails?.matchId]);
+
+    const isChatTransitioning = useMemo(() => {
+        const activeMatchId = matchChatUserDetails?.matchId;
+        if (!activeMatchId) return false;
+        return messagesOwnerMatchId !== activeMatchId;
+    }, [messagesOwnerMatchId, matchChatUserDetails?.matchId]);
 
     const socketUrl = useMemo(() => {
         const currentUserId = userData?._id;
@@ -164,8 +244,43 @@ const TakingScreen = () => {
         const handleUserTyping = (response: any) => {
             console.log('User typing event received:', response);
             if (!response) return;
-            const isTyping = response.isTyping === true || response.isTyping === 'true';
-            const senderName = response.senderName || matchChatUserDetails?.name || 'Someone';
+            // Strict isolation (supports your payload):
+            // response.userId      -> the user who is typing (sender)
+            // response.otherUserId -> the user who should see this typing state (receiver / me)
+            const myUserId = userDataRef.current?._id;
+            const activeOtherUserId = activeOtherUserIdRef.current; // current chat partner id
+
+            const typingUserId =
+                response?.userId ||
+                response?.senderId ||
+                response?.sender?._id ||
+                response?.fromUserId;
+            const typingTargetUserId =
+                response?.otherUserId ||
+                response?.receiverId ||
+                response?.toUserId;
+
+            // If backend includes matchId/conversationId, enforce it.
+            const activeMatchId = activeMatchIdRef.current;
+            const incomingMatchId = response?.matchId || response?.conversationId;
+            if (activeMatchId && incomingMatchId && String(incomingMatchId) !== String(activeMatchId)) return;
+
+            // Only show typing for the currently open conversation partner
+            if (activeOtherUserId && typingUserId && String(typingUserId) !== String(activeOtherUserId)) return;
+            // Only if this typing event is intended for me
+            if (myUserId && typingTargetUserId && String(typingTargetUserId) !== String(myUserId)) return;
+            // Never show typing animation for yourself
+            if (myUserId && typingUserId && String(typingUserId) === String(myUserId)) return;
+
+            // Use exact field, but stay tolerant
+            const isTyping =
+                response.isTyping === true ||
+                response.isTyping === 'true' ||
+                response.typing === true ||
+                response.typing === 'true' ||
+                response.is_typing === true ||
+                response.is_typing === 'true';
+            const senderName = response.senderName || matchChatUserDetailsRef.current?.name || 'Someone';
             setIsOtherUserTyping(isTyping);
             setTypingUserName(senderName);
             if (isTyping) {
@@ -182,7 +297,7 @@ const TakingScreen = () => {
                         user: {
                             _id: 'typing-indicator-user',
                             name: senderName,
-                            avatar: matchChatUserDetails?.profilePicture?.[0]?.url || profileImage,
+                            avatar: matchChatUserDetailsRef.current?.profilePicture?.[0]?.url || profileImage,
                         },
                     };
                     return GiftedChat.append(prevMessages, [typingMessage]);
@@ -197,6 +312,14 @@ const TakingScreen = () => {
             console.log('Incoming message received:', response);
             if (!response) return;
             try {
+                // Strict isolation: ignore messages not meant for the active chat
+                const activeMatchId = activeMatchIdRef.current;
+                const activeOtherUserId = activeOtherUserIdRef.current;
+                const incomingMatchId = response?.matchId || response?.conversationId;
+                if (activeMatchId && incomingMatchId && String(incomingMatchId) !== String(activeMatchId)) {
+                    return;
+                }
+
                 // Extract message text - handle both string and object cases
                 let messageText = '';
                 if (typeof response.message === 'string') {
@@ -214,8 +337,8 @@ const TakingScreen = () => {
 
                 const isMine = response.isMine === true || response.isMine === 'true';
                 const avatar = isMine
-                    ? (userData?.profilePicture?.[0]?.url || userData?.gallery?.[0]?.url || profileImage)
-                    : (otherUserProfile?.profilePicture?.[0]?.url || matchChatUserDetails?.profilePicture?.[0]?.url || profileImage);
+                    ? (userDataRef.current?.profilePicture?.[0]?.url || userDataRef.current?.gallery?.[0]?.url || profileImage)
+                    : (otherUserProfileRef.current?.profilePicture?.[0]?.url || matchChatUserDetailsRef.current?.profilePicture?.[0]?.url || profileImage);
                 let createdAt: Date;
                 if (response.createdAt) {
                     createdAt = typeof response.createdAt === 'string'
@@ -230,7 +353,11 @@ const TakingScreen = () => {
                 }
                 const messageId = response._id || response.messageId || response.id || Date.now() + Math.random();
                 if (!isMine) {
-                    const userId = response.sender?._id || matchChatUserDetails?.userId || 'other';
+                    const incomingSenderId = response.sender?._id || response.senderId;
+                    if (activeOtherUserId && incomingSenderId && String(incomingSenderId) !== String(activeOtherUserId)) {
+                        return;
+                    }
+                    const userId = incomingSenderId || matchChatUserDetailsRef.current?.userId || 'other';
                     const newMessage: ChatMessage = {
                         _id: messageId,
                         text: String(messageText || ''), // Ensure text is always a string
@@ -243,7 +370,9 @@ const TakingScreen = () => {
                         },
                     };
                     setMessages((prevMessages) => {
-                        const updated = GiftedChat.append(prevMessages, [newMessage]);
+                        // If a real message arrives, typing should disappear immediately (WhatsApp-like)
+                        const withoutTyping = prevMessages.filter((msg) => msg._id !== 'typing-indicator');
+                        const updated = GiftedChat.append(withoutTyping, [newMessage]);
                         // Ensure messages are sorted by createdAt (newest first for GiftedChat)
                         return updated.sort((a, b) => {
                             const timeA = a.createdAt.getTime();
@@ -251,9 +380,9 @@ const TakingScreen = () => {
                             return timeB - timeA; // Descending (newest first)
                         });
                     });
-                    if (socket && matchChatUserDetails?.userId) {
+                    if (socket && matchChatUserDetailsRef.current?.userId) {
                         const payload = {
-                            senderId: matchChatUserDetails.userId,
+                            senderId: matchChatUserDetailsRef.current.userId,
                         };
                         socket.emit('mark_read', payload);
                     }
@@ -413,45 +542,20 @@ const TakingScreen = () => {
     }, [currentPage, isLoadingMore, hasMoreMessages, matchChatUserDetails?.userId, transformChatHistoryToMessages]);
 
     useEffect(() => {
-        // Only show loader on initial load (first time chatHistory becomes available)
-        if (!hasLoadedInitialMessages.current && chatHistory) {
-            // Show loader immediately when chatHistory is available
-            setIsInitialLoading(true);
-            hasLoadedInitialMessages.current = true;
-        }
-
+        // Always render instantly; just set messages when available.
         if (transformedMessages.length > 0) {
-            // Set messages immediately to prevent layout shift
             setMessages(transformedMessages);
-
-            // Hide loader after 1 second (smooth fade out)
-            const timer = setTimeout(() => {
-                setIsInitialLoading(false);
-            }, 1000);
-
-            // Reset pagination when chat history is loaded initially
+            setMessagesOwnerMatchId(matchChatUserDetails?.matchId);
             setCurrentPage(1);
-            // Assume more messages if we got 50 (or more) - this indicates there might be more pages
-            const hasMore = transformedMessages.length >= 50;
-            setHasMoreMessages(hasMore);
-
-            return () => clearTimeout(timer);
-        } else if (chatHistory && chatHistory.length === 0) {
-            // If chatHistory is empty array, hide loader after 1 second
-            const timer = setTimeout(() => {
-                setIsInitialLoading(false);
-            }, 1000);
+            setHasMoreMessages(transformedMessages.length >= 50);
+        } else if (Array.isArray(chatHistory) && chatHistory.length === 0) {
             setHasMoreMessages(true);
-            return () => clearTimeout(timer);
         }
+        // Ensure loader overlay never blocks UI
+        if (isInitialLoading) setIsInitialLoading(false);
     }, [transformedMessages, chatHistory]);
 
     useEffect(() => {
-        // Show loader immediately when screen opens (before messages load)
-        if (matchChatUserDetails?.userId && !hasLoadedInitialMessages.current) {
-            setIsInitialLoading(true);
-        }
-
         let data = {
             "userId": matchChatUserDetails?.userId
         };
@@ -465,6 +569,7 @@ const TakingScreen = () => {
     }, []);
 
     const onSend = useCallback((newMessages: ChatMessage[] = []) => {
+        setMessagesOwnerMatchId(matchChatUserDetails?.matchId);
         setMessages(prev => {
             const updated = GiftedChat.append(prev, newMessages);
             // Ensure messages are sorted by createdAt (newest first for GiftedChat)
@@ -508,6 +613,7 @@ const TakingScreen = () => {
         const isCurrentUser = props.currentMessage?.user?._id === userData?._id || props.currentMessage?.user?._id === USER_ID;
         const isRead = props.currentMessage?.isRead === true;
         const isTypingIndicator = props.currentMessage?._id === 'typing-indicator';
+
         if (isTypingIndicator) {
             return <TypingIndicatorBubble />;
         }
@@ -766,7 +872,7 @@ const TakingScreen = () => {
                 <View style={{ flex: 1 }}>
                     <View style={styles.containerChat}>
                         <GiftedChat
-                            messages={messages}
+                            messages={displayedMessages}
                             onSend={onSend}
                             user={{ _id: USER_ID, name: 'Gurrent User', avatar: profileImage }}
                             renderAvatar={renderAvatar}
@@ -791,15 +897,13 @@ const TakingScreen = () => {
                                 return null;
                             }}
                         />
+                        {isChatTransitioning && (
+                            <View style={styles.loaderContainer}>
+                                <ActivityIndicator size="large" color={colors.purple} />
+                            </View>
+                        )}
                     </View>
-                    {isInitialLoading && (
-                        <View style={styles.loaderContainer}>
-                            <ActivityIndicator size="large" color={colors.purple} />
-                            <AppText style={{ marginTop: metrics.hp1 }} type={FORTEEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                                Loading messages...
-                            </AppText>
-                        </View>
-                    )}
+                    {/* WhatsApp-like: no blocking loader overlay */}
                 </View> :
                 <View style={{ flex: 1 }}>
                     <ChatProfileScreen always={true} />

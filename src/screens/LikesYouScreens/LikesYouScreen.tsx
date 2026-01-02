@@ -26,7 +26,6 @@ const LikesYouScreen = () => {
     const [likeYoue, setlikeYou] = useState('Likes You');
     const [ViewYoue, setViewYou] = useState('Viewed You');
     const [profileData, setProfileData] = useState();
-    console.log(userData, "userDatauserData");
 
     useEffect(() => {
         dispatch(likeByOther());

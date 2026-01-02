@@ -60,6 +60,7 @@ import ReportCommonScreen from "../screens/ProfileScreens/ReportCommonScreen";
 import OtherReport from "../screens/ProfileScreens/OtherReport";
 import SuceesReporting from "../screens/ProfileScreens/SuceesReporting";
 import ToastMessage from "../common/ToastMessage";
+import GlobalNotificationManager from "../common/GlobalNotificationManager";
 import AuthLoding from "../screens/AuthLoding";
 import SuperLikeScreen from "../screens/HomeScreens/SuperLikeScreen";
 import PeopleScreen from "../screens/HomeScreens/HomeScreen";
@@ -161,6 +162,7 @@ const Navigator = () => {
     <NavigationContainer ref={(navigatorRef) => { NavigationService.setTopLevelNavigator(navigatorRef) }}>
       <RootStackScreen />
       <ToastMessage />
+      <GlobalNotificationManager />
     </NavigationContainer>
   );
 };

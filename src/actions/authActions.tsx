@@ -10,8 +10,6 @@ export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) =
     try {
         const response: any = await appOperation.guest.login(data);
         if (response?.statusCode == 200) {
-            console.log(response,"responseresponseresponseresponse");
-            
             toastAlert.showToastError(response.message);
             appOperation.setCustomerToken(response?.data?.tokenData?.token);
             await AsyncStorage.setItem(USER_TOKEN_KEY, response?.data?.tokenData?.token);
@@ -28,6 +26,38 @@ export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) =
             }
         } else {
             // toastAlert.showToastError(response.message);
+        }
+    } catch (error: any) {
+        toastAlert.showToastError(error);
+    }
+};
+export const sendOtpApi: any = (data: any, gmail: any) => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.guest.sendOtp(data);
+        if (response?.statusCode == 200) {
+            NavigationService.navigate(NAVIGATION_OTP_SCREEN, { PhoneNumber: data?.phoneNumber })
+        } else {
+        }
+    } catch (error: any) {
+        toastAlert.showToastError(error);
+    }
+};
+export const otpVerifyAPIOne: any = (data: any, gmail: any) => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.guest.otpVerifyAPI(data);
+        console.log(response,"responseresponseresponse");
+        
+        if (response?.statusCode == 200) {
+            toastAlert.showToastError(response.message);
+            appOperation.setCustomerToken(response?.data?.token);
+            await AsyncStorage.setItem(USER_TOKEN_KEY, response?.data?.token);
+            if (response?.data?.profileCleared) {
+                dispatch(listProfiles());
+                dispatch(getProfile(true));
+                dispatch(discoverProfile())
+            }
+        } else {
+            toastAlert.showToastError(response.message);
         }
     } catch (error: any) {
         toastAlert.showToastError(error);
@@ -231,12 +261,14 @@ export const userBlockAPI: any = (data:any) => async (dispatch: any) => {
         // toastAlert.showToastError(error);
     }
 };
-export const chatHistoryAPI: any = (data:any,params:any) => async (dispatch: any) => {
+export const chatHistoryAPI: any = (data:any,params:any, shouldNavigate: boolean = true) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.chatHistortAPI(data,params);
         if (response?.statusCode == 200) {
             dispatch(chatHistoryDetails(response.data))
-            NavigationService.navigate(NAVIGATION_TAKING_SCREEN)
+            if (shouldNavigate) {
+                NavigationService.navigate(NAVIGATION_TAKING_SCREEN)
+            }
         }
     } catch (error: any) {
 
@@ -249,6 +281,32 @@ export const subscriptionVerifyAPI: any = (data:any,params:any) => async (dispat
         if (response?.statusCode == 200) {
             // Keep existing toast behavior, but ensure we pass a readable string.
             toastAlert.showToastError(response?.message || "Subscription verified and activated");
+        }
+        return response;
+    } catch (error: any) {
+
+        // toastAlert.showToastError(error);
+        throw error;
+    }
+};
+export const sendCrushNotesAPI: any = (data:any,params:any) => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.crushnotesSenderAPI(data);
+        if (response?.statusCode == 200) {
+            console.log(response,"responseresponseresponse")
+        }
+        return response;
+    } catch (error: any) {
+
+        // toastAlert.showToastError(error);
+        throw error;
+    }
+};
+export const sendAdvanceFilter: any = (data:any,params:any) => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.advanceFilterAPI(data);
+        if (response?.statusCode == 200) {
+            console.log(response,"responseresponseresponse")
         }
         return response;
     } catch (error: any) {

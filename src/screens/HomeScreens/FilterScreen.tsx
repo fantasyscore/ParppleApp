@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { ScrollView, StyleSheet, View } from "react-native";
 import HeaderCommon from "../../common/HeaderCommon";
@@ -7,28 +7,38 @@ import { AppText, INTER_BOLD, INTER_MEDIUM, OPECITY, PURPLE, THIRTEEN } from "..
 import { colors } from "../../theme/colors";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import ButtonSheet from "../../common/ButtonSheet";
-import { advantureIcob, ageBox, childrenIcon, dateIcon, drikingIcon, familyIcon, moonIcon, partnerheart, personHeartIcon, politicalIcon, religiousIcon, schoolIcon, smookingIcon, social_distanceIcon, straightenIcon, verifyBlack, workoutIcon } from "../../helper/ImageAssets";
+import { advantureIcob, ageBox, childrenIcon, dateIcon, drikingIcon, familyIcon, langIcon, moonIcon, partnerheart, personHeartIcon, politicalIcon, religiousIcon, schoolIcon, smookingIcon, social_distanceIcon, straightenIcon, verifyBlack, workoutIcon } from "../../helper/ImageAssets";
 import AgeSlider from "../../common/AgeSlider";
 import PurpuleButton from "../../common/PurpuleButton";
 import CheckBoxlist from "../../common/CheckBoxList";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_ADCENTUOURS_SCREEN, NAVIGATION_CHILDERN_SCREEN, NAVIGATION_COMMONSELECT_PAGE_SCREEN, NAVIGATION_EDUCATION_SCREEN, NAVIGATION_FAMILY_PLANING_SCREEN, NAVIGATION_LANGUAGE_SPEAK_SCREEN, NAVIGATION_LIFE_STYLE_SCREEN, NAVIGATION_PERSONAL_INTEREST_SCREEN, NAVIGATION_POLITICAL_SCREEN, NAVIGATION_RELATION_SCREEN, NAVIGATION_RELIGIOUS_SCREEN, NAVIGATION_ZODIACSING_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_ADCENTUOURS_SCREEN, NAVIGATION_CHILDERN_SCREEN, NAVIGATION_COMMONSELECT_PAGE_SCREEN, NAVIGATION_EDUCATION_SCREEN, NAVIGATION_FAMILY_PLANING_SCREEN, NAVIGATION_HEIGHT_SCREEN, NAVIGATION_LANGUAGE_SPEAK_SCREEN, NAVIGATION_LIFE_STYLE_SCREEN, NAVIGATION_PERSONAL_INTEREST_SCREEN, NAVIGATION_POLITICAL_SCREEN, NAVIGATION_RELATION_SCREEN, NAVIGATION_RELIGIOUS_SCREEN, NAVIGATION_ZODIACSING_SCREEN } from "../../navigation/routes";
 import { DrinkData, ExerciseData, ganderDATA, LanguageData, LookignForData, relationShipStatus, SmokeData, womenData } from "../../common/UiltData";
 import { useDispatch, useSelector } from "react-redux";
-import { attributesGet, editFilter } from "../../actions/authActions";
+import { attributesGet, discoverProfile, getNewMatches, sendAdvanceFilter } from "../../actions/authActions";
+import { appOperation } from "../../appOperation";
 
 const FilterScreen = () => {
     const dispatch = useDispatch();
     const userData = useSelector((state: any) => state.auth.userData);
     const filterData = useSelector((state: any) => state.auth.filterData);
+    const attributes = useSelector((state: any) => state.auth.attributes);
+    const subscriptionPlan = userData?.subscription?.plan;
+    const subscriptionExpiresAt = userData?.subscription?.expiresAt;
+    const hasActiveSubscription =
+        !!subscriptionPlan &&
+        subscriptionPlan !== "FREE" &&
+        (!subscriptionExpiresAt || new Date(subscriptionExpiresAt).getTime() > Date.now());
     const [tabSelect, setTabSelect] = useState("Basic");
-    const [ageRange, setAgeRange] = useState([18, 45]);
+    const [ageRange, setAgeRange] = useState(
+        userData?.preferredAgeRange 
+            ? [userData.preferredAgeRange.min, userData.preferredAgeRange.max]
+            : [18, 45]
+    );
     const [klMiter, setKlMiter] = useState(userData?.preferredDistanceKm ? [userData?.preferredDistanceKm] : [1]);
     const [lookingShow, setlookinShow] = useState(false);
     const [kiloKMShow, setkiloKMShow] = useState(userData?.globalSearch ? userData?.globalSearch : false);
     const [verifiedTogle, setVerifiedTogel] = useState(false);
-    const [heightRange, setHeightRange] = useState([18, 45]);
-    const [heightTogle, setHeightTogel] = useState(false);
     const [selectRelationType, setSelectRealtionType] = useState(userData ? userData?.relationshipPreference : "")
     const [lookingForToggle, setLookingForToggle] = useState(false);
     const attributesRemove = userData?.attributes?.filter((item: any) =>
@@ -70,19 +80,170 @@ const FilterScreen = () => {
         },
     ];
 
-    const onSubmit = () => {
+    const onSubmitBasic = async () => {
         const data = {
-            "preferredGender": filterData?.preferredGender ? filterData?.preferredGender : userData?.preferredGender,
-            "relationshipPreference": filterData?.relationshipPreference ? filterData?.relationshipPreference : filterData?.relationsShipStatus,
+            "preferredGender": filterData?.preferredGender || userData?.preferredGender,
+            "relationshipPreference": filterData?.relationshipPreference || userData?.relationshipPreference || userData?.relationsShipStatus,
             "preferredAgeRange": {
                 "min": ageRange[0],
                 "max": ageRange[1]
             },
             "preferredDistanceKm": klMiter[0],
             "globalSearch": kiloKMShow,
+            "languagePrefrence": userData?.languagePrefrence || [],
         };
-        dispatch(editFilter(data))
-    }
+        
+        try {
+            const response: any = await appOperation.customer.editFilterAPI(data);
+            if (response?.statusCode === 200) {
+                // Dispatch discoverProfile and getNewMatches after successful filter update
+                dispatch(discoverProfile());
+                dispatch(getNewMatches());
+                // Navigate back
+                NavigationService.goBack();
+            }
+        } catch (error) {
+            console.log("Error updating filter:", error);
+        }
+    };
+
+    const onSubmitAdvance = async () => {
+        // Build advanced filter payload aligned with profile data + any updates user made on this screen
+        const interestsIdsRaw = filterData?.prefferedInterestAttributes ?? [];
+        const adventureIdsRaw = filterData?.prefferedAdventureAttributes ?? [];
+        const lifestyleIdsRaw = filterData?.prefferedLifestyleAttributes ?? [];
+
+        const normalizeIds = (raw: any) =>
+            Array.isArray(raw) ? raw.map((x: any) => (typeof x === "string" ? x : x?._id)).filter(Boolean) : [];
+
+        const interestsIds = normalizeIds(interestsIdsRaw);
+        const adventureIds = normalizeIds(adventureIdsRaw);
+        const lifestyleIds = normalizeIds(lifestyleIdsRaw);
+
+        const combinedPreferredAttributes = Array.from(new Set([
+            ...normalizeIds(userData?.prefferedAttributes ?? []),
+            ...interestsIds,
+            ...adventureIds,
+            ...lifestyleIds,
+        ]));
+
+        const advancefilter = {
+            preferredGender: filterData?.preferredGender || userData?.preferredGender || "",
+            relationshipPreference:
+                filterData?.relationshipPreference || userData?.relationshipPreference || userData?.relationsShipStatus || "",
+            preferredAgeRange: {
+                min: String(ageRange?.[0] ?? userData?.preferredAgeRange?.min ?? ""),
+                max: String(ageRange?.[1] ?? userData?.preferredAgeRange?.max ?? ""),
+            },
+            preferredDistanceKm: String(klMiter?.[0] ?? userData?.preferredDistanceKm ?? ""),
+            languagePrefrence: userData?.languagePrefrence || [],
+            prefferredHeights: filterData?.prefferredHeights || userData?.height || "",
+            prefferedEducation: userData?.education || "",
+            prefferedAttributes: combinedPreferredAttributes,
+            prefferedRelationGoals: selectRelationType || "",
+            filterZodiac: userData?.zodiaSign || "",
+            relegiousPreference: Array.isArray(userData?.relegiousPreference)
+                ? (userData?.relegiousPreference?.[0] || "")
+                : (userData?.relegiousPreference || ""),
+            preferedChildren: userData?.children || "",
+            filterRelationShip: userData?.relationsShipStatus || "",
+        };
+
+        try {
+            const response: any = await dispatch(sendAdvanceFilter(advancefilter));
+            if (response?.statusCode === 200) {
+                dispatch(discoverProfile());
+                dispatch(getNewMatches());
+                NavigationService.goBack();
+            }
+        } catch (error) {
+            console.log("Error applying advance filter:", error);
+        }
+    };
+
+    const preferredInterestIds: string[] = useMemo(() => {
+        const raw = filterData?.prefferedInterestAttributes;
+        if (!Array.isArray(raw)) return [];
+        return raw.map((x: any) => (typeof x === "string" ? x : x?._id)).filter(Boolean);
+    }, [filterData?.prefferedInterestAttributes]);
+
+    const preferredAdventureIds: string[] = useMemo(() => {
+        const raw = filterData?.prefferedAdventureAttributes;
+        if (!Array.isArray(raw)) return [];
+        return raw.map((x: any) => (typeof x === "string" ? x : x?._id)).filter(Boolean);
+    }, [filterData?.prefferedAdventureAttributes]);
+
+    const preferredLifestyleIds: string[] = useMemo(() => {
+        const raw = filterData?.prefferedLifestyleAttributes;
+        if (!Array.isArray(raw)) return [];
+        return raw.map((x: any) => (typeof x === "string" ? x : x?._id)).filter(Boolean);
+    }, [filterData?.prefferedLifestyleAttributes]);
+
+    const attrMetaById = useMemo(() => {
+        const map = new Map<string, { label: string; groupId: string }>();
+        if (!Array.isArray(attributes)) return map;
+        for (const group of attributes) {
+            const groupId = group?._id;
+            const list = group?.attributes;
+            if (!groupId || !Array.isArray(list)) continue;
+            for (const attr of list) {
+                const id = attr?._id;
+                const label = attr?.displayLabel || attr?.title;
+                if (id && label) map.set(id, { label, groupId });
+            }
+        }
+        return map;
+    }, [attributes]);
+
+    const selectedLabels = useMemo(() => {
+        return [...preferredInterestIds, ...preferredAdventureIds, ...preferredLifestyleIds]
+            .map((id) => {
+                const label = attrMetaById.get(id)?.label;
+                if (!label) return undefined;
+                return label.startsWith("#") ? label.slice(1) : label;
+            })
+            .filter(Boolean) as string[];
+    }, [preferredInterestIds, preferredAdventureIds, preferredLifestyleIds, attrMetaById]);
+
+    const interestsTitle = useMemo(() => {
+        const labels = preferredInterestIds
+            .map((id) => attrMetaById.get(id)?.label)
+            .filter(Boolean)
+            .map((l: any) => (typeof l === "string" && l.startsWith("#") ? l.slice(1) : l));
+        if (labels.length > 0) {
+            const top = labels.slice(0, 2).join(", ");
+            return labels.length > 2 ? `${top} +${labels.length - 2}` : top;
+        }
+        return preferredInterestIds.length > 0 ? `${preferredInterestIds.length} selected` : "Select";
+    }, [preferredInterestIds, attrMetaById]);
+
+    const adventureTitle = useMemo(() => {
+        const labels = preferredAdventureIds
+            .map((id) => attrMetaById.get(id)?.label)
+            .filter(Boolean)
+            .map((l: any) => (typeof l === "string" && l.startsWith("#") ? l.slice(1) : l));
+        if (labels.length > 0) {
+            const top = labels.slice(0, 2).join(", ");
+            return labels.length > 2 ? `${top} +${labels.length - 2}` : top;
+        }
+        return preferredAdventureIds.length > 0 ? `${preferredAdventureIds.length} selected` : "Select";
+    }, [preferredAdventureIds, attrMetaById]);
+
+    const smokeTitle = useMemo(() => {
+        const id = preferredLifestyleIds.find((x) => attrMetaById.get(x)?.groupId === "smoke");
+        return id ? (attrMetaById.get(id)?.label || "Select") : "Select";
+    }, [preferredLifestyleIds, attrMetaById]);
+
+    const drinkTitle = useMemo(() => {
+        const id = preferredLifestyleIds.find((x) => attrMetaById.get(x)?.groupId === "drink");
+        return id ? (attrMetaById.get(id)?.label || "Select") : "Select";
+    }, [preferredLifestyleIds, attrMetaById]);
+
+    const workoutTitle = useMemo(() => {
+        const id = preferredLifestyleIds.find((x) => attrMetaById.get(x)?.groupId === "workout");
+        return id ? (attrMetaById.get(id)?.label || "Select") : "Select";
+    }, [preferredLifestyleIds, attrMetaById]);
+    
 
     return (
         <AppSafeAreaView>
@@ -114,17 +275,21 @@ const FilterScreen = () => {
                             togleShow={lookingShow}
                             setToggleShow={setlookinShow}
                             innerUpertitle={"Between"}
-                            underTitle={"Show people beyond my preference"} setRange={setAgeRange} Icons={ageBox} headLines={"What are you looking for?"} />
+                            underTitle={"Show people beyond my preference"} setRange={setAgeRange} Icons={ageBox} headLines={"How Old are you looking for?"}
+                            min={18}
+                            max={70} />
                         <AgeSlider range={klMiter}
                             togleShow={kiloKMShow}
                             setToggleShow={setkiloKMShow}
                             innerUpertitle={"Upto Kilometers"}
                             underTitle={"Show people beyond my preference"} setRange={setKlMiter} Icons={social_distanceIcon} headLines={"How far are you looking for?"}
-                            singleSilde={true} />
-                        <ButtonSheet Icons={social_distanceIcon} headLines={"What’s your preferred language they speak?"}
+                            singleSilde={true}
+                            min={1}
+                            max={200} />
+                        <ButtonSheet Icons={langIcon} headLines={"What’s your preferred language they speak?"}
                             titile={"Add Language"}
-                            data={userData?.languages}
-                            onPress={() => NavigationService.navigate(NAVIGATION_LANGUAGE_SPEAK_SCREEN, { filter: "Add Language", data: userData?.languages, fieldVisibility: userData?.fieldVisibility })} />
+                            data={userData?.languagePrefrence}
+                            onPress={() => NavigationService.navigate(NAVIGATION_LANGUAGE_SPEAK_SCREEN, { filter: "Add Language", data: userData?.languagePrefrence, fieldVisibility: userData?.fieldVisibility })} />
                         {/* onPress={() => NavigationService.navigate(NAVIGATION_COMMONSELECT_PAGE_SCREEN, { headline: "Language they speak", data: LanguageData, secondHeadline: "Select your preferred language they speak." })} /> */}
                     </View>
                     :
@@ -133,21 +298,37 @@ const FilterScreen = () => {
                             titile={"Verified Only"} togleTure={true}
                             togleShow={verifiedTogle}
                             setToggleShow={setVerifiedTogel} />
-                        <AgeSlider
-                            height={true}
-                            range={heightRange}
-                            togleShow={heightTogle}
-                            setToggleShow={setHeightTogel}
-                            innerUpertitle={"Between"}
-                            underTitle={"Show people beyond my preference"} setRange={setHeightRange} Icons={straightenIcon} headLines={"How Tall are they?"} />
+                        <ButtonSheet
+                            Icons={straightenIcon}
+                            headLines={"Preferred height (FT)"}
+                            titile={filterData?.prefferredHeights || userData?.height || "Select"}
+                            onPress={() =>
+                                NavigationService.navigate(NAVIGATION_HEIGHT_SCREEN, {
+                                    filter: "Preferred height",
+                                    data: filterData?.prefferredHeights || userData?.height,
+                                    onlyFt: true,
+                                    isAdvanceFilter: true,
+                                })
+                            }
+                        />
                         <CheckBoxlist Icons={partnerheart} headLines={"What are they looking for?"}
                             listdata={lookingList} visible={selectRelationType} onClick={setSelectRealtionType}
                             underTitle={"Show people beyond my preference"}
                             togleShow={lookingForToggle}
+                            notshow={true}
                             setToggleShow={setLookingForToggle} />
                         <ButtonSheet Icons={personHeartIcon} headLines={"What are their interests?"}
-                            titile={"Select"}
-                            onPress={() => NavigationService.navigate(NAVIGATION_PERSONAL_INTEREST_SCREEN, { filter: "What are their interests" })} />
+                            titile={interestsTitle}
+                            onPress={() => {
+                                dispatch(attributesGet());
+                                NavigationService.navigate(NAVIGATION_PERSONAL_INTEREST_SCREEN, {
+                                    filter: "What are their interests",
+                                    data: (filterData?.prefferedInterestAttributes || []).map((id: any) => ({ _id: id })),
+                                    ids: filterData?.prefferedInterestAttributes || [],
+                                    isAdvanceFilter: true,
+                                    advanceFilterKey: "prefferedInterestAttributes",
+                                });
+                            }} />
                         <ButtonSheet Icons={partnerheart} headLines={"What’s their relationship status?"}
                             titile={userData?.relationsShipStatus ? userData?.relationsShipStatus : "Select"}
                             onPress={() => NavigationService.navigate(NAVIGATION_RELATION_SCREEN, { filter: "What’s their relationship status", data: userData?.relationsShipStatus })} />
@@ -158,8 +339,17 @@ const FilterScreen = () => {
                             titile={userData?.children ? userData?.children : "Select"}
                             onPress={() => NavigationService.navigate(NAVIGATION_CHILDERN_SCREEN, { filter: "Do they have kids", data: userData?.children, })} />
                         <ButtonSheet Icons={advantureIcob} headLines={"What’s their adventurous life?"}
-                            titile={"Select"}
-                            onPress={() => NavigationService.navigate(NAVIGATION_ADCENTUOURS_SCREEN, { filter: "What’s their adventurous life" })} />
+                            titile={adventureTitle}
+                            onPress={() => {
+                                dispatch(attributesGet());
+                                NavigationService.navigate(NAVIGATION_ADCENTUOURS_SCREEN, {
+                                    filter: "What’s their adventurous life",
+                                    data: (filterData?.prefferedAdventureAttributes || []).map((id: any) => ({ _id: id })),
+                                    ids: filterData?.prefferedAdventureAttributes || [],
+                                    isAdvanceFilter: true,
+                                    advanceFilterKey: "prefferedAdventureAttributes",
+                                });
+                            }} />
                         <ButtonSheet Icons={religiousIcon} headLines={"What’s their religion?"}
                             titile={userData?.relegiousBelief?.length ? userData?.relegiousBelief
                                 ?.map((item: any, index: any) =>
@@ -171,21 +361,53 @@ const FilterScreen = () => {
                             titile={userData?.education ? userData?.education : "Select"}
                             onPress={() => NavigationService.navigate(NAVIGATION_EDUCATION_SCREEN, { filter: "What’s their highest education level", data: userData?.education })} />
                         <ButtonSheet Icons={workoutIcon} headLines={"Do they exercise?"}
-                            titile={workout?.displayLabel ? workout?.displayLabel : "Select"}
-                            onPress={() => { dispatch(attributesGet()), NavigationService.navigate(NAVIGATION_LIFE_STYLE_SCREEN, { filter: "Do they exercise", data: attributesRemove }) }} />
+                            titile={workoutTitle}
+                            onPress={() => {
+                                dispatch(attributesGet());
+                                NavigationService.navigate(NAVIGATION_LIFE_STYLE_SCREEN, {
+                                    filter: "Lifestyle",
+                                    data: (filterData?.prefferedLifestyleAttributes || []).map((id: any) => ({ _id: id })),
+                                    ids: filterData?.prefferedLifestyleAttributes || [],
+                                    isAdvanceFilter: true,
+                                    advanceFilterKey: "prefferedLifestyleAttributes",
+                                });
+                            }} />
                         <ButtonSheet Icons={smookingIcon} headLines={"Do they smoke?"}
-                            titile={smoke?.displayLabel ? smoke?.displayLabel : "Select"}
-                            onPress={() => { dispatch(attributesGet()), NavigationService.navigate(NAVIGATION_LIFE_STYLE_SCREEN, { filter: "Do they smoke?", data: attributesRemove }) }} />
+                            titile={smokeTitle}
+                            onPress={() => {
+                                dispatch(attributesGet());
+                                NavigationService.navigate(NAVIGATION_LIFE_STYLE_SCREEN, {
+                                    filter: "Lifestyle",
+                                    data: (filterData?.prefferedLifestyleAttributes || []).map((id: any) => ({ _id: id })),
+                                    ids: filterData?.prefferedLifestyleAttributes || [],
+                                    isAdvanceFilter: true,
+                                    advanceFilterKey: "prefferedLifestyleAttributes",
+                                });
+                            }} />
                         <ButtonSheet Icons={drikingIcon} headLines={"Do they drink?"}
-                            titile={drink?.displayLabel ? drink?.displayLabel : "Select"}
-                            onPress={() => { dispatch(attributesGet()), NavigationService.navigate(NAVIGATION_LIFE_STYLE_SCREEN, { filter: "Do they drink", data: attributesRemove }) }} />
+                            titile={drinkTitle}
+                            onPress={() => {
+                                dispatch(attributesGet());
+                                NavigationService.navigate(NAVIGATION_LIFE_STYLE_SCREEN, {
+                                    filter: "Lifestyle",
+                                    data: (filterData?.prefferedLifestyleAttributes || []).map((id: any) => ({ _id: id })),
+                                    ids: filterData?.prefferedLifestyleAttributes || [],
+                                    isAdvanceFilter: true,
+                                    advanceFilterKey: "prefferedLifestyleAttributes",
+                                });
+                            }} />
                         <ButtonSheet Icons={moonIcon} headLines={"What’s their zodiac sign?"}
                             titile={userData?.zodiaSign ? userData?.zodiaSign : "Select"}
                             onPress={() => NavigationService.navigate(NAVIGATION_ZODIACSING_SCREEN, { filter: "What’s their zodiac sign", data: userData?.zodiaSign, })} />
                     </View>
                 }
             </ScrollView>
-            <PurpuleButton onPress={onSubmit} title={tabSelect == "Advance" ? "Unlock with Premium" : "Apply"} tabSelect={tabSelect} />
+            <PurpuleButton
+                disabled={tabSelect == "Advance" ? !hasActiveSubscription : false}
+                onPress={tabSelect == "Advance" ? (hasActiveSubscription ? onSubmitAdvance : undefined) : onSubmitBasic}
+                title={tabSelect == "Advance" ? (hasActiveSubscription ? "Apply" : "Unlock with Premium") : "Apply"}
+                tabSelect={tabSelect}
+            />
         </AppSafeAreaView>
     )
 };

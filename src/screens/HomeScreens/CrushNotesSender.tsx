@@ -16,6 +16,7 @@ import { interMedium } from "../../theme/typography";
 const { width, height } = Dimensions.get("window");
 const COLLAPSED_IMAGE_HEIGHT = height * 0.45;
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { sendCrushNotesAPI } from "../../actions/authActions";
 
 const CrushNotesSender = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setSwipeLeft, setProfileData, discover, setSuperLikeVisible, canSuperLike }: any) => {
     const dispatch = useDispatch();
@@ -74,84 +75,110 @@ const CrushNotesSender = ({ data, setModalVisible, setSwipeRight, setSwipeUp, se
             keyboardDidHideListener.remove();
         };
     }, []);
-
+    const sendCrushNote = async () => {
+        if (!inputText.trim()) return;
+        
+        const datasend = {
+            receiverId: data?._id,
+            message: inputText
+        };
+        
+        try {
+            const response = await dispatch(sendCrushNotesAPI(datasend));
+            
+            if (response?.statusCode === 200) {
+                // First set swipeRight to true (this will trigger the swipe animation and like action when modal closes)
+                if (setSwipeRight) {
+                    setSwipeRight(true);
+                }
+                
+                // Close modal - the HomeScreen's useEffect will handle the swipe animation and like action
+                if (setModalVisible) {
+                    setModalVisible(false);
+                }
+            }
+        } catch (error) {
+            console.log("Error sending crush note:", error);
+        }
+    }
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : undefined}
             style={styles.container}
             keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
         >
-        <AppSafeAreaView>
+            <AppSafeAreaView>
                 <CrushNotesHeader name={discover ? data?.firstName : data?.name} age={data?.age} setModalVisible={setModalVisible} />
-            <ImageBackground source={crushNoteBack} resizeMode={"cover"} style={styles.imageContainer}>
+                <ImageBackground source={crushNoteBack} resizeMode={"cover"} style={styles.imageContainer}>
                     <KeyboardAwareScrollView
                         enableOnAndroid={true}
                         extraScrollHeight={Platform.OS === "ios" ? 40 : metrics.hp20}
                         keyboardShouldPersistTaps="handled"
-                    contentContainerStyle={{ paddingBottom: metrics.hp20, flexGrow: 1 }}
+                        contentContainerStyle={{ paddingBottom: metrics.hp20, flexGrow: 1 }}
                         showsVerticalScrollIndicator={false}
                     >
                         <View style={{ paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp2 }}>
-                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                        <FastImage source={shareRedIcon} resizeMode="contain" style={styles.shareIcon} />
-                        <AppText type={SIXTEEN} weight={SCHEHERAZADE_SEMI_BOLD}>
-                            {"  "}Send Crush Note
-                        </AppText>
-                    </View>
-                    <View style={{ alignItems: "center", justifyContent: "center" }}>
-                        <AppText weight={SCHEHERAZADE_BOLD} type={TWENTY}>
-                                    "Turn Every Crush into a Real
-                        </AppText>
-                        <AppText style={{ marginTop: -metrics.hp2_5 }} weight={SCHEHERAZADE_BOLD} type={TWENTY}>Chance — 4x More Connections!</AppText>
-                    </View>
-                    <TouchableOpacityView
-                        activeOpacity={1}
-                        onPress={(evt) => handleTap(evt, data)}
-                        delayPressIn={0}
-                        onLayout={(e) => {
-                            const layout = e?.nativeEvent?.layout;
-                            if (layout?.width) cardWidthRef.current = layout.width;
-                        }}>
-                        <ImageBackground
-                            imageStyle={{ borderRadius: metrics.hp2 }}
-                            source={{ uri: data?.gallery?.[data?.index]?.url }}
-                            style={[styles.image, { height: COLLAPSED_IMAGE_HEIGHT }]}
-                            resizeMode="cover">
-                            <View style={styles.paginationContainer}>
-                                {data?.gallery?.map((_: any, i: number) => (
-                                    <View
-                                        key={i}
-                                        style={[
-                                            styles.paginationBar,
-                                            {
-                                                opacity: i === data?.index ? 1 : 0.3,
-                                                backgroundColor:
-                                                    i === data?.index ? colors.white : "gray",
-                                            },
-                                        ]}
-                                    />
-                                ))}
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <FastImage source={shareRedIcon} resizeMode="contain" style={styles.shareIcon} />
+                                <AppText type={SIXTEEN} weight={SCHEHERAZADE_SEMI_BOLD}>
+                                    {"  "}Send Crush Note
+                                </AppText>
                             </View>
-                        </ImageBackground>
-                    </TouchableOpacityView>
-                    <ProfileBottomDetails visibleCards={data} discover={discover} share={true} />
+                            <View style={{ alignItems: "center", justifyContent: "center" }}>
+                                <AppText weight={SCHEHERAZADE_BOLD} type={TWENTY}>
+                                    "Turn Every Crush into a Real
+                                </AppText>
+                                <AppText style={{ marginTop: -metrics.hp2_5 }} weight={SCHEHERAZADE_BOLD} type={TWENTY}>Chance — 4x More Connections!</AppText>
+                            </View>
+                            <TouchableOpacityView
+                                activeOpacity={1}
+                                onPress={(evt) => handleTap(evt, data)}
+                                delayPressIn={0}
+                                onLayout={(e) => {
+                                    const layout = e?.nativeEvent?.layout;
+                                    if (layout?.width) cardWidthRef.current = layout.width;
+                                }}>
+                                <ImageBackground
+                                    imageStyle={{ borderRadius: metrics.hp2 }}
+                                    source={{ uri: data?.gallery?.[data?.index]?.url }}
+                                    style={[styles.image, { height: COLLAPSED_IMAGE_HEIGHT }]}
+                                    resizeMode="cover">
+                                    <View style={styles.paginationContainer}>
+                                        {data?.gallery?.map((_: any, i: number) => (
+                                            <View
+                                                key={i}
+                                                style={[
+                                                    styles.paginationBar,
+                                                    {
+                                                        opacity: i === data?.index ? 1 : 0.3,
+                                                        backgroundColor:
+                                                            i === data?.index ? colors.white : "gray",
+                                                    },
+                                                ]}
+                                            />
+                                        ))}
+                                    </View>
+                                </ImageBackground>
+                            </TouchableOpacityView>
+                            <ProfileBottomDetails visibleCards={data} discover={discover} share={true} />
                         </View>
                     </KeyboardAwareScrollView>
                 </ImageBackground>
                 <View style={[styles.inputContainer, { bottom: keyboardHeight }]}>
-            <View style={styles.inputContainerType}>
-                <TextInput
-                    style={styles.textInput}
-                    value={inputText}
-                    onChangeText={setInputText}
-                    placeholder="Type a message..."
-                    multiline
-                />
-            </View>
-            <TouchableOpacityView
-                style={styles.sendButton}>
-                <FastImage source={sendButton} resizeMode='contain' style={{ height: metrics.hp3, width: metrics.hp3 }} />
-            </TouchableOpacityView>
+                    <View style={styles.inputContainerType}>
+                        <TextInput
+                            style={styles.textInput}
+                            value={inputText}
+                            onChangeText={setInputText}
+                            placeholder="Type a message..."
+                            multiline
+                        />
+                    </View>
+                    <TouchableOpacityView
+                    onPress={sendCrushNote}
+                        style={styles.sendButton}>
+                        <FastImage source={sendButton} resizeMode='contain' style={{ height: metrics.hp3, width: metrics.hp3 }} />
+                    </TouchableOpacityView>
                 </View>
             </AppSafeAreaView>
         </KeyboardAvoidingView>

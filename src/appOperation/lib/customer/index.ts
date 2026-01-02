@@ -41,6 +41,10 @@ export default (appOperation: AppOperation) => ({
     appOperation.post(`chat/conversation?page=${params?.page}&limit=${params?.limit}`, data, CUSTOMER_TYPE),
   subscriptionverifyAPI: (data: any) =>
     appOperation.post(`subscription/verify`, data, CUSTOMER_TYPE),
+  crushnotesSenderAPI: (data: any) =>
+    appOperation.post(`api/v1/crush-note/send`, data, CUSTOMER_TYPE),
+  advanceFilterAPI: (data: any) =>
+    appOperation.post(`dattingApp/users/advance-filters`, data, CUSTOMER_TYPE),
   // Alternative: If API requires POST instead of GET
   // loadChatMessagesAPI: (data: any) =>
   //   appOperation.post(`chat/conversation`, data, CUSTOMER_TYPE),

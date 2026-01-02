@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { ActivityIndicator, Alert, ImageBackground, Platform, StyleSheet, View } from "react-native";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
@@ -10,7 +10,8 @@ import { AppText, EIGHT, FORTEEN, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR,
 import { colors } from "../../theme/colors";
 import * as RNIap from 'react-native-iap';
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
-import { usePurchaseVerification } from "../../hooks/usePurchaseVerification";
+import { useDispatch } from "react-redux";
+import { subscriptionVerifyAPI } from "../../actions/authActions";
 
 // One-time Product SKUs
 const PRODUCT_SKUS = Platform.select({
@@ -27,11 +28,13 @@ const extractPriceNumber = (priceStr: string): { amount: number; currency: strin
 };
 
 const SuperLikePurchese = () => {
+    const dispatch = useDispatch();
     const [selectedPlanIndex, setSelectedPlanIndex] = useState(0);
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState<string | null>(null);
-    const { handlePurchaseSuccess } = usePurchaseVerification();
+    const lastVerifiedKeyRef = useRef<string | null>(null);
+    const isVerifyingRef = useRef(false);
 
     useEffect(() => {
         let purchaseUpdateSubscription: any;
@@ -130,33 +133,49 @@ const SuperLikePurchese = () => {
 
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
             try {
-                setProcessing(null);
-                
-                // Handle purchase verification workflow
-                await handlePurchaseSuccess(
-                    purchase,
-                    'one-time',
-                    () => {
-                        // Success callback
-                        Alert.alert(
-                            'Success',
-                            'Super Likes added successfully!',
-                            [{ text: 'OK', onPress: () => NavigationService.goBack() }]
-                        );
-                    },
-                    (error) => {
-                        // Error callback
-                        console.error('[Super Like] Verification error:', error);
-                        Alert.alert(
-                            'Purchase Recorded',
-                            'Your purchase was successful, but verification is pending. You will receive your Super Likes once verification completes.',
-                            [{ text: 'OK', onPress: () => NavigationService.goBack() }]
-                        );
-                    }
+                const key = (purchase?.transactionId || purchase?.orderId || purchase?.purchaseToken || purchase?.productId || '').toString();
+                if (isVerifyingRef.current) return;
+                if (key && lastVerifiedKeyRef.current === key) return;
+
+                isVerifyingRef.current = true;
+                lastVerifiedKeyRef.current = key || null;
+
+                setProcessing(purchase?.productId || 'verifying');
+
+                // Same verification API pattern as subscriptions
+                const data = {
+                    productId: purchase.productId,
+                    purchaseToken: purchase.purchaseToken,
+                    platform: Platform.OS === 'ios' ? 'ios' : 'android',
+                };
+
+                const response: any = await dispatch(subscriptionVerifyAPI(data));
+                const isOk =
+                    response?.statusCode === 200 &&
+                    response?.success === true &&
+                    response?.data?.success === true;
+
+                if (!isOk) {
+                    throw new Error(response?.message || response?.data?.message || 'Super Like verification failed');
+                }
+
+                // Consume only AFTER backend verification so it can be purchased again
+                await RNIap.finishTransaction({ purchase, isConsumable: true });
+
+                Alert.alert(
+                    'Success',
+                    'Super Likes added successfully!',
+                    [{ text: 'OK', onPress: () => NavigationService.goBack() }]
                 );
             } catch (err) {
-                setProcessing(null);
                 console.error('[Super Like] Purchase handler error:', err);
+                Alert.alert(
+                    'Verification Failed',
+                    (err as any)?.message || 'Something went wrong while verifying your purchase.'
+                );
+            } finally {
+                setProcessing(null);
+                isVerifyingRef.current = false;
             }
         });
 

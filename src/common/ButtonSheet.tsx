@@ -11,7 +11,20 @@ const ButtonSheet = ({ Icons, headLines, titile, onPress, togleTure, togleShow, 
 
     return (
         data?.length ?
+        <View style={[styles.headConatiner, {
+            paddingHorizontal: !edit ? metrics.hp2 : 0,
+            marginTop: !edit ? metrics.hp2 : metrics.hp1,
+        }]}>
+            {!edit ?
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <FastImage source={Icons} resizeMode="contain" style={styles.icons} />
+                    <AppText type={TWELVE} weight={INTER_BOLD}>
+                        {"   "}{headLines}
+                    </AppText>
+                </View>
+                : <></>}
             <TouchableOpacityView onPress={onPress} style={styles.listData}>
+                  
                 <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: metrics.hp0_5 }}>
                     {data?.map((item: any, index: any) => {
                         return (
@@ -37,7 +50,8 @@ const ButtonSheet = ({ Icons, headLines, titile, onPress, togleTure, togleShow, 
                     }
                     <FastImage source={keywordRightArrow} resizeMode="contain" style={[styles.keywordRightArrow, {}]} />
                 </View>
-            </TouchableOpacityView> :
+            </TouchableOpacityView> 
+            </View>:
             <View style={[styles.headConatiner, {
                 paddingHorizontal: !edit ? metrics.hp2 : 0,
                 marginTop: !edit ? metrics.hp2 : metrics.hp1,
@@ -138,7 +152,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingHorizontal: metrics.hp1,
         justifyContent: "space-between",
-        paddingVertical: metrics.hp1
+        paddingVertical: metrics.hp1,
     },
     containerSelect: {
         height: metrics.hp3,

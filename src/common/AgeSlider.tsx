@@ -9,7 +9,7 @@ import { Screen } from '../theme/dimens';
 import { TouchableOpacityView } from './TouchableOpacityView';
 
 
-const AgeSlider = ({ Icons, headLines, range, setRange, innerUpertitle, underTitle, togleShow, setToggleShow, singleSilde, height }: any) => {
+const AgeSlider = ({ Icons, headLines, range, setRange, innerUpertitle, underTitle, togleShow, setToggleShow, singleSilde, height, min, max }: any) => {
     const [selectFtCm, setSelectFtCm] = useState("FT");
     const [selectedIndex, setSelectedIndex] = useState(12);
     const onSwitch = (type: any) => {
@@ -79,8 +79,8 @@ const AgeSlider = ({ Icons, headLines, range, setRange, innerUpertitle, underTit
                     <MultiSlider
                         values={range}
                         sliderLength={Screen.Width / 1.25}
-                        min={1}
-                        max={201}
+                        min={min !== undefined ? min : 1}
+                        max={max !== undefined ? max : 201}
                         step={1}
                         onValuesChange={setRange}
                         selectedStyle={{

@@ -8,12 +8,18 @@ import { Screen } from "../theme/dimens";
 import FastImage from "react-native-fast-image";
 import { googleIcon, lockIcon } from "../helper/ImageAssets";
 
-const PurpuleButton = ({ gmail, onPress, title, tabSelect, onPressGoogle }: any) => {
+const PurpuleButton = ({ gmail, onPress, title, tabSelect, onPressGoogle, disabled }: any) => {
+    const isAdvance = tabSelect == "Advance";
+    const isDisabled = disabled === true;
     return (
         <View style={[styles.container, { height: gmail ? metrics.hp28 : metrics.hp11 }]}>
-            <TouchableOpacityView onPress={onPress} style={tabSelect == "Advance" ? styles.buttonContinerNew : styles.buttonContiner}>
-                <AppText color={tabSelect == "Advance" ? OPECITY_DARK : WHITE} weight={INTER_SEMI_BOLD} type={FORTEEN}>
-                    {tabSelect == "Advance" && <FastImage source={lockIcon} resizeMode="contain" style={{
+            <TouchableOpacityView
+                disabled={isDisabled}
+                onPress={isDisabled ? undefined : onPress}
+                style={isAdvance && isDisabled ? styles.buttonContinerNew : styles.buttonContiner}
+            >
+                <AppText color={isAdvance && isDisabled ? OPECITY_DARK : WHITE} weight={INTER_SEMI_BOLD} type={FORTEEN}>
+                    {isAdvance && isDisabled && <FastImage source={lockIcon} resizeMode="contain" style={{
                         height: metrics.hp2,
                         width: metrics.hp2
                     }} />}   {title}

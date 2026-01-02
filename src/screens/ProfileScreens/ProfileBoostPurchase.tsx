@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { ActivityIndicator, Alert, FlatList, ImageBackground, Platform, StyleSheet, View } from "react-native";
 import OneTimeProductHeader from "../../common/OneTimeProductHeader";
@@ -11,7 +11,8 @@ import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import * as RNIap from 'react-native-iap';
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
-import { usePurchaseVerification } from "../../hooks/usePurchaseVerification";
+import { useDispatch } from "react-redux";
+import { subscriptionVerifyAPI } from "../../actions/authActions";
 
 // One-time Product SKUs
 const PRODUCT_SKUS = Platform.select({
@@ -28,11 +29,13 @@ const extractPriceNumber = (priceStr: string): { amount: number; currency: strin
 };
 
 const ProfileBoostPurchase = () => {
+    const dispatch = useDispatch();
     const [select, setSelect] = useState(0);
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState<string | null>(null);
-    const { handlePurchaseSuccess } = usePurchaseVerification();
+    const lastVerifiedKeyRef = useRef<string | null>(null);
+    const isVerifyingRef = useRef(false);
 
     useEffect(() => {
         let purchaseUpdateSubscription: any;
@@ -140,33 +143,47 @@ const ProfileBoostPurchase = () => {
 
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
             try {
-                setProcessing(null);
-                
-                // Handle purchase verification workflow
-                await handlePurchaseSuccess(
-                    purchase,
-                    'one-time',
-                    () => {
-                        // Success callback
-                        Alert.alert(
-                            'Success',
-                            'Boost added successfully!',
-                            [{ text: 'OK', onPress: () => NavigationService.goBack() }]
-                        );
-                    },
-                    (error) => {
-                        // Error callback
-                        console.error('[Boost] Verification error:', error);
-                        Alert.alert(
-                            'Purchase Recorded',
-                            'Your purchase was successful, but verification is pending. You will receive your Boost once verification completes.',
-                            [{ text: 'OK', onPress: () => NavigationService.goBack() }]
-                        );
-                    }
+                const key = (purchase?.transactionId || purchase?.orderId || purchase?.purchaseToken || purchase?.productId || '').toString();
+                if (isVerifyingRef.current) return;
+                if (key && lastVerifiedKeyRef.current === key) return;
+
+                isVerifyingRef.current = true;
+                lastVerifiedKeyRef.current = key || null;
+
+                setProcessing(purchase?.productId || 'verifying');
+
+                const data = {
+                    productId: purchase.productId,
+                    purchaseToken: purchase.purchaseToken,
+                    platform: Platform.OS === 'ios' ? 'ios' : 'android',
+                };
+
+                const response: any = await dispatch(subscriptionVerifyAPI(data));
+                const isOk =
+                    response?.statusCode === 200 &&
+                    response?.success === true &&
+                    response?.data?.success === true;
+
+                if (!isOk) {
+                    throw new Error(response?.message || response?.data?.message || 'Boost verification failed');
+                }
+
+                await RNIap.finishTransaction({ purchase, isConsumable: true });
+
+                Alert.alert(
+                    'Success',
+                    'Boost added successfully!',
+                    [{ text: 'OK', onPress: () => NavigationService.goBack() }]
                 );
             } catch (err) {
-                setProcessing(null);
                 console.error('[Boost] Purchase handler error:', err);
+                Alert.alert(
+                    'Verification Failed',
+                    (err as any)?.message || 'Something went wrong while verifying your purchase.'
+                );
+            } finally {
+                setProcessing(null);
+                isVerifyingRef.current = false;
             }
         });
 

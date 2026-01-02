@@ -15,7 +15,7 @@ import { NAVIGATION_SUBSCRIPTION_SCREEN, NAVIGATION_TAKING_SCREEN } from "../../
 import { Screen } from "../../theme/dimens";
 import { useDispatch, useSelector } from "react-redux";
 import { chatHistoryAPI, getNewMatches } from "../../actions/authActions";
-import { matchChatDetails } from "../../slices/loginServices/authSlice";
+import { chatHistoryDetails, matchChatDetails, setNewMatches } from "../../slices/loginServices/authSlice";
 import { useIsFocused } from "@react-navigation/native";
 export const formatChatTime = (utcDate: any) => {
     const date = new Date(utcDate);
@@ -62,6 +62,7 @@ const ChatsScreen = () => {
     const userData = useSelector((state: any) => state.auth.userData);
 
     const dispatch = useDispatch();
+
     useEffect(() => {
         dispatch(getNewMatches())
     }, [isFoucse])
@@ -99,10 +100,13 @@ const ChatsScreen = () => {
             page: 1,
             limit: 50,
         };
-        dispatch(chatHistoryAPI(data, params));
+        // Prevent previous chat messages from flashing in the next chat
+        dispatch(chatHistoryDetails([]));
         dispatch(matchChatDetails(item));
+        // Open chat instantly; load messages in background (WhatsApp-like)
+        NavigationService.navigate(NAVIGATION_TAKING_SCREEN);
+        dispatch(chatHistoryAPI(data, params, false));
     };
-    console.log();
 
     const renderItemChats = ({ item, index }: any) => {
 
@@ -226,6 +230,7 @@ const ChatsScreen = () => {
                     ListHeaderComponent={HeaderListChats}
                     contentContainerStyle={{ marginTop: metrics.hp2 }} />
             }
+            
         </AppSafeAreaView>
     )
 };

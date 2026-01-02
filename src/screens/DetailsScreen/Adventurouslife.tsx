@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { ScrollView, StyleSheet, View } from "react-native";
 import HeaderCommon from "../../common/HeaderCommon";
@@ -15,14 +15,19 @@ import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_PERSONAL_INTEREST_SCREEN } from "../../navigation/routes";
 import { useDispatch, useSelector } from "react-redux";
 import { toastAlert } from "../../actions/UploadImageActions";
-import { setAddProfile } from "../../slices/loginServices/authSlice";
+import { setAddProfile, setfilterData } from "../../slices/loginServices/authSlice";
 
 const Adcenturouslife = ({ route }: any) => {
     const dispatch = useDispatch();
     const filter = route?.params?.filter ?? "";
+    const dataFilter = route?.params?.data ?? [];
+    const ids = route?.params?.ids ?? [];
+    const isAdvanceFilter = route?.params?.isAdvanceFilter ?? false;
+    const advanceFilterKey = route?.params?.advanceFilterKey ?? "prefferedAdventureAttributes";
     const datalistnew = new Array(6).fill(null).map((_, index) => ({ id: String(index), }));
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
     const attributes = useSelector((state: any) => state.auth.attributes);
+    const filterDataState = useSelector((state: any) => state?.auth?.filterData);
     const getaway = attributes.find((item: any) => item._id === 'getaway');
     const dateNight = attributes.find((item: any) => item._id === 'dateNight');
     const traitsSeeks = attributes.find((item: any) => item._id === 'traitsSeeks');
@@ -31,6 +36,22 @@ const Adcenturouslife = ({ route }: any) => {
     const [selectedcrew, setSelectedcrew] = useState<string | null>(null);
     const [selectedpreference, setSelectedpreference] = useState<string | null>(null);
     const [selectedseek, setSelectedseek] = useState<string | null>(null);
+    const selectedCategories = [selectedgetway, selectedcrew, selectedpreference, selectedseek].filter(Boolean);
+
+    useEffect(() => {
+        if (dataFilter?.length) {
+            const findMatch = (category: any) => {
+                const match = category?.attributes?.find((attr: any) =>
+                    dataFilter?.find((value: any) => attr?._id == value?._id)
+                );
+                return match?._id || null;
+            };
+            setSelectedgetway(findMatch(getaway));
+            setSelectedcrew(findMatch(crew));
+            setSelectedpreference(findMatch(dateNight));
+            setSelectedseek(findMatch(traitsSeeks));
+        }
+    }, [dataFilter, attributes]);
 
     const onSkip = () => {
         const dataToSave = {
@@ -44,7 +65,21 @@ const Adcenturouslife = ({ route }: any) => {
         NavigationService.navigate(NAVIGATION_PERSONAL_INTEREST_SCREEN)
     };
     const onSubmit = () => {
-        const selectedCategories = [selectedgetway, selectedcrew, selectedpreference, selectedseek].filter(Boolean);
+        if (isAdvanceFilter && filter) {
+            if (selectedCategories.length < 1) {
+                return toastAlert.showToastError("Please select at least 1 option");
+            }
+            const combined = [...ids, ...selectedCategories].filter(Boolean);
+            const unique = Array.from(new Set(combined));
+            const dataToSave = {
+                ...filterDataState,
+                [advanceFilterKey]: unique,
+            };
+            dispatch(setfilterData(dataToSave));
+            NavigationService.goBack();
+            return;
+        }
+
         if (selectedgetway && selectedcrew && selectedpreference && selectedseek) {
             const dataToSave = {
                 ...addProfileData,
@@ -68,7 +103,7 @@ const Adcenturouslife = ({ route }: any) => {
     }
     return (
         <AppSafeAreaView>
-            <HeaderCommon onSkip={onSkip} skip={true} title={filter} />
+            <HeaderCommon onSkip={onSkip} skip={filter ? false : true} title={filter} />
             {filter ?
                 <View style={styles.singleLine} /> : <></>}
             <View style={styles.container}>
@@ -89,13 +124,12 @@ const Adcenturouslife = ({ route }: any) => {
                     <MultyContainer data={traitsSeeks?.attributes?.length ? traitsSeeks?.attributes : []} setSelectedCategory={setSelectedseek} selectedCategory={selectedseek} firstIcon={nightPreferenceIcon} title={"What Traits do you seek?"} />
                 </ScrollView>
             </View>
-            {filter ? <></> :
-                <View style={{
-                    position: "absolute", bottom: metrics.hp1,
-                    right: metrics.hp0,
-                }}>
-                    <GoButton colortrue={onNavigate()} onPress={() => onSubmit()} />
-                </View>}
+            <View style={{
+                position: "absolute", bottom: metrics.hp1,
+                right: metrics.hp0,
+            }}>
+                <GoButton colortrue={filter ? selectedCategories?.length >= 1 : onNavigate()} onPress={() => onSubmit()} />
+            </View>
         </AppSafeAreaView>
     )
 };

@@ -7,7 +7,7 @@ import { colors } from "../theme/colors";
 import { TouchableOpacityView } from "./TouchableOpacityView";
 import { rightBlack } from "../helper/ImageAssets";
 
-const CheckBoxlist = ({ Icons, headLines, listdata, visible, onClick, underTitle, setToggleShow, togleShow }: any) => {
+const CheckBoxlist = ({ Icons, headLines, listdata, visible, onClick, underTitle, setToggleShow, togleShow,notshow }: any) => {
     return (
         <View style={styles.headConatiner}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -30,6 +30,7 @@ const CheckBoxlist = ({ Icons, headLines, listdata, visible, onClick, underTitle
                         </TouchableOpacityView>
                     )
                 })}
+                {!notshow ? 
                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop:metrics.hp1_5}}>
                     <AppText type={TWELVE} color={OPECITY_DARK} weight={INTER_MEDIUM}>
                         {underTitle}
@@ -44,7 +45,8 @@ const CheckBoxlist = ({ Icons, headLines, listdata, visible, onClick, underTitle
                             <View style={styles.slideUnSelect} />
                         }
                     </TouchableOpacityView>
-                </View>
+                </View>: <></>}
+                
             </View>
         </View>
     )

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { StyleSheet, View } from "react-native";
 import HeaderCommon from "../../common/HeaderCommon";
@@ -14,28 +14,49 @@ import { NAVIGATION_PROCCED_SCREEN } from "../../navigation/routes";
 import LinearGradient from "react-native-linear-gradient";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { toastAlert } from "../../actions/UploadImageActions";
+import { getHash, startOtpListener, removeListener } from "react-native-otp-verify";
+import { useDispatch } from "react-redux";
+import { otpVerifyAPIOne } from "../../actions/authActions";
 
 const OtpScreen = ({ route }: any) => {
+    const dispatch = useDispatch();
     const [otpNumber, setOtpNumber] = useState("");
-    const onSubmit = () => {
-        if (route?.params?.PhoneNumber === "1234567890") {
-            if (otpNumber === "123456") {
-                NavigationService.navigate(NAVIGATION_PROCCED_SCREEN, { comming: "OTP" })
-            } else {
-                toastAlert.showToastError("Please enter vaild otp")
+    const [hashKey, setHashKey] = useState("");
+
+    useEffect(() => {
+        // Get hash key for backend team
+        getHash()
+            .then((hashArray: string[]) => {
+                // Get the release hash key (usually the first one or filter for release)
+                const hash = hashArray && hashArray.length > 0 ? hashArray[0] : "";
+                setHashKey(hash);
+            })
+            .catch((error: any) => {
+                console.log("Error getting hash:", error);
+            });
+
+        // Start listening for OTP
+        startOtpListener((message: string) => {
+            const otpRegex = /(\d{6})/g;
+            const match = otpRegex.exec(message);
+            if (match && match[1]) {
+                const otp = match[1];
+                setOtpNumber(otp);
             }
-        } else {
-            // if (otpNumber?.length == 6) {
-                NavigationService.navigate(NAVIGATION_PROCCED_SCREEN, { comming: "OTP" })
-            // }else{
-            //     toastAlert.showToastError("Please enter vaild otp")
-            // }
-            // if (otpNumber == "000000") {
-            //     NavigationService.navigate(NAVIGATION_PROCCED_SCREEN, { comming: "OTP" })
-            // } else {
-            //     toastAlert.showToastError("Please enter vaild otp")
-            // }
-        }
+        });
+
+        return () => {
+            removeListener();
+        };
+    }, []);
+
+    const onSubmit = () => {
+        if (otpNumber?.length !== 6) return toastAlert.showToastError("please add currect otp")
+        const data = {
+            phoneNumber: route?.params?.PhoneNumber,
+            otp: otpNumber
+        };
+        dispatch(otpVerifyAPIOne(data))
     }
     return (
         <AppSafeAreaView>
@@ -46,6 +67,13 @@ const OtpScreen = ({ route }: any) => {
                 contentContainerStyle={{ flexGrow: 1 }}>
                 <HeaderCommon />
                 <View style={styles.container}>
+                    {/* {hashKey ? (
+                        <View style={styles.hashKeyContainer}>
+                            <AppText color={PURPLE} weight={INTER_MEDIUM} type={TWELVE}>
+                                Hash Key: {hashKey}
+                            </AppText>
+                        </View>
+                    ) : null} */}
                     <DubleTextLine firstText={"Enter your verification"} secondText={"code."} thirdText={`+91 ${route?.params?.PhoneNumber}`} />
                     <OtpInput
                         numberOfDigits={6}
@@ -106,6 +134,14 @@ const styles = StyleSheet.create({
         marginTop: metrics.hp3,
         paddingHorizontal: metrics.hp2,
         flex: 1,
+    },
+    hashKeyContainer: {
+        marginBottom: metrics.hp2,
+        padding: metrics.hp1,
+        backgroundColor: colors.white,
+        borderRadius: metrics.hp0_5,
+        borderWidth: 1,
+        borderColor: PURPLE,
     },
     containerOTP: { marginTop: metrics.hp2 },
     pinCodeContainer: {

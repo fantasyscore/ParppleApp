@@ -43,7 +43,7 @@ const LanguageSpeak = ({ route }: any) => {
         if (selectPronoun?.length == 0) return toastAlert.showToastError("Please add language do you speak")
         if (filter) {
             const dataToSave = {
-                languages: selectPronoun,
+                languagePrefrence: selectPronoun,
                 fieldVisibility: { languages: showProfile }
             };
             dispatch(editProfile(dataToSave))

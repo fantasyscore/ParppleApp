@@ -29,7 +29,7 @@ import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_DISTANCE_SCREEN, NAVIGATION_RELIGIOUS_SCREEN } from "../../navigation/routes";
 import { useDispatch, useSelector } from "react-redux";
 import { toastAlert } from "../../actions/UploadImageActions";
-import { setAddProfile } from "../../slices/loginServices/authSlice";
+import { setAddProfile, setfilterData } from "../../slices/loginServices/authSlice";
 import { editProfile } from "../../actions/authActions";
 
 const Personalinterest = ({ route }: any) => {
@@ -37,9 +37,12 @@ const Personalinterest = ({ route }: any) => {
     const filter = route?.params?.filter ?? "";
     const dataFilter = route?.params?.data ?? [];
     const ids = route?.params?.ids ?? [];
+    const isAdvanceFilter = route?.params?.isAdvanceFilter ?? false;
+    const advanceFilterKey = route?.params?.advanceFilterKey ?? "prefferedInterestAttributes";
     const datalistnew = new Array(5).fill(null).map((_, index) => ({ id: String(index) }));
     const attributes = useSelector((state: any) => state.auth.attributes);
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
+    const filterDataState = useSelector((state: any) => state?.auth?.filterData);
     const popular = attributes.find((item: any) => item._id === "popular");
     const creativity = attributes.find((item: any) => item._id === "creativity");
     const filmAndLiterature = attributes.find((item: any) => item._id === "filmAndLiterature");
@@ -122,11 +125,21 @@ const Personalinterest = ({ route }: any) => {
     };
     const onSubmit = () => {
         if (filter) {
-            const combined = [...ids, ...selectedCategoriesTwo];
-            const dataToSave = {
-                attribute: combined,
-            };
-            dispatch(editProfile(dataToSave))
+            const combined = [...ids, ...selectedCategoriesTwo].filter(Boolean);
+            if (isAdvanceFilter) {
+                const unique = Array.from(new Set(combined));
+                const dataToSave = {
+                    ...filterDataState,
+                    [advanceFilterKey]: unique,
+                };
+                dispatch(setfilterData(dataToSave));
+                NavigationService.goBack();
+            } else {
+                const dataToSave = {
+                    attribute: combined,
+                };
+                dispatch(editProfile(dataToSave))
+            }
         } else {
             if (selectedCategories?.length < 5)
                 return toastAlert.showToastError(`Please select any ${5 - selectedCategories?.length} interests`);

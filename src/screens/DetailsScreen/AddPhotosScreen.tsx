@@ -14,7 +14,7 @@ import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import GoButton from "../../common/GoButton";
 import { toastAlert, uploadImageCloud } from "../../actions/UploadImageActions";
 import { useDispatch, useSelector } from "react-redux";
-import { addProfile, discoverProfile, getProfile } from "../../actions/authActions";
+import { addProfile, discoverProfile, getNewMatches, getProfile } from "../../actions/authActions";
 import { Image as ImageCompressor } from "react-native-compressor";
 import LinearGradient from "react-native-linear-gradient";
 async function requestGalleryPermission() {
@@ -249,7 +249,8 @@ const AddPhotoScreen = () => {
 
     dispatch(addProfile(data));
     dispatch(getProfile(true));
-    dispatch(discoverProfile())
+    dispatch(discoverProfile());
+    dispatch(getNewMatches())
   };
 
   return (

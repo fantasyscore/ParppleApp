@@ -23,7 +23,7 @@ import { NAVIGATION_EDUCATION_SCREEN, NAVIGATION_LANGUAGE_SPEAK_SCREEN } from ".
 import { Screen } from "../../theme/dimens";
 import { scale, verticalScale } from "react-native-size-matters";
 import { useDispatch, useSelector } from "react-redux";
-import { setAddProfile } from "../../slices/loginServices/authSlice";
+import { setAddProfile, setfilterData } from "../../slices/loginServices/authSlice";
 import { editProfile } from "../../actions/authActions";
 import LinearGradient from "react-native-linear-gradient";
 
@@ -50,8 +50,11 @@ const MARK_HEIGHT = verticalScale(20);
 const HeightScreen = ({ route }: any) => {
   const dispatch = useDispatch();
   const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
+  const filterData = useSelector((state: any) => state?.auth?.filterData);
   const filter = route?.params?.filter ?? "";
   const dataFilter = route?.params?.data ?? "";
+  const onlyFt = route?.params?.onlyFt ?? false;
+  const isAdvanceFilter = route?.params?.isAdvanceFilter ?? false;
   const datalist = new Array(7).fill(null).map((_, index) => ({ id: String(index) }));
 
   // --- FIX 1: Correctly determine initial state from dataFilter ---
@@ -79,13 +82,13 @@ const HeightScreen = ({ route }: any) => {
   };
 
   const initialState = getInitialState();
-  const [selectFtCm, setSelectFtCm] = useState(initialState.unit);
+  const [selectFtCm, setSelectFtCm] = useState(onlyFt ? "FT" : initialState.unit);
   const [selectedHeight, setSelectedHeight] = useState(initialState.height);
   // --- END FIX 1 ---
 
   const scrollViewRef = useRef<ScrollView>(null);
   const centerOffset = (verticalScale(400) / 2) - (MARK_HEIGHT / 2);
-  const currentDataSource = selectFtCm === "FT" ? heights : heightsCm;
+  const currentDataSource = (onlyFt || selectFtCm === "FT") ? heights : heightsCm;
 
   // This logic is now simpler because the initial state is correct
   const INITIAL_INDEX = currentDataSource.indexOf(selectedHeight) !== -1
@@ -105,6 +108,7 @@ const HeightScreen = ({ route }: any) => {
   }, [selectFtCm]); // This dependency is correct
 
   const onSwitch = (type: any) => {
+    if (onlyFt) return;
     if (type === "FT") {
       setSelectFtCm("FT");
       // Reset to original dataFilter or default 'FT'
@@ -183,11 +187,20 @@ const HeightScreen = ({ route }: any) => {
   };
   const onSubmit = () => {
     if (filter) {
-      const data = {
-        height: selectedHeight,
-        fieldVisibility: { ...addProfileData?.fieldVisibility }
-      };
-      dispatch(editProfile(data))
+      if (isAdvanceFilter) {
+        const dataToSave = {
+          ...filterData,
+          prefferredHeights: selectedHeight,
+        };
+        dispatch(setfilterData(dataToSave));
+        NavigationService.goBack();
+      } else {
+        const data = {
+          height: selectedHeight,
+          fieldVisibility: { ...addProfileData?.fieldVisibility }
+        };
+        dispatch(editProfile(data))
+      }
     } else {
       const data = {
         ...addProfileData,
@@ -231,22 +244,24 @@ const HeightScreen = ({ route }: any) => {
                 FT
               </AppText>
             </TouchableOpacityView>
-            <TouchableOpacityView
-              onPress={() => onSwitch("CM")}
-              style={[
-                styles.selectedBack,
-                {
-                  backgroundColor:
-                    selectFtCm === "CM" ? colors.green : colors.lightBack,
-                },
-              ]}>
-              <AppText
-                type={TWELVE}
-                color={selectFtCm === "CM" ? BLACK : OPECITY_DARK}
-                weight={INTER_SEMI_BOLD}>
-                CM
-              </AppText>
-            </TouchableOpacityView>
+            {onlyFt ? null : (
+              <TouchableOpacityView
+                onPress={() => onSwitch("CM")}
+                style={[
+                  styles.selectedBack,
+                  {
+                    backgroundColor:
+                      selectFtCm === "CM" ? colors.green : colors.lightBack,
+                  },
+                ]}>
+                <AppText
+                  type={TWELVE}
+                  color={selectFtCm === "CM" ? BLACK : OPECITY_DARK}
+                  weight={INTER_SEMI_BOLD}>
+                  CM
+                </AppText>
+              </TouchableOpacityView>
+            )}
           </View>
           <View style={styles.rulerContainer}>
             <ScrollView
