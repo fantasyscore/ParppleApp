@@ -4,7 +4,7 @@ import { USER_TOKEN_KEY } from "../helper/Constants";
 import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_ALL_SET_SCREEN, NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_CHATS_SCREEN, NAVIGATION_OTP_SCREEN, NAVIGATION_PROCCED_SCREEN, NAVIGATION_TAKING_SCREEN, NAVIGATION_USER_EDIT_PROFILE_SCREEN, NAVIGATION_WELCOME_SCREEN } from "../navigation/routes";
 import { toastAlert } from "./UploadImageActions";
-import { chatHistoryDetails, setAttributes, setDiscoverData, setGetProfile, setLikeByOther, setLikeYou, setListProfiles, setNewMatches, setOtherUserProfile, setViewByOhter, setViewYou } from "../slices/loginServices/authSlice";
+import { chatHistoryDetails, setAttributes, setDiscoverData, setGetProfile, setLikeByOther, setLikeYou, setListProfiles, setNewMatches, setOtherUserProfile, setRecentMatches, setViewByOhter, setViewYou } from "../slices/loginServices/authSlice";
 
 export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) => {
     try {
@@ -45,8 +45,8 @@ export const sendOtpApi: any = (data: any, gmail: any) => async (dispatch: any) 
 export const otpVerifyAPIOne: any = (data: any, gmail: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.guest.otpVerifyAPI(data);
-        console.log(response,"responseresponseresponse");
-        
+        console.log(response, "responseresponseresponse");
+
         if (response?.statusCode == 200) {
             toastAlert.showToastError(response.message);
             appOperation.setCustomerToken(response?.data?.token);
@@ -77,6 +77,11 @@ export const addProfile: any = (data: any) => async (dispatch: any) => {
     }
 };
 export const listProfiles: any = (navigate: any) => async (dispatch: any) => {
+    // Prevent accidental rapid duplicate calls from multiple screens mounting.
+    // (e.g. AuthLoading + Home focus effect)
+    // Note: we only guard "in flight", not "already cached".
+    if ((listProfiles as any)._inFlight) return;
+    (listProfiles as any)._inFlight = true;
     try {
         const response: any = await appOperation.customer.datingProfileAPI();
         if (response?.statusCode == 200) {
@@ -90,6 +95,8 @@ export const listProfiles: any = (navigate: any) => async (dispatch: any) => {
     } catch (error: any) {
         NavigationService.navigate(NAVIGATION_WELCOME_SCREEN);
         toastAlert.showToastError(error);
+    } finally {
+        (listProfiles as any)._inFlight = false;
     }
 };
 export const swipeLikeDisLike: any = (data: any) => async (dispatch: any) => {
@@ -142,7 +149,7 @@ export const youView: any = () => async (dispatch: any) => {
         toastAlert.showToastError(error);
     }
 };
-export const getOtherProfile: any = (data: any, isNavigate: any, setProfileData: any, profile:any) => async (dispatch: any) => {
+export const getOtherProfile: any = (data: any, isNavigate: any, setProfileData: any, profile: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.otherDataProfileAPI(data);
         if (response?.statusCode == 200) {
@@ -162,6 +169,9 @@ export const getOtherProfile: any = (data: any, isNavigate: any, setProfileData:
     }
 };
 export const getProfile: any = (navigate: any) => async (dispatch: any) => {
+    // Prevent accidental rapid duplicate calls from multiple screens mounting.
+    if ((getProfile as any)._inFlight) return;
+    (getProfile as any)._inFlight = true;
     try {
         const response: any = await appOperation.customer.getProfileAPI();
         if (response?.statusCode == 200) {
@@ -171,6 +181,8 @@ export const getProfile: any = (navigate: any) => async (dispatch: any) => {
         }
     } catch (error: any) {
         // toastAlert.showToastError(error);
+    } finally {
+        (getProfile as any)._inFlight = false;
     }
 };
 let isEditing = false;
@@ -192,7 +204,7 @@ export const editProfile: any = (data: any, navigate: any) => async (dispatch: a
         console.log(error, "error");
         toastAlert.showToastError(error);
     } finally {
-        isEditing = false; 
+        isEditing = false;
     }
 };
 
@@ -217,6 +229,9 @@ export const editFilter: any = (data: any) => async (dispatch: any) => {
     }
 };
 export const discoverProfile: any = () => async (dispatch: any) => {
+    // Prevent accidental rapid duplicate calls from multiple screens mounting.
+    if ((discoverProfile as any)._inFlight) return;
+    (discoverProfile as any)._inFlight = true;
     try {
         const response: any = await appOperation.customer.discoverAPI();
         if (response?.statusCode == 200) {
@@ -224,6 +239,8 @@ export const discoverProfile: any = () => async (dispatch: any) => {
         }
     } catch (error: any) {
         // toastAlert.showToastError(error);
+    } finally {
+        (discoverProfile as any)._inFlight = false;
     }
 };
 export const getNewMatches: any = () => async (dispatch: any) => {
@@ -236,7 +253,17 @@ export const getNewMatches: any = () => async (dispatch: any) => {
         // toastAlert.showToastError(error);
     }
 };
-export const userUnmatchAPI: any = (data:any) => async (dispatch: any) => {
+export const getRecentMatches: any = () => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.recentMatchesAPI();
+        if (response?.statusCode == 200) {
+            dispatch(setRecentMatches(response?.data))
+        }
+    } catch (error: any) {
+        // toastAlert.showToastError(error);
+    }
+};
+export const userUnmatchAPI: any = (data: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.userUnMatchApi(data);
         if (response?.statusCode == 200) {
@@ -248,22 +275,22 @@ export const userUnmatchAPI: any = (data:any) => async (dispatch: any) => {
         // toastAlert.showToastError(error);
     }
 };
-export const userBlockAPI: any = (data:any) => async (dispatch: any) => {
+export const userBlockAPI: any = (data: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.userBlockAPI(data);
         if (response?.statusCode == 200) {
-            console.log(response,"responseresponseresponse");
+            console.log(response, "responseresponseresponse");
             dispatch(getNewMatches())
-           return NavigationService.navigate(NAVIGATION_CHATS_SCREEN)
+            return NavigationService.navigate(NAVIGATION_CHATS_SCREEN)
         }
     } catch (error: any) {
 
         // toastAlert.showToastError(error);
     }
 };
-export const chatHistoryAPI: any = (data:any,params:any, shouldNavigate: boolean = true) => async (dispatch: any) => {
+export const chatHistoryAPI: any = (data: any, params: any, shouldNavigate: boolean = true) => async (dispatch: any) => {
     try {
-        const response: any = await appOperation.customer.chatHistortAPI(data,params);
+        const response: any = await appOperation.customer.chatHistortAPI(data, params);
         if (response?.statusCode == 200) {
             dispatch(chatHistoryDetails(response.data))
             if (shouldNavigate) {
@@ -275,7 +302,7 @@ export const chatHistoryAPI: any = (data:any,params:any, shouldNavigate: boolean
         // toastAlert.showToastError(error);
     }
 };
-export const subscriptionVerifyAPI: any = (data:any,params:any) => async (dispatch: any) => {
+export const subscriptionVerifyAPI: any = (data: any, params: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.subscriptionverifyAPI(data);
         if (response?.statusCode == 200) {
@@ -289,11 +316,11 @@ export const subscriptionVerifyAPI: any = (data:any,params:any) => async (dispat
         throw error;
     }
 };
-export const sendCrushNotesAPI: any = (data:any,params:any) => async (dispatch: any) => {
+export const sendCrushNotesAPI: any = (data: any, params: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.crushnotesSenderAPI(data);
         if (response?.statusCode == 200) {
-            console.log(response,"responseresponseresponse")
+            console.log(response, "responseresponseresponse")
         }
         return response;
     } catch (error: any) {
@@ -302,11 +329,41 @@ export const sendCrushNotesAPI: any = (data:any,params:any) => async (dispatch: 
         throw error;
     }
 };
-export const sendAdvanceFilter: any = (data:any,params:any) => async (dispatch: any) => {
+
+export const activateBoostAPI: any = () => async (dispatch: any) => {
+    try {
+        // Fire-and-forget trigger: we do NOT read or depend on response payload.
+        const response: any = await appOperation.customer.boostActivateAPI();
+        // toastAlert.showToastError("Boost activation requested");
+        // Refresh profile so boostRemaining + boost status reflect immediately
+        if (response?.statusCode == 200) {
+            dispatch(getProfile(true));
+        }
+        return true;
+    } catch (error: any) {
+        // Keep errors non-fatal and consistent
+        toastAlert.showToastError(error?.message || "Failed to activate boost");
+        throw error;
+    }
+};
+export const sendAdvanceFilter: any = (data: any, params: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.advanceFilterAPI(data);
         if (response?.statusCode == 200) {
-            console.log(response,"responseresponseresponse")
+            console.log(response, "responseresponseresponse")
+        }
+        return response;
+    } catch (error: any) {
+
+        // toastAlert.showToastError(error);
+        throw error;
+    }
+};
+export const objectSendAPI: any = (data: any, params: any) => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.sendObject(data);
+        if (response?.statusCode == 200) {
+            console.log(response, "responseresponseresponse")
         }
         return response;
     } catch (error: any) {

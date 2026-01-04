@@ -86,6 +86,8 @@ const LocationScreen = () => {
           const response = await fetch(
             `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`
           );
+          console.log(response,"responseresponseresponse");
+          
           const data = await response.json();
 
           if (data.results && data.results.length > 0) {

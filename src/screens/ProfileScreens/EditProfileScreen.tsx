@@ -265,11 +265,11 @@ const EditProfileScreen = () => {
                 <AppText style={{ marginTop: metrics.hp2 }} type={TWELVE} weight={INTER_SEMI_BOLD}>
                     Profile Strength
                 </AppText>
-                <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_PROFILE_STRENGTH_SCREEN)} style={styles.persentageContainer}>
+                <TouchableOpacityView disabled={true} onPress={() => NavigationService.navigate(NAVIGATION_PROFILE_STRENGTH_SCREEN)} style={styles.persentageContainer}>
                     <AppText color={PURPLE} weight={INTER_EXTRA_BOLD} type={EIGHTEEN}>
-                        0%
+                        {Math.trunc(userData?.profileCompletion)}%
                     </AppText>
-                    <FastImage source={keywordRightArrow} resizeMode="contain" style={styles.keywordRightArrow} />
+                    {/* <FastImage source={keywordRightArrow} resizeMode="contain" style={styles.keywordRightArrow} /> */}
                 </TouchableOpacityView>
                 <HeadLineContiner
                     circle={remaining == 2 ? true : false}

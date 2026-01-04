@@ -15,7 +15,7 @@ import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_ADCENTUOURS_SCREEN, NAVIGATION_CHILDERN_SCREEN, NAVIGATION_COMMONSELECT_PAGE_SCREEN, NAVIGATION_EDUCATION_SCREEN, NAVIGATION_FAMILY_PLANING_SCREEN, NAVIGATION_HEIGHT_SCREEN, NAVIGATION_LANGUAGE_SPEAK_SCREEN, NAVIGATION_LIFE_STYLE_SCREEN, NAVIGATION_PERSONAL_INTEREST_SCREEN, NAVIGATION_POLITICAL_SCREEN, NAVIGATION_RELATION_SCREEN, NAVIGATION_RELIGIOUS_SCREEN, NAVIGATION_ZODIACSING_SCREEN } from "../../navigation/routes";
 import { DrinkData, ExerciseData, ganderDATA, LanguageData, LookignForData, relationShipStatus, SmokeData, womenData } from "../../common/UiltData";
 import { useDispatch, useSelector } from "react-redux";
-import { attributesGet, discoverProfile, getNewMatches, sendAdvanceFilter } from "../../actions/authActions";
+import { attributesGet, discoverProfile, getNewMatches, listProfiles, sendAdvanceFilter } from "../../actions/authActions";
 import { appOperation } from "../../appOperation";
 
 const FilterScreen = () => {
@@ -97,7 +97,7 @@ const FilterScreen = () => {
             const response: any = await appOperation.customer.editFilterAPI(data);
             if (response?.statusCode === 200) {
                 // Dispatch discoverProfile and getNewMatches after successful filter update
-                dispatch(discoverProfile());
+                dispatch(listProfiles())
                 dispatch(getNewMatches());
                 // Navigate back
                 NavigationService.goBack();
@@ -152,7 +152,7 @@ const FilterScreen = () => {
         try {
             const response: any = await dispatch(sendAdvanceFilter(advancefilter));
             if (response?.statusCode === 200) {
-                dispatch(discoverProfile());
+                dispatch(listProfiles())
                 dispatch(getNewMatches());
                 NavigationService.goBack();
             }

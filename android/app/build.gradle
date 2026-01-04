@@ -21,7 +21,7 @@ android {
         applicationId "com.parpple"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 7
+        versionCode 9
         versionName "1.0"
     }
 
@@ -58,6 +58,7 @@ dependencies {
     implementation project(':react-native-otp-verify')
     implementation platform('com.google.firebase:firebase-bom:34.6.0')
     implementation("com.google.firebase:firebase-analytics")
+    implementation "com.google.android.gms:play-services-auth:21.0.0"
     def billing_version = "8.1.0"
     implementation("com.android.billingclient:billing:$billing_version")
     if (react.hasProperty("hermesEnabled") && hermesEnabled.toBoolean()) {
@@ -66,9 +67,5 @@ dependencies {
         implementation jscFlavor
     }
 }
-configurations.all {
-    resolutionStrategy {
-        force "com.google.android.gms:play-services-auth:20.7.0"
-    }
-}
+
 apply from: "../../node_modules/@revopush/react-native-code-push/android/codepush.gradle"

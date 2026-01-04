@@ -5,7 +5,7 @@ import { colors } from "../theme/colors";
 import metrics from "../assets/Metrics";
 import { TouchableOpacityView } from "./TouchableOpacityView";
 import FastImage from "react-native-fast-image";
-import { AppText, ELEVEN, INTER_MEDIUM, OPECITY, PURPLE} from "./AppText";
+import { AppText, THIRTEEN, INTER_MEDIUM, OPECITY, PURPLE, TWELVE} from "./AppText";
 import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_CHATS_SCREEN, NAVIGATION_DISCOVER_SCREEN, NAVIGATION_LIKES_YOU_SCREEN, NAVIGATION_PEOPLE_SCREEN, NAVIGATION_PROFILE_SCREEN } from "../navigation/routes";
 import { chats, chatTab, explore, explorTab, likeTab, likeyou, people, pepoleTab, profile, profileTab } from "../helper/ImageAssets";
@@ -25,39 +25,39 @@ const CustomTabBar = ({ state }: BottomTabBarProps) => {
 
     const getIcon = (route: string, isFocused: boolean, index: number) => {
         return (
-            <TouchableOpacityView key={index} onPress={() => navigate(route)}>
+            <TouchableOpacityView style={styles.tabItem} key={index} onPress={() => navigate(route)}>
                 {route === "NAVIGATION_PEOPLE_SCREEN" ? (
-                    <View style={{ alignItems: "center", justifyContent: "center" }}>
+                    <View style={styles.tabInner}>
                         <FastImage source={isFocused ? people : pepoleTab} resizeMode="contain" style={styles.icons} />
-                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={isFocused ? PURPLE: OPECITY}>
+                        <AppText style={styles.label} type={TWELVE} weight={INTER_MEDIUM} color={isFocused ? PURPLE: OPECITY}>
                             Home
                         </AppText>
                     </View>
                 ) : route === "NAVIGATION_DISCOVER_SCREEN" ? (
-                    <View style={{ alignItems: "center", justifyContent: "center" }}>
+                    <View style={styles.tabInner}>
                         <FastImage source={isFocused ? explore : explorTab} resizeMode="contain" style={styles.icons} />
-                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={isFocused ? PURPLE: OPECITY}>
+                        <AppText style={styles.label} type={TWELVE} weight={INTER_MEDIUM} color={isFocused ? PURPLE: OPECITY}>
                             Discover
                         </AppText>
                     </View>
                 ) : route === "NAVIGATION_CHATS_SCREEN" ? (
-                    <View style={{ alignItems: "center", justifyContent: "center" }}>
+                    <View style={styles.tabInner}>
                         <FastImage source={isFocused ? chats : chatTab} resizeMode="contain" style={styles.icons} />
-                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={isFocused ? PURPLE: OPECITY}>
+                        <AppText style={styles.label} type={TWELVE} weight={INTER_MEDIUM} color={isFocused ? PURPLE: OPECITY}>
                             Chats
                         </AppText>
                     </View>
                 ) : route === "NAVIGATION_LIKES_YOU_SCREEN" ? (
-                    <View style={{ alignItems: "center", justifyContent: "center" }}>
+                    <View style={styles.tabInner}>
                         <FastImage source={isFocused ? likeyou : likeTab} resizeMode="contain" style={styles.icons} />
-                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={isFocused ? PURPLE: OPECITY}>
+                        <AppText style={styles.label} type={TWELVE} weight={INTER_MEDIUM} color={isFocused ? PURPLE: OPECITY}>
                             Likes You
                         </AppText>
                     </View>
                 ) : (
-                    <View style={{ alignItems: "center", justifyContent: "center" }}>
+                    <View style={styles.tabInner}>
                         <FastImage source={isFocused ? profile : profileTab} resizeMode="contain" style={styles.icons} />
-                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={isFocused ? PURPLE: OPECITY}>
+                        <AppText style={styles.label} type={TWELVE} weight={INTER_MEDIUM} color={isFocused ? PURPLE: OPECITY}>
                             Profile
                         </AppText>
                     </View>
@@ -72,7 +72,7 @@ const CustomTabBar = ({ state }: BottomTabBarProps) => {
                 {state?.routes?.map((route, index) => {
                     const isFocused = state.index === index;
                     return (
-                        <View key={route.key}>
+                        <View key={route.key} style={styles.routeWrapper}>
                             {getIcon(route.name, isFocused, index)}
                         </View>
                     );
@@ -86,17 +86,41 @@ export default CustomTabBar;
 const styles = StyleSheet.create({
     buttonContainer: {
         backgroundColor: colors.white,
-        height: metrics.hp8
+        height: metrics.hp9,
+        // Top shadow (tab bar floating effect)
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -5 },
+        shadowOpacity: 1,
+        shadowRadius: 10,
+        elevation:20,
     },
     flowContainer: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-around",
-        paddingHorizontal: metrics.hp2,
-        marginTop: metrics.hp1
+        width: "100%",
+        height: "100%",
+    },
+    routeWrapper: {
+        flex: 1, // 5 tabs => each is exactly 20% width
+        height: "100%",
+    },
+    tabItem: {
+        flex: 1,
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    tabInner: {
+        alignItems: "center",
+        justifyContent: "center",
+        width: "100%",
     },
     icons: {
         height: metrics.hp3_5,
         width: metrics.hp3_5,
     }
+    ,
+    label: {
+        marginTop: metrics.hp0_3,
+    },
 })

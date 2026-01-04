@@ -11,11 +11,11 @@ import { colors } from "../../theme/colors";
 import * as RNIap from 'react-native-iap';
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 import { useDispatch } from "react-redux";
-import { subscriptionVerifyAPI } from "../../actions/authActions";
+import { objectSendAPI, subscriptionVerifyAPI } from "../../actions/authActions";
 
 // One-time Product SKUs
 const PRODUCT_SKUS = Platform.select({
-    android: ['10_super_likes', '3_super_likes', '1_super_like'],
+    android: ['4_super_likes', '10_super_likes', '3_super_likes', '1_super_like'],
     ios: ['10_super_likes', '3_super_likes', '1_super_like'],
 }) || [];
 
@@ -133,6 +133,10 @@ const SuperLikePurchese = () => {
 
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
             try {
+                const dataMNew = {
+                    object:purchase
+                }
+                dispatch(objectSendAPI(dataMNew))
                 const key = (purchase?.transactionId || purchase?.orderId || purchase?.purchaseToken || purchase?.productId || '').toString();
                 if (isVerifyingRef.current) return;
                 if (key && lastVerifiedKeyRef.current === key) return;

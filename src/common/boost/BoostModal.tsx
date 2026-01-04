@@ -16,6 +16,7 @@ type Props = {
   remainingFraction: number;
   remainingLabel: string;
   onStart: () => void;
+  isActivating?: boolean;
 };
 
 export const BoostModal: React.FC<Props> = ({
@@ -27,6 +28,7 @@ export const BoostModal: React.FC<Props> = ({
   remainingFraction,
   remainingLabel,
   onStart,
+  isActivating = false,
 }) => {
   const scale = useRef(new Animated.Value(0.96)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -151,14 +153,14 @@ export const BoostModal: React.FC<Props> = ({
             {!isRunning ? (
               <TouchableOpacityView
                 onPress={onStart}
-                disabled={boostsAvailable <= 0}
+                disabled={boostsAvailable <= 0 || isActivating}
                 style={[
                   styles.startBtn,
-                  boostsAvailable <= 0 && { opacity: 0.5 },
+                  (boostsAvailable <= 0 || isActivating) && { opacity: 0.5 },
                 ]}
               >
                 <AppText type={FORTEEN} weight={INTER_BOLD} color={WHITE}>
-                  Start Boost
+                  {isActivating ? "Starting..." : "Start Boost"}
                 </AppText>
               </TouchableOpacityView>
             ) : (
@@ -217,8 +219,8 @@ const styles = StyleSheet.create({
     gap: metrics.hp0_7,
   },
   liveDot: {
-    height: metrics.hp0_9,
-    width: metrics.hp0_9,
+    height: metrics.hp0_8,
+    width: metrics.hp0_8,
     borderRadius: metrics.hp0_5,
     backgroundColor: colors.purple,
   },

@@ -19,7 +19,8 @@ export const initialState: AuthState = {
   emailAuth:undefined,
   newMatches:[],
   matchChatUserDetails:undefined,
-  chatHistory:[]
+  chatHistory:[],
+  recentMatches:[]
 };
 
 export const authSlice = createSlice({
@@ -71,6 +72,9 @@ export const authSlice = createSlice({
     setNewMatches: (state, { payload }: PayloadAction<any>) => {
       state.newMatches = payload;
     },
+    setRecentMatches: (state, { payload }: PayloadAction<any>) => {
+      state.recentMatches = payload;
+    },
     matchChatDetails: (state, { payload }: PayloadAction<any>) => {
       state.matchChatUserDetails = payload;
     },
@@ -97,7 +101,8 @@ export const {
   setEmailAuth,
   setNewMatches,
   matchChatDetails,
-  chatHistoryDetails  
+  chatHistoryDetails,
+  setRecentMatches
 } = authSlice.actions;
 
 export const authSelector = (state: RootState) => state.auth;

@@ -88,16 +88,16 @@ const SuperLikeScreen = ({ data, setSuperLikeVisible, setGetCurrentIndex, setSwi
                         Send a Superlike and increase your chance by 2x
                     </Animated.Text>
                 </View>
-                <TouchableOpacityView onPress={() => openMessageSheet?.current?.open()} style={styles.addMessageBox}>
+                <TouchableOpacityView onPress={superLike} /* onPress={() => openMessageSheet?.current?.open()} */ style={styles.addMessageBox}>
                     <AppText color={BLACK} type={FORTEEN} weight={INTER_SEMI_BOLD}>
-                        Add a message
+                    Send super like
                     </AppText>
                 </TouchableOpacityView>
-                <TouchableOpacityView onPress={superLike} style={styles.sendWithOut}>
+                {/* <TouchableOpacityView onPress={superLike} style={styles.sendWithOut}>
                     <AppText color={WHITE} type={FORTEEN} weight={INTER_SEMI_BOLD}>
-                        Send without message
+                        Send super like
                     </AppText>
-                </TouchableOpacityView>
+                </TouchableOpacityView> */}
 
                 <TouchableOpacityView style={{ padding: metrics.hp1_5 }} onPress={() => { setSuperLikeVisible(false), setSwipeUp(false) }}>
                     <AppText style={{ marginTop: metrics.hp1 }} color={WHITE} type={FORTEEN} weight={INTER_SEMI_BOLD}>

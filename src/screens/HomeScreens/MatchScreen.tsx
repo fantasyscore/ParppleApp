@@ -124,11 +124,11 @@ const MatchScreen = ({matchData,setMatchVisible}:any) => {
             <View style={styles.buttonsContainer}>
                 <AppText type={EIGHTEEN} color={WHITE} weight={INTER_MEDIUM}>Start a conversation now!</AppText>
                 <TouchableOpacityView onPress={()=>setMatchVisible(false)} style={styles.startButton}>
-                    <AppText type={FORTEEN} weight={INTER_SEMI_BOLD}>Start Chatting</AppText>
+                    <AppText type={FORTEEN} weight={INTER_SEMI_BOLD}>Go Back</AppText>
                 </TouchableOpacityView>
-                <TouchableOpacityView onPress={()=>setMatchVisible(false)}>
+                {/* <TouchableOpacityView onPress={()=>setMatchVisible(false)}>
                     <AppText type={FORTEEN} color={WHITE} weight={INTER_MEDIUM} style={styles.notNowButtonText}>Not now</AppText>
-                </TouchableOpacityView>
+                </TouchableOpacityView> */}
             </View>
         </ImageBackground>
         </AppSafeAreaView>

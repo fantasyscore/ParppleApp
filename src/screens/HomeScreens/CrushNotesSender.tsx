@@ -17,6 +17,9 @@ const { width, height } = Dimensions.get("window");
 const COLLAPSED_IMAGE_HEIGHT = height * 0.45;
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { sendCrushNotesAPI } from "../../actions/authActions";
+import NavigationService from "../../navigation/NavigationService";
+import { NAVIGATION_CRUSH_PURCHESE_SCREEN } from "../../navigation/routes";
+import { toastAlert } from "../../actions/UploadImageActions";
 
 const CrushNotesSender = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setSwipeLeft, setProfileData, discover, setSuperLikeVisible, canSuperLike }: any) => {
     const dispatch = useDispatch();
@@ -25,6 +28,7 @@ const CrushNotesSender = ({ data, setModalVisible, setSwipeRight, setSwipeUp, se
     const [keyboardHeight, setKeyboardHeight] = useState(0);
 
     const listProfilesData = useSelector((state: any) => state.auth.listProfiles);
+    const userData = useSelector((state: any) => state.auth.userData);
     const handleTap = (evt: any, profile: any) => {
         const totalImages = profile?.gallery?.length || 0;
         if (!evt?.nativeEvent?.locationX || !cardWidthRef.current) return;
@@ -77,6 +81,13 @@ const CrushNotesSender = ({ data, setModalVisible, setSwipeRight, setSwipeUp, se
     }, []);
     const sendCrushNote = async () => {
         if (!inputText.trim()) return;
+
+        const remaining = Number(userData?.crushNotesRemaining);
+        if (Number.isFinite(remaining) && remaining <= 0) {
+            if (setModalVisible) setModalVisible(false);
+            NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN);
+            return;
+        }
         
         const datasend = {
             receiverId: data?._id,
@@ -98,6 +109,7 @@ const CrushNotesSender = ({ data, setModalVisible, setSwipeRight, setSwipeUp, se
                 }
             }
         } catch (error) {
+            toastAlert.showToastError("You can only send one crush note to this user per 24 hours")
             console.log("Error sending crush note:", error);
         }
     }

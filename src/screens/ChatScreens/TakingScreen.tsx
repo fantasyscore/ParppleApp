@@ -665,14 +665,16 @@ const TakingScreen = () => {
             matchId: matchChatUserDetails?.matchId
         }
         dispatch(userUnmatchAPI(data))
-        setModalVisible(false)
+        setModalVisible(false);
+        NavigationService.goBack();
     }
     const unBlockButton = () => {
         const data = {
             matchId: matchChatUserDetails?.matchId
         }
         dispatch(userBlockAPI(data))
-        setModalVisible(false)
+        setModalVisible(false);
+        NavigationService.goBack();
     }
     const renderTime = (props: any) => {
         if (props.currentMessage?._id === 'typing-indicator') return null;

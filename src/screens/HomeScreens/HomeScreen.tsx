@@ -10,8 +10,8 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { AppText, ELEVEN, INTER_BOLD, INTER_MEDIUM, TWENTY_TWO, WHITE } from '../../common/AppText';
-import { blueTikeIcon, bussinessIcon, CloseBlueIcon, flashIcon, goldCard, heartGreen, heartRed, locationCIon, nopeIcon, shareRedIcon, silverCard, superlike, superlikeiconwhite, upArrowIcon, yesIcon } from '../../helper/ImageAssets';
+import { AppText, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, SCHEHERAZADE_BOLD, TEN, TWELVE, TWENTY_FOUR, TWENTY_TWO, WHITE } from '../../common/AppText';
+import { blueTikeIcon, bussinessIcon, CloseBlueIcon, completeProfileBanner, flashIcon, goldCard, heartGreen, heartRed, locationCIon, nopeIcon, shareRedIcon, silverCard, superlike, superlikeiconwhite, upArrowIcon, yesIcon } from '../../helper/ImageAssets';
 import metrics from '../../assets/Metrics';
 import FastImage from 'react-native-fast-image';
 import { colors } from '../../theme/colors';
@@ -25,16 +25,16 @@ import { SwiperCardRefType } from 'rn-swiper-list';
 import Swiper from '../../swiperComponents/Swiper';
 import PreviewDetails from './PreviewDetails';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
-import { getProfile, listProfiles, swipeLikeDisLike } from '../../actions/authActions';
+import { activateBoostAPI, discoverProfile, getNewMatches, getProfile, listProfiles, swipeLikeDisLike } from '../../actions/authActions';
 import { AnyComponent } from 'react-native-reanimated/lib/typescript/createAnimatedComponent/commonTypes';
 import { useIsFocused } from '@react-navigation/native';
-import { setListProfiles } from '../../slices/loginServices/authSlice';
+import { setGetProfile, setListProfiles } from '../../slices/loginServices/authSlice';
 import { createSocket } from '../../common/Socket';
 import MatchScreen from './MatchScreen';
 import Toast, { IToast } from '../../common/Toast';
 import SuperLikeScreen from './SuperLikeScreen';
 import NavigationService from '../../navigation/NavigationService';
-import { NAVIGATION_CRUSH_NOTE_SENDER_SCREEN, NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN, NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from '../../navigation/routes';
+import { NAVIGATION_CRUSH_NOTE_SENDER_SCREEN, NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_EDIT_PROFILE_SCREEN, NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN, NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from '../../navigation/routes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SWIPES_PER_DAY_KEY, SWIPES_REMAINING_KEY, SUPER_LIKES_REMAINING_KEY } from '../../helper/Constants';
 import { BoostModal } from '../../common/boost/BoostModal';
@@ -42,6 +42,7 @@ import { useBoostTimer } from '../../hooks/useBoostTimer';
 import { BoostLiquidButton } from '../../common/boost/BoostLiquidButton';
 import CrushNotesSender from './CrushNotesSender';
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from "react-native-svg";
+import { appOperation } from '../../appOperation';
 
 const { width, height } = Dimensions.get("window");
 const FULL_IMAGE_HEIGHT = height * 0.75;
@@ -50,6 +51,118 @@ const SWIPE_THRESHOLD_X = width * 0.18;
 const SWIPE_THRESHOLD_Y = height * 0.1;
 const SUPERLIKE_ESCAPE_X = SWIPE_THRESHOLD_X * 1.35;
 const SUPERLIKE_INTENT_RATIO = 1.15;
+
+// Session-only flag (resets when app is fully killed/reopened)
+let hasShownProfileCompletionReminderThisSession = false;
+
+const PulsingCircle = React.memo(({ size }: { size: number }) => {
+    const anim = useRef(new Animated.Value(0)).current;
+    const animTwp = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        let isMounted = true;
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+        const pulse = () => {
+            anim.setValue(0);
+            Animated.timing(anim, {
+                toValue: 1,
+                duration: 3000,
+                useNativeDriver: true,
+            }).start(() => {
+                if (!isMounted) return;
+                pulse();
+            });
+        };
+
+        const pulseTwo = () => {
+            animTwp.setValue(0);
+            Animated.timing(animTwp, {
+                toValue: 1,
+                duration: 3000,
+                useNativeDriver: true,
+            }).start(() => {
+                if (!isMounted) return;
+                pulseTwo();
+            });
+        };
+
+        pulse();
+        timeoutId = setTimeout(() => {
+            if (!isMounted) return;
+            pulseTwo();
+        }, 1500);
+
+        return () => {
+            isMounted = false;
+            if (timeoutId) clearTimeout(timeoutId);
+            anim.stopAnimation();
+            animTwp.stopAnimation();
+        };
+    }, [anim, animTwp]);
+
+    const animatedStyle = {
+        transform: [
+            {
+                scale: anim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 3],
+                }),
+            },
+        ],
+        opacity: anim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [1, 0],
+        }),
+    };
+
+    const animatedStyleTwo = {
+        transform: [
+            {
+                scale: animTwp.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 3],
+                }),
+            },
+        ],
+        opacity: animTwp.interpolate({
+            inputRange: [0, 1],
+            outputRange: [1, 0],
+        }),
+    };
+
+    return (
+        <>
+            <Animated.View
+                style={[
+                    styles.pulse,
+                    {
+                        width: size,
+                        height: size,
+                        borderRadius: size / 2,
+                        borderWidth: metrics.hp0_1,
+                        borderColor: "#6F13F225",
+                    },
+                    animatedStyle,
+                ]}
+            />
+            <Animated.View
+                style={[
+                    styles.pulse,
+                    {
+                        width: size,
+                        height: size,
+                        borderRadius: size / 2,
+                        borderWidth: metrics.hp0_1,
+                        borderColor: "#6F13F225",
+                    },
+                    animatedStyleTwo,
+                ]}
+            />
+        </>
+    );
+});
+
 const PeopleScreen = () => {
     const dispatch = useDispatch();
     const ref = useRef<SwiperCardRefType>(null);
@@ -72,12 +185,14 @@ const PeopleScreen = () => {
     const cardWidthRef = useRef(0);
     const WINDOW_SIZE = 4;
     const LOAD_THRESHOLD = 2;
+    const hasFetchedFeedOnceRef = useRef(false);
+    const skipNextSwipeRightCallbackRef = useRef(false);
     const [remainingSwipes, setRemainingSwipes] = useState(0);
     const [remainingSuperLikes, setRemainingSuperLikes] = useState(0);
     const [swipesPerDay, setSwipesPerDay] = useState(0);
     const [boostModalVisible, setBoostModalVisible] = useState(false);
-    const [boostEndAtMs, setBoostEndAtMs] = useState<number | null>(null);
-    const [boostsAvailable, setBoostsAvailable] = useState<number>(() => 3);
+    const [isBoostActivating, setIsBoostActivating] = useState(false);
+    const [showProfileCompletionReminder, setShowProfileCompletionReminder] = useState(false);
 
     // Tinder-style: a single source of truth for swipe gesture state (shared from swiper)
     const sharedTranslateX = useSharedValue(0);
@@ -156,62 +271,67 @@ const PeopleScreen = () => {
     }, []);
 
     const BOOST_DURATION_MS = 30 * 60 * 1000;
-    /**
-     * Future-ready: once backend starts sending boost end time in `userData`,
-     * update ONLY this key (and keep the rest of the UI working).
-     * Example backend value can be epoch ms or an ISO string.
-     */
-    const BOOST_END_AT_USER_KEY = "boostEndAt";
+
+    // Backend truth:
+    // - remaining boosts: userData.boostRemaining
+    // - status: userData.boost { isActive, expiresAt }
+    const boostRemaining = useMemo(() => {
+        const n = Number(userData?.boostRemaining);
+        return Number.isFinite(n) ? n : 0;
+    }, [userData?.boostRemaining]);
+
+    const boostEndAtMs = useMemo(() => {
+        const isActiveFlag = userData?.boost?.isActive === true;
+        const expiresAt = userData?.boost?.expiresAt;
+        if (!isActiveFlag || !expiresAt) return null;
+        const ms = new Date(String(expiresAt)).getTime();
+        return Number.isFinite(ms) && ms > 0 ? ms : null;
+    }, [userData?.boost?.expiresAt, userData?.boost?.isActive]);
+
+    // Active means "not expired"
     const boostTimer = useBoostTimer({ boostEndAtMs, durationMs: BOOST_DURATION_MS });
 
-    const getBoostsFromUserData = useCallback((u: any): number | null => {
-        if (!u) return null;
-        const candidates = [
-            u.boostsRemaining,
-            u.boostersRemaining,
-            u.boosts,
-            u.boosters,
-            u.boostCount,
-            u.boosterCount,
-        ];
-        const raw = candidates.find((v) => v !== undefined && v !== null);
-        if (raw === undefined || raw === null) return null;
-        const n = typeof raw === "number" ? raw : parseInt(String(raw), 10);
-        return Number.isFinite(n) ? n : null;
-    }, []);
-
-    const getBoostEndAtFromUserData = useCallback((u: any): number | null => {
-        if (!u) return null;
-        const raw = u?.[BOOST_END_AT_USER_KEY];
-        if (raw === undefined || raw === null) return null;
-        if (typeof raw === "number") return raw;
-        const asNumber = parseInt(String(raw), 10);
-        if (Number.isFinite(asNumber) && asNumber > 0) return asNumber;
-        const asDate = new Date(String(raw)).getTime();
-        return Number.isFinite(asDate) ? asDate : null;
-    }, [BOOST_END_AT_USER_KEY]);
-
-    useEffect(() => {
-        // Future-ready: when backend starts providing count consistently, this will pick it up.
-        const fromUser = getBoostsFromUserData(userData);
-        if (fromUser !== null && !boostEndAtMs) {
-            setBoostsAvailable(fromUser);
+    const handleBoostPress = useCallback(() => {
+        // Disabled when:
+        // - no boosts remaining
+        // - boost is already active (prevents re-activation)
+        if (boostTimer.isRunning) return;
+        if (boostRemaining <= 0) {
+            NavigationService.navigate(NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN);
+            return;
         }
-    }, [boostEndAtMs, getBoostsFromUserData, userData]);
+        setBoostModalVisible(true);
+    }, [boostRemaining, boostTimer.isRunning]);
 
-    useEffect(() => {
-        const endAtFromUser = getBoostEndAtFromUserData(userData);
-        if (endAtFromUser !== null && endAtFromUser !== boostEndAtMs) {
-            setBoostEndAtMs(endAtFromUser);
-        }
-    }, [boostEndAtMs, getBoostEndAtFromUserData, userData]);
+    const handleActivateBoost = useCallback(async () => {
+        if (isBoostActivating) return;
+        if (boostTimer.isRunning) return; // Prevent activating while one is active
+        if (boostRemaining <= 0) return;
 
-    useEffect(() => {
-        if (boostEndAtMs && !boostTimer.isRunning) {
-            // Clean up finished boost (keeps UI logic simple).
-            setBoostEndAtMs(null);
+        setIsBoostActivating(true);
+        try {
+            // Trigger activation (do not read/depend on API response payload)
+            await dispatch(activateBoostAPI());
+
+            // Optimistic UI update for instant feedback (then getProfile() will reconcile)
+            if (userData) {
+                dispatch(
+                    setGetProfile({
+                        ...userData,
+                        boostRemaining: Math.max(0, boostRemaining - 1),
+                        boost: {
+                            isActive: true,
+                            expiresAt: new Date(Date.now() + BOOST_DURATION_MS).toISOString(),
+                        },
+                    })
+                );
+            }
+        } catch (e) {
+            // errors are handled/toasted in action
+        } finally {
+            setIsBoostActivating(false);
         }
-    }, [boostEndAtMs, boostTimer.isRunning]);
+    }, [BOOST_DURATION_MS, activateBoostAPI, boostRemaining, boostTimer.isRunning, dispatch, isBoostActivating, userData]);
 
     const loadStoredValues = useCallback(async () => {
         try {
@@ -257,21 +377,35 @@ const PeopleScreen = () => {
         const cards = listProfilesData.slice(windowStartIndex, endIndex);
         return cards;
     }, [listProfilesData, windowStartIndex]);
-    const url = `http://13.201.74.29/?userId=${userData?._id}`
+    // console.log(visibleCards, "visibleCards");
 
-    const socket = useMemo(() => createSocket(url), [url]);
+    const socketUrl = useMemo(() => {
+        const currentUserId = userData?._id;
+        if (!currentUserId) return null;
+        return `http://13.201.74.29/?userId=${currentUserId}`;
+    }, [userData?._id]);
+
+    const socket = useMemo(() => {
+        if (!socketUrl) return null;
+        return createSocket(socketUrl);
+    }, [socketUrl]);
 
     useEffect(() => {
-        setRemainingSwipes(userData?.swipesRemaining ?? 0);
-        socket.on('connect', () => {
-        });
-        socket.on('newMatch', (response) => {
-            if (response) {
-                setMatchVisible(true)
-                setMatchData(response?.matchData)
-            }
-        });
-    }, [])
+        if (!socket) return;
+
+        const handleNewMatch = (response: any) => {
+            if (!response) return;
+            setMatchVisible(true);
+            setMatchData(response?.matchData);
+        };
+
+        socket.on('newMatch', handleNewMatch);
+
+        return () => {
+            socket.off?.('newMatch', handleNewMatch);
+            socket.disconnect?.();
+        };
+    }, [socket]);
 
     // NOTE: Old `position.x` based button colors removed.
     // The swipe gesture state comes from the card swiper via `sharedTranslateX`.
@@ -297,8 +431,15 @@ const PeopleScreen = () => {
     useEffect(() => {
         if (!IsFocused) return;
 
-        dispatch(getProfile(true))
-        dispatch(listProfiles(true));
+        // Run these calls ONCE per landing/focus.
+        // Important: do NOT depend on `listProfilesData` here, otherwise Redux updates re-trigger the effect.
+        if (!userData?._id) {
+            dispatch(getProfile(true));
+        }
+        if (!hasFetchedFeedOnceRef.current && (!listProfilesData || listProfilesData.length === 0)) {
+            dispatch(listProfiles(true));
+            hasFetchedFeedOnceRef.current = true;
+        }
 
         if (isInitialMountRef.current) {
             setWindowStartIndex(0);
@@ -306,11 +447,19 @@ const PeopleScreen = () => {
             isInitialMountRef.current = false;
         } else if (returningFromSubscriptionRef.current) {
             returningFromSubscriptionRef.current = false;
-        } else {
-            setWindowStartIndex(0);
-            setGetCurrentIndex(0);
         }
-    }, [IsFocused])
+        // NOTE: Do NOT reset indices on tab switching; preserve the current card.
+    }, [IsFocused, dispatch, userData?._id])
+
+    useEffect(() => {
+        if (!IsFocused) return;
+        if (hasShownProfileCompletionReminderThisSession) return;
+        const completion = Math.trunc(userData?.profileCompletion)
+        if (completion <= 70) {
+            hasShownProfileCompletionReminderThisSession = true;
+            setShowProfileCompletionReminder(true);
+        }
+    }, [IsFocused, userData?.profileCompletion]);
 
     useEffect(() => {
         if (remainingSwipes !== undefined) {
@@ -516,6 +665,16 @@ const PeopleScreen = () => {
                     <LinearGradient start={{ x: 1, y: 1 }}
                         end={{ x: 1, y: 0 }} colors={["#000000", "#00000099", "#00000000"]} style={styles.bottomDetails}>
                         <View style={{ marginTop: metrics.hp8 }}>
+                            {profile?.online && userData?.subscription?.plan !== "FREE" &&
+                                <View style={styles.activeContainer}>
+                                    <View style={styles.activeBackground}>
+                                        <View style={styles.activeDot} />
+                                    </View>
+                                    <AppText type={TEN} color={WHITE} weight={INTER_SEMI_BOLD}>
+                                        {" "}Active
+                                    </AppText>
+                                </View>
+                            }
                             <View style={{ flexDirection: "row", alignItems: "center" }}>
                                 <AppText type={TWENTY_TWO} color={WHITE} weight={INTER_BOLD}>
                                     {profile.name}, {profile.age}{" "}
@@ -537,6 +696,7 @@ const PeopleScreen = () => {
                                         {profile.work}
                                     </AppText>
                                 </View>}
+
                         </View>
                         <TouchableOpacityView style={styles.upArrowContainer} onPress={() => { setModalVisible(true), setSwipeUp(false) }}>
                             <FastImage
@@ -552,21 +712,6 @@ const PeopleScreen = () => {
         );
     });
 
-    useEffect(() => {
-        if (!modalVisible && swipeRight) {
-            ref.current?.swipeRight();
-            setSwipeRight(false)
-        } else if (!modalVisible && swipeLeft) {
-            ref.current?.swipeLeft();
-            setSwipeLeft(false)
-        } else if (!modalVisible && swipeUp) {
-            const timer = setTimeout(() => {
-                ref.current?.swipeTop();
-                setSwipeUp(false);
-            }, 200);
-            return () => clearTimeout(timer);
-        }
-    }, [swipeRight, modalVisible, swipeLeft, swipeUp])
     const swipeFunction = async (index: any, swipe: any) => {
         const actualProfileIndex = windowStartIndex + index;
         const profile = listProfilesData[actualProfileIndex];
@@ -602,94 +747,26 @@ const PeopleScreen = () => {
         }
     };
 
-    const PulsingCircle = ({ size }: any) => {
-        const anim = useRef(new Animated.Value(0)).current;
-        const animTwp = useRef(new Animated.Value(0)).current;
-        useEffect(() => {
-            const pulse = () => {
-                anim.setValue(0);
-                Animated.timing(anim, {
-                    toValue: 1,
-                    duration: 3000,
-                    useNativeDriver: true,
-                }).start(() => {
-                    pulse()
-                });
-            };
-            const pulseTwp = () => {
-                animTwp.setValue(0);
-                Animated.timing(animTwp, {
-                    toValue: 1,
-                    duration: 3000,
-                    useNativeDriver: true,
-                }).start(() => {
-                    pulseTwp()
-                });
-            };
-            pulse()
-            setTimeout(() => {
-                pulseTwp()
-            }, 1500);
-        }, [anim]);
-        const animatedStyle = {
-            transform: [
-                {
-                    scale: anim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [1, 3],
-                    }),
-                },
-            ],
-            opacity: anim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [1, 0],
-            }),
-        };
-        const animatedStyleTwo = {
-            transform: [
-                {
-                    scale: animTwp.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [1, 3],
-                    }),
-                },
-            ],
-            opacity: animTwp.interpolate({
-                inputRange: [0, 1],
-                outputRange: [1, 0],
-            }),
-        };
-        return (
-            <>
-                <Animated.View
-                    style={[
-                        styles.pulse,
-                        {
-                            width: size,
-                            height: size,
-                            borderRadius: size / 2,
-                            borderWidth: metrics.hp0_1,
-                            borderColor: "#6F13F225",
-                        },
-                        animatedStyle,
-                    ]}
-                />
-                <Animated.View
-                    style={[
-                        styles.pulse,
-                        {
-                            width: size,
-                            height: size,
-                            borderRadius: size / 2,
-                            borderWidth: metrics.hp0_1,
-                            borderColor: "#6F13F225",
-                        },
-                        animatedStyleTwo,
-                    ]}
-                />
-            </>
-        );
-    };
+    // Programmatic swipe handlers (used by modals like Crush Notes): ensure API is hit reliably.
+    useEffect(() => {
+        if (!modalVisible && swipeRight) {
+            // 1) hit the same "like" API path for the current card
+            swipeFunction(getCurrentIndex, "like");
+            // 2) animate swipe, but skip Swiper's onSwipeRight callback once to avoid double-like
+            skipNextSwipeRightCallbackRef.current = true;
+            ref.current?.swipeRight();
+            setSwipeRight(false);
+        } else if (!modalVisible && swipeLeft) {
+            ref.current?.swipeLeft();
+            setSwipeLeft(false);
+        } else if (!modalVisible && swipeUp) {
+            const timer = setTimeout(() => {
+                ref.current?.swipeTop();
+                setSwipeUp(false);
+            }, 200);
+            return () => clearTimeout(timer);
+        }
+    }, [swipeRight, modalVisible, swipeLeft, swipeUp, getCurrentIndex]);
 
     // const toastRef = useRef<IToast>(null);
     // function show() {
@@ -723,40 +800,77 @@ const PeopleScreen = () => {
     //     // })
     // },[])
 
+    const toCount = (v: any, fallback: number) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : fallback;
+    };
+    // console.log(userData, "userDatauserDatauserData");
+
+    const crushNotesRemaining = toCount(userData?.crushNotesRemaining, 0);
 
     return (
         <AppSafeAreaView>
             {/* <Toast ref={toastRef} onHide={showSuccess} /> */}
             <View>
                 <View style={{ zIndex: 2, backgroundColor: colors.white }}>
-                    <PeopleHeader 
-                        profile={false} 
+                    <PeopleHeader
+                        profile={false}
                         useName={true}
                         showBooster={visibleCards.length === 0 || (windowStartIndex + getCurrentIndex >= listProfilesData?.length)}
-                        boostIcon={flashIcon}
+                        boostIcon={(boostRemaining > 0 || boostTimer.isRunning) ? flashIcon : null}
                         boostTimerText={boostTimer.isRunning ? boostTimer.remainingLabel : null}
-                        onBoostPress={() => {
-                            // Check subscription perks for boost limit
-                            const boostPerMonth = userData?.subscription?.perks?.boostPerMonth;
-                            if (boostPerMonth === 0) {
-                                NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
-                                return;
-                            }
-
-                            if (boostsAvailable <= 0 && !boostTimer.isRunning) {
-                                NavigationService.navigate(NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN);
-                            } else {
-                                setBoostModalVisible(true);
-                            }
-                        }}
+                        onBoostPress={handleBoostPress}
                     />
                 </View>
-                <View style={styles.swiperContainer}>
+                <View style={[styles.swiperContainer, { paddingHorizontal: (visibleCards.length === 0 || (windowStartIndex + getCurrentIndex >= listProfilesData?.length)) ? 0 : metrics.hp1 }]}>
                     {(visibleCards.length === 0 || (windowStartIndex + getCurrentIndex >= listProfilesData?.length)) &&
-                        <View style={{ alignItems: "center", justifyContent: "center", flex: 1, marginTop: -metrics.hp5 }}>
-                            <PulsingCircle size={metrics.hp12} />
-                            <FastImage resizeMode='cover' style={styles.emptyImage} source={{ uri: userData?.gallery[0]?.url }} />
-                        </View>}
+                        <>
+                            <View style={{ alignItems: "center", justifyContent: "center", flex: 1, marginTop: -metrics.hp5 }}>
+                                <PulsingCircle size={metrics.hp15} />
+                                <View style={{ height: metrics.hp15, width: metrics.hp15, borderRadius: metrics.hp50, borderWidth: metrics.hp0_3, borderColor: "#6F13F220", alignItems: "center", justifyContent: "center" }}>
+                                    <FastImage resizeMode='cover' style={styles.emptyImage} source={{ uri: userData?.gallery[0]?.url }} />
+                                </View>
+                            </View>
+                            <AppText style={{ position: "absolute", top: "63%" }} type={TWELVE} color={OPECITY_DARK} weight={INTER_MEDIUM}>
+                                Searching people near you...
+                            </AppText>
+                            {userData?.globalSearch === false &&
+                                <LinearGradient colors={["#6F13F200", "#6F13F220"]} style={{ alignItems: "center", justifyContent: "center", width: "100%", position: "absolute", height: metrics.hp25, paddingHorizontal: metrics.hp2, bottom: -metrics.hp5 }}>
+                                    <AppText type={FORTEEN} weight={INTER_BOLD}>
+                                        Your Story Isn’t Over Yet
+                                    </AppText>
+                                    <AppText style={{ textAlign: "center" }}>
+                                        You’re caught up for today. New people are searching for you — reset your filters or switch to Global Search to discover more.
+                                    </AppText>
+                                    <TouchableOpacityView onPress={async () => {
+                                        const data = {
+                                            "preferredGender": userData?.preferredGender,
+                                            "relationshipPreference": userData?.relationshipPreference || userData?.relationsShipStatus,
+                                            "preferredAgeRange": {
+                                                "min": userData?.preferredAgeRange ? userData.preferredAgeRange.min : 18,
+                                                "max": userData?.preferredAgeRange ? userData.preferredAgeRange.max : 45
+                                            },
+                                            "preferredDistanceKm": userData?.preferredDistanceKm,
+                                            "globalSearch": true,
+                                            "languagePrefrence": userData?.languagePrefrence || [],
+                                        };
+                                        try {
+                                            const response: any = await appOperation.customer.editFilterAPI(data);
+                                            if (response?.statusCode === 200) {
+                                                dispatch(listProfiles())
+                                                dispatch(getProfile(true));
+                                            }
+                                        } catch (error) {
+                                            console.log("Error updating filter:", error);
+                                        }
+                                    }} style={{ height: metrics.hp5, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: colors.black, alignItems: "center", justifyContent: "center", width: "100%", marginTop: metrics.hp2 }}>
+                                        <AppText type={FORTEEN} weight={INTER_BOLD}>
+                                            Global Search
+                                        </AppText>
+                                    </TouchableOpacityView>
+                                </LinearGradient>
+                            }
+                        </>}
                     {visibleCards.length > 0 && (windowStartIndex + getCurrentIndex < listProfilesData?.length) &&
                         <Swiper
                             key={`swiper-${windowStartIndex}`}
@@ -792,6 +906,12 @@ const PeopleScreen = () => {
                                 }
                             }}
                             onSwipeRight={(index) => {
+                                // When we trigger a programmatic swipeRight (e.g. from a modal),
+                                // we already called `swipeFunction()` manually. Skip once to avoid double-like.
+                                if (skipNextSwipeRightCallbackRef.current) {
+                                    skipNextSwipeRightCallbackRef.current = false;
+                                    return;
+                                }
                                 const swipes = remainingSwipes ?? userData?.swipesRemaining ?? 0;
                                 if (swipes <= 0) {
                                     returningFromSubscriptionRef.current = true;
@@ -816,20 +936,7 @@ const PeopleScreen = () => {
                 </View>
                 {visibleCards.length > 0 && (windowStartIndex + getCurrentIndex < listProfilesData?.length) &&
                     <View style={styles.likeUnLikeCOntainer}>
-                        <TouchableOpacityView activeOpacity={0.8} onPress={() => {
-                            // Check subscription perks for boost limit
-                            const boostPerMonth = userData?.subscription?.perks?.boostPerMonth;
-                            if (boostPerMonth === 0) {
-                                NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
-                                return;
-                            }
-
-                            if (boostsAvailable <= 0 && !boostTimer.isRunning) {
-                                NavigationService.navigate(NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN);
-                            } else {
-                                setBoostModalVisible(true);
-                            }
-                        }} style={styles.flasContaier}>
+                        <TouchableOpacityView activeOpacity={0.8} onPress={handleBoostPress} style={styles.flasContaier}>
                             <BoostLiquidButton
                                 size={metrics.hp6_5}
                                 isRunning={boostTimer.isRunning}
@@ -954,7 +1061,16 @@ const PeopleScreen = () => {
                                 </View>
                             </TouchableOpacityView>
                         </View>
-                        <TouchableOpacityView onPress={() => setCrushNotesSender(true) /* NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN) */} style={styles.flasContaier}>
+                        <TouchableOpacityView
+                            onPress={() => {
+                                if (crushNotesRemaining <= 0) {
+                                    NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN);
+                                    return;
+                                }
+                                setCrushNotesSender(true);
+                            }}
+                            style={styles.flasContaier}
+                        >
                             <FastImage source={shareRedIcon} resizeMode="contain" style={styles.flasIcon} />
                         </TouchableOpacityView>
                     </View>
@@ -1006,18 +1122,45 @@ const PeopleScreen = () => {
                 <BoostModal
                     visible={boostModalVisible}
                     onClose={() => setBoostModalVisible(false)}
-                    boostsAvailable={boostsAvailable}
+                    boostsAvailable={boostRemaining}
                     durationMinutes={30}
                     isRunning={boostTimer.isRunning}
                     remainingFraction={boostTimer.remainingFraction}
                     remainingLabel={boostTimer.remainingLabel}
-                    onStart={() => {
-                        if (boostTimer.isRunning) return;
-                        if (boostsAvailable <= 0) return;
-                        setBoostsAvailable((p) => Math.max(0, p - 1));
-                        setBoostEndAtMs(Date.now() + BOOST_DURATION_MS);
-                    }}
+                    onStart={handleActivateBoost}
+                    isActivating={isBoostActivating}
                 />
+
+
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={showProfileCompletionReminder}
+                    statusBarTranslucent
+                    onRequestClose={() => setShowProfileCompletionReminder(false)}>
+                    <View style={styles.centeredView}>
+                        <View style={styles.confirmContainer}>
+                            <FastImage source={completeProfileBanner} resizeMode="stretch" style={styles.bdyBack} />
+                            <AppText style={{ textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK}>
+                                Complete your profile
+                            </AppText>
+                            <AppText style={{ marginTop: -metrics.hp3, textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK}>
+                                to get more matches!
+                            </AppText>
+                            <TouchableOpacityView onPress={() => {
+                                setShowProfileCompletionReminder(false);
+                                NavigationService.navigate(NAVIGATION_EDIT_PROFILE_SCREEN);
+                            }} style={[styles.ediButton, { backgroundColor: colors.purple, marginTop: metrics.hp0 }]}>
+                                <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
+                                    Complete Profile
+                                </AppText>
+                            </TouchableOpacityView>
+                            <AppText onPress={() => setShowProfileCompletionReminder(false)} weight={INTER_SEMI_BOLD} type={TWELVE} style={{ textAlign: "center", marginTop: metrics.hp2 }} color={LIGHT_BLACK}>
+                                No, skip now
+                            </AppText>
+                        </View>
+                    </View>
+                </Modal>
             </View>
         </AppSafeAreaView>
     );
@@ -1206,7 +1349,39 @@ const styles = StyleSheet.create({
         backgroundColor: "#6F13F220",
     },
     emptyImage: {
-        height: metrics.hp12, width: metrics.hp12, borderRadius: metrics.hp50, borderWidth: metrics.hp0_3, borderColor: "#6F13F285"
-    }
+        height: metrics.hp14, width: metrics.hp14, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: colors.white
+    },
+    centeredView: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: colors.transparentBlack,
+        paddingHorizontal: metrics.hp2
+    },
+    confirmContainer: {
+        height: metrics.hp40,
+        backgroundColor: colors.white,
+        width: Screen.Width / 1.20,
+        borderRadius: metrics.hp2,
+    },
+    bdyBack: {
+        height: metrics.hp17,
+        borderTopRightRadius: metrics.hp2,
+        borderTopLeftRadius: metrics.hp2,
+    },
+    ediButton: {
+        height: metrics.hp5,
+        borderWidth: 1,
+        borderColor: colors.purple,
+        borderRadius: metrics.hp4,
+        alignItems: "center",
+        justifyContent: "center",
+        width: "40%",
+        alignSelf: "center",
+
+    },
+    activeContainer: { height: metrics.hp2, paddingHorizontal: metrics.hp1, flexDirection: "row", alignItems: "center", borderRadius: metrics.hp5, backgroundColor: "#FFFFFF33", marginTop: metrics.hp0_5, width: metrics.hp8 },
+    activeBackground: { height: metrics.hp1_2, width: metrics.hp1_2, borderWidth: metrics.hp0_1, borderColor: "#28EC594D", backgroundColor: "#28EC591A", borderRadius: metrics.hp20, alignItems: "center", justifyContent: "center", marginRight: metrics.hp0_3 },
+    activeDot: { height: metrics.hp0_8, width: metrics.hp0_8, backgroundColor: "#28EC59", borderRadius: metrics.hp50 },
 });
 

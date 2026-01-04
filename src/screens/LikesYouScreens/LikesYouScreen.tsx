@@ -32,7 +32,7 @@ const LikesYouScreen = () => {
         dispatch(likeYou());
         dispatch(viewProfileByOther());
         dispatch(youView());
-    }, []);
+    }, [fouces]);
     let item = { id: "2", icon: goldCard, title: "Gold" }
     const renderUpgradeData = () => {
         return (
@@ -95,30 +95,34 @@ const LikesYouScreen = () => {
         let data = {
             "userId": item?.userId
         };
-        dispatch(getOtherProfile(data, true, setProfileData, true));
+        dispatch(getOtherProfile(data, false, setProfileData, true));
     }
     const renderItems = ({ item, index }: any) => {
         return (
             <TouchableOpacityView disabled={item?.see == false ? true : false} onPress={() => viewProfile(item)} key={index} style={[styles.upgradeDataContainer, { marginBottom: metrics.hp2, }]}>
                 <ImageBackground blurRadius={item?.see == false ? metrics.hp7 : metrics.hp0} imageStyle={{ borderRadius: metrics.hp1_5 }} source={{ uri: item?.profilePicture[0]?.url }} resizeMode="cover" style={styles.profileImageTwo}>
-                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                        <AppText type={THIRTEEN} weight={INTER_BOLD} color={WHITE}>
-                            {item.name}<AppText type={THIRTEEN} weight={INTER_SEMI_BOLD} color={WHITE}>
-                                ,{" "}{item.age}{" "}
+                    <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: item?.see == false ? "#ffffff50" : colors.transparent, borderRadius: metrics.hp1 }}>
+                        {item?.see == false ? <AppText>{"                            "}</AppText> :
+                            <>
+                                <AppText type={THIRTEEN} weight={INTER_BOLD} color={WHITE}>
+                                    {item.name}<AppText type={THIRTEEN} weight={INTER_SEMI_BOLD} color={WHITE}>
+                                        ,{" "}{item.age}{" "}
+                                    </AppText>
+                                </AppText>
+                                <FastImage source={blueTikeIcon} resizeMode="contain" style={{ height: metrics.hp1_6, width: metrics.hp1_6 }} />
+                            </>
+                        }
+                    </View>
+                    {item?.online && userData?.subscription?.plan !== "FREE" &&
+                        <View style={styles.activeContainer}>
+                            <View style={styles.activeBackground}>
+                                <View style={styles.activeDot} />
+                            </View>
+                            <AppText type={TEN} color={WHITE} weight={INTER_SEMI_BOLD}>
+                                Active
                             </AppText>
-                        </AppText>
-                        <FastImage source={blueTikeIcon} resizeMode="contain" style={{ height: metrics.hp1_6, width: metrics.hp1_6 }} />
-                    </View>
-                    <View style={styles.activeContainer}>
-                        {/* {item.active == "Active Now" && */}
-                        <View style={styles.activeBackground}>
-                            <View style={styles.activeDot} />
                         </View>
-                        {/* } */}
-                        <AppText type={TEN} color={WHITE} weight={INTER_SEMI_BOLD}>
-                            Recently Active
-                        </AppText>
-                    </View>
+                    }
                 </ImageBackground>
             </TouchableOpacityView>
         )
@@ -211,25 +215,25 @@ const LikesYouScreen = () => {
                 contentContainerStyle={{ paddingHorizontal: metrics.hp2, marginTop: metrics.hp2, paddingBottom: metrics.hp10 }}
                 ListEmptyComponent={tabSelect == "Views" ? renderEmptyView : renderEmptyLikes}
                 ListFooterComponent={() => {
-                    return likeYoue == "Likes You" && tabSelect === "Likes" &&userData?.subscription?.plan === "FREE" ? (
+                    return likeYoue == "Likes You" && tabSelect === "Likes" && userData?.subscription?.plan === "FREE" ? (
                         <AppText style={{ textAlign: "center", marginTop: metrics.hp2 }} type={TWELVE} weight={INTER_MEDIUM} color={LIGHT_BLACK}>
                             Upgrade to gold to see people who have already{'\n'}liked you
                         </AppText>
                     ) : (
-                        ViewYoue == "Viewed You" && tabSelect == "Views" && userData?.subscription?.plan === "FREE"? (
+                        ViewYoue == "Viewed You" && tabSelect == "Views" && userData?.subscription?.plan === "FREE" ? (
                             <AppText style={{ textAlign: "center", marginTop: metrics.hp2 }} type={TWELVE} weight={INTER_MEDIUM} color={LIGHT_BLACK}>
                                 Upgrade to gold to see people who have already{'\n'}liked you
                             </AppText>
                         ) : (<></>)
                     )
                 }} />
-            {likeYoue == "Likes You" && tabSelect === "Likes" && userData?.subscription?.plan === "FREE"?
+            {likeYoue == "Likes You" && tabSelect === "Likes" && userData?.subscription?.plan === "FREE" ?
                 <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: item })} >
-                    <FastImage source={upgradPlan} resizeMode="contain" style={{ height: metrics.hp10, width: Screen.Width / 1, marginBottom: metrics.hp3 }} />
+                    <FastImage source={upgradPlan} resizeMode="contain" style={{ height: metrics.hp10, width: Screen.Width / 1, marginBottom: metrics.hp1, marginTop: metrics.hp1 }} />
                 </TouchableOpacityView> :
-                ViewYoue == "Viewed You" && tabSelect == "Views" &&userData?.subscription?.plan === "FREE" ?
+                ViewYoue == "Viewed You" && tabSelect == "Views" && userData?.subscription?.plan === "FREE" ?
                     <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: item })} >
-                        <FastImage source={upgradPlan} resizeMode="contain" style={{ height: metrics.hp10, width: Screen.Width / 1, marginBottom: metrics.hp3 }} />
+                        <FastImage source={upgradPlan} resizeMode="contain" style={{ height: metrics.hp10, width: Screen.Width / 1, marginBottom: metrics.hp1, marginTop: metrics.hp1 }} />
                     </TouchableOpacityView> : <></>
             }
         </AppSafeAreaView>

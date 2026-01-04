@@ -70,6 +70,8 @@ import ProfileBoostPurchase from "../screens/ProfileScreens/ProfileBoostPurchase
 import SuperLikePurchese from "../screens/ProfileScreens/SuperLikePurchese";
 import CrushNotePurchase from "../screens/ProfileScreens/CrushNotePurchase";
 import SubscriptionAllScreen from "../screens/ProfileScreens/SubscriptionAllScreen";
+import AllMatchesScreen from "../screens/ChatScreens/AllMatchesScreen";
+import BotChatScreen from "../screens/ChatScreens/BotChatScreen";
 
 const Navigator = () => {
   const Stack = createStackNavigator();
@@ -138,6 +140,8 @@ const Navigator = () => {
       <Stack.Screen name={routes.NAVIGATION_SUBSCRIPTION_SCREEN} component={SubscriptionScreen} />
       <Stack.Screen name={routes.NAVIGATION_SETTING_SCREEN} component={SettingScreen} />
       <Stack.Screen name={routes.NAVIGATION_TAKING_SCREEN} component={TakingScreen} />
+      <Stack.Screen name={routes.NAVIGATION_ALL_MATCHES_SCREEN} component={AllMatchesScreen} />
+      <Stack.Screen name={routes.NAVIGATION_BOT_CHAT_SCREEN} component={BotChatScreen} />
       <Stack.Screen name={routes.NAVIGATION_REPORT_SCREEN} component={ReportScreen} />
       <Stack.Screen name={routes.NAVIGATION_REPORT_COMMON_SCREEN} component={ReportCommonScreen} />
       <Stack.Screen name={routes.NAVIGATION_OHTER_REPORT_SCREEN} component={OtherReport} />
@@ -159,7 +163,14 @@ const Navigator = () => {
   );
 
   return (
-    <NavigationContainer ref={(navigatorRef) => { NavigationService.setTopLevelNavigator(navigatorRef) }}>
+    <NavigationContainer
+      ref={(navigatorRef) => {
+        NavigationService.setTopLevelNavigator(navigatorRef);
+      }}
+      onReady={() => {
+        NavigationService.setIsReady(true);
+      }}
+    >
       <RootStackScreen />
       <ToastMessage />
       <GlobalNotificationManager />

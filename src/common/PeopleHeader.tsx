@@ -29,9 +29,11 @@ const PeopleHeader = ({ userName, profile, bottomDetailsOpacity, topTextOpacityR
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                     {showBooster && boostIcon ? (
                         <View style={{ flexDirection: "row", alignItems: "center", marginRight: metrics.hp2 }}>
-                            <TouchableOpacityView onPress={onBoostPress} activeOpacity={0.8}>
-                                <FastImage source={boostIcon} resizeMode="contain" style={styles.filterIcon} />
-                            </TouchableOpacityView>
+                            {!boostTimerText &&
+                                <TouchableOpacityView onPress={onBoostPress} activeOpacity={0.8}>
+                                    <FastImage source={boostIcon} resizeMode="contain" style={styles.filterIcon} />
+                                </TouchableOpacityView>
+                            }
                             {boostTimerText && (
                                 <View style={styles.timerPill}>
                                     <AppText type={TEN} weight={INTER_SEMI_BOLD} color={PURPLE}>
@@ -41,9 +43,7 @@ const PeopleHeader = ({ userName, profile, bottomDetailsOpacity, topTextOpacityR
                             )}
                         </View>
                     ) : (
-                        <TouchableOpacityView onPress={() => profile ? NavigationService.navigate(NAVIGATION_FILTER_SCREEN) : console.log("I am in ")}>
-                            <FastImage source={profile ? filterIcon : reversIcoin} resizeMode="contain" style={[styles.filterIcon, { marginRight: metrics.hp2 }]} />
-                        </TouchableOpacityView>
+                        <></>
                     )}
                     <TouchableOpacityView onPress={() => profile ? NavigationService.navigate(NAVIGATION_SETTING_SCREEN) : NavigationService.navigate(NAVIGATION_FILTER_SCREEN)}>
                         <FastImage source={profile ? settingIcon : filterIcon} resizeMode="contain" style={styles.filterIcon} />

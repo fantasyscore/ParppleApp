@@ -159,6 +159,7 @@ export interface AuthState {
   newMatches:[];
   matchChatUserDetails:undefined;
   chatHistory:[];
+  recentMatches:[];
 }
 export interface DeviceTokenParams {
   merchantId: string;

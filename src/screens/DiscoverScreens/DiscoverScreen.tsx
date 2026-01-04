@@ -22,6 +22,7 @@ import {
     LIGHT_BLACK,
     OPECITY_DARK,
     SCHEHERAZADE_BOLD,
+    TEN,
     TWELVE,
     TWENTY,
     TWENTY_FOUR,
@@ -119,7 +120,9 @@ const DiscoverScreen = () => {
             dispatch(getOtherProfile(data, isNavigate, setProfileData));
             setModalVisible(true)
         }
-    }
+    };
+
+    
     const discoverRender = ({ item, index }: any) => {
         const inputRange = [
             (index - 1) * (ITEM_WIDTH + SPACING),
@@ -156,17 +159,34 @@ const DiscoverScreen = () => {
                         source={{ uri: item?.profilePicture[0]?.url }}>
                         <View style={{ flex: 1 }} />
                         <View style={styles.bottomDetails}>
+
                             <View>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <AppText type={TWENTY} color={WHITE} weight={INTER_BOLD}>
-                                        {item.firstName}, {item.age}{" "}
-                                    </AppText>
-                                    <FastImage
-                                        source={blueTikeIcon}
-                                        resizeMode="contain"
-                                        style={styles.blueTikIcon}
-                                    />
-                                </View>
+                                {item?.online && userData?.subscription?.plan !== "FREE" &&
+                                    <View style={styles.activeContainer}>
+                                        <View style={styles.activeBackground}>
+                                            <View style={styles.activeDot} />
+                                        </View>
+                                        <AppText type={TEN} color={WHITE} weight={INTER_SEMI_BOLD}>
+                                            {" "}Active
+                                        </AppText>
+                                    </View>
+                                }
+                                {item?.see == false ?
+                                    <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#ffffff50", borderRadius: metrics.hp2, height: metrics.hp3, marginTop: metrics.hp1, width: metrics.hp12 }}>
+                                        <AppText></AppText>
+                                    </View> :
+                                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                        <AppText type={TWENTY} color={WHITE} weight={INTER_BOLD}>
+                                            {`${item.firstName}, ${item.age}`}{" "}
+                                        </AppText>
+                                        <FastImage
+                                            source={blueTikeIcon}
+                                            resizeMode="contain"
+                                            style={styles.blueTikIcon}
+                                        />
+                                    </View>
+                                }
+
                                 <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
                                     <FastImage
                                         source={bussnisIcon}
@@ -249,20 +269,35 @@ const DiscoverScreen = () => {
                         source={{ uri: item?.profilePicture[0]?.url }}>
                         <View style={{ flex: 1 }} />
                         <View style={[styles.newdetails, { marginBottom: metrics.hp1 }]}>
-                            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <AppText type={FORTEEN} color={WHITE} weight={INTER_BOLD}>
-                                        {item.firstName}, {item.age}{" "}
+                            {item?.online && userData?.subscription?.plan !== "FREE" &&
+                                <View style={styles.activeContainer}>
+                                    <View style={styles.activeBackground}>
+                                        <View style={styles.activeDot} />
+                                    </View>
+                                    <AppText type={TEN} color={WHITE} weight={INTER_SEMI_BOLD}>
+                                        {" "}Active
                                     </AppText>
-                                    <FastImage
-                                        source={blueTikeIcon}
-                                        resizeMode="contain"
-                                        style={[styles.blueTikIcon, {
-                                            height: metrics.hp2,
-                                            width: metrics.hp2,
-                                        }]}
-                                    />
                                 </View>
+                            }
+                            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                                {item?.see == false ?
+                                    <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#ffffff50", borderRadius: metrics.hp2, height: metrics.hp3, marginTop: metrics.hp1, width: metrics.hp8 }}>
+                                        <AppText></AppText>
+                                    </View> :
+                                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                        <AppText type={FORTEEN} color={WHITE} weight={INTER_BOLD}>
+                                            {`${item.firstName}, ${item.age}`}{" "}
+                                        </AppText>
+                                        <FastImage
+                                            source={blueTikeIcon}
+                                            resizeMode="contain"
+                                            style={[styles.blueTikIcon, {
+                                                height: metrics.hp2,
+                                                width: metrics.hp2,
+                                            }]}
+                                        />
+                                    </View>
+                                }
                                 <TouchableOpacityView onPress={() => {
                                     if (item.see == false) {
                                         NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem })
@@ -278,7 +313,7 @@ const DiscoverScreen = () => {
                         </View>
                     </ImageBackground>
                 </Animated.View>
-            </TouchableOpacityView>
+            </TouchableOpacityView >
         )
     };
     useEffect(() => {
@@ -583,5 +618,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingHorizontal: metrics.hp2,
         justifyContent: "space-between"
-    }
+    },
+    activeContainer: { height: metrics.hp2, paddingHorizontal: metrics.hp1, flexDirection: "row", alignItems: "center", borderRadius: metrics.hp5, backgroundColor: "#FFFFFF33", marginTop: metrics.hp0_5, width: metrics.hp8 },
+    activeBackground: { height: metrics.hp1_2, width: metrics.hp1_2, borderWidth: metrics.hp0_1, borderColor: "#28EC594D", backgroundColor: "#28EC591A", borderRadius: metrics.hp20, alignItems: "center", justifyContent: "center", marginRight: metrics.hp0_3 },
+    activeDot: { height: metrics.hp0_8, width: metrics.hp0_8, backgroundColor: "#28EC59", borderRadius: metrics.hp50 },
 });

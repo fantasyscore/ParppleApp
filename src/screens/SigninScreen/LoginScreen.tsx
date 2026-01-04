@@ -81,6 +81,7 @@ const LoginScreen = () => {
         if (phoneNumber.length === 10) {
             let data = {
                 phoneNumber: phoneNumber,
+                fcmtoken:fcmtoken
                 // googleToken: signInResult?.data?.idToken
             };
             dispatch(userLogin(data, true))

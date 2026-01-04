@@ -8,12 +8,27 @@ import { StatusBar, Text, View } from "react-native";
 import SplashScreen from "react-native-splash-screen";
 import ToastMessage from "./common/ToastMessage";
 import codePush from "@revopush/react-native-code-push";
+import { requestPushPermission, setupPushListeners } from "./notifications/pushNotifications";
 const App = () => {
   useEffect(() => {
     onAppStart(store);
     setTimeout(() => {
-      SplashScreen.hide();
+      try {
+        // Avoid rare cold-start crashes if the native module isn't ready
+        // (keeps behavior identical: hide after ~3s).
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (SplashScreen as any)?.hide?.();
+      } catch {
+        // no-op
+      }
     }, 3000);
+  }, []);
+
+  useEffect(() => {
+    // Push notification setup (foreground + permissions)
+    requestPushPermission().catch(() => {});
+    const cleanup = setupPushListeners();
+    return () => cleanup();
   }, []);
 
   return (

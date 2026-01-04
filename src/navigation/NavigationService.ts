@@ -2,13 +2,57 @@ import { CommonActions, StackActions } from '@react-navigation/native';
 import { DrawerActions } from '@react-navigation/native';
 
 let navigator: any;
+let isNavReady = false;
+
+// Queue navigation actions fired before NavigationContainer is ready (cold start race).
+// This prevents "Cannot read property 'dispatch' of undefined" crashes on first open.
+const pendingActions: any[] = [];
+const MAX_PENDING_ACTIONS = 20;
+
+function enqueueAction(action: any) {
+  pendingActions.push(action);
+  // Keep the queue bounded (oldest dropped)
+  if (pendingActions.length > MAX_PENDING_ACTIONS) {
+    pendingActions.splice(0, pendingActions.length - MAX_PENDING_ACTIONS);
+  }
+}
+
+function flushPending() {
+  if (!isNavReady || !navigator?.dispatch) return;
+  while (pendingActions.length) {
+    const action = pendingActions.shift();
+    try {
+      navigator.dispatch(action);
+    } catch {
+      // If something still fails, drop the action (do not crash the app)
+    }
+  }
+}
 
 function setTopLevelNavigator(navigatorRef: any) {
   navigator = navigatorRef;
+  flushPending();
+}
+
+function setIsReady(ready: boolean) {
+  isNavReady = ready;
+  flushPending();
+}
+
+function safeDispatch(action: any) {
+  if (isNavReady && navigator?.dispatch) {
+    try {
+      navigator.dispatch(action);
+      return;
+    } catch {
+      // fall through to enqueue
+    }
+  }
+  enqueueAction(action);
 }
 
 function navigate(routeName: string, params?: object) {
-  navigator.dispatch(
+  safeDispatch(
     CommonActions.navigate({
       name: routeName,
       params: params,
@@ -16,17 +60,13 @@ function navigate(routeName: string, params?: object) {
   );
 }
 function pop(n = 1) {
-  navigator.dispatch(
-    StackActions.pop({
-      n: n,
-    }),
-  );
+  safeDispatch(StackActions.pop(n));
 }
 function push(routeName: string) {
-  navigator.dispatch(StackActions.push(routeName));
+  safeDispatch(StackActions.push(routeName));
 }
 function reset(route: string) {
-  navigator.dispatch(
+  safeDispatch(
     CommonActions.reset({
       index: 0,
       routes: [{ name: route }],
@@ -35,18 +75,18 @@ function reset(route: string) {
 }
 
 function goBack() {
-  navigator.dispatch(CommonActions.goBack());
+  safeDispatch(CommonActions.goBack());
   // navigator._navigation.goBack();
 }
 function openDrawer() {
-  navigator.dispatch(DrawerActions.openDrawer());
+  safeDispatch(DrawerActions.openDrawer());
 }
 function closeDrawer() {
-  navigator.dispatch(DrawerActions.closeDrawer());
+  safeDispatch(DrawerActions.closeDrawer());
 }
 
 function replace(routeName: string, params?: object) {
-  navigator.dispatch(StackActions.replace(routeName, params));
+  safeDispatch(StackActions.replace(routeName, params));
 }
 // add other navigation functions that you need and export them
 
@@ -54,6 +94,7 @@ export default {
   goBack,
   navigate,
   setTopLevelNavigator,
+  setIsReady,
   openDrawer,
   closeDrawer,
   pop,

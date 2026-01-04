@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { FlatList, ImageBackground, ScrollView, StyleSheet, View } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
@@ -21,14 +21,18 @@ const ProfileScreen = () => {
     const [tabSelect, setTabSelect] = useState("Premium");
     const userData = useSelector((state: any) => state.auth.userData);
     
+    useEffect(() => {
+        setPercentage(userData?.profileCompletion)
+    }, [userData?.profileCompletion])
     const size = metrics.hp12;
     const strokeWidth = metrics.hp0_5;
     const radius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
     const progress = (percentage / 100) * circumference;
+
     const premiumDetaiData = [
-        { id: "1", icon: flasIcon, numberText: "5", title: "Boost", headLine: "Get more" },
-        { id: "2", icon: redHeart, numberText: "10", title: "Super Like", headLine: "Get more" },
+        { id: "1", icon: flasIcon, numberText: userData?.boostRemaining, title: "Boost", headLine: "Get more" },
+        { id: "2", icon: redHeart, numberText: userData?.superLikesRemaining, title: "Super Like", headLine: "Get more" },
         { id: "3", icon: pText, numberText: userData?.subscription?.plan !== "FREE" ? `${userData?.subscription?.plan}\nSubscription` : "Get\nSubscription", title: "", headLine: userData?.subscription?.plan === "SILVER" || userData?.subscription?.plan === "GOLD" ? "Upgrade" : userData?.subscription?.plan === "PLATNIUM" ? "Elite" : "Purchase" },
     ];
     const renderPurchaesCards = ({ item, index }: any) => {
@@ -90,7 +94,7 @@ const ProfileScreen = () => {
                         />
                         <View style={styles.persentageContainer}>
                             <AppText type={TEN} weight={INTER_BOLD} color={WHITE}>
-                                24%
+                                {Math.trunc(percentage)}%
                             </AppText>
                         </View>
                     </View>
@@ -312,7 +316,7 @@ const ProfileScreen = () => {
                                 Visit Website
                             </AppText>
                         </View>
-                        <View style={{height:metrics.hp0_1, backgroundColor:colors.persentageBorder,marginTop:metrics.hp2,}}/>
+                        <View style={{ height: metrics.hp0_1, backgroundColor: colors.persentageBorder, marginTop: metrics.hp2, }} />
                         <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp2 }}>
                             <FastImage source={callIcon} resizeMode="contain" style={{ height: metrics.hp1_5, width: metrics.hp1_5 }} />
                             <AppText>

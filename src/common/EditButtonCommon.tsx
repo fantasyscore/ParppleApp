@@ -7,7 +7,7 @@ import { AppText, BLACK, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, OPECITY_DARK, TE
 import { keywordRightArrow } from "../helper/ImageAssets";
 import { TouchableOpacityView } from "./TouchableOpacityView";
 
-const EditButtonCommon = ({ Icons, title, first, filluptext, onPress, setting, setToggleShow, togleShow, toggle, setSelectFtCm, selectFtCm, Distance, inText, inTextTwo, hidden = true,style }: any) => {
+const EditButtonCommon = ({ Icons, title, first, filluptext, onPress, setting, setToggleShow, togleShow, toggle, setSelectFtCm, selectFtCm, Distance, inText, inTextTwo, hidden = true,style,arrow }: any) => {
     return (
         <TouchableOpacityView onPress={onPress} style={[styles.container, { marginTop: first ? metrics.hp2 : metrics.hp0_5, borderWidth: setting ? 0 : filluptext ? metrics.hp0 : metrics.hp0_1, borderColor: colors.red },style]}>
             <View style={{ flexDirection: "row", alignItems: "center", }}>
@@ -71,7 +71,7 @@ const EditButtonCommon = ({ Icons, title, first, filluptext, onPress, setting, s
                         }
                     </TouchableOpacityView> :
                     <>
-                        {!Distance &&
+                        {!Distance || arrow &&
                             <FastImage source={keywordRightArrow} resizeMode="contain" style={styles.keywordRightArrow} />}
                     </>
                 }

@@ -89,12 +89,14 @@ const SettingScreen = () => {
                         <EditButtonCommon
                             setting={true}
                             title={"Phone number"}
-                            filluptext={userData?.phoneNumber} />}
+                            filluptext={userData?.phoneNumber} 
+                            arrow={true}/>}
                     {userData?.email &&
                         <EditButtonCommon
                             setting={true}
                             title={"Email Id"}
-                            filluptext={userData?.email} />
+                            filluptext={userData?.email} 
+                            arrow={true}/>
                     }
                     <AppText style={{ marginTop: metrics.hp1 }} type={TEN} weight={INTER_MEDIUM} color={OPECITY}>
                         Updated phone number & email id keeps your account safe & secure.
@@ -104,17 +106,21 @@ const SettingScreen = () => {
                         headLines={"Notifications"} setting={true} />
                     <EditButtonCommon
                         setting={true}
-                        title={"Push Notifications"} />
+                        title={"Push Notifications"}
+                        togleShow={toggleOne}
+                        setToggleShow={setToggleOne}
+                        toggle={true}
+                    />
                     {/* <EditButtonCommon
                         setting={true}
                         title={"Emails"} /> */}
-                    <View style={styles.singleLine} />
+                    {/* <View style={styles.singleLine} />
                     <HeadLineContiner
                         headLines={"Blocked Users"} setting={true} />
                     <EditButtonCommon
                         setting={true}
-                        title={"Block List"} />
-                    <View style={styles.singleLine} />
+                        title={"Block List"} />*/}
+                    <View style={styles.singleLine} /> 
                     <HeadLineContiner
                         headLines={"Subscription"} setting={true} />
                     <EditButtonCommon
@@ -152,6 +158,8 @@ const SettingScreen = () => {
                     <EditButtonCommon
                         setting={true}
                         title={"Help & Support"} />
+                    <View style={styles.singleLine} /> 
+
                     <HeadLineContiner
                         headLines={"Legal"} setting={true} />
                     <EditButtonCommon
@@ -264,7 +272,8 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp1_5,
         borderWidth: metrics.hp0_1,
         borderColor: "#ECE4F8",
-        height: metrics.hp9
+        height: metrics.hp9,
+        marginTop:metrics.hp3
     },
     textVersion: {
         textAlign: "center",

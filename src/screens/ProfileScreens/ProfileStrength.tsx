@@ -10,7 +10,10 @@ import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { AppText, ELEVEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, OPECITY_DARK, SCHEHERAZADE_BOLD, TEN, TWELVE, TWENTY } from "../../common/AppText";
 import SemiCircularProgressBar from "../../common/SemiCircularProgressBar";
 import NavigationService from "../../navigation/NavigationService";
+import { useSelector } from "react-redux";
 const ProfileStrength = () => {
+    const userData = useSelector((state: any) => state.auth.userData);
+
     return (
         <AppSafeAreaView>
             <TouchableOpacityView onPress={()=>NavigationService.goBack()} style={{ paddingHorizontal: metrics.hp2 }}>
@@ -29,7 +32,7 @@ const ProfileStrength = () => {
                         <AppText weight={INTER_BOLD} type={ELEVEN} color={OPECITY_DARK}>GOT</AppText> than ever before
                     </AppText>
                 </View>
-                <SemiCircularProgressBar progress={20} />
+                <SemiCircularProgressBar progress={userData?.profileCompletion} />
             </View>
             <View style={styles.containerBoxs}>
                 <View style={styles.inContainer}>
@@ -38,7 +41,7 @@ const ProfileStrength = () => {
                         Photos
                     </AppText>
                     <AppText type={TEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                        0 of 6 photos
+                        {userData?.gallery?.length === 6 ? `${userData?.gallery?.length} Photos` : `${userData?.gallery?.length} of 6 Photos`}
                     </AppText>
                 </View>
                 <View style={styles.inContainer}>
