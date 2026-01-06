@@ -8,7 +8,7 @@ import { StatusBar, Text, View } from "react-native";
 import SplashScreen from "react-native-splash-screen";
 import ToastMessage from "./common/ToastMessage";
 import codePush from "@revopush/react-native-code-push";
-import { requestPushPermission, setupPushListeners } from "./notifications/pushNotifications";
+import { getInitialNotification, requestPushPermission, setupPushListeners } from "./notifications/pushNotifications";
 const App = () => {
   useEffect(() => {
     onAppStart(store);
@@ -27,6 +27,10 @@ const App = () => {
   useEffect(() => {
     // Push notification setup (foreground + permissions)
     requestPushPermission().catch(() => {});
+    // Killed-state tap: app opened from a notification.
+    // (No navigation is performed here; hook in if/when you want deep links.)
+    getInitialNotification().catch(() => {});
+
     const cleanup = setupPushListeners();
     return () => cleanup();
   }, []);

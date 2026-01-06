@@ -18,8 +18,9 @@ const PeopleHeader = ({ userName, profile, bottomDetailsOpacity, topTextOpacityR
             {profile ? <FastImage source={logoBlue} resizeMode="contain" style={styles.logo} /> :
                 <>
                     {userName ?
-                        <Animated.View style={{ opacity: bottomDetailsOpacity }}>
-                            <AppText type={EIGHTEEN} weight={INTER_BOLD}>{name},<AppText type={EIGHTEEN} weight={INTER_MEDIUM}> {age}</AppText></AppText>
+                        <Animated.View style={{ opacity: bottomDetailsOpacity,flexDirection:"row", alignItems:"center" }}>
+                            <AppText  style={{textTransform:"capitalize"}} type={EIGHTEEN} weight={INTER_BOLD}>{name},</AppText>
+                            <AppText type={EIGHTEEN} weight={INTER_MEDIUM}> {age}</AppText>
                         </Animated.View> :
                         <FastImage source={logoBlue} resizeMode="contain" style={styles.logo} />
                     }

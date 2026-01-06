@@ -5,6 +5,7 @@ import {
     GestureResponderEvent,
     LayoutChangeEvent,
     Modal,
+    PermissionsAndroid,
     Platform,
     StyleSheet,
     TouchableOpacity,
@@ -187,6 +188,11 @@ const PeopleScreen = () => {
     const LOAD_THRESHOLD = 2;
     const hasFetchedFeedOnceRef = useRef(false);
     const skipNextSwipeRightCallbackRef = useRef(false);
+    // "Home loaded" = this landing's initial profile/feed fetches have settled (success or failure).
+    // Used to ensure the profile completion reminder shows only after the screen is actually ready.
+    const homeLoadCycleRef = useRef(0);
+    const homeIsReadyRef = useRef(false);
+    const [homeLoadedSignal, setHomeLoadedSignal] = useState(0);
     const [remainingSwipes, setRemainingSwipes] = useState(0);
     const [remainingSuperLikes, setRemainingSuperLikes] = useState(0);
     const [swipesPerDay, setSwipesPerDay] = useState(0);
@@ -433,13 +439,36 @@ const PeopleScreen = () => {
 
         // Run these calls ONCE per landing/focus.
         // Important: do NOT depend on `listProfilesData` here, otherwise Redux updates re-trigger the effect.
-        if (!userData?._id) {
-            dispatch(getProfile(true));
-        }
-        if (!hasFetchedFeedOnceRef.current && (!listProfilesData || listProfilesData.length === 0)) {
-            dispatch(listProfiles(true));
-            hasFetchedFeedOnceRef.current = true;
-        }
+        homeLoadCycleRef.current += 1;
+        const cycle = homeLoadCycleRef.current;
+        homeIsReadyRef.current = false;
+
+        const run = async () => {
+            const promises: any[] = [];
+
+            if (!userData?._id) {
+                promises.push(dispatch(getProfile(true)));
+            }
+            if (!hasFetchedFeedOnceRef.current && (!listProfilesData || listProfilesData.length === 0)) {
+                hasFetchedFeedOnceRef.current = true;
+                promises.push(dispatch(listProfiles(true)));
+            }
+
+            if (promises.length > 0) {
+                try {
+                    await Promise.allSettled(promises);
+                } catch {
+                    // ignore - we only care that initial load "settled"
+                }
+            }
+
+            // Only mark ready if this is still the latest landing cycle
+            if (homeLoadCycleRef.current !== cycle) return;
+            homeIsReadyRef.current = true;
+            setHomeLoadedSignal((s) => s + 1);
+        };
+
+        run();
 
         if (isInitialMountRef.current) {
             setWindowStartIndex(0);
@@ -449,17 +478,36 @@ const PeopleScreen = () => {
             returningFromSubscriptionRef.current = false;
         }
         // NOTE: Do NOT reset indices on tab switching; preserve the current card.
+        return () => {
+            // invalidate this landing cycle
+            if (homeLoadCycleRef.current === cycle) {
+                homeLoadCycleRef.current += 1;
+                homeIsReadyRef.current = false;
+            }
+        };
     }, [IsFocused, dispatch, userData?._id])
 
     useEffect(() => {
         if (!IsFocused) return;
         if (hasShownProfileCompletionReminderThisSession) return;
-        const completion = Math.trunc(userData?.profileCompletion)
-        if (completion <= 70) {
-            hasShownProfileCompletionReminderThisSession = true;
-            setShowProfileCompletionReminder(true);
-        }
-    }, [IsFocused, userData?.profileCompletion]);
+
+        // Only show after Home has fully loaded for this landing.
+        if (!homeIsReadyRef.current) return;
+
+        const timer = setTimeout(() => {
+            if (!IsFocused) return;
+            if (hasShownProfileCompletionReminderThisSession) return;
+            if (!homeIsReadyRef.current) return;
+
+            const completion = Math.trunc(userData?.profileCompletion);
+            if (completion <= 70) {
+                hasShownProfileCompletionReminderThisSession = true;
+                setShowProfileCompletionReminder(true);
+            }
+        }, 3000); // slight delay after load for smoother UX
+
+        return () => clearTimeout(timer);
+    }, [IsFocused, userData?.profileCompletion, homeLoadedSignal]);
 
     useEffect(() => {
         if (remainingSwipes !== undefined) {
@@ -604,6 +652,25 @@ const PeopleScreen = () => {
         }
     }, [listProfilesData]);
 
+    async function requestAndroidNotificationPermission() {
+        if (Platform.OS === 'android' && Platform.Version >= 33) {
+            const granted = await PermissionsAndroid.request(
+                PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+            );
+
+            if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+                console.log('Notification permission granted');
+            } else {
+                console.log('Notification permission denied');
+            }
+        }
+    }
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            requestAndroidNotificationPermission()
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, [])
     const renderCard = ((profile: any, index: any) => {
         const currentImageIndex = profile?.index || 0;
         const gallery = profile?.gallery || [];
@@ -804,7 +871,6 @@ const PeopleScreen = () => {
         const n = Number(v);
         return Number.isFinite(n) ? n : fallback;
     };
-    // console.log(userData, "userDatauserDatauserData");
 
     const crushNotesRemaining = toCount(userData?.crushNotesRemaining, 0);
 
@@ -857,7 +923,7 @@ const PeopleScreen = () => {
                                         try {
                                             const response: any = await appOperation.customer.editFilterAPI(data);
                                             if (response?.statusCode === 200) {
-                                                dispatch(listProfiles())
+                                                dispatch(listProfiles(true))
                                                 dispatch(getProfile(true));
                                             }
                                         } catch (error) {

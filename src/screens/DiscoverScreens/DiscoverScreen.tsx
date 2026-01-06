@@ -62,10 +62,10 @@ const DiscoverScreen = () => {
     const [superLikeVisible, setSuperLikeVisible] = useState(false);
     const [profileData, setProfileData] = useState<any>(null);
     const [remainingSuperLikes, setRemainingSuperLikes] = useState(userData?.superLikesRemaining ?? 0);
-    console.log(profileData, "profileData");
-
     const subscriptionItem = useMemo(() => ({ id: '2', icon: goldCard, title: 'Gold' }), []);
-
+    const middleIndex = Math.ceil(discoverProfileData?.length / 2);
+    const firstPart = discoverProfileData?.slice(0, middleIndex);
+    const secondPart = discoverProfileData?.slice(middleIndex);
     // Sync remaining super likes whenever user data updates
     useEffect(() => {
         setRemainingSuperLikes(userData?.superLikesRemaining ?? 0);
@@ -102,7 +102,15 @@ const DiscoverScreen = () => {
         const { perks = {}, plan } = subscription || {};
         const canSeeLikes = perks?.canSeediscovery || plan !== "FREE";
         let data: any[] = [];
-        data = discoverProfileData?.length ? discoverProfileData : [];
+        data = firstPart?.length ? firstPart : [];
+        return data.map((item) => ({ ...item, see: canSeeLikes }));
+    }
+    const dataCorrectTwo = () => {
+        const { subscription } = userData || {};
+        const { perks = {}, plan } = subscription || {};
+        const canSeeLikes = perks?.canSeediscovery || plan !== "FREE";
+        let data: any[] = [];
+        data = secondPart?.length ? secondPart : [];
         return data.map((item) => ({ ...item, see: canSeeLikes }));
     }
     const viewProfile = (item: any, onlyheart: any) => {
@@ -121,7 +129,6 @@ const DiscoverScreen = () => {
             setModalVisible(true)
         }
     };
-
     
     const discoverRender = ({ item, index }: any) => {
         const inputRange = [
@@ -176,7 +183,7 @@ const DiscoverScreen = () => {
                                         <AppText></AppText>
                                     </View> :
                                     <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                        <AppText type={TWENTY} color={WHITE} weight={INTER_BOLD}>
+                                        <AppText type={TWENTY}  style={{textTransform:"capitalize"}} color={WHITE} weight={INTER_BOLD}>
                                             {`${item.firstName}, ${item.age}`}{" "}
                                         </AppText>
                                         <FastImage
@@ -285,7 +292,7 @@ const DiscoverScreen = () => {
                                         <AppText></AppText>
                                     </View> :
                                     <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                        <AppText type={FORTEEN} color={WHITE} weight={INTER_BOLD}>
+                                        <AppText type={FORTEEN}  style={{textTransform:"capitalize"}} color={WHITE} weight={INTER_BOLD}>
                                             {`${item.firstName}, ${item.age}`}{" "}
                                         </AppText>
                                         <FastImage
@@ -433,7 +440,7 @@ const DiscoverScreen = () => {
                         </TouchableOpacityView>
                     </View> */}
                     <FlatList
-                        data={dataCorrect()}
+                        data={dataCorrectTwo()}
                         renderItem={SimilarRender}
                         keyExtractor={(item) => String(item?._id)}
                         horizontal

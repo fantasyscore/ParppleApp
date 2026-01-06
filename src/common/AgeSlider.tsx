@@ -9,7 +9,7 @@ import { Screen } from '../theme/dimens';
 import { TouchableOpacityView } from './TouchableOpacityView';
 
 
-const AgeSlider = ({ Icons, headLines, range, setRange, innerUpertitle, underTitle, togleShow, setToggleShow, singleSilde, height, min, max }: any) => {
+const AgeSlider = ({ Icons, headLines, range, setRange, innerUpertitle, underTitle, togleShow, setToggleShow, singleSilde, height, min, max, togaloff }: any) => {
     const [selectFtCm, setSelectFtCm] = useState("FT");
     const [selectedIndex, setSelectedIndex] = useState(12);
     const onSwitch = (type: any) => {
@@ -104,6 +104,7 @@ const AgeSlider = ({ Icons, headLines, range, setRange, innerUpertitle, underTit
                         )}
                     />
                 </View>
+                {togaloff ? <></> :
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                     <AppText type={TWELVE} color={OPECITY_DARK} weight={INTER_MEDIUM}>
                         {underTitle}
@@ -119,6 +120,7 @@ const AgeSlider = ({ Icons, headLines, range, setRange, innerUpertitle, underTit
                         }
                     </TouchableOpacityView>
                 </View>
+                }
             </View>
         </View>
     );

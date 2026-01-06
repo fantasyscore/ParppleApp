@@ -131,24 +131,24 @@ export const likeYou: any = () => async (dispatch: any) => {
 };
 export const viewProfileByOther: any = () => async (dispatch: any) => {
     try {
-        const response: any = await appOperation.customer.viewProfileByOtherAPI();
-        if (response?.statusCode == 200) {
-            dispatch(setViewByOhter(response?.data))
-        }
+      const response: any = await appOperation.customer.viewProfileByOtherAPI();
+      if (response?.statusCode === 200) {
+        dispatch(setViewByOhter(response?.data));
+      }
     } catch (error: any) {
-        toastAlert.showToastError(error);
+      toastAlert.showToastError(error);
     }
-};
-export const youView: any = () => async (dispatch: any) => {
+  };
+  export const youView: any = () => async (dispatch: any) => {
     try {
-        const response: any = await appOperation.customer.youViewAPI();
-        if (response?.statusCode == 200) {
-            dispatch(setViewYou(response?.data))
-        }
+      const response: any = await appOperation.customer.youViewAPI();
+      if (response?.statusCode === 200) {
+        dispatch(setViewYou(response?.data));
+      }
     } catch (error: any) {
-        toastAlert.showToastError(error);
+      toastAlert.showToastError(error);
     }
-};
+  };
 export const getOtherProfile: any = (data: any, isNavigate: any, setProfileData: any, profile: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.otherDataProfileAPI(data);
@@ -169,7 +169,6 @@ export const getOtherProfile: any = (data: any, isNavigate: any, setProfileData:
     }
 };
 export const getProfile: any = (navigate: any) => async (dispatch: any) => {
-    // Prevent accidental rapid duplicate calls from multiple screens mounting.
     if ((getProfile as any)._inFlight) return;
     (getProfile as any)._inFlight = true;
     try {
@@ -229,7 +228,6 @@ export const editFilter: any = (data: any) => async (dispatch: any) => {
     }
 };
 export const discoverProfile: any = () => async (dispatch: any) => {
-    // Prevent accidental rapid duplicate calls from multiple screens mounting.
     if ((discoverProfile as any)._inFlight) return;
     (discoverProfile as any)._inFlight = true;
     try {
@@ -238,7 +236,6 @@ export const discoverProfile: any = () => async (dispatch: any) => {
             dispatch(setDiscoverData(response?.data))
         }
     } catch (error: any) {
-        // toastAlert.showToastError(error);
     } finally {
         (discoverProfile as any)._inFlight = false;
     }
@@ -250,7 +247,6 @@ export const getNewMatches: any = () => async (dispatch: any) => {
             dispatch(setNewMatches(response?.data))
         }
     } catch (error: any) {
-        // toastAlert.showToastError(error);
     }
 };
 export const getRecentMatches: any = () => async (dispatch: any) => {
@@ -260,7 +256,6 @@ export const getRecentMatches: any = () => async (dispatch: any) => {
             dispatch(setRecentMatches(response?.data))
         }
     } catch (error: any) {
-        // toastAlert.showToastError(error);
     }
 };
 export const userUnmatchAPI: any = (data: any) => async (dispatch: any) => {
@@ -271,21 +266,16 @@ export const userUnmatchAPI: any = (data: any) => async (dispatch: any) => {
             return NavigationService.navigate(NAVIGATION_CHATS_SCREEN)
         }
     } catch (error: any) {
-
-        // toastAlert.showToastError(error);
     }
 };
 export const userBlockAPI: any = (data: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.userBlockAPI(data);
         if (response?.statusCode == 200) {
-            console.log(response, "responseresponseresponse");
             dispatch(getNewMatches())
             return NavigationService.navigate(NAVIGATION_CHATS_SCREEN)
         }
     } catch (error: any) {
-
-        // toastAlert.showToastError(error);
     }
 };
 export const chatHistoryAPI: any = (data: any, params: any, shouldNavigate: boolean = true) => async (dispatch: any) => {
@@ -298,21 +288,16 @@ export const chatHistoryAPI: any = (data: any, params: any, shouldNavigate: bool
             }
         }
     } catch (error: any) {
-
-        // toastAlert.showToastError(error);
     }
 };
 export const subscriptionVerifyAPI: any = (data: any, params: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.subscriptionverifyAPI(data);
         if (response?.statusCode == 200) {
-            // Keep existing toast behavior, but ensure we pass a readable string.
             toastAlert.showToastError(response?.message || "Subscription verified and activated");
         }
         return response;
     } catch (error: any) {
-
-        // toastAlert.showToastError(error);
         throw error;
     }
 };
@@ -320,28 +305,21 @@ export const sendCrushNotesAPI: any = (data: any, params: any) => async (dispatc
     try {
         const response: any = await appOperation.customer.crushnotesSenderAPI(data);
         if (response?.statusCode == 200) {
-            console.log(response, "responseresponseresponse")
         }
         return response;
     } catch (error: any) {
-
-        // toastAlert.showToastError(error);
         throw error;
     }
 };
 
 export const activateBoostAPI: any = () => async (dispatch: any) => {
     try {
-        // Fire-and-forget trigger: we do NOT read or depend on response payload.
         const response: any = await appOperation.customer.boostActivateAPI();
-        // toastAlert.showToastError("Boost activation requested");
-        // Refresh profile so boostRemaining + boost status reflect immediately
         if (response?.statusCode == 200) {
             dispatch(getProfile(true));
         }
         return true;
     } catch (error: any) {
-        // Keep errors non-fatal and consistent
         toastAlert.showToastError(error?.message || "Failed to activate boost");
         throw error;
     }
@@ -350,12 +328,9 @@ export const sendAdvanceFilter: any = (data: any, params: any) => async (dispatc
     try {
         const response: any = await appOperation.customer.advanceFilterAPI(data);
         if (response?.statusCode == 200) {
-            console.log(response, "responseresponseresponse")
         }
         return response;
     } catch (error: any) {
-
-        // toastAlert.showToastError(error);
         throw error;
     }
 };
@@ -363,15 +338,13 @@ export const objectSendAPI: any = (data: any, params: any) => async (dispatch: a
     try {
         const response: any = await appOperation.customer.sendObject(data);
         if (response?.statusCode == 200) {
-            console.log(response, "responseresponseresponse")
         }
         return response;
     } catch (error: any) {
-
-        // toastAlert.showToastError(error);
         throw error;
     }
 };
+
 export const userLogout: any = () => async () => {
     appOperation.setCustomerToken('');
     await AsyncStorage.removeItem(USER_TOKEN_KEY);

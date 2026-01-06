@@ -189,7 +189,7 @@ const ChatsScreen = () => {
                             {item.online && !isBot && userData?.subscription?.plan !== "FREE" &&
                                 <View style={styles.activeBackground} />
                             }
-                            <AppText type={SIXTEEN} weight={INTER_BOLD} color={LIGHT_BLACK}>
+                            <AppText style={{textTransform:"capitalize"}} type={SIXTEEN} weight={INTER_BOLD} color={LIGHT_BLACK}>
                                 {item.name}{"  "}
                             </AppText>
 
@@ -383,9 +383,10 @@ const ChatsScreen = () => {
                         data={filteredChats}
                         renderItem={renderItemChats}
                         keyExtractor={(item) => item.userId}
+                        showsVerticalScrollIndicator={false}
                         ListEmptyComponent={noSearchFound}
                         // ListHeaderComponent={HeaderListChats}
-                        contentContainerStyle={{ marginTop: metrics.hp2 }} />
+                        contentContainerStyle={{ marginTop: metrics.hp2, paddingBottom:metrics.hp5 }} />
 
                 </>
             }
@@ -499,6 +500,7 @@ const styles = StyleSheet.create({
         height: metrics.hp1, width: metrics.hp1,
         backgroundColor: colors.darkGreen, borderRadius: metrics.hp20,
         marginTop: metrics.hp1,
-        marginRight: metrics.hp0_5
+        marginRight: metrics.hp0_5,
+        
     },
 })

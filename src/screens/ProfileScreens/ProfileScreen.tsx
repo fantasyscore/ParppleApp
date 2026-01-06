@@ -37,7 +37,7 @@ const ProfileScreen = () => {
     ];
     const renderPurchaesCards = ({ item, index }: any) => {
         return (
-            <TouchableOpacityView activeOpacity={1} onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: item })} style={{ marginRight: index == 2 ? metrics.hp2 : 0 }}>
+            <TouchableOpacityView key={index} activeOpacity={1} onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: item })} style={{ marginRight: index == 2 ? metrics.hp2 : 0 }}>
                 <ImageBackground
                     source={item.icon}
                     resizeMode="cover"
@@ -99,7 +99,7 @@ const ProfileScreen = () => {
                         </View>
                     </View>
                     <View>
-                        <AppText style={{ marginTop: metrics.hp2 }} type={EIGHTEEN} weight={INTER_BOLD}>{"    "}{userData?.firstName},<AppText type={EIGHTEEN} weight={INTER_MEDIUM}> {userData?.age}{"  "}</AppText>
+                        <AppText style={{ marginTop: metrics.hp2, textTransform:"capitalize" }} type={EIGHTEEN} weight={INTER_BOLD}>{"    "}{userData?.firstName},<AppText type={EIGHTEEN} weight={INTER_MEDIUM}> {userData?.age}{"  "}</AppText>
                             <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} />
                         </AppText>
                         <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_EDIT_PROFILE_SCREEN)} style={styles.completeContainer}>

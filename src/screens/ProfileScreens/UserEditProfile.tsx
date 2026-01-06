@@ -4,7 +4,6 @@ import {
     ImageBackground,
     StyleSheet,
     View,
-    Animated,
     Dimensions,
     ScrollView,
 } from "react-native";
@@ -54,10 +53,19 @@ import NavigationService from "../../navigation/NavigationService";
 import { useSelector } from "react-redux";
 import { datingIntentionsFilter } from "../../helper/utility";
 import LinearGradient from "react-native-linear-gradient";
+import Animated, {
+    Easing,
+    Extrapolate,
+    interpolate,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
+} from "react-native-reanimated";
 
 const { height } = Dimensions.get("window");
 const FULL_IMAGE_HEIGHT = height * 0.85; // Adjust this value as needed
-const COLLAPSED_IMAGE_HEIGHT = height * 0.4; // Adjust this value as needed
+const COLLAPSED_IMAGE_HEIGHT = height * 0.6; // Adjust this value as needed
 
 const UserEditProfile = (props: any) => {
     const otherCome = props?.route?.params?.other ?? "";
@@ -71,72 +79,111 @@ const UserEditProfile = (props: any) => {
     const smoke = otherUserProfile?.attributes?.find((item: any) => item.type === "smoke");
     const drink = otherUserProfile?.attributes?.find((item: any) => item.type === "drink");
     const pets = otherUserProfile?.attributes?.find((item: any) => item.type === "pets");
-    const animationValue = useRef(new Animated.Value(0)).current;
+    // UI-thread driven animation (smoother than RN Animated for layout-heavy transitions)
+    const progress = useSharedValue(0); // 0 = expanded, 1 = collapsed
     const cardWidthRef = useRef(0);
+
+    const preloadAroundIndex = (gallery: any[] | undefined, idx: number) => {
+        try {
+            if (!gallery || !Array.isArray(gallery) || gallery.length === 0) return;
+            const urls = [
+                gallery?.[idx]?.url,
+                idx > 0 ? gallery?.[idx - 1]?.url : null,
+                idx < gallery.length - 1 ? gallery?.[idx + 1]?.url : null,
+            ].filter(Boolean);
+            if (urls.length === 0) return;
+            FastImage.preload(
+                urls.map((uri: any, i: number) => ({
+                    uri: String(uri),
+                    priority: i === 0 ? FastImage.priority.high : FastImage.priority.normal,
+                }))
+            );
+        } catch (e) {
+            // ignore preload errors
+        }
+    };
     useEffect(() => {
         if (otherCome) {
             updownAction()
         }
     }, [otherCome])
-    const animatedHeight = animationValue.interpolate({
-        inputRange: [0, 1],
-        outputRange: [FULL_IMAGE_HEIGHT, COLLAPSED_IMAGE_HEIGHT],
-        extrapolate: 'clamp',
+    const mainContainerAnimatedStyle = useAnimatedStyle(() => {
+        return {
+            height: interpolate(
+                progress.value,
+                [0, 1],
+                [FULL_IMAGE_HEIGHT, COLLAPSED_IMAGE_HEIGHT],
+                Extrapolate.CLAMP
+            ),
+        };
     });
-    const bottomDetailsOpacity = animationValue.interpolate({
-        inputRange: [0, 0.5],
-        outputRange: [1, 0],
-        extrapolate: 'clamp',
+    const bottomDetailsAnimatedStyle = useAnimatedStyle(() => {
+        return {
+            opacity: interpolate(progress.value, [0, 0.5], [1, 0], Extrapolate.CLAMP),
+        };
     });
-    const topTextOpacity = animationValue.interpolate({
-        inputRange: [0.5, 1],
-        outputRange: [0, 1],
-        extrapolate: 'clamp',
+    const topTextAnimatedStyle = useAnimatedStyle(() => {
+        return {
+            opacity: interpolate(progress.value, [0.5, 1], [0, 1], Extrapolate.CLAMP),
+        };
     });
-    const topTextOpacityon = animationValue.interpolate({
-        inputRange: [0.5, 1],
-        outputRange: [1, 0],
-        extrapolate: 'clamp',
+    const topTextHiddenAnimatedStyle = useAnimatedStyle(() => {
+        return {
+            opacity: interpolate(progress.value, [0.5, 1], [1, 0], Extrapolate.CLAMP),
+        };
     });
-    const arrowRotation = animationValue.interpolate({
-        inputRange: [0, 1],
-        outputRange: ["0deg", "180deg"],
+    const arrowAnimatedStyle = useAnimatedStyle(() => {
+        const deg = interpolate(progress.value, [0, 1], [0, 180], Extrapolate.CLAMP);
+        return {
+            transform: [{ rotate: `${deg}deg` }],
+        };
     });
-    const bottomPosition = animationValue.interpolate({
-        inputRange: [0, 1],
-        outputRange: [metrics.hp12, metrics.hp2],
-        extrapolate: 'clamp',
+    const arrowContainerAnimatedStyle = useAnimatedStyle(() => {
+        return {
+            bottom: interpolate(progress.value, [0, 1], [metrics.hp12, metrics.hp2], Extrapolate.CLAMP),
+        };
     });
-    const scrollContentOpacity = animationValue.interpolate({
-        inputRange: [0.5, 1],
-        outputRange: [0, 1],
-        extrapolate: 'clamp',
+    const scrollContentAnimatedStyle = useAnimatedStyle(() => {
+        return {
+            opacity: interpolate(progress.value, [0.5, 1], [0, 1], Extrapolate.CLAMP),
+        };
     });
 
     const updownAction = () => {
         const toValue = updown ? 0 : 1;
-        Animated.timing(animationValue, {
+        progress.value = withTiming(
             toValue,
-            duration: 300,
-            useNativeDriver: false, // height animation needs this set to false
-        }).start(() => {
-            setupdown(!updown);
-        });
+            { duration: 260, easing: Easing.out(Easing.cubic) },
+            () => {
+                runOnJS(setupdown)(!updown);
+            }
+        );
     };
 
     const handleTap = (evt: any) => {
         if (!evt?.nativeEvent?.locationX || !cardWidthRef.current) return;
         const x = evt.nativeEvent.locationX;
+        const gallery = otherUserProfile?.gallery || [];
+        const total = Array.isArray(gallery) ? gallery.length : 0;
+        if (total <= 0) return;
+
+        let nextIndex = currentPhotoIndex;
         if (x > cardWidthRef.current / 2) {
-            setCurrentPhotoIndex((prev) =>
-                prev < otherUserProfile?.gallery?.length - 1 ? prev + 1 : prev
-            );
+            nextIndex = currentPhotoIndex < total - 1 ? currentPhotoIndex + 1 : currentPhotoIndex;
         } else {
-            setCurrentPhotoIndex((prev) =>
-                prev > 0 ? prev - 1 : prev
-            );
+            nextIndex = currentPhotoIndex > 0 ? currentPhotoIndex - 1 : currentPhotoIndex;
         }
+        if (nextIndex === currentPhotoIndex) return;
+
+        // Preload target + neighbors before switching (reduces white flash)
+        preloadAroundIndex(gallery, nextIndex);
+        setCurrentPhotoIndex(nextIndex);
     };
+
+    // Preload current image + neighbors whenever index/gallery changes
+    useEffect(() => {
+        preloadAroundIndex(otherUserProfile?.gallery, currentPhotoIndex);
+    }, [otherUserProfile?.gallery, currentPhotoIndex]);
 
     const renderProgressLine = (white: any) => {
         return (
@@ -173,9 +220,9 @@ const UserEditProfile = (props: any) => {
     };
     return (
         <AppSafeAreaView>
-            <HeaderCommon title={otherCome ? "" : "Edit Profile"} edit={otherCome ? false : true} editOnPress={() => NavigationService.goBack()} />
+            <HeaderCommon title={otherCome ? otherUserProfile?.firstName : "Edit Profile"} age={otherUserProfile?.age} edit={otherCome ? false : true} editOnPress={() => NavigationService.goBack()} />
             <View style={styles.singleLine} />
-            {!updown && <Animated.View style={{ opacity: topTextOpacityon }}>{renderProgressLine(false)}</Animated.View>}
+            {/* {!updown && <Animated.View style={topTextHiddenAnimatedStyle}>{renderProgressLine(false)}</Animated.View>} */}
             <Animated.ScrollView
                 style={[
                     styles.scrollContainer,
@@ -187,25 +234,57 @@ const UserEditProfile = (props: any) => {
                 contentContainerStyle={{ paddingBottom: metrics.hp10 }}
                 showsVerticalScrollIndicator={false}
                 scrollEnabled={updown}>
-                <Animated.View style={[styles.mainContainer, { height: animatedHeight }]}>
+                <Animated.View style={[styles.mainContainer, mainContainerAnimatedStyle]}>
                     <TouchableOpacityView activeOpacity={1} onPress={handleTap}
                         onLayout={(e) => {
                             const layout = e?.nativeEvent?.layout;
                             if (layout?.width) cardWidthRef.current = layout.width;
                         }} style={{ flex: 1 }}>
+                        {/* Preload-like warm cache (same idea as PreviewDetails): keep prev/next images cached to avoid white flash */}
+                        {(() => {
+                            const gallery = otherUserProfile?.gallery || [];
+                            const current = gallery?.[currentPhotoIndex];
+                            const prev = currentPhotoIndex > 0 ? gallery?.[currentPhotoIndex - 1] : null;
+                            const next = currentPhotoIndex < gallery.length - 1 ? gallery?.[currentPhotoIndex + 1] : null;
+                            return (
+                                <>
+                                    {prev?.url ? (
+                                        <FastImage
+                                            source={{ uri: prev.url }}
+                                            style={styles.hiddenImage}
+                                            resizeMode={FastImage.resizeMode.cover}
+                                        />
+                                    ) : null}
+                                    {next?.url ? (
+                                        <FastImage
+                                            source={{ uri: next.url }}
+                                            style={styles.hiddenImage}
+                                            resizeMode={FastImage.resizeMode.cover}
+                                        />
+                                    ) : null}
+                                    {current?.url ? (
+                                        <FastImage
+                                            source={{ uri: current.url, priority: FastImage.priority.high }}
+                                            style={styles.hiddenImage}
+                                            resizeMode={FastImage.resizeMode.cover}
+                                        />
+                                    ) : null}
+                                </>
+                            );
+                        })()}
                         <ImageBackground
                             source={{ uri: otherUserProfile?.gallery[currentPhotoIndex]?.url }}
                             style={styles.imageBackground}
                             imageStyle={{ borderRadius: 20 }}>
-                            {updown && <Animated.View style={{ opacity: topTextOpacity }}>{renderProgressLine(true)}</Animated.View>}
+                    {/*         {updown && */} <Animated.View /* style={topTextAnimatedStyle} */>{renderProgressLine(true)}</Animated.View>
                             <View style={{ flex: 1 }} />
-                            <Animated.View style={{ opacity: bottomDetailsOpacity }}>
+                            <Animated.View style={bottomDetailsAnimatedStyle}>
                                 <LinearGradient start={{ x: 1, y: 1 }}
                                     end={{ x: 1, y: 0 }} colors={["#000000", "#00000099", "#00000000"]} style={styles.bottomDetails}>
                                     <View style={{ marginLeft: metrics.hp2, marginTop: metrics.hp10 }}>
                                         <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                            <AppText type={TWENTY} color={WHITE} weight={INTER_BOLD}>
-                                                {otherUserProfile?.firstName}, 21{" "}
+                                            <AppText style={{textTransform:"capitalize"}} type={TWENTY} color={WHITE} weight={INTER_BOLD}>
+                                                {otherUserProfile?.firstName}, {otherUserProfile?.age}{" "}
                                             </AppText>
                                             <FastImage
                                                 source={blueTikeIcon}
@@ -213,6 +292,7 @@ const UserEditProfile = (props: any) => {
                                                 style={styles.blueTikIcon}
                                             />
                                         </View>
+                                        {otherUserProfile?.work &&
                                         <View style={{ flexDirection: "row", alignItems: "center" }}>
                                             <FastImage
                                                 source={bussnisIcon}
@@ -225,6 +305,7 @@ const UserEditProfile = (props: any) => {
                                                 {otherUserProfile?.work}
                                             </AppText>
                                         </View>
+                                         }
                                     </View>
                                 </LinearGradient>
                                 <View style={styles.wrapContainer}>
@@ -243,15 +324,14 @@ const UserEditProfile = (props: any) => {
                                 </View>
                             </Animated.View>
                             <Animated.View
-                                style={[styles.upArrowContainer, { bottom: bottomPosition }]}>
+                                style={[styles.upArrowContainer, arrowContainerAnimatedStyle]}>
                                 <TouchableOpacityView style={{
                                     height: metrics.hp5,
                                     width: metrics.hp5,
                                     alignItems: "center",
                                     justifyContent: "center"
                                 }} onPress={updownAction}>
-                                    <Animated.View
-                                        style={{ transform: [{ rotate: arrowRotation }] }}>
+                                    <Animated.View style={arrowAnimatedStyle}>
                                         <FastImage
                                             source={upArrowIcon}
                                             resizeMode="contain"
@@ -263,7 +343,7 @@ const UserEditProfile = (props: any) => {
                         </ImageBackground>
                     </TouchableOpacityView>
                 </Animated.View>
-                <Animated.View style={{ opacity: scrollContentOpacity }}>
+                <Animated.View style={scrollContentAnimatedStyle}>
                     <View style={styles.longContainer}>
                         <View style={{ flexDirection: "row", alignItems: "center" }}>
                             <FastImage source={searchIcon} tintColor={colors.darkOpecity} resizeMode="contain" style={styles.searchIcon} />
@@ -490,6 +570,14 @@ const styles = StyleSheet.create({
     imageBackground: {
         flex: 1,
         borderRadius: 20,
+        backgroundColor: "#000", // prevents white flash while switching images
+    },
+    hiddenImage: {
+        position: "absolute",
+        width: 1,
+        height: 1,
+        opacity: 0,
+        zIndex: -1,
     },
     singleLine: {
         height: metrics.hp0_2,

@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Dimensions, Image, ImageBackground, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Dimensions, Image, ImageBackground, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
 import FastImage from "react-native-fast-image";
 import metrics from "../../assets/Metrics";
@@ -14,7 +14,8 @@ import { setListProfiles } from "../../slices/loginServices/authSlice";
 import ProfileBottomDetails from "./ProfileBottomDetail";
 import LinearGradient from "react-native-linear-gradient";
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from "react-native-svg";
-import { NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from "../../navigation/routes";
+import CrushNotesSender from "./CrushNotesSender";
 
 const { width, height } = Dimensions.get("window");
 const COLLAPSED_IMAGE_HEIGHT = height * 0.67;
@@ -22,6 +23,13 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
     const dispatch = useDispatch();
     const cardWidthRef = useRef(0);
     const listProfilesData = useSelector((state: any) => state.auth.listProfiles);
+    const userData = useSelector((state: any) => state.auth.userData);
+    const [crushNotesVisible, setCrushNotesVisible] = useState(false);
+
+    const crushNotesRemaining = useMemo(() => {
+        const n = Number(userData?.crushNotesRemaining);
+        return Number.isFinite(n) ? n : 0;
+    }, [userData?.crushNotesRemaining]);
     const handleTap = (evt: any, profile: any) => {
         const totalImages = profile?.gallery?.length || 0;
         if (!evt?.nativeEvent?.locationX || !cardWidthRef.current) return;
@@ -138,9 +146,18 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                                 />
                             ))}
                         </View>
-                        <View style={styles.flasContaierTwo}>
+                        <TouchableOpacityView
+                            style={styles.flasContaierTwo}
+                            onPress={() => {
+                                if ((crushNotesRemaining ?? 0) <= 0) {
+                                    NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN);
+                                    return;
+                                }
+                                setCrushNotesVisible(true);
+                            }}
+                        >
                             <FastImage source={shareRedIcon} resizeMode="contain" style={styles.flasIcon} />
-                        </View>
+                        </TouchableOpacityView>
                         <TouchableOpacityView style={styles.upArrowContainer} onPress={() => {setModalVisible(false),setSwipeUp(false)}}>
                             <FastImage
                                 source={upArrowIcon}
@@ -150,7 +167,7 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                         </TouchableOpacityView>
                     </ImageBackground>
                 </TouchableOpacityView>
-                <ProfileBottomDetails visibleCards={data} discover={discover}/>
+                <ProfileBottomDetails visibleCards={data} discover={discover} setModalVisibleHome={setModalVisible} setSwipeLeft={setSwipeLeft}/>
             </ScrollView>
             <View style={styles.likeUnLikeCOntainer}>
                 <View style={[styles.flasContaier, { opacity: 0 }]}>
@@ -295,6 +312,26 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                     <FastImage source={shareRedIcon} resizeMode="contain" style={styles.flasIcon} />
                 </View>
             </View>
+
+            {/* Crush Notes: send directly from PreviewDetails (Home + Discover) */}
+            <Modal
+                animationType="slide"
+                visible={crushNotesVisible}
+                statusBarTranslucent
+                onRequestClose={() => setCrushNotesVisible(false)}
+            >
+                <CrushNotesSender
+                    data={data}
+                    setModalVisible={setCrushNotesVisible}
+                    setSwipeRight={setSwipeRight}
+                    setSwipeLeft={setSwipeLeft}
+                    setSwipeUp={setSwipeUp}
+                    setProfileData={setProfileData}
+                    discover={discover}
+                    setSuperLikeVisible={setSuperLikeVisible}
+                    canSuperLike={canSuperLike}
+                />
+            </Modal>
         </AppSafeAreaView>
     )
 };

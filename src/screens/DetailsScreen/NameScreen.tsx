@@ -16,6 +16,7 @@ import { toastAlert } from "../../actions/UploadImageActions";
 import { setAddProfile } from "../../slices/loginServices/authSlice";
 import LinearGradient from "react-native-linear-gradient";
 import { colors } from "../../theme/colors";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 const NameScreen = () => {
     const dispatch = useDispatch();
@@ -36,6 +37,10 @@ const NameScreen = () => {
 
     return (
         <AppSafeAreaView>
+             <KeyboardAwareScrollView
+                enableOnAndroid={true}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ flexGrow: 1 }}>
             <HeaderCommon />
             <View style={styles.container}>
                 <TopCommonLine icon={nameIcon} datalist={datalist} />
@@ -54,7 +59,7 @@ const NameScreen = () => {
                     <GoButton colortrue={firstNmae} onPress={() => onSubmit()} />
                 </View>
             </LinearGradient>
-
+            </KeyboardAwareScrollView>
         </AppSafeAreaView>
     )
 };

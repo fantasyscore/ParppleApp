@@ -1,29 +1,44 @@
-import React from "react";
+import React, { useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Animated, StyleSheet, View } from "react-native";
+import { Animated, Modal, StyleSheet, View } from "react-native";
 import FastImage from "react-native-fast-image";
-import { AppText, BLACK, DARKGREEN, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, RED, TWELVE } from "../../common/AppText";
-import { accountcircleIcon, bioqutes, blackIcon, drikingIcon, lifeStyleIcon, locationCIon, moonIcon, oneIconDating, personHeartIcon, petsIcon, pronounIcon, reportIcon, schoolIcon, searchIcon, shareIcon, smookingIcon, straightenIcon, workoutIcon } from "../../helper/ImageAssets";
+import { AppText, BLACK, DARKGREEN, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, RED, SCHEHERAZADE_BOLD, TWELVE, TWENTY_FOUR, WHITE } from "../../common/AppText";
+import { accountcircleIcon, bioqutes, blackIcon, blockModalImage, drikingIcon, lifeStyleIcon, locationCIon, moonIcon, oneIconDating, personHeartIcon, petsIcon, pronounIcon, reportIcon, schoolIcon, searchIcon, shareIcon, smookingIcon, straightenIcon, unmatchModalImage, workoutIcon } from "../../helper/ImageAssets";
 import { colors } from "../../theme/colors";
 import metrics from "../../assets/Metrics";
 import { datapersonal } from "../../common/UiltData";
 import { datingIntentionsFilter } from "../../helper/utility";
+import { TouchableOpacityView } from "../../common/TouchableOpacityView";
+import { useDispatch } from "react-redux";
+import { userBlockAPI } from "../../actions/authActions";
+import { Screen } from "../../theme/dimens";
 
 
-const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover,share }: any) => {
+const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share,setModalVisibleHome,setSwipeLeft }: any) => {
+    const dispatch = useDispatch();
+    const [modalVisible, setModalVisible] = useState(false);
+
     const attributesRemove = visibleCards?.attributes?.filter((item: any) =>
         ["smoke", "drink", "workout", "pets"].includes(item?.type)
     );
     const attributes = visibleCards?.attributes?.filter(
         (item: any) => !["smoke", "drink", "workout", "pets"].includes(item?.type)
     );
-    console.log(attributes, "attributes");
 
     const workout = attributesRemove?.find((item: any) => item.type === "workout");
     const smoke = attributesRemove?.find((item: any) => item.type === "smoke");
     const drink = attributesRemove?.find((item: any) => item.type === "drink");
     const pets = attributesRemove?.find((item: any) => item.type === "pets");
+    const blockUser = () => {
+        const data = {
+            matchId: visibleCards?._id
+        }
+        dispatch(userBlockAPI(data));
+        setModalVisible(false);
+        setModalVisibleHome(false);
+        setSwipeLeft(true);
 
+    };
     return (
         <View>
             <View style={styles.longContainer}>
@@ -237,31 +252,56 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover,share }: 
                     </View>
                 </View>
             }
-            {!share && 
-            <>
-            <View style={styles.shareDetailsContaier}>
-                <FastImage source={shareIcon} resizeMode="contain" style={styles.shareIcon} />
-                <AppText color={DARKGREEN} weight={INTER_BOLD} type={TWELVE}>
-                    {"  "}
-                    Share {discover ? visibleCards?.firstName : visibleCards?.name} Profile
-                </AppText>
-            </View>
-            <View style={styles.shareDetailsContaier}>
-                <FastImage source={blackIcon} resizeMode="contain" style={styles.shareIcon} />
-                <AppText color={BLACK} weight={INTER_BOLD} type={TWELVE}>
-                    {"  "}
-                    Block {discover ? visibleCards?.firstName : visibleCards?.name} Profile
-                </AppText>
-            </View>
-            <View style={styles.shareDetailsContaier}>
-                <FastImage source={reportIcon} resizeMode="contain" style={styles.shareIcon} />
-                <AppText color={RED} weight={INTER_BOLD} type={TWELVE}>
-                    {"  "}
-                    Report
-                </AppText>
-            </View>
-            </>
+            {!share &&
+                <>
+                    {/* <View style={styles.shareDetailsContaier}>
+                        <FastImage source={shareIcon} resizeMode="contain" style={styles.shareIcon} />
+                        <AppText color={DARKGREEN} weight={INTER_BOLD} type={TWELVE}>
+                            {"  "}
+                            Share {discover ? visibleCards?.firstName : visibleCards?.name} Profile
+                        </AppText>
+                    </View> */}
+                    <TouchableOpacityView onPress={()=>setModalVisible(true)} style={styles.shareDetailsContaier}>
+                        <FastImage source={blackIcon} resizeMode="contain" style={styles.shareIcon} />
+                        <AppText color={BLACK} weight={INTER_BOLD} type={TWELVE}>
+                            {"  "}
+                            Block {discover ? visibleCards?.firstName : visibleCards?.name} Profile
+                        </AppText>
+                    </TouchableOpacityView>
+                    <View style={styles.shareDetailsContaier}>
+                        <FastImage source={reportIcon} resizeMode="contain" style={styles.shareIcon} />
+                        <AppText color={RED} weight={INTER_BOLD} type={TWELVE}>
+                            {"  "}
+                            Report
+                        </AppText>
+                    </View>
+                </>
             }
+             <Modal
+                animationType="fade"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={() => setModalVisible(false)}>
+                    <View style={styles.centeredView}>
+                        <View style={[styles.confirmContainer, { height: metrics.hp42, }]}>
+                            <FastImage source={blockModalImage} resizeMode="stretch" style={[styles.bdyBack, { height: metrics.hp18 }]} />
+                            <AppText style={{ textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK}>
+                                Block Diskha?
+                            </AppText>
+                            <AppText style={{ marginTop: -metrics.hp2, textAlign: "center" }} type={TWELVE} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                You won’t be able to undo this. You sure{'\n'} to continue?
+                            </AppText>
+                            <TouchableOpacityView onPress={() => blockUser()} style={[styles.ediButton, { backgroundColor: colors.purple, marginTop: metrics.hp2 }]}>
+                                <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
+                                    Yes, Block
+                                </AppText>
+                            </TouchableOpacityView>
+                            <AppText onPress={() => setModalVisible(false)} weight={INTER_SEMI_BOLD} type={TWELVE} style={{ textAlign: "center", marginTop: metrics.hp2 }} color={LIGHT_BLACK}>
+                                No, cancel
+                            </AppText>
+                        </View>
+                    </View>
+            </Modal>
         </View>
     )
 };
@@ -330,5 +370,34 @@ const styles = StyleSheet.create({
     shareIcon: {
         height: metrics.hp2,
         width: metrics.hp2,
+    },
+    centeredView: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: colors.transparentBlack,
+        paddingHorizontal: metrics.hp2
+    },
+    confirmContainer: {
+        height: metrics.hp40,
+        backgroundColor: colors.white,
+        width: Screen.Width / 1.20,
+        borderRadius: metrics.hp2,
+    },
+    bdyBack: {
+        height: metrics.hp17,
+        borderTopRightRadius: metrics.hp2,
+        borderTopLeftRadius: metrics.hp2,
+
+    },
+    ediButton: {
+        height: metrics.hp5,
+        borderWidth: 1,
+        borderColor: colors.purple,
+        borderRadius: metrics.hp4,
+        alignItems: "center",
+        justifyContent: "center",
+        width: "40%",
+        alignSelf: "center",
     },
 })

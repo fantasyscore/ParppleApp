@@ -9,5 +9,12 @@ const appReducer = combineReducers({
   inAppNotification: inAppNotificationSlice,
 });
 
+// Reset ALL slices on logout
+const rootReducer = (state, action) => {
+  if (action?.type === 'auth/logout') {
+    state = undefined;
+  }
+  return appReducer(state, action);
+};
 
-export default appReducer;
+export default rootReducer;

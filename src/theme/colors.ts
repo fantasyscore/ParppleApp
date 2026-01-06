@@ -5,6 +5,7 @@ export const colors = {
   blackEighty: "#00000095",
   opecity:"#B6B6B6",
   nanoOpecity:"#EDEDED",
+  nanoOpecityTwo:"#EDEDED60",
   purple:"#6F13F2",
   darkOpecity:"#6E6E6E",
   lightBlack:"#1A1A1A",

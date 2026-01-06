@@ -53,6 +53,9 @@ const TakingScreen = () => {
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const hasLoadedInitialMessages = useRef(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
+    // Prevent duplicate message rendering when chat is open:
+    // Deduplicate by stable id if available, otherwise by (senderId + createdAt + text).
+    const seenMessageKeysRef = useRef<Set<string>>(new Set());
     // Prevent "flash" of previous chat: only render messages that belong to the currently active matchId.
     const [messagesOwnerMatchId, setMessagesOwnerMatchId] = useState<string | undefined>(matchChatUserDetails?.matchId);
     const [tabSelect, setTabSelect] = useState('Chat');
@@ -96,6 +99,7 @@ const TakingScreen = () => {
         // Clear global chatHistory immediately to avoid stale redux data being applied to the new chat
         dispatch(chatHistoryDetails([]));
         setMessages([]);
+        seenMessageKeysRef.current = new Set();
         setMessagesOwnerMatchId(matchChatUserDetails?.matchId);
         setIsOtherUserTyping(false);
         setTypingUserName('');
@@ -126,7 +130,7 @@ const TakingScreen = () => {
             return [];
         }
 
-        const transformed = history.map((item: any) => {
+        const transformedRaw = history.map((item: any) => {
             // Extract message text - handle both string and object cases
             let messageText = '';
             if (typeof item.message === 'string') {
@@ -140,7 +144,7 @@ const TakingScreen = () => {
                 messageText = item.text.text || item.text.content || JSON.stringify(item.text);
             }
 
-            const messageId = item._id || item.id || Date.now() + Math.random();
+            const messageId = item._id || item.messageId || item.id;
             const isMine = item.isMine === true || item.isMine === 'true';
             const avatar = isMine
                 ? (userData?.profilePicture?.[0]?.url || userData?.gallery?.[0]?.url || profileImage)
@@ -156,8 +160,15 @@ const TakingScreen = () => {
             }
             const isRead = item.isRead === true || item.isRead === 'true';
             const userId = isMine ? 1 : 2;
+            const createdAtKey =
+                item.createdAt || item.timestamp || item.created_at || item.time || createdAt.toISOString();
+            const senderIdKey =
+                item.senderId || item.sender?._id || item.userId || (isMine ? userData?._id : matchChatUserDetails?.userId) || '';
+            const dedupeKey = messageId
+                ? `id:${String(messageId)}`
+                : `cst:${String(senderIdKey)}:${String(createdAtKey)}:${String(messageText || '')}`;
             return {
-                _id: messageId,
+                _id: messageId || Date.now() + Math.random(),
                 text: String(messageText || ''), // Ensure text is always a string
                 createdAt: createdAt,
                 user: {
@@ -166,8 +177,18 @@ const TakingScreen = () => {
                     avatar: avatar,
                 },
                 isRead: isRead,
-                isMine: isMine
-            };
+                isMine: isMine,
+                _dedupeKey: dedupeKey,
+            } as any;
+        });
+
+        // Dedupe within history payload (prevents duplicates if API returns duplicates)
+        const seenLocal = new Set<string>();
+        const transformed = transformedRaw.filter((m: any) => {
+            const key = m?._dedupeKey || `id:${String(m?._id)}`;
+            if (seenLocal.has(key)) return false;
+            seenLocal.add(key);
+            return true;
         });
 
         // Sort by createdAt to ensure proper order (oldest first, then reverse for GiftedChat)
@@ -352,6 +373,20 @@ const TakingScreen = () => {
                     createdAt = new Date();
                 }
                 const messageId = response._id || response.messageId || response.id || Date.now() + Math.random();
+                // Deduplicate (important: chat screen only)
+                const createdAtKey =
+                    response.createdAt || response.timestamp || response.created_at || createdAt.toISOString();
+                const senderIdKey =
+                    response.sender?._id || response.senderId || response.userId || response.fromUserId || '';
+                const dedupeKey = (response._id || response.messageId || response.id)
+                    ? `id:${String(response._id || response.messageId || response.id)}`
+                    : `cst:${String(senderIdKey)}:${String(createdAtKey)}:${String(messageText || '')}`;
+
+                if (seenMessageKeysRef.current.has(dedupeKey)) {
+                    return;
+                }
+                seenMessageKeysRef.current.add(dedupeKey);
+
                 if (!isMine) {
                     const incomingSenderId = response.sender?._id || response.senderId;
                     if (activeOtherUserId && incomingSenderId && String(incomingSenderId) !== String(activeOtherUserId)) {
@@ -544,7 +579,17 @@ const TakingScreen = () => {
     useEffect(() => {
         // Always render instantly; just set messages when available.
         if (transformedMessages.length > 0) {
-            setMessages(transformedMessages);
+            // Seed dedupe cache from redux messages and ensure no duplicates are rendered.
+            const seeded = new Set<string>();
+            const uniq = (transformedMessages as any[]).filter((m: any) => {
+                const key = m?._dedupeKey || `id:${String(m?._id)}`;
+                if (key === 'id:typing-indicator') return false;
+                if (seeded.has(key)) return false;
+                seeded.add(key);
+                return true;
+            });
+            seenMessageKeysRef.current = seeded;
+            setMessages(uniq as any);
             setMessagesOwnerMatchId(matchChatUserDetails?.matchId);
             setCurrentPage(1);
             setHasMoreMessages(transformedMessages.length >= 50);

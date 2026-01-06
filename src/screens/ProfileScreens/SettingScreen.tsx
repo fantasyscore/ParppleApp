@@ -15,6 +15,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { userLogout } from "../../actions/authActions";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_SUBSCRIPTION_ALL_SCREEN } from "../../navigation/routes";
+import { disconnectAllSockets } from "../../common/Socket";
+import { version as appVersion } from "../../../package.json";
 
 const SettingScreen = () => {
     const userData = useSelector((state: any) => state.auth.userData);
@@ -24,6 +26,15 @@ const SettingScreen = () => {
     const [toggleThree, setToggleThree] = useState(false);
     const [selectFtCm, setSelectFtCm] = useState("FT");
     const [selectMIKM, setSelectMIKM] = useState("MI");
+
+    const handleLogout = () => {
+        // 1) Disconnect ALL sockets
+        disconnectAllSockets();
+        // 2) Clear ALL redux slices
+        dispatch({ type: "auth/logout" });
+        // 3) Existing logout flow (token removal + navigation reset)
+        dispatch(userLogout());
+    };
 
     return (
         <AppSafeAreaView>
@@ -126,7 +137,7 @@ const SettingScreen = () => {
                     <EditButtonCommon
                         onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_ALL_SCREEN)}
                         setting={true}
-                        title={"Subscribe to Let’s Meet"} />
+                        title={"Subscribe to Parpple"} />
                     {/* <EditButtonCommon
                         setting={true}
                         title={"Restore Subscription"} /> */}
@@ -187,7 +198,7 @@ const SettingScreen = () => {
                         <FastImage source={rightFair} resizeMode="contain" style={styles.rightFair} />
                         <View style={{ alignItems: "center", justifyContent: "center", }}>
                             <AppText style={{ textAlign: "center", marginTop: -metrics.hp1 }} type={TWENTY} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK}>
-                                Share Let’s Meet App
+                                Share Parpple
                             </AppText>
                             <AppText style={{ textAlign: "center", marginTop: -metrics.hp1 }} type={TEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
                                 Share with your friends and let us help{'\n'} them tomeet with their partners.
@@ -195,7 +206,7 @@ const SettingScreen = () => {
                         </View>
                         <FastImage source={leftFair} resizeMode="contain" style={styles.rightFair} />
                     </View>
-                    <TouchableOpacityView onPress={() => dispatch(userLogout())} style={[styles.shareDetailsContaier, { marginTop: metrics.hp6 }]}>
+                    <TouchableOpacityView onPress={handleLogout} style={[styles.shareDetailsContaier, { marginTop: metrics.hp6 }]}>
                         <FastImage source={logOutIcon} resizeMode="contain" style={styles.shareIcon} />
                         <AppText color={RED} weight={INTER_SEMI_BOLD} type={TWELVE}>
                             {"  "}
@@ -211,7 +222,7 @@ const SettingScreen = () => {
                     </View>
                     <AppText style={styles.textVersion} color={OPECITY} weight={INTER_SEMI_BOLD} type={TWELVE}>
                         {"  "}
-                        Version: 2.0.1
+                        Version: {appVersion}
                     </AppText>
                 </View>
             </ScrollView>

@@ -5,18 +5,27 @@ import { backIcon, pencilIcon, previewIcon } from "../helper/ImageAssets";
 import metrics from "../assets/Metrics";
 import { TouchableOpacityView } from "./TouchableOpacityView";
 import NavigationService from "../navigation/NavigationService";
-import { AppText, FORTEEN, INTER_MEDIUM, INTER_SEMI_BOLD, OPECITY_DARK, TEN } from "./AppText";
+import { AppText, EIGHTEEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, OPECITY_DARK, TEN } from "./AppText";
 import { colors } from "../theme/colors";
 
-const HeaderCommon = ({ onSkip, skip, title, preview, edit, PreviewOnpress, editOnPress }: any) => {
+const HeaderCommon = ({ onSkip, skip, title, preview, edit, PreviewOnpress, editOnPress,age }: any) => {
     return (
         <View style={{ paddingHorizontal: metrics.hp2, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
             <TouchableOpacityView style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp6 }} onPress={() => NavigationService.goBack()}>
                 <FastImage source={backIcon} resizeMode="contain" style={styles.backIcon} />
                 {title &&
-                    <AppText type={FORTEEN} weight={INTER_SEMI_BOLD}>
-                        {"     "}{title}
-                    </AppText>
+                    <>
+                        {edit ?
+                            <AppText type={FORTEEN} weight={INTER_SEMI_BOLD}>
+                                {"     "}{title}
+                            </AppText> :
+                            <View style={{flexDirection:"row", alignItems:"center"}}>
+                            <AppText style={{marginTop:-metrics.hp0_5, textTransform:"capitalize"}} type={EIGHTEEN} weight={INTER_BOLD}>{"     "}{title},</AppText>
+                            <AppText  type={EIGHTEEN} weight={INTER_MEDIUM}> {age}</AppText>
+                            </View>
+                        }
+                    </>
+
                 }
             </TouchableOpacityView>
             {skip &&
@@ -65,7 +74,7 @@ const styles = StyleSheet.create({
         borderColor: colors.nanoOpecity,
         borderRadius: metrics.hp4
     },
-    containerEdit:{
+    containerEdit: {
         marginTop: metrics.hp5,
         flexDirection: "row",
         alignItems: "center",
@@ -74,6 +83,7 @@ const styles = StyleSheet.create({
         width: metrics.hp7,
         borderWidth: metrics.hp0_1,
         borderColor: colors.nanoOpecity,
-        borderRadius: metrics.hp4
+        borderRadius: metrics.hp4,
+        
     }
 })

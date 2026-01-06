@@ -235,7 +235,7 @@ const ChatProfileScreen = ({ always }: any) => {
                                 end={{ x: 1, y: 0 }} colors={["#000000", "#00000099", "#00000000"]} style={styles.bottomDetails}>
                                 <View style={{ marginTop: metrics.hp8 }}>
                                     <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                        <AppText type={TWENTY} color={WHITE} weight={INTER_BOLD}>
+                                        <AppText  style={{textTransform:"capitalize"}} type={TWENTY} color={WHITE} weight={INTER_BOLD}>
                                             {otherUserProfile?.firstName || ''}, {otherUserProfile?.age || ''}{" "}
                                         </AppText>
                                         {otherUserProfile?.isVerified && (

@@ -65,11 +65,11 @@ const AllMatchesScreen = () => {
               {item.online && userData?.subscription?.plan !== "FREE" &&
                 <View style={styles.activeBackground} />
               }
-              <AppText type={SIXTEEN} weight={INTER_BOLD} color={BLACK}>
+              <AppText style={{textTransform:"capitalize"}} type={SIXTEEN} weight={INTER_BOLD} color={BLACK}>
                 {item?.name}{" "}
               </AppText>
               {!!item?.username && (
-                <AppText type={TWELVE} weight={INTER_REGULAR} color={colors.darkOpecity}>
+                <AppText style={{textTransform:"capitalize"}} type={TWELVE} weight={INTER_REGULAR} color={colors.darkOpecity}>
                   {item?.username}
                 </AppText>
               )}

@@ -47,13 +47,22 @@ export async function getFcmToken() {
 }
 
 export async function displayRemoteMessage(
-  remoteMessage: FirebaseMessagingTypes.RemoteMessage
+  remoteMessage: FirebaseMessagingTypes.RemoteMessage,
+  opts?: { isBackground?: boolean }
 ) {
   try {
     const notifee = getNotifee();
     if (!notifee) {
       // If notifee isn't installed, the OS will still show notifications for "notification" payloads
       // when app is backgrounded. Foreground/data-only won't show.
+      return;
+    }
+
+    // In background/quit state:
+    // - If FCM includes a "notification" payload, Android/iOS will show it automatically.
+    // - For data-only messages, we should show a local notification via notifee.
+    // To avoid duplicate notifications, only show locally in background when it's data-only.
+    if (opts?.isBackground && remoteMessage?.notification) {
       return;
     }
 
@@ -81,16 +90,45 @@ export async function displayRemoteMessage(
   }
 }
 
-export function setupPushListeners() {
+let backgroundHandlerRegistered = false;
+export function registerBackgroundPushHandler() {
+  // Must be registered in the JS entry file (e.g. index.js) to work in background/killed/headless.
+  // We keep it here so notification behavior stays in one place.
+  if (backgroundHandlerRegistered) return;
+  backgroundHandlerRegistered = true;
+
+  messaging().setBackgroundMessageHandler(async (remoteMessage) => {
+    await displayRemoteMessage(remoteMessage, { isBackground: true });
+  });
+}
+
+export async function getInitialNotification() {
+  try {
+    return await messaging().getInitialNotification();
+  } catch {
+    return null;
+  }
+}
+
+export function setupPushListeners(opts?: {
+  onNotificationOpen?: (message: FirebaseMessagingTypes.RemoteMessage) => void;
+}) {
   try {
     // Foreground messages
     const unsubOnMessage = messaging().onMessage(async (remoteMessage) => {
-      await displayRemoteMessage(remoteMessage);
+      await displayRemoteMessage(remoteMessage, { isBackground: false });
     });
 
     // Notification tapped while app in background
-    const unsubOpened = messaging().onNotificationOpenedApp(async () => {
-      // Keep behavior unchanged: app will open; navigation can be handled later if needed
+    const unsubOpened = messaging().onNotificationOpenedApp(async (remoteMessage) => {
+      if (remoteMessage && opts?.onNotificationOpen) {
+        opts.onNotificationOpen(remoteMessage);
+      }
+    });
+
+    // Token refresh (optional but helps keep notifications reliable long-term)
+    const unsubToken = messaging().onTokenRefresh(() => {
+      // No-op here. If you later have an API endpoint to sync token, do it from App layer.
     });
 
     return () => {
@@ -99,6 +137,9 @@ export function setupPushListeners() {
       } catch {}
       try {
         unsubOpened();
+      } catch {}
+      try {
+        unsubToken();
       } catch {}
     };
   } catch {

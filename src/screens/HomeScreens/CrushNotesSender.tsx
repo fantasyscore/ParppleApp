@@ -16,7 +16,7 @@ import { interMedium } from "../../theme/typography";
 const { width, height } = Dimensions.get("window");
 const COLLAPSED_IMAGE_HEIGHT = height * 0.45;
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { sendCrushNotesAPI } from "../../actions/authActions";
+import { getProfile, sendCrushNotesAPI } from "../../actions/authActions";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_CRUSH_PURCHESE_SCREEN } from "../../navigation/routes";
 import { toastAlert } from "../../actions/UploadImageActions";
@@ -107,6 +107,7 @@ const CrushNotesSender = ({ data, setModalVisible, setSwipeRight, setSwipeUp, se
                 if (setModalVisible) {
                     setModalVisible(false);
                 }
+                dispatch(getProfile(true));
             }
         } catch (error) {
             toastAlert.showToastError("You can only send one crush note to this user per 24 hours")
@@ -120,7 +121,12 @@ const CrushNotesSender = ({ data, setModalVisible, setSwipeRight, setSwipeUp, se
             keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
         >
             <AppSafeAreaView>
-                <CrushNotesHeader name={discover ? data?.firstName : data?.name} age={data?.age} setModalVisible={setModalVisible} />
+                <CrushNotesHeader
+                    name={discover ? data?.firstName : data?.name}
+                    age={data?.age}
+                    setModalVisible={setModalVisible}
+                    remainingCount={userData?.crushNotesRemaining}
+                />
                 <ImageBackground source={crushNoteBack} resizeMode={"cover"} style={styles.imageContainer}>
                     <KeyboardAwareScrollView
                         enableOnAndroid={true}
