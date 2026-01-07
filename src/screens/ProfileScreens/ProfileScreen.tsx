@@ -14,6 +14,7 @@ import { Screen } from "../../theme/dimens";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_EDIT_PROFILE_SCREEN, NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN, NAVIGATION_SUBSCRIPTION_ALL_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN, NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from "../../navigation/routes";
 import { useDispatch, useSelector } from "react-redux";
+import { getProfile } from "../../actions/authActions";
 
 const ProfileScreen = () => {
     const dispatch = useDispatch();
@@ -22,13 +23,15 @@ const ProfileScreen = () => {
     const userData = useSelector((state: any) => state.auth.userData);
     
     useEffect(() => {
-        setPercentage(userData?.profileCompletion)
+        const n = Number(userData?.profileCompletion);
+        setPercentage(Number.isFinite(n) ? n : 0);
     }, [userData?.profileCompletion])
     const size = metrics.hp12;
     const strokeWidth = metrics.hp0_5;
     const radius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
-    const progress = (percentage / 100) * circumference;
+    const safePct = Number.isFinite(Number(percentage)) ? Math.max(0, Math.min(100, Number(percentage))) : 0;
+    const progress = (safePct / 100) * circumference;
 
     const premiumDetaiData = [
         { id: "1", icon: flasIcon, numberText: userData?.boostRemaining, title: "Boost", headLine: "Get more" },
@@ -50,9 +53,15 @@ const ProfileScreen = () => {
     const navigateButton = (item: any) => {
         if (item?.title === "Boost") return NavigationService.navigate(NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN);
         if (item?.title === "Super Like") return NavigationService.navigate(NAVIGATION_SUPERLIKE_PURCHESE_SCREEN);
-        if (item?.headLine === "Purchase") return NavigationService.navigate(NAVIGATION_SUBSCRIPTION_ALL_SCREEN);
+        if (item?.id === "3") return NavigationService.navigate(NAVIGATION_SUBSCRIPTION_ALL_SCREEN);
 
     };
+    const onSubmit = () => {
+        let navigate = false;
+        let profile = true;
+        dispatch(getProfile(navigate,profile))
+    };
+
     return (
         <AppSafeAreaView>
             <ImageBackground
@@ -62,7 +71,7 @@ const ProfileScreen = () => {
                 <PeopleHeader profile={true} />
 
                 <View style={styles.inContainer}>
-                    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+                    <TouchableOpacityView onPress={onSubmit} style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
                         <Svg height={size} width={size}>
                             <Circle
                                 stroke={colors.persentageBorder}
@@ -97,7 +106,7 @@ const ProfileScreen = () => {
                                 {Math.trunc(percentage)}%
                             </AppText>
                         </View>
-                    </View>
+                    </TouchableOpacityView>
                     <View>
                         <AppText style={{ marginTop: metrics.hp2, textTransform:"capitalize" }} type={EIGHTEEN} weight={INTER_BOLD}>{"    "}{userData?.firstName},<AppText type={EIGHTEEN} weight={INTER_MEDIUM}> {userData?.age}{"  "}</AppText>
                             <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} />
@@ -129,6 +138,7 @@ const ProfileScreen = () => {
                         <View style={styles.one}>
                             {premiumDetaiData?.map((item, index) => {
                                 return userData?.subscription?.plan !== "FREE" && item.id === "3" ? (
+                                    <TouchableOpacityView onPress={() => navigateButton(item)}>
                                     <ImageBackground source={userData?.subscription?.plan === "SILVER" ? sliverCardSmall :
                                         userData?.subscription?.plan === "GOLD" ? goldCardSmall : platniumCardSmall
                                     } resizeMode="contain" style={{
@@ -141,6 +151,7 @@ const ProfileScreen = () => {
                                             </AppText>
                                         </View>
                                     </ImageBackground>
+                                    </TouchableOpacityView>
                                 ) : (
                                     <TouchableOpacityView onPress={() => navigateButton(item)} key={index} style={[styles.subDetails, { marginLeft: item.id == "2" ? metrics.hp0_5 : 0 }]}>
                                         <FastImage source={item.icon} resizeMode="contain" style={styles.icons} />

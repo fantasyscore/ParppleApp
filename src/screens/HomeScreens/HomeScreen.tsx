@@ -653,16 +653,21 @@ const PeopleScreen = () => {
     }, [listProfilesData]);
 
     async function requestAndroidNotificationPermission() {
-        if (Platform.OS === 'android' && Platform.Version >= 33) {
-            const granted = await PermissionsAndroid.request(
-                PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
-            );
+        try {
+            if (Platform.OS === 'android' && Platform.Version >= 33) {
+                const granted = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+                );
 
-            if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-                console.log('Notification permission granted');
-            } else {
-                console.log('Notification permission denied');
+                if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+                    console.log('Notification permission granted');
+                } else {
+                    console.log('Notification permission denied');
+                }
             }
+        } catch (e) {
+            // Never crash HomeScreen due to permission API edge cases
+            console.warn('Notification permission request failed:', e);
         }
     }
     useEffect(() => {

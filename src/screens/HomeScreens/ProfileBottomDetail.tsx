@@ -166,7 +166,7 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share,se
                         </AppText>
                     </View>}
             </View>
-            {(smoke || drink || workout || pets) && (
+            {(smoke || drink || workout || pets) ? (
                 <View style={styles.bioContinaer}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
                         <FastImage tintColor={colors.darkOpecity} source={lifeStyleIcon} resizeMode="contain" style={styles.iconsFrom} />
@@ -174,7 +174,7 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share,se
                             {"  "} Lifestyle
                         </AppText>
                     </View>
-                    {smoke &&
+                    {smoke ?
                         <View style={[styles.insideContainer, { marginTop: metrics.hp1 }]}>
                             <View style={{ flexDirection: "row", alignItems: "center" }}>
                                 <FastImage tintColor={colors.darkOpecity} source={smookingIcon} resizeMode="contain" style={styles.bioIcon} />
@@ -186,9 +186,9 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share,se
                             <AppText style={{ marginTop: metrics.hp0_5, marginRight: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
                                 {smoke?.displayLabel}
                             </AppText>
-                        </View>
+                        </View> :<></>
                     }
-                    {drink &&
+                    {drink ?
                         <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
                             <View style={{ flexDirection: "row", alignItems: "center" }}>
                                 <FastImage tintColor={colors.darkOpecity} source={drikingIcon} resizeMode="contain" style={styles.bioIcon} />
@@ -200,9 +200,9 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share,se
                             <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
                                 {drink?.displayLabel}
                             </AppText>
-                        </View>
+                        </View> :<></>
                     }
-                    {workout &&
+                    {workout ?
                         <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
                             <View style={{ flexDirection: "row", alignItems: "center" }}>
                                 <FastImage tintColor={colors.darkOpecity} source={workoutIcon} resizeMode="contain" style={styles.bioIcon} />
@@ -214,9 +214,9 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share,se
                             <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
                                 {workout?.displayLabel}
                             </AppText>
-                        </View>
+                        </View> :<></>
                     }
-                    {pets &&
+                    {pets ?
                         <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
                             <View style={{ flexDirection: "row", alignItems: "center" }}>
                                 <FastImage tintColor={colors.darkOpecity} source={petsIcon} resizeMode="contain" style={styles.bioIcon} />
@@ -228,11 +228,11 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share,se
                             <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
                                 {pets?.displayLabel}
                             </AppText>
-                        </View>
+                        </View> :<></>
                     }
                 </View>
-            )}
-            {attributes?.length &&
+            ):<></>}
+            {attributes?.length ?
                 <View style={styles.bioContinaer}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
                         <FastImage tintColor={colors.darkOpecity} source={personHeartIcon} resizeMode="contain" style={styles.iconsFrom} />
@@ -250,9 +250,9 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share,se
                             </View>
                         ))}
                     </View>
-                </View>
+                </View> :<></>
             }
-            {!share &&
+            {!share ?
                 <>
                     {/* <View style={styles.shareDetailsContaier}>
                         <FastImage source={shareIcon} resizeMode="contain" style={styles.shareIcon} />
@@ -275,7 +275,7 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share,se
                             Report
                         </AppText>
                     </View>
-                </>
+                </> :<></>
             }
              <Modal
                 animationType="fade"

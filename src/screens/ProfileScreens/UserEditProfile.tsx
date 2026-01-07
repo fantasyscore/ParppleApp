@@ -62,6 +62,7 @@ import Animated, {
     useSharedValue,
     withTiming,
 } from "react-native-reanimated";
+import { NAVIGATION_EDIT_PROFILE_SCREEN } from "../../navigation/routes";
 
 const { height } = Dimensions.get("window");
 const FULL_IMAGE_HEIGHT = height * 0.85; // Adjust this value as needed
@@ -69,6 +70,7 @@ const COLLAPSED_IMAGE_HEIGHT = height * 0.6; // Adjust this value as needed
 
 const UserEditProfile = (props: any) => {
     const otherCome = props?.route?.params?.other ?? "";
+    const profileComing = props?.route?.params?.profile ?? "";
     const otherUserProfile = useSelector((state: any) => state.auth.otherUserProfile);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [updown, setupdown] = useState(false);
@@ -218,9 +220,11 @@ const UserEditProfile = (props: any) => {
             </View>
         );
     };
+
+    
     return (
         <AppSafeAreaView>
-            <HeaderCommon title={otherCome ? otherUserProfile?.firstName : "Edit Profile"} age={otherUserProfile?.age} edit={otherCome ? false : true} editOnPress={() => NavigationService.goBack()} />
+            <HeaderCommon title={otherCome ? otherUserProfile?.firstName : "Profile"} age={otherUserProfile?.age} edit={otherCome ? false : true} editOnPress={() => profileComing? NavigationService.navigate(NAVIGATION_EDIT_PROFILE_SCREEN): NavigationService.goBack()} />
             <View style={styles.singleLine} />
             {/* {!updown && <Animated.View style={topTextHiddenAnimatedStyle}>{renderProgressLine(false)}</Animated.View>} */}
             <Animated.ScrollView

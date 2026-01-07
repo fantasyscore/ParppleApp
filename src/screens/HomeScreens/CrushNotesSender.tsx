@@ -139,14 +139,14 @@ const CrushNotesSender = ({ data, setModalVisible, setSwipeRight, setSwipeUp, se
                             <View style={{ flexDirection: "row", alignItems: "center" }}>
                                 <FastImage source={shareRedIcon} resizeMode="contain" style={styles.shareIcon} />
                                 <AppText type={SIXTEEN} weight={SCHEHERAZADE_SEMI_BOLD}>
-                                    {"  "}Send Crush Note
+                                    {"  Send Crush Note"}
                                 </AppText>
                             </View>
                             <View style={{ alignItems: "center", justifyContent: "center" }}>
                                 <AppText weight={SCHEHERAZADE_BOLD} type={TWENTY}>
-                                    "Turn Every Crush into a Real
+                                    {"Turn Every Crush into a Real"}
                                 </AppText>
-                                <AppText style={{ marginTop: -metrics.hp2_5 }} weight={SCHEHERAZADE_BOLD} type={TWENTY}>Chance — 4x More Connections!</AppText>
+                                <AppText style={{ marginTop: -metrics.hp2_5 }} weight={SCHEHERAZADE_BOLD} type={TWENTY}>{"Chance — 4x More Connections!"}</AppText>
                             </View>
                             <TouchableOpacityView
                                 activeOpacity={1}

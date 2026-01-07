@@ -3,8 +3,11 @@ import { Animated, Dimensions, PanResponder } from "react-native";
 import { colors } from "../theme/colors";
 import metrics from "../assets/Metrics";
 const { width, height } = Dimensions.get("window");
-const position: any = useRef(new Animated.ValueXY()).current;
-const animationValue = useRef(new Animated.Value(0)).current;
+// IMPORTANT: Never call hooks (useRef) at module scope.
+// These are module singletons used by some shared interpolations below.
+// Using plain Animated values preserves existing behavior without violating Rules of Hooks.
+const position: any = new Animated.ValueXY();
+const animationValue = new Animated.Value(0);
 
 export const panResponder = (position: any, isAnimating: any, prevPhoto: any, nextPhoto: any, swipeCard: any) => useRef(
     PanResponder.create({

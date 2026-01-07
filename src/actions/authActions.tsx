@@ -168,7 +168,7 @@ export const getOtherProfile: any = (data: any, isNavigate: any, setProfileData:
         console.log(error, "error");
     }
 };
-export const getProfile: any = (navigate: any) => async (dispatch: any) => {
+export const getProfile: any = (navigate: any, profile:any) => async (dispatch: any) => {
     if ((getProfile as any)._inFlight) return;
     (getProfile as any)._inFlight = true;
     try {
@@ -176,7 +176,7 @@ export const getProfile: any = (navigate: any) => async (dispatch: any) => {
         if (response?.statusCode == 200) {
             dispatch(setGetProfile(response?.data));
             dispatch(setOtherUserProfile(response?.data));
-            !navigate && NavigationService.navigate(NAVIGATION_USER_EDIT_PROFILE_SCREEN, { other: false })
+            !navigate && NavigationService.navigate(NAVIGATION_USER_EDIT_PROFILE_SCREEN, { other: false,profile:profile })
         }
     } catch (error: any) {
         // toastAlert.showToastError(error);

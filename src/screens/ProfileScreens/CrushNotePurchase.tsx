@@ -16,7 +16,7 @@ import { subscriptionVerifyAPI } from "../../actions/authActions";
 
 // One-time Product SKUs
 const PRODUCT_SKUS = Platform.select({
-    android: ['10_crush_notes', '3_crush_notes', '1_crush_note','10_crush_note'],
+    android: ['10_crush_notes', '3_crush_notes', '1_crush_note'],
     ios: ['10_crush_notes', '3_crush_notes', '1_crush_note'],
 }) || [];
 
