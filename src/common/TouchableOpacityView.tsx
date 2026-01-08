@@ -17,7 +17,7 @@ const TouchableOpacityView = ({
       <TouchableOpacityGesture {...props}>{children}</TouchableOpacityGesture>
     );
   } else {
-    return <TouchableOpacityBase {...props}>{children}</TouchableOpacityBase>;
+    return <TouchableOpacityBase activeOpacity={0.8} {...props}>{children}</TouchableOpacityBase>;
   }
 };
 

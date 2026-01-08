@@ -39,6 +39,8 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share,se
         setSwipeLeft(true);
 
     };
+   
+    
     return (
         <View>
             <View style={styles.longContainer}>
@@ -286,7 +288,7 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share,se
                         <View style={[styles.confirmContainer, { height: metrics.hp42, }]}>
                             <FastImage source={blockModalImage} resizeMode="stretch" style={[styles.bdyBack, { height: metrics.hp18 }]} />
                             <AppText style={{ textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK}>
-                                Block Diskha?
+                                Block {visibleCards?.name}?
                             </AppText>
                             <AppText style={{ marginTop: -metrics.hp2, textAlign: "center" }} type={TWELVE} weight={INTER_MEDIUM} color={OPECITY_DARK}>
                                 You won’t be able to undo this. You sure{'\n'} to continue?

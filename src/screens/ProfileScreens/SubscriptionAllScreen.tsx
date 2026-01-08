@@ -375,13 +375,13 @@ const SubscriptionAllScreen = () => {
                     mode="parallax"
                     modeConfig={{
                         parallaxScrollingScale: 0.95,
-                        parallaxAdjacentItemScale: 0.88,
+                        parallaxAdjacentItemScale: 0.85,
                         parallaxScrollingOffset: CARD_WIDTH * 0.32,
                     }}
                     onProgressChange={(_, p) => setActiveIndex(Math.round(p))}
                     renderItem={({ item, index }) => (
                         <TouchableOpacityView
-                            activeOpacity={0.9}
+                            activeOpacity={1}
                             onPress={() => {
                                 setActiveIndex(index);
                                 carouselRef.current?.scrollTo?.({ index, animated: true });

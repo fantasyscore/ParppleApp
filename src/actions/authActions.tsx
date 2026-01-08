@@ -113,7 +113,6 @@ export const likeByOther: any = () => async (dispatch: any) => {
         const response: any = await appOperation.customer.likesLikeYouAPI();
         if (response?.statusCode == 200) {
             dispatch(setLikeByOther(response?.data))
-
         }
     } catch (error: any) {
         toastAlert.showToastError(error);

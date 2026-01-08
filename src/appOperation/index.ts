@@ -18,7 +18,7 @@ export class AppOperation {
   customer;
   customerToken: string | null | undefined;
   constructor() {
-    this.base_url = "http://13.201.74.29/";
+    this.base_url = "https://api.parpple.com/";
     this.root_path = ``;
     this.admin = admin(this);
     this.guest = guest(this);

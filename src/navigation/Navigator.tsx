@@ -39,7 +39,6 @@ import ChatsScreen from "../screens/ChatScreens/ChatsScreen";
 import LikesYouScreen from "../screens/LikesYouScreens/LikesYouScreen";
 import ProfileScreen from "../screens/ProfileScreens/ProfileScreen";
 import CustomTabBar from "../common/CustomTabBar";
-import ProfileDetailsScreen from "../screens/ProfileScreens/ProfileDetailsScreen";
 import LanguageSpeak from "../screens/DetailsScreen/LanguagesSpeak";
 import RelationStatus from "../screens/DetailsScreen/RelationStatus";
 import LifestyleScreen from "../screens/DetailsScreen/LifestyleScreen";

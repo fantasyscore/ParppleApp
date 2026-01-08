@@ -165,9 +165,9 @@ export const premiumDetaiData = [
     { id: "3", icon: pText, numberText:  "Get\nSubscription", title: "", headLine: "Purchase" },
 ];
 export const PurchaseCards = [
-    { id: "1", icon: silverCard, title: "Silver" },
-    { id: "2", icon: goldCard, title: "Gold" },
     { id: "3", icon: Platinum, title: "Platinum" },
+    { id: "2", icon: goldCard, title: "Gold" },
+    { id: "1", icon: silverCard, title: "Silver" },
 ];
 export const SilverPurchase = [
     { id: "1", planOf: "1 Week", amount: "₹549 /", ofPu: "Week" },
@@ -306,19 +306,19 @@ export const threeDotData = [
     {
         id: "1",
         icon: unMatchProfileIcon,
-        headLine: "Unmatched From Diskha",
+        headLine: "Unmatched From",
         disLine: "Not interested anymore? Remove them from your matches."
     },
     {
         id: "2",
         icon: reportProfileIcon,
-        headLine: "Report Diksha",
+        headLine: "Report",
         disLine: "We won’t let them know you’ve reported."
     },
     {
         id: "3",
         icon: blackIcon,
-        headLine: "Block Diksha",
+        headLine: "Block",
         disLine: "You both won’t see each other again."
     },
 ];

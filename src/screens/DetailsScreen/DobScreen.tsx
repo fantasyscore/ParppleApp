@@ -195,7 +195,7 @@ const DobScreen = () => {
             >
                 <View style={styles.centeredView}>
                     <View style={styles.confirmContainer}>
-                        <FastImage source={bdyBack} resizeMode="contain" style={styles.bdyBack} />
+                        <FastImage source={bdyBack} resizeMode="cover" style={styles.bdyBack} />
 
                         <AppText
                             weight={SCHEHERAZADE_BOLD}

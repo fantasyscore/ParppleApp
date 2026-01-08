@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { FlatList, ImageBackground, ScrollView, StyleSheet, View } from "react-native";
+import { Dimensions, FlatList, ImageBackground, Linking, ScrollView, StyleSheet, View } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
 import { arrowBackForSafety, blockPurppleIcon, blueTikeIcon, callIcon, checkSafety, flasIcon, goldCardSmall, locationPurppleIcon, pencilIcon, platniumCardSmall, premiumIcon, profilebackGround, profileImage, pText, redHeart, rightArrow, sliverCardSmall, stylesRightArrow } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
@@ -12,16 +12,19 @@ import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { premiumDetaiData, PurchaseCards, SafetyTips, TrustTransparency } from "../../common/UiltData";
 import { Screen } from "../../theme/dimens";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_EDIT_PROFILE_SCREEN, NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN, NAVIGATION_SUBSCRIPTION_ALL_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN, NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_EDIT_PROFILE_SCREEN, NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN, NAVIGATION_SETTING_SCREEN, NAVIGATION_SUBSCRIPTION_ALL_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN, NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from "../../navigation/routes";
 import { useDispatch, useSelector } from "react-redux";
 import { getProfile } from "../../actions/authActions";
+import Carousel from "react-native-reanimated-carousel";
 
 const ProfileScreen = () => {
     const dispatch = useDispatch();
     const [percentage, setPercentage] = useState(25);
     const [tabSelect, setTabSelect] = useState("Premium");
+    const [activeIndex, setActiveIndex] = useState(0);
     const userData = useSelector((state: any) => state.auth.userData);
-    
+console.log(userData,"userData");
+
     useEffect(() => {
         const n = Number(userData?.profileCompletion);
         setPercentage(Number.isFinite(n) ? n : 0);
@@ -59,9 +62,9 @@ const ProfileScreen = () => {
     const onSubmit = () => {
         let navigate = false;
         let profile = true;
-        dispatch(getProfile(navigate,profile))
+        dispatch(getProfile(navigate, profile))
     };
-
+    const width = Dimensions.get('screen').width;
     return (
         <AppSafeAreaView>
             <ImageBackground
@@ -108,7 +111,7 @@ const ProfileScreen = () => {
                         </View>
                     </TouchableOpacityView>
                     <View>
-                        <AppText style={{ marginTop: metrics.hp2, textTransform:"capitalize" }} type={EIGHTEEN} weight={INTER_BOLD}>{"    "}{userData?.firstName},<AppText type={EIGHTEEN} weight={INTER_MEDIUM}> {userData?.age}{"  "}</AppText>
+                        <AppText style={{ marginTop: metrics.hp2, textTransform: "capitalize" }} type={EIGHTEEN} weight={INTER_BOLD}>{"    "}{userData?.firstName},<AppText type={EIGHTEEN} weight={INTER_MEDIUM}> {userData?.age}{"  "}</AppText>
                             <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} />
                         </AppText>
                         <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_EDIT_PROFILE_SCREEN)} style={styles.completeContainer}>
@@ -139,18 +142,18 @@ const ProfileScreen = () => {
                             {premiumDetaiData?.map((item, index) => {
                                 return userData?.subscription?.plan !== "FREE" && item.id === "3" ? (
                                     <TouchableOpacityView onPress={() => navigateButton(item)}>
-                                    <ImageBackground source={userData?.subscription?.plan === "SILVER" ? sliverCardSmall :
-                                        userData?.subscription?.plan === "GOLD" ? goldCardSmall : platniumCardSmall
-                                    } resizeMode="contain" style={{
-                                        height: metrics.hp13,
-                                        width: metrics.hp13,
-                                    }}>
-                                        <View style={styles.getMoreContainer}>
-                                            <AppText style={{ marginTop: -metrics.hp0_1 }} weight={INTER_MEDIUM} color={WHITE} type={TEN}>
-                                                {item.headLine}
-                                            </AppText>
-                                        </View>
-                                    </ImageBackground>
+                                        <ImageBackground source={userData?.subscription?.plan === "SILVER" ? sliverCardSmall :
+                                            userData?.subscription?.plan === "GOLD" ? goldCardSmall : platniumCardSmall
+                                        } resizeMode="contain" style={{
+                                            height: metrics.hp13,
+                                            width: metrics.hp13,
+                                        }}>
+                                            <View style={styles.getMoreContainer}>
+                                                <AppText style={{ marginTop: -metrics.hp0_1 }} weight={INTER_MEDIUM} color={WHITE} type={TEN}>
+                                                    {item.headLine}
+                                                </AppText>
+                                            </View>
+                                        </ImageBackground>
                                     </TouchableOpacityView>
                                 ) : (
                                     <TouchableOpacityView onPress={() => navigateButton(item)} key={index} style={[styles.subDetails, { marginLeft: item.id == "2" ? metrics.hp0_5 : 0 }]}>
@@ -176,13 +179,42 @@ const ProfileScreen = () => {
                                 {"  "}Premium Plans
                             </AppText>
                         </View>
-                        <FlatList
+                        <View style={{ flex:1 }}>
+                            <Carousel
+                                width={width}
+                                height={metrics.hp80}
+                                autoPlay={false}
+                                autoPlayInterval={4000}
+                                defaultIndex={0}
+                                loop={false}
+                                mode="parallax"
+                                data={PurchaseCards || []}
+                                scrollAnimationDuration={300}
+                                modeConfig={{
+                                    parallaxScrollingScale: 0.9,
+                                    parallaxAdjacentItemScale: 0.8,  // REQUIRED
+                                    parallaxScrollingOffset: Math.round(width / 10) + metrics.hp1,
+                                }}
+                                style={{ height: metrics.hp40, marginTop: -metrics.hp2, }}
+                                renderItem={({ item, index }: any) => (
+                                    <TouchableOpacityView key={index} activeOpacity={1} onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: item })} >
+                                        <ImageBackground
+                                            source={item.icon}
+                                            resizeMode="cover"
+                                            style={styles.purchaesCardContainer}
+                                            imageStyle={{ borderRadius: metrics.hp1_5 }}>
+                                        </ImageBackground>
+                                    </TouchableOpacityView>
+                                )}
+                            />
+                        </View>
+                        {/* <FlatList
                             data={PurchaseCards}
                             renderItem={renderPurchaesCards}
                             keyExtractor={(item) => item.id}
                             showsHorizontalScrollIndicator={false}
                             contentContainerStyle={{ marginLeft: metrics.hp2, marginTop: metrics.hp3 }}
-                            horizontal={true} />
+                            horizontal={true} /> */}
                     </View>
                 }
                 {tabSelect == "Safety" &&
@@ -196,23 +228,23 @@ const ProfileScreen = () => {
                                 We’re committed to keeping you safe — from your first swipe to your first date.
                             </AppText>
                             <View style={styles.flexContainer}>
-                                <View style={styles.learnContainer}>
+                                <TouchableOpacityView onPress={() => Linking.openURL("https://parpple.com/safety")} style={styles.learnContainer}>
                                     <AppText weight={INTER_SEMI_BOLD} color={WHITE}>
                                         Learn Safety Tips
                                     </AppText>
-                                </View>
-                                <View style={styles.reportContainer}>
+                                </TouchableOpacityView>
+                                <TouchableOpacityView onPress={() => Linking.openURL("https://parpple.com/contact-us")} style={styles.reportContainer}>
                                     <AppText weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
                                         Report a Concern
                                     </AppText>
-                                </View>
+                                </TouchableOpacityView>
                             </View>
                         </View>
                         <AppText style={{ marginTop: metrics.hp2 }} type={TWELVE} weight={INTER_SEMI_BOLD} color={BLACK}>
                             Safety Tools
                         </AppText>
                         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: metrics.hp1 }}>
-                            <View style={styles.boxes}>
+                            <TouchableOpacityView onPress={() => Linking.openURL("https://parpple.com/safety")} style={styles.boxes}>
                                 <FastImage source={blockPurppleIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} />
                                 <AppText style={{ marginTop: metrics.hp1 }} color={LIGHT_BLACK} type={TWELVE} weight={INTER_SEMI_BOLD}>
                                     Block user{`\n`}
@@ -225,26 +257,26 @@ const ProfileScreen = () => {
                                 <AppText style={{ marginTop: metrics.hp0_5 }} color={PURPLE} type={TEN} weight={INTER_SEMI_BOLD}>
                                     Learn How
                                 </AppText>
-                            </View>
-                            <View style={styles.boxes}>
+                            </TouchableOpacityView>
+                            <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SETTING_SCREEN)} style={styles.boxes}>
                                 <FastImage source={locationPurppleIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} />
                                 <AppText style={{ marginTop: metrics.hp1 }} color={LIGHT_BLACK} type={TWELVE} weight={INTER_SEMI_BOLD}>
-                                    Location Sharing{`\n`}
-                                    Controls
+                                    Profile{`\n`}
+                                    Discovery
                                 </AppText>
                                 <AppText style={{ marginTop: metrics.hp0_1 }} color={OPECITY_DARK} type={TEN} weight={INTER_MEDIUM}>
-                                    Choose who can see your{`\n`}
-                                    location.
+                                    Choose whether you want to{`\n`}
+                                    show profile to other.
                                 </AppText>
                                 <AppText style={{ marginTop: metrics.hp0_5 }} color={PURPLE} type={TEN} weight={INTER_SEMI_BOLD}>
                                     Change
                                 </AppText>
-                            </View>
+                            </TouchableOpacityView>
                         </View>
                         <AppText style={{ marginTop: metrics.hp3 }} type={TWELVE} weight={INTER_SEMI_BOLD} color={BLACK}>
                             Safety Tips
                         </AppText>
-                        <View style={styles.sefetyContainer}>
+                        <TouchableOpacityView onPress={() => Linking.openURL("https://parpple.com/safety")} style={styles.sefetyContainer}>
                             {SafetyTips?.map((item) => {
                                 return (
                                     <View style={styles.innerLines}>
@@ -261,12 +293,12 @@ const ProfileScreen = () => {
                                 </AppText>
                                 <FastImage source={arrowBackForSafety} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2_5, marginTop: metrics.hp0_5 }} />
                             </View>
-                        </View>
+                        </TouchableOpacityView>
                         <AppText style={{ marginTop: metrics.hp2 }} type={TEN} weight={INTER_SEMI_BOLD} color={BLACK}>
                             Reporting & Support
                         </AppText>
                         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: metrics.hp1 }}>
-                            <View style={[styles.boxes, { height: metrics.hp13 }]}>
+                            <TouchableOpacityView onPress={() => Linking.openURL("https://parpple.com/contact-us")} style={[styles.boxes, { height: metrics.hp13 }]}>
                                 <FastImage source={blockPurppleIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} />
                                 <AppText style={{ marginTop: metrics.hp1 }} color={LIGHT_BLACK} type={TWELVE} weight={INTER_SEMI_BOLD}>
                                     Report a User
@@ -278,8 +310,8 @@ const ProfileScreen = () => {
                                 <AppText style={{ marginTop: metrics.hp0_5 }} color={PURPLE} type={TEN} weight={INTER_SEMI_BOLD}>
                                     Report Now
                                 </AppText>
-                            </View>
-                            <View style={[styles.boxes, { height: metrics.hp13 }]}>
+                            </TouchableOpacityView>
+                            <TouchableOpacityView onPress={() => Linking.openURL("https://parpple.com/contact-us")} style={[styles.boxes, { height: metrics.hp13 }]}>
                                 <FastImage source={locationPurppleIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} />
                                 <AppText style={{ marginTop: metrics.hp1 }} color={LIGHT_BLACK} type={TWELVE} weight={INTER_SEMI_BOLD}>
                                     Contact Support
@@ -291,12 +323,12 @@ const ProfileScreen = () => {
                                 <AppText style={{ marginTop: metrics.hp0_5 }} color={PURPLE} type={TEN} weight={INTER_SEMI_BOLD}>
                                     Write now
                                 </AppText>
-                            </View>
+                            </TouchableOpacityView>
                         </View>
                         <AppText style={{ marginTop: metrics.hp3 }} type={TWELVE} weight={INTER_SEMI_BOLD} color={BLACK}>
                             Trust & Transparency
                         </AppText>
-                        <View style={[styles.sefetyContainer, { height: metrics.hp15 }]}>
+                        <TouchableOpacityView onPress={() => Linking.openURL("https://parpple.com/safety")} style={[styles.sefetyContainer, { height: metrics.hp15 }]}>
                             {TrustTransparency?.map((item) => {
                                 return (
                                     <View style={styles.innerLines}>
@@ -312,7 +344,7 @@ const ProfileScreen = () => {
                                     Read Our Safety Policy
                                 </AppText>
                             </View>
-                        </View>
+                        </TouchableOpacityView>
                         <AppText style={{ marginTop: metrics.hp2 }} type={TEN} weight={INTER_SEMI_BOLD} color={BLACK}>
                             Resources & Partnerships
                         </AppText>
@@ -322,23 +354,23 @@ const ProfileScreen = () => {
                                 {"  "}National Cyber Crime Helpline
                             </AppText>
                         </View>
-                        <View style={styles.visitBox}>
+                        <TouchableOpacityView onPress={() => Linking.openURL("https://cybercrime.gov.in/Webform/Crime_NodalGrivanceList.aspx")} style={styles.visitBox}>
                             <AppText type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
                                 Visit Website
                             </AppText>
-                        </View>
-                        <View style={{ height: metrics.hp0_1, backgroundColor: colors.persentageBorder, marginTop: metrics.hp2, }} />
+                        </TouchableOpacityView>
+                        {/* <View style={{ height: metrics.hp0_1, backgroundColor: colors.persentageBorder, marginTop: metrics.hp2, }} />
                         <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp2 }}>
                             <FastImage source={callIcon} resizeMode="contain" style={{ height: metrics.hp1_5, width: metrics.hp1_5 }} />
                             <AppText>
                                 {"  "}Relationship Safety Support NGO
                             </AppText>
                         </View>
-                        <View style={styles.visitBox}>
+                        <TouchableOpacityView onPress={() => Linking.openURL("https://parpple.com/")} style={styles.visitBox}>
                             <AppText type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
                                 Visit Website
                             </AppText>
-                        </View>
+                        </TouchableOpacityView> */}
                     </ScrollView>
                 }
             </ImageBackground>
@@ -452,8 +484,8 @@ const styles = StyleSheet.create({
         bottom: -metrics.hp1
     },
     purchaesCardContainer: {
-        height: metrics.hp26,
-        width: Screen.Width / 1.12,
+        height: metrics.hp30,
+        width: Screen.Width / 1,
         marginRight: metrics.hp1,
         borderRadius: metrics.hp1_5, // ✅ container radius
         shadowColor: colors.black,

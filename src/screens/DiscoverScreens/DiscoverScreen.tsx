@@ -48,6 +48,13 @@ import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 const { width } = Dimensions.get("window");
 const ITEM_WIDTH = metrics.hp34;
 const SPACING = metrics.hp1;
+const PLACEHOLDER_CARDS = [
+    { id: 'empty-1', isEmpty: true },
+    { id: 'empty-2', isEmpty: true },
+    { id: 'empty-3', isEmpty: true },
+    { id: 'empty-4', isEmpty: true },
+];
+
 const DiscoverScreen = () => {
     const discoverProfileData = useSelector((state: any) => state.auth.discoverProfileData);
     const userData = useSelector((state: any) => state.auth.userData);
@@ -129,7 +136,7 @@ const DiscoverScreen = () => {
             setModalVisible(true)
         }
     };
-    
+
     const discoverRender = ({ item, index }: any) => {
         const inputRange = [
             (index - 1) * (ITEM_WIDTH + SPACING),
@@ -148,8 +155,26 @@ const DiscoverScreen = () => {
             outputRange: [0.9, 1, 0.9],
             extrapolate: "clamp",
         });
-
+        if (item.isEmpty) {
+            return (
+                <Animated.View
+                    style={{
+                        transform: [{ scale }],
+                        opacity,
+                        marginLeft: index === 0 ? metrics.hp2_5 : 0,
+                        marginRight: SPACING,
+                    }}>
+                    <View
+                        style={[
+                            styles.discoverImage,
+                            { backgroundColor: colors.nanoOpecity },
+                        ]}
+                    />
+                </Animated.View>
+            );
+        }
         return (
+
             <TouchableOpacityView key={item?._id} onPress={() => item.see == false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem }) : viewProfile(item, false)} activeOpacity={1}>
                 <Animated.View
                     style={{
@@ -183,7 +208,7 @@ const DiscoverScreen = () => {
                                         <AppText></AppText>
                                     </View> :
                                     <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                        <AppText type={TWENTY}  style={{textTransform:"capitalize"}} color={WHITE} weight={INTER_BOLD}>
+                                        <AppText type={TWENTY} style={{ textTransform: "capitalize" }} color={WHITE} weight={INTER_BOLD}>
                                             {`${item.firstName}, ${item.age}`}{" "}
                                         </AppText>
                                         <FastImage
@@ -261,6 +286,22 @@ const DiscoverScreen = () => {
         );
     };
     const SimilarRender = ({ item, index }: any) => {
+        if (item.isEmpty) {
+            return (
+                <Animated.View
+                    style={{
+                        marginLeft: index === 0 ? metrics.hp2_5 : 0,
+                        marginRight: SPACING,
+                    }}>
+                    <View
+                        style={[
+                            styles.simlierImage,
+                            { backgroundColor: colors.nanoOpecity },
+                        ]}
+                    />
+                </Animated.View>
+            );
+        }
         return (
             <TouchableOpacityView key={item?._id} onPress={() => item.see == false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem }) : viewProfile(item, false)} activeOpacity={1}>
                 <Animated.View
@@ -292,7 +333,7 @@ const DiscoverScreen = () => {
                                         <AppText></AppText>
                                     </View> :
                                     <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                        <AppText type={FORTEEN}  style={{textTransform:"capitalize"}} color={WHITE} weight={INTER_BOLD}>
+                                        <AppText type={FORTEEN} style={{ textTransform: "capitalize" }} color={WHITE} weight={INTER_BOLD}>
                                             {`${item.firstName}, ${item.age}`}{" "}
                                         </AppText>
                                         <FastImage
@@ -343,7 +384,7 @@ const DiscoverScreen = () => {
             }, 200);
             return () => clearTimeout(timer);
         }
-    }, [modalVisible, swipeUp, canSuperLike])
+    }, [modalVisible, swipeUp, canSuperLike]);
 
     return (
         <AppSafeAreaView>
@@ -383,7 +424,7 @@ const DiscoverScreen = () => {
                 </View>
                 <View>
                     <Animated.FlatList
-                        data={dataCorrect()}
+                        data={dataCorrect()?.length > 0 ? dataCorrect() : PLACEHOLDER_CARDS}
                         renderItem={discoverRender}
                         keyExtractor={(item) => item?._id}
                         horizontal
@@ -440,7 +481,7 @@ const DiscoverScreen = () => {
                         </TouchableOpacityView>
                     </View> */}
                     <FlatList
-                        data={dataCorrectTwo()}
+                        data={dataCorrectTwo()?.length ? dataCorrectTwo() : PLACEHOLDER_CARDS}
                         renderItem={SimilarRender}
                         keyExtractor={(item) => String(item?._id)}
                         horizontal

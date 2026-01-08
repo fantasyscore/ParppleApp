@@ -231,7 +231,7 @@ const TakingScreen = () => {
     const socketUrl = useMemo(() => {
         const currentUserId = userData?._id;
         if (!currentUserId) return null;
-        return `http://13.201.74.29/?userId=${currentUserId}`;
+        return `https://api.parpple.com/?userId=${currentUserId}`;
     }, [userData?._id]);
 
     const socket = useMemo(() => {
@@ -716,7 +716,7 @@ const TakingScreen = () => {
     const unBlockButton = () => {
         const data = {
             matchId: matchChatUserDetails?.matchId
-        }
+        };
         dispatch(userBlockAPI(data))
         setModalVisible(false);
         NavigationService.goBack();
@@ -975,7 +975,7 @@ const TakingScreen = () => {
                                 <FastImage source={item.icon} resizeMode='contain' style={styles.rbIcon} />
                                 <View style={styles.textContainerRb}>
                                     <AppText type={FORTEEN} weight={INTER_SEMI_BOLD}>
-                                        {item.headLine}
+                                        {item.headLine}{" "}{matchChatUserDetails?.name}
                                     </AppText>
                                     <AppText type={TEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
                                         {item.disLine}
@@ -1016,7 +1016,7 @@ const TakingScreen = () => {
                         <View style={[styles.confirmContainer, { height: metrics.hp42, }]}>
                             <FastImage source={blockModalImage} resizeMode="stretch" style={[styles.bdyBack, { height: metrics.hp18 }]} />
                             <AppText style={{ textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK}>
-                                Block Diskha?
+                                Block {matchChatUserDetails?.name}?
                             </AppText>
                             <AppText style={{ marginTop: -metrics.hp2, textAlign: "center" }} type={TWELVE} weight={INTER_MEDIUM} color={OPECITY_DARK}>
                                 You won’t be able to undo this. You sure{'\n'} to continue?

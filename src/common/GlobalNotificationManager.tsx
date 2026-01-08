@@ -135,7 +135,7 @@ const GlobalNotificationManager: React.FC = () => {
             }
 
             lastSocketUserId = currentUserId;
-            const url = `http://13.201.74.29/?userId=${currentUserId}`;
+            const url = `https://api.parpple.com/?userId=${currentUserId}`;
             const socket = createSocket(url);
             socketRef.current = socket;
 

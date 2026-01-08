@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Linking, ScrollView, StyleSheet, View } from "react-native";
 import HeaderCommon from "../../common/HeaderCommon";
 import { colors } from "../../theme/colors";
 import metrics from "../../assets/Metrics";
@@ -17,6 +17,9 @@ import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_SUBSCRIPTION_ALL_SCREEN } from "../../navigation/routes";
 import { disconnectAllSockets } from "../../common/Socket";
 import { version as appVersion } from "../../../package.json";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const PROFILE_DISCOVERY_ENABLED_KEY = "PROFILE_DISCOVERY_ENABLED";
 
 const SettingScreen = () => {
     const userData = useSelector((state: any) => state.auth.userData);
@@ -26,6 +29,38 @@ const SettingScreen = () => {
     const [toggleThree, setToggleThree] = useState(false);
     const [selectFtCm, setSelectFtCm] = useState("FT");
     const [selectMIKM, setSelectMIKM] = useState("MI");
+
+    // Persist "Enable Profile Discover" (toggleTwo) via AsyncStorage
+    useEffect(() => {
+        let isMounted = true;
+        (async () => {
+            try {
+                const raw = await AsyncStorage.getItem(PROFILE_DISCOVERY_ENABLED_KEY);
+                if (!isMounted) return;
+                if (raw === null) {
+                    // Default: enabled unless user explicitly disabled it.
+                    setToggleTwo(true);
+                    return;
+                }
+                setToggleTwo(raw === "true");
+            } catch {
+                // Default safe behavior if storage read fails
+                if (isMounted) setToggleTwo(true);
+            }
+        })();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    const setProfileDiscoverEnabled = useCallback(async (enabled: boolean) => {
+        setToggleTwo(enabled);
+        try {
+            await AsyncStorage.setItem(PROFILE_DISCOVERY_ENABLED_KEY, enabled ? "true" : "false");
+        } catch {
+            // no-op: never crash settings due to storage failures
+        }
+    }, []);
 
     const handleLogout = () => {
         // 1) Disconnect ALL sockets
@@ -74,7 +109,7 @@ const SettingScreen = () => {
                         setting={true}
                         title={"Enable Profile Discover"}
                         togleShow={toggleTwo}
-                        setToggleShow={setToggleTwo}
+                        setToggleShow={setProfileDiscoverEnabled}
                         toggle={true}
                     />
                     <AppText style={{ marginTop: metrics.hp1 }} type={TEN} weight={INTER_MEDIUM} color={OPECITY}>
@@ -100,14 +135,14 @@ const SettingScreen = () => {
                         <EditButtonCommon
                             setting={true}
                             title={"Phone number"}
-                            filluptext={userData?.phoneNumber} 
-                            arrow={true}/>}
+                            filluptext={userData?.phoneNumber}
+                            arrow={true} />}
                     {userData?.email &&
                         <EditButtonCommon
                             setting={true}
                             title={"Email Id"}
-                            filluptext={userData?.email} 
-                            arrow={true}/>
+                            filluptext={userData?.email}
+                            arrow={true} />
                     }
                     <AppText style={{ marginTop: metrics.hp1 }} type={TEN} weight={INTER_MEDIUM} color={OPECITY}>
                         Updated phone number & email id keeps your account safe & secure.
@@ -131,7 +166,7 @@ const SettingScreen = () => {
                     <EditButtonCommon
                         setting={true}
                         title={"Block List"} />*/}
-                    <View style={styles.singleLine} /> 
+                    <View style={styles.singleLine} />
                     <HeadLineContiner
                         headLines={"Subscription"} setting={true} />
                     <EditButtonCommon
@@ -167,32 +202,37 @@ const SettingScreen = () => {
                     <HeadLineContiner
                         headLines={"Contact Us"} setting={true} />
                     <EditButtonCommon
+                        onPress={() => Linking.openURL("https://parpple.com/contact-us")}
                         setting={true}
                         title={"Help & Support"} />
-                    <View style={styles.singleLine} /> 
+                    <View style={styles.singleLine} />
 
                     <HeadLineContiner
                         headLines={"Legal"} setting={true} />
                     <EditButtonCommon
                         setting={true}
+                        onPress={() => Linking.openURL("https://parpple.com/terms_conditions")}
                         title={"Terms of Services"} />
                     <EditButtonCommon
                         setting={true}
+                        onPress={() => Linking.openURL("https://parpple.com/privacy_policy")}
                         title={"Privacy Policy"} />
-                    <EditButtonCommon
+                    {/* <EditButtonCommon
                         setting={true}
-                        title={"Privacy Preferences"} />
-                    <EditButtonCommon
+                        title={"Privacy Preferences"} /> */}
+                    {/* <EditButtonCommon
                         setting={true}
-                        title={"Licences"} />
+                        title={"Licences"} /> */}
                     <View style={styles.singleLine} />
                     <HeadLineContiner
                         headLines={"Community"} setting={true} />
+                    {/* <EditButtonCommon
+                        setting={true}
+                        onPress={() => Linking.openURL("https://parpple.com/safety")}
+                        title={"Safe Dating Tips"} /> */}
                     <EditButtonCommon
                         setting={true}
-                        title={"Safe Dating Tips"} />
-                    <EditButtonCommon
-                        setting={true}
+                        onPress={() => Linking.openURL("https://parpple.com/safety")}
                         title={"Safety Center"} />
                     <View style={styles.containerShare}>
                         <FastImage source={rightFair} resizeMode="contain" style={styles.rightFair} />
@@ -284,7 +324,7 @@ const styles = StyleSheet.create({
         borderWidth: metrics.hp0_1,
         borderColor: "#ECE4F8",
         height: metrics.hp9,
-        marginTop:metrics.hp3
+        marginTop: metrics.hp3
     },
     textVersion: {
         textAlign: "center",

@@ -17,7 +17,6 @@ import LinearGradient from "react-native-linear-gradient";
 // All Subscription SKUs
 const ALL_SUBSCRIPTION_SKUS = Platform.select({
     android: [
-        'testing_key',
         'silver_week', 'silver_month', 'silver_6month',
         'gold_week', 'gold_month', 'gold_6month',
         'platinum_week', 'platinum_month', 'platinum_6month'

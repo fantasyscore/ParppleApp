@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, Dimensions, ImageBackground, StyleSheet, View } from "react-native";
+import { Dimensions, ImageBackground, StyleSheet, View } from "react-native";
 import { AppText, BLACK, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, TWELVE, TWENTY, WHITE } from "../../common/AppText";
 import FastImage from "react-native-fast-image";
 import { accountcircleIcon, bioqutes, blueTikeIcon, bussnisIcon, drikingIcon, lifeStyleIcon, locationCIon, moonIcon, oneIconDating, personHeartIcon, petsIcon, pronounIcon, schoolIcon, searchIcon, smookingIcon, straightenIcon, upArrowIcon, workoutIcon } from "../../helper/ImageAssets";
@@ -10,16 +10,33 @@ import LinearGradient from 'react-native-linear-gradient';
 import { datapersonal, editProfileData, editProfilelistData } from "../../common/UiltData";
 import { useSelector } from "react-redux";
 import { datingIntentionsFilter } from "../../helper/utility";
+import Animated, {
+    Easing,
+    Extrapolate,
+    interpolate,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
+} from "react-native-reanimated";
 
 const { height } = Dimensions.get("window");
 const FULL_IMAGE_HEIGHT = height * 0.80; // Adjust this value as needed
-const COLLAPSED_IMAGE_HEIGHT = height * 0.4; // Adjust this value as needed
+const COLLAPSED_IMAGE_HEIGHT = height * 0.6; // Adjust this value as needed
 
 const ChatProfileScreen = ({ always }: any) => {
     const otherUserProfile = useSelector((state: any) => state.auth.otherUserProfile);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [updown, setupdown] = useState(false);
-    const animationValue = useRef(new Animated.Value(0)).current;
+    // UI-thread animation progress (0 = expanded, 1 = collapsed)
+    const progress = useSharedValue(0);
+    const isMountedRef = useRef(true);
+
+    useEffect(() => {
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
 
     // Extract attributes from otherUserProfile
     const attributes = otherUserProfile?.attributes?.filter(
@@ -33,92 +50,77 @@ const ChatProfileScreen = ({ always }: any) => {
     // Get gallery length for progress indicators
     const galleryLength = otherUserProfile?.gallery?.length || 0;
 
-    // We use a single Animated.Value to drive all animations
-    const animatedHeight = animationValue.interpolate({
-        inputRange: [0, 1],
-        outputRange: [FULL_IMAGE_HEIGHT, COLLAPSED_IMAGE_HEIGHT],
-        extrapolate: 'clamp',
+    const mainContainerAnimatedStyle = useAnimatedStyle(() => {
+        return {
+            height: interpolate(
+                progress.value,
+                [0, 1],
+                [FULL_IMAGE_HEIGHT, COLLAPSED_IMAGE_HEIGHT],
+                Extrapolate.CLAMP
+            ),
+        };
     });
-    const bottomDetailsOpacity = animationValue.interpolate({
-        inputRange: [0, 0.5],
-        outputRange: [1, 0],
-        extrapolate: 'clamp',
+    const bottomDetailsAnimatedStyle = useAnimatedStyle(() => {
+        return {
+            opacity: interpolate(progress.value, [0, 0.5], [1, 0], Extrapolate.CLAMP),
+        };
     });
-    const topTextOpacity = animationValue.interpolate({
-        inputRange: [0.5, 1],
-        outputRange: [0, 1],
-        extrapolate: 'clamp',
+    const arrowAnimatedStyle = useAnimatedStyle(() => {
+        const deg = interpolate(progress.value, [0, 1], [0, 180], Extrapolate.CLAMP);
+        return {
+            transform: [{ rotate: `${deg}deg` }],
+        };
     });
-    const topTextOpacityon = animationValue.interpolate({
-        inputRange: [0.5, 1],
-        outputRange: [1, 0],
-        extrapolate: 'clamp',
+    const arrowContainerAnimatedStyle = useAnimatedStyle(() => {
+        return {
+            bottom: interpolate(progress.value, [0, 1], [metrics.hp12, metrics.hp2], Extrapolate.CLAMP),
+        };
     });
-    const arrowRotation = animationValue.interpolate({
-        inputRange: [0, 1],
-        outputRange: ["0deg", "180deg"],
-    });
-    const bottomPosition = animationValue.interpolate({
-        inputRange: [0, 1],
-        outputRange: [metrics.hp12, metrics.hp2],
-        extrapolate: 'clamp',
-    });
-    const scrollContentOpacity = animationValue.interpolate({
-        inputRange: [0.5, 1],
-        outputRange: [0, 1],
-        extrapolate: 'clamp',
+    const scrollContentAnimatedStyle = useAnimatedStyle(() => {
+        return {
+            opacity: interpolate(progress.value, [0.5, 1], [0, 1], Extrapolate.CLAMP),
+        };
     });
 
     const updownAction = () => {
         const toValue = updown ? 0 : 1;
-        Animated.timing(animationValue, {
+        const nextUpdown = !updown;
+        const safeSetUpdown = (v: boolean) => {
+            if (isMountedRef.current) setupdown(v);
+        };
+        progress.value = withTiming(
             toValue,
-            duration: 300,
-            useNativeDriver: false, // height animation needs this set to false
-        }).start(() => {
-            setupdown(!updown);
-        });
+            // Match `UserEditProfile.tsx` timing/easing for the same smooth feel
+            { duration: 260, easing: Easing.out(Easing.cubic) },
+            () => {
+                runOnJS(safeSetUpdown)(nextUpdown);
+            }
+        );
     };
 
-    // Preload images when otherUserProfile changes
-    useEffect(() => {
-        if (otherUserProfile?.gallery && otherUserProfile.gallery.length > 0) {
-            const currentIndex = currentPhotoIndex;
-            const gallery = otherUserProfile.gallery;
-
-            const imagesToPreload = [
-                gallery[currentIndex]?.url,
-                currentIndex > 0 ? gallery[currentIndex - 1]?.url : null,
-                currentIndex < gallery.length - 1 ? gallery[currentIndex + 1]?.url : null,
+    const preloadAroundIndex = (gallery: any[] | undefined, idx: number) => {
+        try {
+            if (!gallery || !Array.isArray(gallery) || gallery.length === 0) return;
+            const urls = [
+                gallery?.[idx]?.url,
+                idx > 0 ? gallery?.[idx - 1]?.url : null,
+                idx < gallery.length - 1 ? gallery?.[idx + 1]?.url : null,
             ].filter(Boolean);
-
-            imagesToPreload.forEach((url: string) => {
-                if (url) {
-                    FastImage.preload([{ uri: url, priority: FastImage.priority.normal }]);
-                }
-            });
+            if (urls.length === 0) return;
+            FastImage.preload(
+                urls.map((uri: any, i: number) => ({
+                    uri: String(uri),
+                    priority: i === 0 ? FastImage.priority.high : FastImage.priority.normal,
+                }))
+            );
+        } catch (e) {
+            // ignore preload errors
         }
-    }, [otherUserProfile]);
+    };
 
-    // Preload images when currentPhotoIndex changes
+    // Preload current image + neighbors whenever index/gallery changes
     useEffect(() => {
-        if (otherUserProfile?.gallery && otherUserProfile.gallery.length > 0) {
-            const currentIndex = currentPhotoIndex;
-            const gallery = otherUserProfile.gallery;
-
-            // Preload current image with high priority
-            if (gallery[currentIndex]?.url) {
-                FastImage.preload([{ uri: gallery[currentIndex].url, priority: FastImage.priority.high }]);
-            }
-
-            // Preload adjacent images with normal priority
-            if (currentIndex > 0 && gallery[currentIndex - 1]?.url) {
-                FastImage.preload([{ uri: gallery[currentIndex - 1].url, priority: FastImage.priority.normal }]);
-            }
-            if (currentIndex < gallery.length - 1 && gallery[currentIndex + 1]?.url) {
-                FastImage.preload([{ uri: gallery[currentIndex + 1].url, priority: FastImage.priority.normal }]);
-            }
-        }
+        preloadAroundIndex(otherUserProfile?.gallery, currentPhotoIndex);
     }, [currentPhotoIndex, otherUserProfile?.gallery]);
 
     const nextPhoto = () => {
@@ -211,7 +213,7 @@ const ChatProfileScreen = ({ always }: any) => {
     };
     return (
         <View style={{ flex: 1 }}>
-            {/* {!updown && <Animated.View style={{ opacity: topTextOpacityon }}>{renderProgressLine(false)}</Animated.View>} */}
+            {/* {!updown && <Animated.View style={{ opacity: 0 }}>{renderProgressLine(false)}</Animated.View>} */}
             <Animated.ScrollView
                 style={[
                     styles.scrollContainer,
@@ -223,19 +225,19 @@ const ChatProfileScreen = ({ always }: any) => {
                 contentContainerStyle={{ paddingBottom: metrics.hp10 }}
                 showsVerticalScrollIndicator={false}
                 scrollEnabled={updown}>
-                <Animated.View style={[styles.mainContainer, { height: animatedHeight }]}>
+                <Animated.View style={[styles.mainContainer, mainContainerAnimatedStyle]}>
                     <ImageBackground
                         source={{ uri: otherUserProfile?.gallery?.[currentPhotoIndex]?.url || otherUserProfile?.gallery?.[0]?.url }}
                         style={styles.imageBackground}
                         imageStyle={{ borderRadius: 20 }}>
                         <View >{renderProgressLine(true)}</View>
                         <View style={{ flex: 1 }} />
-                        <Animated.View style={{ opacity: bottomDetailsOpacity }}>
+                        <Animated.View style={bottomDetailsAnimatedStyle}>
                             <LinearGradient start={{ x: 1, y: 1 }}
                                 end={{ x: 1, y: 0 }} colors={["#000000", "#00000099", "#00000000"]} style={styles.bottomDetails}>
                                 <View style={{ marginTop: metrics.hp8 }}>
                                     <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                        <AppText  style={{textTransform:"capitalize"}} type={TWENTY} color={WHITE} weight={INTER_BOLD}>
+                                        <AppText style={{ textTransform: "capitalize" }} type={TWENTY} color={WHITE} weight={INTER_BOLD}>
                                             {otherUserProfile?.firstName || ''}, {otherUserProfile?.age || ''}{" "}
                                         </AppText>
                                         {otherUserProfile?.isVerified && (
@@ -315,11 +317,12 @@ const ChatProfileScreen = ({ always }: any) => {
                             onPress={nextPhoto}
                             style={styles.touchableAreaRight}
                         />
+
                         <Animated.View
-                            style={[styles.upArrowContainer, { bottom: bottomPosition }]}>
-                            <TouchableOpacityView onPress={updownAction}>
+                            style={[styles.upArrowContainer, arrowContainerAnimatedStyle]}>
+                            <TouchableOpacityView style={styles.upArrowContainerTwo} onPress={updownAction}>
                                 <Animated.View
-                                    style={{ transform: [{ rotate: arrowRotation }] }}>
+                                    style={arrowAnimatedStyle}>
                                     <FastImage
                                         source={upArrowIcon}
                                         resizeMode="contain"
@@ -328,9 +331,10 @@ const ChatProfileScreen = ({ always }: any) => {
                                 </Animated.View>
                             </TouchableOpacityView>
                         </Animated.View>
+
                     </ImageBackground>
                 </Animated.View>
-                <Animated.View style={{ opacity: scrollContentOpacity }}>
+                <Animated.View style={scrollContentAnimatedStyle}>
                     {otherUserProfile?.relationshipPreference && (
                         <View style={styles.longContainer}>
                             <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -607,6 +611,12 @@ const styles = StyleSheet.create({
         marginRight: metrics.hp2,
         position: "absolute",
         right: 0,
+    },
+    upArrowContainerTwo: {
+        height: metrics.hp5,
+        width: metrics.hp5,
+        alignItems: "center",
+        justifyContent: "center",
     },
     uparrowIcon: {
         height: metrics.hp2_3,
