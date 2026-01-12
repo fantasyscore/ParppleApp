@@ -37,12 +37,16 @@ export default (appOperation: AppOperation) => ({
     appOperation.post(`app/Useraction/unmatch`, data, CUSTOMER_TYPE),
   userBlockAPI: (data: any) =>
     appOperation.post(`app/Useraction/block`, data, CUSTOMER_TYPE),
-  chatHistortAPI: (data: any,params:any) =>
+  chatHistortAPI: (data: any, params: any) =>
     appOperation.post(`chat/conversation?page=${params?.page}&limit=${params?.limit}`, data, CUSTOMER_TYPE),
-  loadChatMessagesAPI: (params: any,data:any) =>
+  loadChatMessagesAPI: (params: any, data: any) =>
     appOperation.post(`chat/conversation?page=${params?.page}&limit=${params?.limit}`, data, CUSTOMER_TYPE),
   subscriptionverifyAPI: (data: any) =>
     appOperation.post(`subscription/verify`, data, CUSTOMER_TYPE),
+  verifyconsumableAPI: (data: any) =>
+    appOperation.post(`/api/purchases/google/verify-consumable`, data, CUSTOMER_TYPE),
+  recoverPurchaseAPI: (data: any) =>
+    appOperation.post(`/api/purchases/google/recover`, data, CUSTOMER_TYPE),
   crushnotesSenderAPI: (data: any) =>
     appOperation.post(`api/v1/crush-note/send`, data, CUSTOMER_TYPE),
   boostActivateAPI: () =>
@@ -51,10 +55,16 @@ export default (appOperation: AppOperation) => ({
     appOperation.post(`dattingApp/users/advance-filters`, data, CUSTOMER_TYPE),
   sendObject: (data: any) =>
     appOperation.post(`dattingApp/users/getObject`, data, CUSTOMER_TYPE),
-  receivedCrushNotesAPI : () =>
-    appOperation.get(`api/v1/crush-note/received`, undefined,undefined, CUSTOMER_TYPE),
-  sentCrushNotesAPI : () =>
-    appOperation.get(`api/v1/crush-note/sent`, undefined,undefined, CUSTOMER_TYPE),
+  receivedCrushNotesAPI: () =>
+    appOperation.get(`api/v1/crush-note/received`, undefined, undefined, CUSTOMER_TYPE),
+  sentCrushNotesAPI: () =>
+    appOperation.get(`api/v1/crush-note/sent`, undefined, undefined, CUSTOMER_TYPE),
+  crushNoteAccecpt: (data: any) =>
+    appOperation.post(`api/crush-notes/action`, data, CUSTOMER_TYPE),
+  deleteAccount: () =>
+    appOperation.post(`dattingApp/users/delete-account`, {}, CUSTOMER_TYPE),
+  reportUserAPI: (data: any) =>
+    appOperation.post(`api/reports/reporteUser`, data, CUSTOMER_TYPE),
   // Alternative: If API requires POST instead of GET
   // loadChatMessagesAPI: (data: any) =>
   //   appOperation.post(`chat/conversation`, data, CUSTOMER_TYPE),

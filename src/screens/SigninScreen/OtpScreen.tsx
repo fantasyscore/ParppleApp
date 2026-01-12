@@ -3,7 +3,7 @@ import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { StyleSheet, View } from "react-native";
 import HeaderCommon from "../../common/HeaderCommon";
 import metrics from "../../assets/Metrics";
-import { AppText, fontSize, INTER_MEDIUM, OPECITY, PURPLE, TWELVE } from "../../common/AppText";
+import { AppText, fontSize, INTER_MEDIUM, OPECITY, PURPLE, RED, TWELVE } from "../../common/AppText";
 import { OtpInput } from "react-native-otp-entry";
 import { colors } from "../../theme/colors";
 import { interBold } from "../../theme/typography";
@@ -16,12 +16,15 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { toastAlert } from "../../actions/UploadImageActions";
 import { getHash, startOtpListener, removeListener } from "react-native-otp-verify";
 import { useDispatch } from "react-redux";
-import { otpVerifyAPIOne } from "../../actions/authActions";
+import { otpVerifyAPIOne, sendOtpApi } from "../../actions/authActions";
+import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 
 const OtpScreen = ({ route }: any) => {
     const dispatch = useDispatch();
     const [otpNumber, setOtpNumber] = useState("");
     const [hashKey, setHashKey] = useState("");
+    const [resendTimer, setResendTimer] = useState(30);
+    const [canResend, setCanResend] = useState(false);
 
     useEffect(() => {
         // Get hash key for backend team
@@ -50,6 +53,25 @@ const OtpScreen = ({ route }: any) => {
         };
     }, []);
 
+    // Countdown timer for OTP resend
+    useEffect(() => {
+        if (resendTimer > 0) {
+            const timer = setInterval(() => {
+                setResendTimer((prev) => {
+                    if (prev <= 1) {
+                        setCanResend(true);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+
+            return () => clearInterval(timer);
+        } else {
+            setCanResend(true);
+        }
+    }, [resendTimer]);
+
     const onSubmit = () => {
         if (otpNumber?.length !== 6) return toastAlert.showToastError("please add currect otp")
         const data = {
@@ -57,6 +79,21 @@ const OtpScreen = ({ route }: any) => {
             otp: otpNumber
         };
         dispatch(otpVerifyAPIOne(data))
+    }
+
+    const handleResendOtp = () => {
+        if (!canResend) return;
+        
+        const data = {
+            phoneNumber: route?.params?.PhoneNumber,
+        };
+        
+        dispatch(sendOtpApi(data));
+        
+        // Reset timer to 30 seconds
+        setResendTimer(30);
+        setCanResend(false);
+        toastAlert.showToastError("OTP sent successfully");
     }
     return (
         <AppSafeAreaView>
@@ -111,11 +148,19 @@ const OtpScreen = ({ route }: any) => {
                     />
                     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: metrics.hp1 }}>
                         <AppText color={OPECITY} weight={INTER_MEDIUM} type={TWELVE}>
-                            Didn’t received code?
+                            Didn't received code?
                         </AppText>
-                        <AppText style={{ textDecorationLine: "underline", }} color={PURPLE} weight={INTER_MEDIUM} type={TWELVE}>
-                            Resend
-                        </AppText>
+                        {canResend ? (
+                            <TouchableOpacityView onPress={handleResendOtp}>
+                                <AppText style={{ textDecorationLine: "underline", }} color={PURPLE} weight={INTER_MEDIUM} type={TWELVE}>
+                                    Resend
+                                </AppText>
+                            </TouchableOpacityView>
+                        ) : (
+                            <AppText color={RED} weight={INTER_MEDIUM} type={TWELVE}>
+                                Resend in {resendTimer}s
+                            </AppText>
+                        )}
                     </View>
                 </View>
                 <LinearGradient start={{ x: 0, y: 0 }}

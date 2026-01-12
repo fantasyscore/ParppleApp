@@ -12,7 +12,7 @@ import * as RNIap from 'react-native-iap';
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 import { useDispatch } from "react-redux";
-import { subscriptionVerifyAPI } from "../../actions/authActions";
+import { subscriptionVerifyAPI, verifyconsumableitemsAPI } from "../../actions/authActions";
 
 // One-time Product SKUs
 const PRODUCT_SKUS = Platform.select({
@@ -158,12 +158,8 @@ const ProfileBoostPurchase = () => {
                     platform: Platform.OS === 'ios' ? 'ios' : 'android',
                 };
 
-                const response: any = await dispatch(subscriptionVerifyAPI(data));
-                const isOk =
-                    response?.statusCode === 200 &&
-                    response?.success === true &&
-                    response?.data?.success === true;
-
+                const response: any = await dispatch(verifyconsumableitemsAPI(data));
+                const isOk = response?.statusCode === 200
                 if (!isOk) {
                     throw new Error(response?.message || response?.data?.message || 'Boost verification failed');
                 }

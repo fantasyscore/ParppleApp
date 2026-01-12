@@ -4,7 +4,8 @@ import { USER_TOKEN_KEY } from "../helper/Constants";
 import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_ALL_SET_SCREEN, NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_CHATS_SCREEN, NAVIGATION_OTP_SCREEN, NAVIGATION_PROCCED_SCREEN, NAVIGATION_TAKING_SCREEN, NAVIGATION_USER_EDIT_PROFILE_SCREEN, NAVIGATION_WELCOME_SCREEN } from "../navigation/routes";
 import { toastAlert } from "./UploadImageActions";
-import { chatHistoryDetails, setAttributes, setDiscoverData, setGetProfile, setLikeByOther, setLikeYou, setListProfiles, setNewMatches, setOtherUserProfile, setRecentMatches, setViewByOhter, setViewYou } from "../slices/loginServices/authSlice";
+import Toast from "react-native-toast-message";
+import { chatHistoryDetails, matchChatDetails, setAttributes, setDiscoverData, setGetProfile, setLikeByOther, setLikeYou, setListProfiles, setNewMatches, setOtherUserProfile, setRecentMatches, setViewByOhter, setViewYou } from "../slices/loginServices/authSlice";
 
 export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) => {
     try {
@@ -66,14 +67,24 @@ export const otpVerifyAPIOne: any = (data: any, gmail: any) => async (dispatch: 
 export const addProfile: any = (data: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.addProfileAPI(data);
+        console.log(response,"responseresponseresponse");
+        
         if (response?.statusCode == 200) {
             NavigationService.reset(NAVIGATION_ALL_SET_SCREEN)
             dispatch(listProfiles(true));
         } else {
-            // toastAlert.showToastError(response.message);
+            Toast.show({
+                type: "error",
+                text2: response?.message || "Unable to save your profile. Please try again.",
+            });
         }
+        return response;
     } catch (error: any) {
-        // toastAlert.showToastError(error);
+        Toast.show({
+            type: "error",
+            text2: "Unable to save your profile. Please try again.",
+        });
+        return { statusCode: 500, message: String(error ?? "") };
     }
 };
 export const listProfiles: any = (navigate: any) => async (dispatch: any) => {
@@ -130,25 +141,25 @@ export const likeYou: any = () => async (dispatch: any) => {
 };
 export const viewProfileByOther: any = () => async (dispatch: any) => {
     try {
-      const response: any = await appOperation.customer.viewProfileByOtherAPI();
-      if (response?.statusCode === 200) {
-        dispatch(setViewByOhter(response?.data));
-      }
+        const response: any = await appOperation.customer.viewProfileByOtherAPI();
+        if (response?.statusCode === 200) {
+            dispatch(setViewByOhter(response?.data));
+        }
     } catch (error: any) {
-      toastAlert.showToastError(error);
+        toastAlert.showToastError(error);
     }
-  };
-  export const youView: any = () => async (dispatch: any) => {
+};
+export const youView: any = () => async (dispatch: any) => {
     try {
-      const response: any = await appOperation.customer.youViewAPI();
-      if (response?.statusCode === 200) {
-        dispatch(setViewYou(response?.data));
-      }
+        const response: any = await appOperation.customer.youViewAPI();
+        if (response?.statusCode === 200) {
+            dispatch(setViewYou(response?.data));
+        }
     } catch (error: any) {
-      toastAlert.showToastError(error);
+        toastAlert.showToastError(error);
     }
-  };
-export const getOtherProfile: any = (data: any, isNavigate: any, setProfileData: any, profile: any) => async (dispatch: any) => {
+};
+export const getOtherProfile: any = (data: any, isNavigate: any, setProfileData: any, profile: any, from: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.otherDataProfileAPI(data);
         if (response?.statusCode == 200) {
@@ -161,13 +172,13 @@ export const getOtherProfile: any = (data: any, isNavigate: any, setProfileData:
                 setProfileData(dataWithIndex)
             }
 
-            !isNavigate && NavigationService.navigate(NAVIGATION_USER_EDIT_PROFILE_SCREEN, { other: true })
+            !isNavigate && NavigationService.navigate(NAVIGATION_USER_EDIT_PROFILE_SCREEN, { other: true, from })
         }
     } catch (error: any) {
         console.log(error, "error");
     }
 };
-export const getProfile: any = (navigate: any, profile:any) => async (dispatch: any) => {
+export const getProfile: any = (navigate: any, profile: any) => async (dispatch: any) => {
     if ((getProfile as any)._inFlight) return;
     (getProfile as any)._inFlight = true;
     try {
@@ -175,7 +186,7 @@ export const getProfile: any = (navigate: any, profile:any) => async (dispatch: 
         if (response?.statusCode == 200) {
             dispatch(setGetProfile(response?.data));
             dispatch(setOtherUserProfile(response?.data));
-            !navigate && NavigationService.navigate(NAVIGATION_USER_EDIT_PROFILE_SCREEN, { other: false,profile:profile })
+            !navigate && NavigationService.navigate(NAVIGATION_USER_EDIT_PROFILE_SCREEN, { other: false, profile: profile })
         }
     } catch (error: any) {
         // toastAlert.showToastError(error);
@@ -275,11 +286,15 @@ export const userBlockAPI: any = (data: any) => async (dispatch: any) => {
             return NavigationService.navigate(NAVIGATION_CHATS_SCREEN)
         }
     } catch (error: any) {
+        console.log(error,"errorerrorerror");
+        
     }
 };
 export const chatHistoryAPI: any = (data: any, params: any, shouldNavigate: boolean = true) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.chatHistortAPI(data, params);
+        console.log(response,"responseresponseresponse");
+        
         if (response?.statusCode == 200) {
             dispatch(chatHistoryDetails(response.data))
             if (shouldNavigate) {
@@ -292,6 +307,17 @@ export const chatHistoryAPI: any = (data: any, params: any, shouldNavigate: bool
 export const subscriptionVerifyAPI: any = (data: any, params: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.subscriptionverifyAPI(data);
+        if (response?.statusCode == 200) {
+            toastAlert.showToastError(response?.message || "Subscription verified and activated");
+        }
+        return response;
+    } catch (error: any) {
+        throw error;
+    }
+};
+export const verifyconsumableitemsAPI: any = (data: any, params: any) => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.verifyconsumableAPI(data);
         if (response?.statusCode == 200) {
             toastAlert.showToastError(response?.message || "Subscription verified and activated");
         }
@@ -343,6 +369,64 @@ export const objectSendAPI: any = (data: any, params: any) => async (dispatch: a
         throw error;
     }
 };
+export const crushNoteAccecptAPI: any = (data: any, matchChatUserDetails: any, notNavigate: any) => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.crushNoteAccecpt(data);
+        console.log(response,"response");
+        
+        if (response?.statusCode == 200) {
+            if (notNavigate) {
+                NavigationService.goBack()
+            } else {
+                const data = {
+                    otherUserId: matchChatUserDetails.userId,
+                    matchId: response.data,
+                };
+                const params = {
+                    page: 1,
+                    limit: 50,
+                };
+                dispatch(chatHistoryDetails([]));
+                dispatch(matchChatDetails(matchChatUserDetails));
+                NavigationService.replace(NAVIGATION_TAKING_SCREEN);
+                dispatch(chatHistoryAPI(data, params, false));
+            }
+        }
+    } catch (error: any) {
+        throw error;
+    }
+};
+export const deleteAccountAPI: any = () => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.deleteAccount();
+        if (response?.statusCode == 200) {
+            console.log(response,"responseresponseresponse");
+            
+        }
+        return response;
+    } catch (error: any) {
+        throw error;
+    }
+};
+
+export const reportUserAPI: any =
+    (payload: { reportedUserId: string; subject: string; body: string }) => async () => {
+        try {
+            const response: any = await appOperation.customer.reportUserAPI(payload);
+            if (response?.statusCode == 200) return response;
+            Toast.show({
+                type: "error",
+                text2: response?.message || "Unable to submit report. Please try again.",
+            });
+            return response;
+        } catch (error: any) {
+            Toast.show({
+                type: "error",
+                text2: "Unable to submit report. Please try again.",
+            });
+            return { statusCode: 500, message: String(error ?? "") };
+        }
+    };
 
 export const userLogout: any = () => async () => {
     appOperation.setCustomerToken('');

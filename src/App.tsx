@@ -8,7 +8,19 @@ import { StatusBar, Text, View } from "react-native";
 import SplashScreen from "react-native-splash-screen";
 import ToastMessage from "./common/ToastMessage";
 import codePush from "@revopush/react-native-code-push";
-import { getInitialNotification, requestPushPermission, setupPushListeners } from "./notifications/pushNotifications";
+// import { getInitialNotification, requestPushPermission, setupPushListeners } from "./notifications/pushNotifications";
+import { recoverPurchasesOnStartup } from "./services/purchaseRecoveryService";
+import notifee, { AndroidImportance } from "@notifee/react-native"
+async function setupChannels() {
+  await notifee.createChannel({
+    id: 'parpple-popup-v2',
+    name: 'Parpple',
+    importance: AndroidImportance.HIGH,
+    sound: "default",
+    vibration: true
+  })
+}
+
 const App = () => {
   useEffect(() => {
     onAppStart(store);
@@ -24,21 +36,33 @@ const App = () => {
     }, 3000);
   }, []);
 
-  useEffect(() => {
-    // Push notification setup (foreground + permissions)
-    requestPushPermission().catch(() => {});
-    // Killed-state tap: app opened from a notification.
-    // (No navigation is performed here; hook in if/when you want deep links.)
-    getInitialNotification().catch(() => {});
+  // useEffect(() => {
+  //   // Push notification setup (foreground + permissions)
+  //   requestPushPermission().catch(() => { });
+  //   // Killed-state tap: app opened from a notification.
+  //   // Pass store so notification handler can dispatch Redux actions and navigate
+  //   getInitialNotification(store).catch(() => { });
 
-    const cleanup = setupPushListeners();
-    return () => cleanup();
+  //   const cleanup = setupPushListeners({ store });
+  //   return () => cleanup();
+  // }, []);
+
+  useEffect(() => {
+    // Purchase recovery on app startup
+    // This silently recovers completed, pending, and canceled purchases
+    // and sends them to the backend recovery API
+    recoverPurchasesOnStartup().catch(() => {
+      // Silently handle errors - recovery should not block app startup
+    });
   }, []);
 
+  useEffect(() => {
+    setupChannels()
+  }, [])
   return (
     <SafeAreaProvider>
       <Provider store={store}>
-        <StatusBar hidden={false} backgroundColor={'red'}/>
+        <StatusBar hidden={false} backgroundColor={'red'} />
         <Navigator />
       </Provider>
     </SafeAreaProvider>

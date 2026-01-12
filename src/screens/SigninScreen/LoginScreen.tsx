@@ -84,6 +84,8 @@ const LoginScreen = () => {
                 fcmtoken:fcmtoken
                 // googleToken: signInResult?.data?.idToken
             };
+            console.log(data,"datadatadatadata");
+            
             dispatch(userLogin(data, true))
             // const data = {
             //     phoneNumber:phoneNumber,

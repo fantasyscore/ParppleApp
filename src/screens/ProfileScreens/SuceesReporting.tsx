@@ -7,7 +7,7 @@ import metrics from "../../assets/Metrics";
 import { AppText, EIGHTEEN, FORTEEN, INTER_BOLD, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, TWELVE, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_CHATS_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_CHATS_SCREEN } from "../../navigation/routes";
 import { colors } from "../../theme/colors";
 
 const SuceesReporting = () => {
@@ -23,7 +23,15 @@ const SuceesReporting = () => {
                 </AppText>
             </View>
             <View style={styles.buttonContainer}>
-                <TouchableOpacityView onPress={() => NavigationService.reset(NAVIGATION_BOTTOMTAB_SCREEN)} style={[styles.button, { backgroundColor: colors.purple }]}>
+                <TouchableOpacityView
+                    onPress={() => {
+                        // If we arrived via resetStack([Chat, Success]) this will go back to Chat.
+                        // Otherwise, fall back to resetting to Chat.
+                        NavigationService.goBack();
+                        NavigationService.reset(NAVIGATION_CHATS_SCREEN);
+                    }}
+                    style={[styles.button, { backgroundColor: colors.purple }]}
+                >
                     <AppText type={FORTEEN} weight={INTER_SEMI_BOLD} color={WHITE}>
                         Done
                     </AppText>

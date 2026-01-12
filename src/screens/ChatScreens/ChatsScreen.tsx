@@ -5,7 +5,7 @@ import PeopleHeader from "../../common/PeopleHeader";
 import metrics from "../../assets/Metrics";
 import { colors } from "../../theme/colors";
 import FastImage from "react-native-fast-image";
-import { blackHeart, blueTikeIcon, chatNoMatchEmpty, goldCard, matchRoundCircle, messageIcon, upgradPlan } from "../../helper/ImageAssets";
+import { blackHeart, blueTikeIcon, chatNoMatchEmpty, goldCard, matchRoundCircle, messageIcon, Platinum, shareRedIcon, textforBlurImage, upgradPlan } from "../../helper/ImageAssets";
 import { AppText, BLACK, DARK_GREEN, DARKGREEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, LIGHT_GREEN, OPECITY_DARK, PURPLE, SCHEHERAZADE_BOLD, SIXTEEN, TEN, THIRTEEN, TWELVE, TWENTY_FOUR, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { chatData, newMatchData } from "../../common/UiltData";
@@ -14,10 +14,12 @@ import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_ALL_MATCHES_SCREEN, NAVIGATION_BOT_CHAT_SCREEN, NAVIGATION_PEOPLE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN, NAVIGATION_TAKING_SCREEN } from "../../navigation/routes";
 import { Screen } from "../../theme/dimens";
 import { useDispatch, useSelector } from "react-redux";
-import { chatHistoryAPI, getNewMatches, getRecentMatches } from "../../actions/authActions";
+import { chatHistoryAPI, getNewMatches, getOtherProfile, getRecentMatches } from "../../actions/authActions";
 import { chatHistoryDetails, matchChatDetails, setNewMatches } from "../../slices/loginServices/authSlice";
 import { useIsFocused } from "@react-navigation/native";
 import { AppIcon } from "../../helper/ImageAssets";
+import { Modal } from "react-native";
+import UserEditProfile from "../ProfileScreens/UserEditProfile";
 export const formatChatTime = (utcDate: any) => {
     const date = new Date(utcDate);
     const now = new Date();
@@ -63,7 +65,7 @@ const ChatsScreen = () => {
     const recentMatches = useSelector((state: any) => state.auth.recentMatches);
     const userData = useSelector((state: any) => state.auth.userData);
     const dispatch = useDispatch();
-
+    const [profileData, setProfileData] = useState();
     useEffect(() => {
         dispatch(getNewMatches())
         dispatch(getRecentMatches())
@@ -139,15 +141,33 @@ const ChatsScreen = () => {
             page: 1,
             limit: 50,
         };
-        // Prevent previous chat messages from flashing in the next chat
         dispatch(chatHistoryDetails([]));
         dispatch(matchChatDetails(item));
-        // Open chat instantly; load messages in background (WhatsApp-like)
         NavigationService.navigate(NAVIGATION_TAKING_SCREEN);
         dispatch(chatHistoryAPI(data, params, false));
     };
     let itemss = { id: "2", icon: goldCard, title: "Gold" }
+    const navigateITems = { id: "3", icon: Platinum, title: "Platinum" };
 
+
+    const onChatSubmit = (item: any) => {
+        console.log(item, "itemitemitemitem")
+        const isBot = item?.__type === "BOT";
+        if (item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM") {
+            NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: navigateITems }); return;
+        } else if (item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan === "PLATINUM") {
+            let data = {
+                "userId": item?.userId
+            };
+            let from = "Chat"
+            dispatch(getOtherProfile(data, false, setProfileData, true, from));
+            dispatch(matchChatDetails(item))
+        } else if (isBot) {
+            NavigationService.navigate(NAVIGATION_BOT_CHAT_SCREEN);
+        } else {
+            onSubmit(item);
+        }
+    }
     const renderItemChats = ({ item, index }: any) => {
         const isBot = item?.__type === "BOT";
 
@@ -164,50 +184,86 @@ const ChatsScreen = () => {
             lastMessageText = item.lastMessage.text || item.lastMessage.content || '';
         };
 
-
         return (
             <TouchableOpacityView
                 key={item?.userId}
-                onPress={() => {
-                    if (isBot) {
-                        NavigationService.navigate(NAVIGATION_BOT_CHAT_SCREEN);
-                        return;
-                    }
-                    onSubmit(item);
-                }}
+                onPress={() => onChatSubmit(item)/* () => {
+                    let data = {
+                        "userId": item?.userId
+                    };
+                    let from = "Chat"
+                    dispatch(getOtherProfile(data, false, setProfileData, true, from));
+                    dispatch(matchChatDetails(item)); */
+                    // if (item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM") { NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: navigateITems }); return; }
+
+                    // if (isBot) {
+                    //     NavigationService.navigate(NAVIGATION_BOT_CHAT_SCREEN);
+                    //     return;
+                    // }
+                    // onSubmit(item);
+                    // }
+                }
                 style={styles.chatListContainer}
             >
                 <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-                    <FastImage
+                    <ImageBackground
+                        blurRadius={item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM" ? metrics.hp7 : 0}
                         source={isBot ? AppIcon : { uri: item?.profilePicture?.url }}
                         resizeMode="cover"
                         style={styles.newMatchProfile}
                     />
-
-                    <View style={styles.messageContainer}>
-                        <View style={{ flexDirection: "row" }}>
-                            {item.online && !isBot && userData?.subscription?.plan !== "FREE" &&
-                                <View style={styles.activeBackground} />
-                            }
-                            <AppText style={{textTransform:"capitalize"}} type={SIXTEEN} weight={INTER_BOLD} color={LIGHT_BLACK}>
-                                {item.name}{"  "}
-                            </AppText>
-
-                            <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />
+                    {item.online && !isBot && userData?.subscription?.plan !== "FREE" &&
+                        <View style={styles.activeBackground} />
+                    }
+                    {item?.lastMessage?.type == "crushNote" ?
+                        <View style={{ height: metrics.hp4, width: metrics.hp4, alignItems: "center", justifyContent: "center", position: "absolute", bottom: 0, left: metrics.hp5, backgroundColor: colors.white, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: colors.blackopcity }}>
+                            <FastImage source={shareRedIcon} resizeMode="contain" style={{ height: metrics.hp2_5, width: metrics.hp2_5, }} />
                         </View>
-                        <AppText type={FORTEEN} numberOfLines={1} weight={item.unreadCount > 0 ? INTER_SEMI_BOLD : INTER_REGULAR} color={item.unreadCount > 0 ? BLACK : LIGHT_BLACK}>
-                            {item?.lastMessage?.text ? truncateText(item?.lastMessage?.text) : "Send your first message"}
-                        </AppText>
+                        : <></>}
+                    <View style={styles.messageContainer}>
+                        {item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM" ?
+                            <ImageBackground source={textforBlurImage} resizeMode="cover" blurRadius={metrics.hp5} imageStyle={{ borderRadius: metrics.hp1 }} style={{ height: metrics.hp1_5, width: metrics.hp12 }} />
+                            :
+                            <View style={{ flexDirection: "row" }}>
+
+                                <AppText style={{ textTransform: "capitalize" }} type={SIXTEEN} weight={INTER_BOLD} color={LIGHT_BLACK}>
+                                    {item.name}{"  "}
+                                </AppText>
+                                <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />
+                            </View>
+                        }
+                        {item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM" ?
+                            <AppText style={{ marginTop: metrics.hp0_5 }} type={FORTEEN} numberOfLines={1} weight={item.unreadCount > 0 ? INTER_SEMI_BOLD : INTER_REGULAR} color={item.unreadCount > 0 ? BLACK : LIGHT_BLACK}>
+                                Sent you a message
+                            </AppText>
+                            :
+                            <AppText type={FORTEEN} numberOfLines={1} weight={item.unreadCount > 0 ? INTER_SEMI_BOLD : INTER_REGULAR} color={item.unreadCount > 0 ? BLACK : LIGHT_BLACK}>
+                                {item?.lastMessage?.text ? truncateText(item?.lastMessage?.text) : "Send your first message"}
+                            </AppText>
+                        }
                     </View>
                 </View>
                 <View style={{ alignItems: "flex-end", marginTop: metrics.hp2_3 }}>
                     <AppText type={TEN} weight={item.unreadCount > 0 ? INTER_SEMI_BOLD : INTER_MEDIUM} color={item.unreadCount > 0 ? BLACK : OPECITY_DARK}>
                         {isBot ? (formatChatTime(item?.lastMessage?.createdAt)) : (formatChatTime(item?.lastMessage?.createdAt) == "Invalid Date" ? "" : formatChatTime(item?.lastMessage?.createdAt))}
                     </AppText>
-                    {isBot && item.unreadCount > 0 &&
+                    {item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM" ?
+                        <View style={[styles.numberCount, { marginTop: metrics.hp1 }]}>
+                            <AppText type={TEN} weight={INTER_MEDIUM}>
+                                {1}
+                            </AppText>
+                        </View> : <></>}
+                    {!isBot && item.unreadCount > 0 &&
                         <View style={[styles.numberCount, { marginTop: metrics.hp0_5 }]}>
                             <AppText type={TEN} weight={INTER_MEDIUM}>
                                 {item.unreadCount}
+                            </AppText>
+                        </View>
+                    }
+                    {isBot &&
+                        <View style={[styles.numberCount, { marginTop: metrics.hp0_5 }]}>
+                            <AppText type={TEN} weight={INTER_MEDIUM}>
+                                {1}
                             </AppText>
                         </View>
                     }
@@ -358,7 +414,7 @@ const ChatsScreen = () => {
                     <FlatList
                         data={query ? (normalize(botChatItem.name).includes(query) ? [botChatItem] : []) : [botChatItem]}
                         renderItem={renderItemChats}
-                        keyExtractor={(item: any) => item.userId}
+                        keyExtractor={(item: any) => item.matchId}
                         ListEmptyComponent={query ? noSearchFound : null}
                         contentContainerStyle={{ marginTop: metrics.hp2 }}
                     />
@@ -382,11 +438,11 @@ const ChatsScreen = () => {
                     <FlatList
                         data={filteredChats}
                         renderItem={renderItemChats}
-                        keyExtractor={(item) => item.userId}
+                        keyExtractor={(item) => item.matchId}
                         showsVerticalScrollIndicator={false}
                         ListEmptyComponent={noSearchFound}
                         // ListHeaderComponent={HeaderListChats}
-                        contentContainerStyle={{ marginTop: metrics.hp2, paddingBottom:metrics.hp5 }} />
+                        contentContainerStyle={{ marginTop: metrics.hp2, paddingBottom: metrics.hp5 }} />
 
                 </>
             }
@@ -499,8 +555,6 @@ const styles = StyleSheet.create({
     activeBackground: {
         height: metrics.hp1, width: metrics.hp1,
         backgroundColor: colors.darkGreen, borderRadius: metrics.hp20,
-        marginTop: metrics.hp1,
-        marginRight: metrics.hp0_5,
-        
+        position: "absolute", top: metrics.hp1, left: metrics.hp7_3,
     },
 })

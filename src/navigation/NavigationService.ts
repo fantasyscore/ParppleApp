@@ -74,6 +74,15 @@ function reset(route: string) {
   );
 }
 
+function resetStack(routes: Array<{ name: string; params?: object }>, index = routes.length - 1) {
+  safeDispatch(
+    CommonActions.reset({
+      index,
+      routes,
+    }),
+  );
+}
+
 function goBack() {
   safeDispatch(CommonActions.goBack());
   // navigator._navigation.goBack();
@@ -99,6 +108,7 @@ export default {
   closeDrawer,
   pop,
   reset,
+  resetStack,
   push,
   replace,
 };

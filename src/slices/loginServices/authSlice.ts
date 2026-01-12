@@ -21,7 +21,8 @@ export const initialState: AuthState = {
   matchChatUserDetails:undefined,
   chatHistory:[],
   recentMatches:[],
-  receivedcrushNotes:[]
+  receivedcrushNotes:[],
+  showMessage:undefined
 };
 
 export const authSlice = createSlice({
@@ -85,6 +86,9 @@ export const authSlice = createSlice({
     setReceivedCrushNotes: (state, { payload }: PayloadAction<any>) => {
       state.receivedcrushNotes = payload;
     },
+    setRemoteMessage: (state, { payload }: PayloadAction<any>) => {
+      state.showMessage = payload;
+    },
   },
 });
 
@@ -107,7 +111,8 @@ export const {
   matchChatDetails,
   chatHistoryDetails,
   setRecentMatches,
-  setReceivedCrushNotes
+  setReceivedCrushNotes,
+  setRemoteMessage
 } = authSlice.actions;
 
 export const authSelector = (state: RootState) => state.auth;

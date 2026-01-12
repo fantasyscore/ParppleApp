@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import { Bubble, GiftedChat, Time } from 'react-native-gifted-chat';
 import { blackIcon, blockModalImage, check, checks, emojiIcon, noccce, profileImage, rightBlack, sendButton, unmatchModalImage } from '../../helper/ImageAssets';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
@@ -17,14 +18,14 @@ import RBSheet from 'react-native-raw-bottom-sheet';
 import { threeDotData } from '../../common/UiltData';
 import NavigationService from '../../navigation/NavigationService';
 import { NAVIGATION_REPORT_SCREEN } from '../../navigation/routes';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, useStore } from 'react-redux';
 import { getOtherProfile, userBlockAPI, userUnmatchAPI } from '../../actions/authActions';
 import { createSocket } from '../../common/Socket';
 import { appOperation } from '../../appOperation';
 import { ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { clearActiveChat, setActiveChatMatchId } from '../../slices/inAppNotificationSlice';
-import { chatHistoryDetails } from '../../slices/loginServices/authSlice';
+import { chatHistoryDetails, setNewMatches } from '../../slices/loginServices/authSlice';
 
 const USER_ID = 1;
 
@@ -45,6 +46,7 @@ type ChatMessage = {
 
 const TakingScreen = () => {
     const dispatch = useDispatch();
+    const store = useStore();
     const matchChatUserDetails = useSelector((state: any) => state.auth.matchChatUserDetails);
     const otherUserProfile = useSelector((state: any) => state.auth.otherUserProfile);
     const userData = useSelector((state: any) => state.auth.userData);
@@ -53,10 +55,7 @@ const TakingScreen = () => {
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const hasLoadedInitialMessages = useRef(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
-    // Prevent duplicate message rendering when chat is open:
-    // Deduplicate by stable id if available, otherwise by (senderId + createdAt + text).
     const seenMessageKeysRef = useRef<Set<string>>(new Set());
-    // Prevent "flash" of previous chat: only render messages that belong to the currently active matchId.
     const [messagesOwnerMatchId, setMessagesOwnerMatchId] = useState<string | undefined>(matchChatUserDetails?.matchId);
     const [tabSelect, setTabSelect] = useState('Chat');
     const [inputText, setInputText] = useState('');
@@ -69,10 +68,7 @@ const TakingScreen = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
-    // WhatsApp-like: show chat instantly (no blocking loader overlay)
     const [isInitialLoading, setIsInitialLoading] = useState(false);
-
-    // Keep latest chat identifiers in refs so socket listeners never use stale chat context.
     const activeMatchIdRef = useRef<string | undefined>(matchChatUserDetails?.matchId);
     const activeOtherUserIdRef = useRef<string | undefined>(matchChatUserDetails?.userId);
     const matchChatUserDetailsRef = useRef<any>(matchChatUserDetails);
@@ -93,10 +89,8 @@ const TakingScreen = () => {
         userDataRef.current = userData;
     }, [userData]);
 
-    // Mandatory: strict message isolation when switching between chats
     useEffect(() => {
         if (!matchChatUserDetails?.matchId) return;
-        // Clear global chatHistory immediately to avoid stale redux data being applied to the new chat
         dispatch(chatHistoryDetails([]));
         setMessages([]);
         seenMessageKeysRef.current = new Set();
@@ -106,18 +100,33 @@ const TakingScreen = () => {
         setEmojiVisible(false);
         setInputText('');
         setCurrentPage(1);
-        setHasMoreMessages(true);
+        setHasMoreMessages(true);   
         setIsLoadingMore(false);
         setIsInitialLoading(false);
         hasLoadedInitialMessages.current = false;
     }, [matchChatUserDetails?.matchId]);
 
-    // Global: mark which chat is currently open so in-app notifications can be suppressed for that chat user.
+    // Set active chat matchId when screen is focused, clear when unfocused
+    // Also reset unread count for this chat when opened
     useFocusEffect(
         useCallback(() => {
             const matchId = matchChatUserDetails?.matchId;
             if (matchId) {
                 dispatch(setActiveChatMatchId(matchId));
+                
+                // CRITICAL: Reset unread count when chat is opened
+                const state: any = store?.getState?.();
+                const newMatches = state?.auth?.newMatches || [];
+                const updatedMatches = newMatches.map((chat: any) => {
+                    if (chat.matchId === matchId) {
+                        return {
+                            ...chat,
+                            unreadCount: 0, // Reset unread count when chat is opened
+                        };
+                    }
+                    return chat;
+                });
+                dispatch(setNewMatches(updatedMatches));
             }
             return () => {
                 dispatch(clearActiveChat());
@@ -125,20 +134,19 @@ const TakingScreen = () => {
         }, [dispatch, matchChatUserDetails?.matchId])
     );
 
+    
     const transformChatHistoryToMessages = useCallback((history: any[]): ChatMessage[] => {
         if (!history || !Array.isArray(history) || history.length === 0) {
             return [];
         }
 
         const transformedRaw = history.map((item: any) => {
-            // Extract message text - handle both string and object cases
             let messageText = '';
             if (typeof item.message === 'string') {
                 messageText = item.message;
             } else if (typeof item.text === 'string') {
                 messageText = item.text;
             } else if (item.message && typeof item.message === 'object') {
-                // If message is an object, try to extract text from it
                 messageText = item.message.text || item.message.content || JSON.stringify(item.message);
             } else if (item.text && typeof item.text === 'object') {
                 messageText = item.text.text || item.text.content || JSON.stringify(item.text);
@@ -169,7 +177,7 @@ const TakingScreen = () => {
                 : `cst:${String(senderIdKey)}:${String(createdAtKey)}:${String(messageText || '')}`;
             return {
                 _id: messageId || Date.now() + Math.random(),
-                text: String(messageText || ''), // Ensure text is always a string
+                text: String(messageText || ''), 
                 createdAt: createdAt,
                 user: {
                     _id: userId,
@@ -182,7 +190,6 @@ const TakingScreen = () => {
             } as any;
         });
 
-        // Dedupe within history payload (prevents duplicates if API returns duplicates)
         const seenLocal = new Set<string>();
         const transformed = transformedRaw.filter((m: any) => {
             const key = m?._dedupeKey || `id:${String(m?._id)}`;
@@ -191,14 +198,12 @@ const TakingScreen = () => {
             return true;
         });
 
-        // Sort by createdAt to ensure proper order (oldest first, then reverse for GiftedChat)
         transformed.sort((a, b) => {
             const timeA = a.createdAt.getTime();
             const timeB = b.createdAt.getTime();
             return timeA - timeB;
         });
 
-        // Reverse for GiftedChat (newest first)
         return transformed.reverse();
     }, [userData, otherUserProfile, matchChatUserDetails]);
 
@@ -206,7 +211,6 @@ const TakingScreen = () => {
         const activeMatchId = matchChatUserDetails?.matchId;
         const scopedHistory = Array.isArray(chatHistory)
             ? chatHistory.filter((m: any) => {
-                // If API provides matchId per message, enforce it; otherwise keep item.
                 if (!activeMatchId) return true;
                 if (m?.matchId) return String(m.matchId) === String(activeMatchId);
                 if (m?.conversationId) return String(m.conversationId) === String(activeMatchId);
@@ -231,13 +235,27 @@ const TakingScreen = () => {
     const socketUrl = useMemo(() => {
         const currentUserId = userData?._id;
         if (!currentUserId) return null;
-        return `https://api.parpple.com/?userId=${currentUserId}`;
+        return `http://13.201.74.29/?userId=${currentUserId}`;
     }, [userData?._id]);
 
+    const socketRef = useRef<any>(null);
+    const [socketReconnectKey, setSocketReconnectKey] = useState(0);
+    
     const socket = useMemo(() => {
         if (!socketUrl) return null;
-        return createSocket(socketUrl);
-    }, [socketUrl]);
+        // Disconnect old socket if exists
+        if (socketRef.current) {
+            try {
+                socketRef.current.removeAllListeners?.();
+                socketRef.current.disconnect?.();
+            } catch (e) {
+                // ignore
+            }
+        }
+        const newSocket = createSocket(socketUrl);
+        socketRef.current = newSocket;
+        return newSocket;
+    }, [socketUrl, socketReconnectKey]);
 
     useEffect(() => {
         if (!socket) return;
@@ -265,11 +283,8 @@ const TakingScreen = () => {
         const handleUserTyping = (response: any) => {
             console.log('User typing event received:', response);
             if (!response) return;
-            // Strict isolation (supports your payload):
-            // response.userId      -> the user who is typing (sender)
-            // response.otherUserId -> the user who should see this typing state (receiver / me)
             const myUserId = userDataRef.current?._id;
-            const activeOtherUserId = activeOtherUserIdRef.current; // current chat partner id
+            const activeOtherUserId = activeOtherUserIdRef.current; 
 
             const typingUserId =
                 response?.userId ||
@@ -281,19 +296,13 @@ const TakingScreen = () => {
                 response?.receiverId ||
                 response?.toUserId;
 
-            // If backend includes matchId/conversationId, enforce it.
             const activeMatchId = activeMatchIdRef.current;
             const incomingMatchId = response?.matchId || response?.conversationId;
             if (activeMatchId && incomingMatchId && String(incomingMatchId) !== String(activeMatchId)) return;
 
-            // Only show typing for the currently open conversation partner
             if (activeOtherUserId && typingUserId && String(typingUserId) !== String(activeOtherUserId)) return;
-            // Only if this typing event is intended for me
             if (myUserId && typingTargetUserId && String(typingTargetUserId) !== String(myUserId)) return;
-            // Never show typing animation for yourself
             if (myUserId && typingUserId && String(typingUserId) === String(myUserId)) return;
-
-            // Use exact field, but stay tolerant
             const isTyping =
                 response.isTyping === true ||
                 response.isTyping === 'true' ||
@@ -330,10 +339,12 @@ const TakingScreen = () => {
             }
         };
         const handleIncomingMessage = (response: any) => {
-            console.log('Incoming message received:', response);
-            if (!response) return;
+            console.log('[TakingScreen] Incoming message received:', response);
+            if (!response) {
+                console.log('[TakingScreen] Empty response, ignoring');
+                return;
+            }
             try {
-                // Strict isolation: ignore messages not meant for the active chat
                 const activeMatchId = activeMatchIdRef.current;
                 const activeOtherUserId = activeOtherUserIdRef.current;
                 const incomingMatchId = response?.matchId || response?.conversationId;
@@ -341,7 +352,6 @@ const TakingScreen = () => {
                     return;
                 }
 
-                // Extract message text - handle both string and object cases
                 let messageText = '';
                 if (typeof response.message === 'string') {
                     messageText = response.message;
@@ -350,7 +360,6 @@ const TakingScreen = () => {
                 } else if (typeof response.content === 'string') {
                     messageText = response.content;
                 } else if (response.message && typeof response.message === 'object') {
-                    // If message is an object, try to extract text from it
                     messageText = response.message.text || response.message.content || JSON.stringify(response.message);
                 } else if (response.text && typeof response.text === 'object') {
                     messageText = response.text.text || response.text.content || JSON.stringify(response.text);
@@ -373,7 +382,6 @@ const TakingScreen = () => {
                     createdAt = new Date();
                 }
                 const messageId = response._id || response.messageId || response.id || Date.now() + Math.random();
-                // Deduplicate (important: chat screen only)
                 const createdAtKey =
                     response.createdAt || response.timestamp || response.created_at || createdAt.toISOString();
                 const senderIdKey =
@@ -395,7 +403,7 @@ const TakingScreen = () => {
                     const userId = incomingSenderId || matchChatUserDetailsRef.current?.userId || 'other';
                     const newMessage: ChatMessage = {
                         _id: messageId,
-                        text: String(messageText || ''), // Ensure text is always a string
+                        text: String(messageText || ''), 
                         createdAt: createdAt,
                         isMine: false,
                         user: {
@@ -404,16 +412,21 @@ const TakingScreen = () => {
                             avatar: avatar,
                         },
                     };
+                    console.log('[TakingScreen] Adding new message to chat:', {
+                        messageId,
+                        text: messageText,
+                        senderId: userId,
+                    });
                     setMessages((prevMessages) => {
-                        // If a real message arrives, typing should disappear immediately (WhatsApp-like)
                         const withoutTyping = prevMessages.filter((msg) => msg._id !== 'typing-indicator');
                         const updated = GiftedChat.append(withoutTyping, [newMessage]);
-                        // Ensure messages are sorted by createdAt (newest first for GiftedChat)
-                        return updated.sort((a, b) => {
+                        const sorted = updated.sort((a, b) => {
                             const timeA = a.createdAt.getTime();
                             const timeB = b.createdAt.getTime();
-                            return timeB - timeA; // Descending (newest first)
+                            return timeB - timeA; 
                         });
+                        console.log('[TakingScreen] Messages updated, total count:', sorted.length);
+                        return sorted;
                     });
                     if (socket && matchChatUserDetailsRef.current?.userId) {
                         const payload = {
@@ -426,6 +439,24 @@ const TakingScreen = () => {
                 console.error('Error parsing incoming message:', error, response);
             }
         };
+        // Log socket connection status
+        console.log('[TakingScreen] Setting up socket listeners, connected:', socket.connected);
+        
+        socket.on('connect', () => {
+            console.log('[TakingScreen] Socket connected successfully');
+        });
+
+        socket.on('disconnect', (reason: string) => {
+            console.log('[TakingScreen] Socket disconnected:', reason);
+        });
+
+        socket.on('connect_error', (error: any) => {
+            console.error('[TakingScreen] Socket connection error:', error);
+        });
+
+        // CRITICAL: Remove all existing listeners first to prevent duplicates
+        socket.removeAllListeners?.();
+        
         socket.on('connected', handleConnected);
         socket.on('newMatch', handleNewMatch);
         socket.on('superLike', handleSuperLike);
@@ -434,17 +465,52 @@ const TakingScreen = () => {
         socket.on('newMessage', handleIncomingMessage);
         socket.on('message_marked_read', handleMessageMarkedRead);
         socket.on('user_typing', handleUserTyping);
+        
         return () => {
-            socket.off('connected', handleConnected);
-            socket.off('newMatch', handleNewMatch);
-            socket.off('superLike', handleSuperLike);
-            socket.off('messageSent', handleMessageSent);
-            socket.off('messagesRead', handleMessagesRead);
-            socket.off('newMessage', handleIncomingMessage);
-            socket.off('message_marked_read', handleMessageMarkedRead);
-            socket.off('user_typing', handleUserTyping);
+            // CRITICAL: Clean up all listeners to prevent memory leaks and duplicate events
+            try {
+                socket.off('connect');
+                socket.off('disconnect');
+                socket.off('connect_error');
+                socket.off('connected', handleConnected);
+                socket.off('newMatch', handleNewMatch);
+                socket.off('superLike', handleSuperLike);
+                socket.off('messageSent', handleMessageSent);
+                socket.off('messagesRead', handleMessagesRead);
+                socket.off('newMessage', handleIncomingMessage);
+                socket.off('message_marked_read', handleMessageMarkedRead);
+                socket.off('user_typing', handleUserTyping);
+            } catch (e) {
+                console.error('[TakingScreen] Error removing socket listeners:', e);
+            }
         };
     }, [socket]);
+
+    // Handle app lifecycle: reconnect socket when app comes to foreground
+    // This ensures socket reconnects after being disconnected by GlobalNotificationManager
+    useEffect(() => {
+        const handleAppStateChange = (nextAppState: AppStateStatus) => {
+            console.log('[TakingScreen] App state changed:', nextAppState);
+            
+            if (nextAppState === 'active') {
+                // App is coming to foreground - reconnect socket if needed
+                // Socket was disconnected by GlobalNotificationManager on background
+                if (socketUrl) {
+                    console.log('[TakingScreen] Reconnecting socket - app coming to foreground');
+                    // Force socket recreation by updating state
+                    // This will trigger useMemo to create new socket and useEffect to attach listeners
+                    setSocketReconnectKey((prev) => prev + 1);
+                }
+            }
+        };
+
+        // Subscribe to app state changes
+        const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+        return () => {
+            subscription.remove();
+        };
+    }, [socketUrl]);
 
     useEffect(() => {
         if (!socket || !matchChatUserDetails?.userId) return;
@@ -459,7 +525,6 @@ const TakingScreen = () => {
             if (socket && socket.connected) {
                 socket.disconnect();
             }
-            // Cleanup typing timeout
             if (typingTimeoutRef.current) {
                 clearTimeout(typingTimeoutRef.current);
                 typingTimeoutRef.current = null;
@@ -549,14 +614,13 @@ const TakingScreen = () => {
                         combined.sort((a, b) => {
                             const timeA = a.createdAt.getTime();
                             const timeB = b.createdAt.getTime();
-                            return timeB - timeA; // Descending (newest first for GiftedChat)
+                            return timeB - timeA; 
                         });
                         console.log('Total messages after prepend:', combined.length);
                         return combined;
                     });
 
                     setCurrentPage(nextPage);
-                    // If we got less than 50 messages, there are no more
                     const hasMore = olderMessages.length >= 50;
                     setHasMoreMessages(hasMore);
                     console.log('Has more messages:', hasMore);
@@ -577,9 +641,7 @@ const TakingScreen = () => {
     }, [currentPage, isLoadingMore, hasMoreMessages, matchChatUserDetails?.userId, transformChatHistoryToMessages]);
 
     useEffect(() => {
-        // Always render instantly; just set messages when available.
         if (transformedMessages.length > 0) {
-            // Seed dedupe cache from redux messages and ensure no duplicates are rendered.
             const seeded = new Set<string>();
             const uniq = (transformedMessages as any[]).filter((m: any) => {
                 const key = m?._dedupeKey || `id:${String(m?._id)}`;
@@ -596,7 +658,6 @@ const TakingScreen = () => {
         } else if (Array.isArray(chatHistory) && chatHistory.length === 0) {
             setHasMoreMessages(true);
         }
-        // Ensure loader overlay never blocks UI
         if (isInitialLoading) setIsInitialLoading(false);
     }, [transformedMessages, chatHistory]);
 
@@ -617,11 +678,10 @@ const TakingScreen = () => {
         setMessagesOwnerMatchId(matchChatUserDetails?.matchId);
         setMessages(prev => {
             const updated = GiftedChat.append(prev, newMessages);
-            // Ensure messages are sorted by createdAt (newest first for GiftedChat)
             return updated.sort((a, b) => {
                 const timeA = a.createdAt.getTime();
                 const timeB = b.createdAt.getTime();
-                return timeB - timeA; // Descending (newest first)
+                return timeB - timeA; 
             });
         });
         setInputText('');
@@ -891,7 +951,7 @@ const TakingScreen = () => {
     );
     const onthreedot = (index: any) => {
         if (index == "0") refFilter?.current?.close(), setModalVisible(true), setSaveReportTitle("unMatch");
-        if (index == "1") refFilter?.current?.close(), NavigationService.navigate(NAVIGATION_REPORT_SCREEN)
+        if (index == "1") refFilter?.current?.close(), NavigationService.navigate(NAVIGATION_REPORT_SCREEN, { reportedUserId: matchChatUserDetails?.userId })
         if (index == '2') refFilter?.current?.close(), setModalVisible(true), setSaveReportTitle("Block");
 
     }
@@ -950,7 +1010,6 @@ const TakingScreen = () => {
                             </View>
                         )}
                     </View>
-                    {/* WhatsApp-like: no blocking loader overlay */}
                 </View> :
                 <View style={{ flex: 1 }}>
                     <ChatProfileScreen always={true} />

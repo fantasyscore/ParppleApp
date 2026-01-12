@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useState } from "react";
 import { ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import FastImage from "react-native-fast-image";
@@ -10,10 +10,49 @@ import NavigationService from "../../navigation/NavigationService";
 import { colors } from "../../theme/colors";
 import { interMedium } from "../../theme/typography";
 import LinearGradient from "react-native-linear-gradient";
-import { NAVIGATION_SUCCES_REPORTING_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_CHATS_SCREEN, NAVIGATION_SUCCES_REPORTING_SCREEN } from "../../navigation/routes";
+import { useDispatch } from "react-redux";
+import { reportUserAPI } from "../../actions/authActions";
+import Toast from "react-native-toast-message";
 
 const OtherReport = ({ route }: any) => {
     const data = route?.params ?? "";
+    const dispatch = useDispatch();
+    const [text, setText] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const onSubmit = useCallback(async () => {
+        const body = text.trim();
+        if (!data?.reportedUserId) {
+            Toast.show({ type: "error", text2: "Unable to report this user. Please try again." });
+            return;
+        }
+        if (!body) {
+            Toast.show({ type: "error", text2: "Please enter details to submit your report." });
+            return;
+        }
+        if (isSubmitting) return;
+
+        setIsSubmitting(true);
+        try {
+            const res: any = await (dispatch as any)(
+                reportUserAPI({
+                    reportedUserId: String(data.reportedUserId),
+                    subject: String(data?.subject || "Other"),
+                    body,
+                })
+            );
+            if (res?.statusCode == 200) {
+                NavigationService.resetStack(
+                    [{ name: NAVIGATION_BOTTOMTAB_SCREEN }, { name: NAVIGATION_SUCCES_REPORTING_SCREEN }],
+                    1
+                );
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [data?.reportedUserId, data?.subject, dispatch, isSubmitting, text]);
+
     return (
         <AppSafeAreaView>
             <View style={styles.mainContainer}>
@@ -44,6 +83,8 @@ const OtherReport = ({ route }: any) => {
                         numberOfLines={5}
                         multiline={true}
                         maxLength={200}
+                        value={text}
+                        onChangeText={setText}
                         style={{
                             fontSize: fontSize(12),
                             fontFamily: interMedium,
@@ -62,9 +103,13 @@ const OtherReport = ({ route }: any) => {
                         {"   "}Your report is confidential. <AppText color={DARK_GREEN} weight={INTER_BOLD} type={ELEVEN}>The user will never know{'\n'}{"    "}it was you who reported them.</AppText>
                     </AppText>
                 </LinearGradient>
-                <TouchableOpacityView onPress={() => NavigationService.reset(NAVIGATION_SUCCES_REPORTING_SCREEN)} style={[styles.button, { backgroundColor: colors.purple }]}>
+                <TouchableOpacityView
+                    onPress={onSubmit}
+                    disabled={isSubmitting}
+                    style={[styles.button, { backgroundColor: colors.purple, opacity: isSubmitting ? 0.7 : 1 }]}
+                >
                     <AppText type={FORTEEN} weight={INTER_SEMI_BOLD} color={WHITE}>
-                        Submit
+                        {isSubmitting ? "Submitting..." : "Submit"}
                     </AppText>
                 </TouchableOpacityView>
             </View>

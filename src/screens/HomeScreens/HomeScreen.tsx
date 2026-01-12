@@ -44,7 +44,9 @@ import { BoostLiquidButton } from '../../common/boost/BoostLiquidButton';
 import CrushNotesSender from './CrushNotesSender';
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from "react-native-svg";
 import { appOperation } from '../../appOperation';
-
+import messaging, {
+    FirebaseMessagingTypes,
+} from "@react-native-firebase/messaging";
 const { width, height } = Dimensions.get("window");
 const FULL_IMAGE_HEIGHT = height * 0.75;
 // keep in sync with `src/swiperComponents/SwipeableCard.tsx`
@@ -388,7 +390,7 @@ const PeopleScreen = () => {
     const socketUrl = useMemo(() => {
         const currentUserId = userData?._id;
         if (!currentUserId) return null;
-        return `https://api.parpple.com/?userId=${currentUserId}`;
+        return `http://13.201.74.29/?userId=${currentUserId}`;
     }, [userData?._id]);
 
     const socket = useMemo(() => {
@@ -653,6 +655,7 @@ const PeopleScreen = () => {
     }, [listProfilesData]);
 
     async function requestAndroidNotificationPermission() {
+        await messaging().registerDeviceForRemoteMessages();
         try {
             if (Platform.OS === 'android' && Platform.Version >= 33) {
                 const granted = await PermissionsAndroid.request(
@@ -669,6 +672,7 @@ const PeopleScreen = () => {
             // Never crash HomeScreen due to permission API edge cases
             console.warn('Notification permission request failed:', e);
         }
+        await messaging().requestPermission();
     }
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -878,7 +882,7 @@ const PeopleScreen = () => {
     };
 
     const crushNotesRemaining = toCount(userData?.crushNotesRemaining, 0);
-   
+
     return (
         <AppSafeAreaView>
             {/* <Toast ref={toastRef} onHide={showSuccess} /> */}

@@ -52,6 +52,7 @@ const AddPhotoScreen = () => {
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
   const isPickerOpenRef = useRef(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const onLongPressImage = (imageUri: string) => {
     if (!imageUri) return;
@@ -233,8 +234,11 @@ const AddPhotoScreen = () => {
   );
 
 
-  const onSubmit = () => {
-    if (remaining > 0) return toastAlert.showToastError(`Please add ${remaining} more photo${remaining > 1 ? "s" : ""} to continue`)
+  const onSubmit = async () => {
+    if (isSubmitting) return;
+    if (remaining > 0) return toastAlert.showToastError(`Please add ${remaining} more photo${remaining > 1 ? "s" : ""} to continue`);
+
+    setIsSubmitting(true);
     const uploadedPhotos = photos.filter((p) => p.image !== "");
     const galleryData = uploadedPhotos.map((p, index) => ({
       priority: index === 0,
@@ -247,10 +251,17 @@ const AddPhotoScreen = () => {
     };
     console.log(data, "datadatadata");
 
-    dispatch(addProfile(data));
-    dispatch(getProfile(true));
-    dispatch(discoverProfile());
-    dispatch(getNewMatches())
+    try {
+      const res: any = await (dispatch as any)(addProfile(data));
+      // Navigation to All Set is handled inside addProfile() when statusCode === 200
+      if (res?.statusCode == 200) {
+        dispatch(getProfile(true));
+        dispatch(discoverProfile());
+        dispatch(getNewMatches());
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -283,7 +294,11 @@ const AddPhotoScreen = () => {
       <LinearGradient start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
         <View style={{ marginTop: metrics.hp9 }}>
-          <GoButton colortrue={remaining == 0 ? true : false} onPress={() => onSubmit()} />
+          <GoButton
+            colortrue={remaining == 0 ? true : false}
+            disabled={isSubmitting}
+            onPress={() => onSubmit()}
+          />
         </View>
       </LinearGradient>
       {previewVisible && (

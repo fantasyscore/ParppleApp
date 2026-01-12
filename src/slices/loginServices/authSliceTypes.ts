@@ -161,6 +161,7 @@ export interface AuthState {
   chatHistory:[];
   recentMatches:[];
   receivedcrushNotes:[];
+  showMessage:undefined;
 }
 export interface DeviceTokenParams {
   merchantId: string;

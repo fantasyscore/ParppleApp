@@ -1,41 +1,38 @@
-import { Platform } from "react-native";
-import messaging, {
-  FirebaseMessagingTypes,
-} from "@react-native-firebase/messaging";
+import { Platform } from 'react-native';
+import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
+import notifee, {
+  AndroidImportance,
+  AndroidVisibility,
+} from '@notifee/react-native';
 
-// Notifee is optional in code (recommended for foreground + data-only notifications).
-// If it's not installed, we gracefully no-op for local display.
-function getNotifee(): any | null {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require("@notifee/react-native");
-  } catch {
-    return null;
-  }
-}
+const ANDROID_CHANNEL_ID = 'parpple-high-priority';
 
-let androidChannelId: string | null = null;
+// --------------------
+// ANDROID CHANNEL
+// --------------------
+let channelReady = false;
+
 async function ensureAndroidChannel(): Promise<string | null> {
-  if (Platform.OS !== "android") return null;
-  if (androidChannelId) return androidChannelId;
+  if (Platform.OS !== 'android') return null;
+  if (channelReady) return ANDROID_CHANNEL_ID;
 
-  const notifee = getNotifee();
-  if (!notifee) return null;
+  await notifee.createChannel({
+    id: ANDROID_CHANNEL_ID,
+    name: 'Parpple Notifications',
+    importance: AndroidImportance.HIGH,
+    visibility: AndroidVisibility.PUBLIC,
+    sound: 'default',
+    vibration: true,
+    badge: false,
+  });
 
-  try {
-    androidChannelId = await notifee.createChannel({
-      id: "parpple-default",
-      name: "Parpple",
-      importance: notifee.AndroidImportance.HIGH,
-      sound: "default",
-    });
-  } catch {
-    // Never crash app startup / headless handler due to notification channel creation failure
-    androidChannelId = null;
-  }
-  return androidChannelId;
+  channelReady = true;
+  return ANDROID_CHANNEL_ID;
 }
 
+// --------------------
+// PERMISSION & TOKEN
+// --------------------
 export async function requestPushPermission() {
   await messaging().registerDeviceForRemoteMessages();
   await messaging().requestPermission();
@@ -43,109 +40,85 @@ export async function requestPushPermission() {
 
 export async function getFcmToken() {
   await messaging().registerDeviceForRemoteMessages();
-  return await messaging().getToken();
+  return messaging().getToken();
 }
 
+// --------------------
+// DISPLAY NOTIFICATION
+// --------------------
 export async function displayRemoteMessage(
-  remoteMessage: FirebaseMessagingTypes.RemoteMessage,
-  opts?: { isBackground?: boolean }
+  remoteMessage: FirebaseMessagingTypes.RemoteMessage
 ) {
   try {
-    const notifee = getNotifee();
-    if (!notifee) {
-      // If notifee isn't installed, the OS will still show notifications for "notification" payloads
-      // when app is backgrounded. Foreground/data-only won't show.
-      return;
-    }
-
-    // In background/quit state:
-    // - If FCM includes a "notification" payload, Android/iOS will show it automatically.
-    // - For data-only messages, we should show a local notification via notifee.
-    // To avoid duplicate notifications, only show locally in background when it's data-only.
-    if (opts?.isBackground && remoteMessage?.notification) {
-      return;
-    }
+    const data = remoteMessage?.data || {};
 
     const title =
-      remoteMessage?.notification?.title ||
-      remoteMessage?.data?.title ||
-      "Parpple";
+      data.title ||
+      remoteMessage.notification?.title ||
+      'Parpple';
+
     const body =
-      remoteMessage?.notification?.body ||
-      remoteMessage?.data?.body ||
-      remoteMessage?.data?.messagePreview ||
-      "";
+      data.body ||
+      remoteMessage.notification?.body ||
+      '';
+
+    if (!title && !body) return;
 
     const channelId = await ensureAndroidChannel();
+    if (!channelId) return;
 
     await notifee.displayNotification({
       title,
       body,
-      data: remoteMessage?.data || {},
-      android: Platform.OS === "android" ? { channelId: channelId || "default" } : undefined,
-      ios: Platform.OS === "ios" ? { sound: "default" } : undefined,
+      data,
+      android: {
+        channelId,
+        importance: AndroidImportance.HIGH,
+        visibility: AndroidVisibility.PUBLIC,
+        pressAction: { id: 'default' },
+        sound: 'default',
+        smallIcon: 'ic_notification', // MUST exist
+      },
+      ios: {
+        sound: 'default',
+        badgeCount: 0,
+        foregroundPresentationOptions: {
+          alert: true,
+          sound: true,
+          badge: false,
+        },
+      },
     });
-  } catch {
-    // Never allow local notification display failures to crash the app (especially on cold start).
+  } catch (e) {
+    console.warn('[PushNotifications] Display failed', e);
   }
 }
 
-let backgroundHandlerRegistered = false;
-export function registerBackgroundPushHandler() {
-  // Must be registered in the JS entry file (e.g. index.js) to work in background/killed/headless.
-  // We keep it here so notification behavior stays in one place.
-  if (backgroundHandlerRegistered) return;
-  backgroundHandlerRegistered = true;
+// --------------------
+// BACKGROUND / KILLED
+// --------------------
+let bgRegistered = false;
 
-  messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-    await displayRemoteMessage(remoteMessage, { isBackground: true });
+export function registerBackgroundPushHandler() {
+  if (bgRegistered) return;
+  bgRegistered = true;
+
+  messaging().setBackgroundMessageHandler(async remoteMessage => {
+    await displayRemoteMessage(remoteMessage);
   });
 }
 
-export async function getInitialNotification() {
-  try {
-    return await messaging().getInitialNotification();
-  } catch {
-    return null;
-  }
+// --------------------
+// FOREGROUND LISTENERS
+// --------------------
+export function setupPushListeners() {
+  const unsubMessage = messaging().onMessage(async remoteMessage => {
+    await displayRemoteMessage(remoteMessage);
+  });
+
+  return () => {
+    try {
+      unsubMessage();
+    } catch {}
+  };
 }
-
-export function setupPushListeners(opts?: {
-  onNotificationOpen?: (message: FirebaseMessagingTypes.RemoteMessage) => void;
-}) {
-  try {
-    // Foreground messages
-    const unsubOnMessage = messaging().onMessage(async (remoteMessage) => {
-      await displayRemoteMessage(remoteMessage, { isBackground: false });
-    });
-
-    // Notification tapped while app in background
-    const unsubOpened = messaging().onNotificationOpenedApp(async (remoteMessage) => {
-      if (remoteMessage && opts?.onNotificationOpen) {
-        opts.onNotificationOpen(remoteMessage);
-      }
-    });
-
-    // Token refresh (optional but helps keep notifications reliable long-term)
-    const unsubToken = messaging().onTokenRefresh(() => {
-      // No-op here. If you later have an API endpoint to sync token, do it from App layer.
-    });
-
-    return () => {
-      try {
-        unsubOnMessage();
-      } catch {}
-      try {
-        unsubOpened();
-      } catch {}
-      try {
-        unsubToken();
-      } catch {}
-    };
-  } catch {
-    // If Firebase messaging isn't ready yet on cold start, do not crash.
-    return () => {};
-  }
-}
-
-

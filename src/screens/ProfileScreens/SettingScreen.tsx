@@ -1,34 +1,38 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Linking, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Linking, Modal, ScrollView, StyleSheet, View } from "react-native";
 import HeaderCommon from "../../common/HeaderCommon";
 import { colors } from "../../theme/colors";
 import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
-import { deleteIcon, leftFair, lineGreen, logOutIcon, pronounIcon, rightFair } from "../../helper/ImageAssets";
-import { AppText, BLACK, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, OPECITY_DARK, RED, SCHEHERAZADE_BOLD, TEN, TWELVE, TWENTY } from "../../common/AppText";
+import Toast from "react-native-toast-message";
+import { applogo, deleteIcon, leftFair, lineGreen, logoBlue, logOutIcon, rightFair } from "../../helper/ImageAssets";
+import { AppText, BLACK, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, OPECITY_DARK, RED, SCHEHERAZADE_BOLD, TEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
 import HeadLineContiner from "../../common/HeadLineContiner";
 import EditButtonCommon from "../../common/EditButtonCommon";
-import App from "../../App";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { useDispatch, useSelector } from "react-redux";
-import { userLogout } from "../../actions/authActions";
+import { deleteAccountAPI, userLogout } from "../../actions/authActions";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_SUBSCRIPTION_ALL_SCREEN } from "../../navigation/routes";
 import { disconnectAllSockets } from "../../common/Socket";
 import { version as appVersion } from "../../../package.json";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { appOperation } from "../../appOperation";
 
 const PROFILE_DISCOVERY_ENABLED_KEY = "PROFILE_DISCOVERY_ENABLED";
+
+type ConfirmAction = "logout" | "delete";
 
 const SettingScreen = () => {
     const userData = useSelector((state: any) => state.auth.userData);
     const dispatch = useDispatch();
     const [toggleOne, setToggleOne] = useState(false);
     const [toggleTwo, setToggleTwo] = useState(false);
-    const [toggleThree, setToggleThree] = useState(false);
-    const [selectFtCm, setSelectFtCm] = useState("FT");
-    const [selectMIKM, setSelectMIKM] = useState("MI");
+    const [confirmVisible, setConfirmVisible] = useState(false);
+    const [confirmAction, setConfirmAction] = useState<ConfirmAction>("logout");
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [deleteSuccessVisible, setDeleteSuccessVisible] = useState(false);
 
     // Persist "Enable Profile Discover" (toggleTwo) via AsyncStorage
     useEffect(() => {
@@ -62,7 +66,7 @@ const SettingScreen = () => {
         }
     }, []);
 
-    const handleLogout = () => {
+    const handleLogoutConfirmed = () => {
         // 1) Disconnect ALL sockets
         disconnectAllSockets();
         // 2) Clear ALL redux slices
@@ -70,6 +74,46 @@ const SettingScreen = () => {
         // 3) Existing logout flow (token removal + navigation reset)
         dispatch(userLogout());
     };
+
+    const openConfirm = useCallback((action: ConfirmAction) => {
+        setConfirmAction(action);
+        setConfirmVisible(true);
+    }, []);
+
+    const closeConfirm = useCallback(() => {
+        if (isProcessing) return;
+        setConfirmVisible(false);
+    }, [isProcessing]);
+
+    const handleConfirmYes = useCallback(async () => {
+        if (confirmAction === "logout") {
+            setConfirmVisible(false);
+            handleLogoutConfirmed();
+            return;
+        }
+
+        // delete flow
+        setIsProcessing(true);
+        try {
+            const response: any = await appOperation.customer.deleteAccount();
+            if (response?.statusCode === 200) {
+                setConfirmVisible(false);
+                setDeleteSuccessVisible(true);
+            } else {
+                Toast.show({
+                    type: "error",
+                    text2: "Unable to delete your account. Please try again.",
+                });
+            }
+        } catch {
+            Toast.show({
+                type: "error",
+                text2: "Unable to delete your account. Please try again.",
+            });
+        } finally {
+            setIsProcessing(false);
+        }
+    }, [confirmAction, dispatch]);
 
     return (
         <AppSafeAreaView>
@@ -227,14 +271,14 @@ const SettingScreen = () => {
                     <HeadLineContiner
                         headLines={"Community"} setting={true} />
                     {/* <EditButtonCommon
-                        setting={true}
+                        setting={true} 
                         onPress={() => Linking.openURL("https://parpple.com/safety")}
                         title={"Safe Dating Tips"} /> */}
                     <EditButtonCommon
                         setting={true}
                         onPress={() => Linking.openURL("https://parpple.com/safety")}
                         title={"Safety Center"} />
-                    <View style={styles.containerShare}>
+                    {/* <View style={styles.containerShare}>
                         <FastImage source={rightFair} resizeMode="contain" style={styles.rightFair} />
                         <View style={{ alignItems: "center", justifyContent: "center", }}>
                             <AppText style={{ textAlign: "center", marginTop: -metrics.hp1 }} type={TWENTY} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK}>
@@ -245,27 +289,137 @@ const SettingScreen = () => {
                             </AppText>
                         </View>
                         <FastImage source={leftFair} resizeMode="contain" style={styles.rightFair} />
-                    </View>
-                    <TouchableOpacityView onPress={handleLogout} style={[styles.shareDetailsContaier, { marginTop: metrics.hp6 }]}>
+                    </View> */}
+                    <TouchableOpacityView onPress={() => openConfirm("logout")} style={[styles.shareDetailsContaier, { marginTop: metrics.hp6 }]}>
                         <FastImage source={logOutIcon} resizeMode="contain" style={styles.shareIcon} />
                         <AppText color={RED} weight={INTER_SEMI_BOLD} type={TWELVE}>
                             {"  "}
                             Log Out
                         </AppText>
                     </TouchableOpacityView>
-                    <View style={styles.shareDetailsContaier}>
+                    <TouchableOpacityView onPress={() => openConfirm("delete")} style={styles.shareDetailsContaier}>
                         <FastImage source={deleteIcon} resizeMode="contain" style={styles.shareIcon} />
                         <AppText color={BLACK} weight={INTER_SEMI_BOLD} type={TWELVE}>
                             {"  "}
                             Delete My Account
                         </AppText>
-                    </View>
+                    </TouchableOpacityView>
                     <AppText style={styles.textVersion} color={OPECITY} weight={INTER_SEMI_BOLD} type={TWELVE}>
                         {"  "}
                         Version: {appVersion}
                     </AppText>
                 </View>
             </ScrollView>
+
+            {/* Confirm Modal (Logout / Delete) */}
+            <Modal
+                animationType="fade"
+                transparent
+                statusBarTranslucent
+                visible={confirmVisible}
+                onRequestClose={closeConfirm}
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.modalCard}>
+                        <AppText type={TWENTY} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
+                            {confirmAction === "delete" ? "Delete account" : "Log out"}
+                        </AppText>
+
+                        <AppText
+                            style={{ marginTop: metrics.hp1, textAlign: "center" }}
+                            type={TWELVE}
+                            weight={INTER_MEDIUM}
+                            color={OPECITY_DARK}
+                        >
+                            {confirmAction === "delete"
+                                ? "Are you sure you want to delete your Parpple account?"
+                                : "Are you sure you want to log out of Parpple?"}
+                        </AppText>
+
+                        {confirmAction === "delete" ? (
+                            <AppText
+                                style={{ marginTop: metrics.hp0_8, textAlign: "center" }}
+                                type={TEN}
+                                weight={INTER_MEDIUM}
+                                color={OPECITY}
+                            >
+                                This action cannot be undone.
+                            </AppText>
+                        ) : null}
+
+                        <View style={styles.modalBtnRow}>
+                            <TouchableOpacityView
+                                onPress={closeConfirm}
+                                disabled={isProcessing}
+                                style={[styles.modalBtn, styles.modalBtnSecondary, isProcessing && { opacity: 0.6 }]}
+                            >
+                                <AppText type={TWELVE} weight={INTER_BOLD} color={LIGHT_BLACK}>
+                                    No
+                                </AppText>
+                            </TouchableOpacityView>
+
+                            <TouchableOpacityView
+                                onPress={handleConfirmYes}
+                                disabled={isProcessing}
+                                style={[
+                                    styles.modalBtn,
+                                    confirmAction === "delete" ? styles.modalBtnDanger : styles.modalBtnPrimary,
+                                    isProcessing && { opacity: 0.6 },
+                                ]}
+                            >
+                                {isProcessing ? (
+                                    <ActivityIndicator color={colors.white} />
+                                ) : (
+                                    <AppText type={TWELVE} weight={INTER_BOLD} color={WHITE}>
+                                        Yes
+                                    </AppText>
+                                )}
+                            </TouchableOpacityView>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Delete Success Popup */}
+            <Modal
+                animationType="fade"
+                transparent
+                statusBarTranslucent
+                visible={deleteSuccessVisible}
+                onRequestClose={() => {
+                    setDeleteSuccessVisible(false);
+                    handleLogoutConfirmed();
+                }}
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.successCard}>
+                        <FastImage source={logoBlue} resizeMode="contain" style={styles.appLogo} />
+                        <AppText type={TWENTY} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
+                            Parpple
+                        </AppText>
+                        <AppText
+                            style={{ marginTop: metrics.hp1, textAlign: "center" }}
+                            type={TWELVE}
+                            weight={INTER_MEDIUM}
+                            color={OPECITY_DARK}
+                        >
+                            Your Parpple account has been deleted successfully.
+                        </AppText>
+
+                        <TouchableOpacityView
+                            onPress={() => {
+                                setDeleteSuccessVisible(false);
+                                handleLogoutConfirmed();
+                            }}
+                            style={[styles.modalBtn, styles.modalBtnPrimary, { alignSelf: "center", marginTop: metrics.hp2 }]}
+                        >
+                            <AppText type={TWELVE} weight={INTER_BOLD} color={WHITE}>
+                                OK
+                            </AppText>
+                        </TouchableOpacityView>
+                    </View>
+                </View>
+            </Modal>
         </AppSafeAreaView>
     )
 };
@@ -329,5 +483,52 @@ const styles = StyleSheet.create({
     textVersion: {
         textAlign: "center",
         marginTop: metrics.hp5
-    }
+    },
+    modalBackdrop: {
+        flex: 1,
+        backgroundColor: "#00000066",
+        justifyContent: "center",
+        paddingHorizontal: metrics.hp2,
+    },
+    modalCard: {
+        backgroundColor: colors.white,
+        borderRadius: metrics.hp2,
+        padding: metrics.hp2,
+    },
+    successCard: {
+        backgroundColor: colors.white,
+        borderRadius: metrics.hp2,
+        padding: metrics.hp2,
+        alignItems: "center",
+    },
+    modalBtnRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        gap: metrics.hp1,
+        marginTop: metrics.hp2,
+    },
+    modalBtn: {
+        flex: 1,
+        height: metrics.hp5,
+        borderRadius: metrics.hp1_5,
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "row",
+    },
+    modalBtnSecondary: {
+        backgroundColor: colors.lightBack,
+        borderWidth: metrics.hp0_1,
+        borderColor: colors.nanoOpecity,
+    },
+    modalBtnPrimary: {
+        backgroundColor: colors.purple,
+    },
+    modalBtnDanger: {
+        backgroundColor: colors.red,
+    },
+    appLogo: {
+        width: metrics.hp8,
+        height: metrics.hp8,
+        marginBottom: metrics.hp1,
+    },
 })

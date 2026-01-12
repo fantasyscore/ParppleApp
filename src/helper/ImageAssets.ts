@@ -200,3 +200,4 @@ export const AppIcon = require("../assets/img/AppIcon.png");
 export const completeProfileBanner = require("../assets/img/completeProfileBanner.png");
 export const offglobleSearchAndResetFilter = require("../assets/img/offglobleSearchAndResetFilter.png");
 export const crushParchesBackPop = require("../assets/img/crushParchesBackPop.png");
+export const textforBlurImage = require("../assets/img/textforBlurImage.png");

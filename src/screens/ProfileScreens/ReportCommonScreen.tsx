@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { ScrollView, StyleSheet, View } from "react-native";
 import FastImage from "react-native-fast-image";
@@ -8,12 +8,54 @@ import { reportProfileIcon } from "../../helper/ImageAssets";
 import NavigationService from "../../navigation/NavigationService";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { colors } from "../../theme/colors";
-import GoButton from "../../common/GoButton";
-import { NAVIGATION_OHTER_REPORT_SCREEN, NAVIGATION_SUCCES_REPORTING_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_CHATS_SCREEN, NAVIGATION_OHTER_REPORT_SCREEN, NAVIGATION_SUCCES_REPORTING_SCREEN } from "../../navigation/routes";
+import { useDispatch } from "react-redux";
+import { reportUserAPI } from "../../actions/authActions";
 
 const ReportCommonScreen = ({ route }: any) => {
     const data = route?.params ?? "";
     const [selectReport, setSelectReport] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const dispatch = useDispatch();
+
+    const onSubmit = useCallback(async () => {
+        if (isSubmitting) return;
+        if (!data?.reportedUserId || !selectReport) return;
+
+        // If "Other" is selected, navigate to OtherReport screen (same flow as ReportScreen → Other)
+        if (selectReport === "Other") {
+            NavigationService.navigate(NAVIGATION_OHTER_REPORT_SCREEN, {
+                reportedUserId: data.reportedUserId,
+                subject: "Other",
+                headline: "Other",
+                inLine: "Please tell us more about the issue in your own words.",
+            });
+            return;
+        }
+
+        // Otherwise, submit the report directly with the selected option as body
+        if (!data?.subject) return;
+
+        setIsSubmitting(true);
+        try {
+            const res: any = await (dispatch as any)(
+                reportUserAPI({
+                    reportedUserId: String(data.reportedUserId),
+                    subject: String(data.subject),
+                    body: String(selectReport),
+                })
+            );
+            if (res?.statusCode == 200) {
+                NavigationService.resetStack(
+                    [{ name: NAVIGATION_BOTTOMTAB_SCREEN }, { name: NAVIGATION_SUCCES_REPORTING_SCREEN }],
+                    1
+                );
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [data?.reportedUserId, data?.subject, dispatch, isSubmitting, selectReport]);
+
     return (
         <AppSafeAreaView>
             <View style={styles.mainContainer}>
@@ -49,9 +91,16 @@ const ReportCommonScreen = ({ route }: any) => {
                 </View>
             </ScrollView>
             <View style={styles.buttonContainer}>
-                <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_OHTER_REPORT_SCREEN, { headline: "Other", inLine: "Please tell us more about the issue in your own words." })} style={[styles.button, { backgroundColor: selectReport ? colors.purple : colors.nanoOpecity }]}>
+                <TouchableOpacityView
+                    onPress={onSubmit}
+                    disabled={!selectReport || isSubmitting}
+                    style={[
+                        styles.button,
+                        { backgroundColor: selectReport && !isSubmitting ? colors.purple : colors.nanoOpecity },
+                    ]}
+                >
                     <AppText type={FORTEEN} weight={INTER_SEMI_BOLD} color={WHITE}>
-                        Next
+                        {isSubmitting ? "Submitting..." : "Submit"}
                     </AppText>
                 </TouchableOpacityView>
             </View>

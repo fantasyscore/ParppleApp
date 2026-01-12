@@ -22,6 +22,8 @@ import {
     INTER_SEMI_BOLD,
     LIGHT_BLACK,
     OPECITY_DARK,
+    SCHEHERAZADE_BOLD,
+    THIRTEEN,
     TWELVE,
     TWENTY,
     WHITE,
@@ -50,7 +52,7 @@ import {
 } from "../../helper/ImageAssets";
 import { datapersonal, editProfileData, editProfilelistData } from "../../common/UiltData";
 import NavigationService from "../../navigation/NavigationService";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { datingIntentionsFilter } from "../../helper/utility";
 import LinearGradient from "react-native-linear-gradient";
 import Animated, {
@@ -62,21 +64,26 @@ import Animated, {
     useSharedValue,
     withTiming,
 } from "react-native-reanimated";
-import { NAVIGATION_EDIT_PROFILE_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_EDIT_PROFILE_SCREEN, NAVIGATION_TAKING_SCREEN } from "../../navigation/routes";
+import { crushNoteAccecptAPI } from "../../actions/authActions";
 
 const { height } = Dimensions.get("window");
-const FULL_IMAGE_HEIGHT = height * 0.85; // Adjust this value as needed
-const COLLAPSED_IMAGE_HEIGHT = height * 0.6; // Adjust this value as needed
+
 
 const UserEditProfile = (props: any) => {
+    const dispatch = useDispatch();
     const otherCome = props?.route?.params?.other ?? "";
     const profileComing = props?.route?.params?.profile ?? "";
+    const from = props?.route?.params?.from ?? "";
     const otherUserProfile = useSelector((state: any) => state.auth.otherUserProfile);
+    const matchChatUserDetails = useSelector((state: any) => state.auth.matchChatUserDetails);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [updown, setupdown] = useState(false);
     const attributes = otherUserProfile?.attributes?.filter(
         (item: any) => !["smoke", "drink", "workout", "pets"].includes(item?.type)
     );
+    const FULL_IMAGE_HEIGHT = from == "Chat" ? height * 0.80 : height * 0.85; // Adjust this value as needed
+    const COLLAPSED_IMAGE_HEIGHT = height * 0.6; // Adjust this value as needed
     const workout = otherUserProfile?.attributes?.find((item: any) => item.type === "workout");
     const smoke = otherUserProfile?.attributes?.find((item: any) => item.type === "smoke");
     const drink = otherUserProfile?.attributes?.find((item: any) => item.type === "drink");
@@ -221,12 +228,41 @@ const UserEditProfile = (props: any) => {
         );
     };
 
-    
+    const onSubmit = (type: any) => {
+        if (type == "Decline") {
+            const data = {
+                action: "reject",
+                otherUserId: otherUserProfile?._id
+            }
+            let notNavigate = true
+            dispatch(crushNoteAccecptAPI(data, matchChatUserDetails, notNavigate))
+        } else {
+            const data = {
+                action: "accept",
+                otherUserId: otherUserProfile?._id
+            }
+            let notNavigate = false
+            dispatch(crushNoteAccecptAPI(data, matchChatUserDetails, notNavigate))
+        }
+    }
     return (
         <AppSafeAreaView>
-            <HeaderCommon title={otherCome ? otherUserProfile?.firstName : "Profile"} age={otherUserProfile?.age} edit={otherCome ? false : true} editOnPress={() => profileComing? NavigationService.navigate(NAVIGATION_EDIT_PROFILE_SCREEN): NavigationService.goBack()} />
+            <HeaderCommon title={otherCome ? otherUserProfile?.firstName : "Profile"} age={otherUserProfile?.age} edit={otherCome ? false : true} editOnPress={() => profileComing ? NavigationService.navigate(NAVIGATION_EDIT_PROFILE_SCREEN) : NavigationService.goBack()} />
             <View style={styles.singleLine} />
-            {/* {!updown && <Animated.View style={topTextHiddenAnimatedStyle}>{renderProgressLine(false)}</Animated.View>} */}
+            {from == "Chat" ?
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-evenly", marginTop: metrics.hp2 }}>
+                    <TouchableOpacityView onPress={() => onSubmit("Decline")} style={{ height: metrics.hp4, width: "40%", borderRadius: metrics.hp3, alignItems: "center", justifyContent: "center", borderWidth: metrics.hp0_1, borderColor: colors.transparentBlack }}>
+                        <AppText type={THIRTEEN} weight={SCHEHERAZADE_BOLD}>
+                            Decline
+                        </AppText>
+                    </TouchableOpacityView>
+                    <TouchableOpacityView onPress={() => onSubmit("Accept")} style={{ height: metrics.hp4, width: "40%", backgroundColor: colors.purple, borderRadius: metrics.hp3, alignItems: "center", justifyContent: "center" }}>
+                        <AppText type={THIRTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE}>
+                            Accept
+                        </AppText>
+                    </TouchableOpacityView>
+                </View> : <></>
+            }
             <Animated.ScrollView
                 style={[
                     styles.scrollContainer,
@@ -280,14 +316,14 @@ const UserEditProfile = (props: any) => {
                             source={{ uri: otherUserProfile?.gallery[currentPhotoIndex]?.url }}
                             style={styles.imageBackground}
                             imageStyle={{ borderRadius: 20 }}>
-                    {/*         {updown && */} <Animated.View /* style={topTextAnimatedStyle} */>{renderProgressLine(true)}</Animated.View>
+                            {/*         {updown && */} <Animated.View /* style={topTextAnimatedStyle} */>{renderProgressLine(true)}</Animated.View>
                             <View style={{ flex: 1 }} />
                             <Animated.View style={bottomDetailsAnimatedStyle}>
                                 <LinearGradient start={{ x: 1, y: 1 }}
                                     end={{ x: 1, y: 0 }} colors={["#000000", "#00000099", "#00000000"]} style={styles.bottomDetails}>
                                     <View style={{ marginLeft: metrics.hp2, marginTop: metrics.hp10 }}>
                                         <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                            <AppText style={{textTransform:"capitalize"}} type={TWENTY} color={WHITE} weight={INTER_BOLD}>
+                                            <AppText style={{ textTransform: "capitalize" }} type={TWENTY} color={WHITE} weight={INTER_BOLD}>
                                                 {otherUserProfile?.firstName}, {otherUserProfile?.age}{" "}
                                             </AppText>
                                             <FastImage
@@ -297,19 +333,19 @@ const UserEditProfile = (props: any) => {
                                             />
                                         </View>
                                         {otherUserProfile?.work &&
-                                        <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                            <FastImage
-                                                source={bussnisIcon}
-                                                tintColor={colors.white}
-                                                resizeMode="contain"
-                                                style={styles.loctionIcon}
-                                            />
-                                            <AppText type={ELEVEN} color={WHITE} weight={INTER_MEDIUM}>
-                                                {" "}
-                                                {otherUserProfile?.work}
-                                            </AppText>
-                                        </View>
-                                         }
+                                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                                <FastImage
+                                                    source={bussnisIcon}
+                                                    tintColor={colors.white}
+                                                    resizeMode="contain"
+                                                    style={styles.loctionIcon}
+                                                />
+                                                <AppText type={ELEVEN} color={WHITE} weight={INTER_MEDIUM}>
+                                                    {" "}
+                                                    {otherUserProfile?.work}
+                                                </AppText>
+                                            </View>
+                                        }
                                     </View>
                                 </LinearGradient>
                                 <View style={styles.wrapContainer}>

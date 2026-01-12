@@ -10,16 +10,27 @@ import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import NavigationService from "../../navigation/NavigationService";
 import { fakeProfileReport, HarassmentReport, InappropriatePhotosReport, reportData, ScamsFraudReport, SexualReport } from "../../common/UiltData";
 import { NAVIGATION_OHTER_REPORT_SCREEN, NAVIGATION_REPORT_COMMON_SCREEN } from "../../navigation/routes";
+import Toast from "react-native-toast-message";
 
-const ReportScreen = () => {
+const ReportScreen = ({ route }: any) => {
     const [selectReport, setSelectReport] = useState("");
+    const reportedUserId =
+        route?.params?.reportedUserId ||
+        route?.params?.otherUserId ||
+        route?.params?.userId ||
+        "";
     const onSubmit = () => {
-        if (selectReport == "Fake Profile / Impersonation") NavigationService.navigate(NAVIGATION_REPORT_COMMON_SCREEN, { headline: "Fake Profile / Impersonation", inLine: "Please tell us what seems suspicious about this profile:", data: fakeProfileReport })
-        if (selectReport == "Inappropriate Photos or Content") NavigationService.navigate(NAVIGATION_REPORT_COMMON_SCREEN, { headline: "Inappropriate Photos or Content", inLine: "What type of content do you want to report?", data: InappropriatePhotosReport })
-        if (selectReport == "Harassment or Abusive Behavior") NavigationService.navigate(NAVIGATION_REPORT_COMMON_SCREEN, { headline: "Harassment or Abusive Behavior", inLine: "What happened in your interaction?", data: HarassmentReport })
-        if (selectReport == "Sexual Misconduct or Solicitation") NavigationService.navigate(NAVIGATION_REPORT_COMMON_SCREEN, { headline: "Sexual Misconduct or Solicitation", inLine: "What describes the issue best?", data: SexualReport })
-        if (selectReport == "Scams, Fraud, or Money Requests") NavigationService.navigate(NAVIGATION_REPORT_COMMON_SCREEN, { headline: "Scams, Fraud, or Money Requests", inLine: "What type of suspicious activity are you reporting?", data: ScamsFraudReport })
-        if (selectReport == "Other") NavigationService.navigate(NAVIGATION_OHTER_REPORT_SCREEN, { headline: "Other", inLine: "Please tell us more about the issue in your own words." })
+        if (!reportedUserId) {
+            Toast.show({ type: "error", text2: "Unable to report this user. Please try again." });
+            return;
+        }
+
+        if (selectReport == "Fake Profile / Impersonation") NavigationService.navigate(NAVIGATION_REPORT_COMMON_SCREEN, { reportedUserId, subject: selectReport, headline: "Fake Profile / Impersonation", inLine: "Please tell us what seems suspicious about this profile:", data: fakeProfileReport })
+        if (selectReport == "Inappropriate Photos or Content") NavigationService.navigate(NAVIGATION_REPORT_COMMON_SCREEN, { reportedUserId, subject: selectReport, headline: "Inappropriate Photos or Content", inLine: "What type of content do you want to report?", data: InappropriatePhotosReport })
+        if (selectReport == "Harassment or Abusive Behavior") NavigationService.navigate(NAVIGATION_REPORT_COMMON_SCREEN, { reportedUserId, subject: selectReport, headline: "Harassment or Abusive Behavior", inLine: "What happened in your interaction?", data: HarassmentReport })
+        if (selectReport == "Sexual Misconduct or Solicitation") NavigationService.navigate(NAVIGATION_REPORT_COMMON_SCREEN, { reportedUserId, subject: selectReport, headline: "Sexual Misconduct or Solicitation", inLine: "What describes the issue best?", data: SexualReport })
+        if (selectReport == "Scams, Fraud, or Money Requests") NavigationService.navigate(NAVIGATION_REPORT_COMMON_SCREEN, { reportedUserId, subject: selectReport, headline: "Scams, Fraud, or Money Requests", inLine: "What type of suspicious activity are you reporting?", data: ScamsFraudReport })
+        if (selectReport == "Other") NavigationService.navigate(NAVIGATION_OHTER_REPORT_SCREEN, { reportedUserId, subject: "Other", headline: "Other", inLine: "Please tell us more about the issue in your own words." })
 
     }
     return (
