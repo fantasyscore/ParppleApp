@@ -99,6 +99,10 @@ function replace(routeName: string, params?: object) {
 }
 // add other navigation functions that you need and export them
 
+function isNavigationReady(): boolean {
+  return isNavReady && navigator?.dispatch !== undefined;
+}
+
 export default {
   goBack,
   navigate,
@@ -111,4 +115,5 @@ export default {
   resetStack,
   push,
   replace,
+  isNavigationReady,
 };

@@ -394,11 +394,11 @@ const SettingScreen = () => {
                 <View style={styles.modalBackdrop}>
                     <View style={styles.successCard}>
                         <FastImage source={logoBlue} resizeMode="contain" style={styles.appLogo} />
-                        <AppText type={TWENTY} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
+                        {/* <AppText type={TWENTY} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
                             Parpple
-                        </AppText>
+                        </AppText> */}
                         <AppText
-                            style={{ marginTop: metrics.hp1, textAlign: "center" }}
+                            style={{  textAlign: "center" }}
                             type={TWELVE}
                             weight={INTER_MEDIUM}
                             color={OPECITY_DARK}
@@ -411,9 +411,9 @@ const SettingScreen = () => {
                                 setDeleteSuccessVisible(false);
                                 handleLogoutConfirmed();
                             }}
-                            style={[styles.modalBtn, styles.modalBtnPrimary, { alignSelf: "center", marginTop: metrics.hp2 }]}
+                            style={[styles.modalBtn, styles.modalBtnPrimary, { alignSelf: "center", marginTop: metrics.hp2, width:metrics.hp15 }]}
                         >
-                            <AppText type={TWELVE} weight={INTER_BOLD} color={WHITE}>
+                            <AppText type={TWELVE} weight={SCHEHERAZADE_BOLD} color={WHITE}>
                                 OK
                             </AppText>
                         </TouchableOpacityView>
@@ -529,6 +529,6 @@ const styles = StyleSheet.create({
     appLogo: {
         width: metrics.hp8,
         height: metrics.hp8,
-        marginBottom: metrics.hp1,
+        // marginBottom: metrics.hp1,
     },
 })

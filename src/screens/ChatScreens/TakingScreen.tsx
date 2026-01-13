@@ -26,6 +26,7 @@ import { ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { clearActiveChat, setActiveChatMatchId } from '../../slices/inAppNotificationSlice';
 import { chatHistoryDetails, setNewMatches } from '../../slices/loginServices/authSlice';
+import { clearNotificationsByMatchId } from '../../notifications/pushNotifications';
 
 const USER_ID = 1;
 
@@ -108,11 +109,18 @@ const TakingScreen = () => {
 
     // Set active chat matchId when screen is focused, clear when unfocused
     // Also reset unread count for this chat when opened
+    // Clear all notifications for this chat when opened (WhatsApp-like behavior)
     useFocusEffect(
         useCallback(() => {
             const matchId = matchChatUserDetails?.matchId;
             if (matchId) {
                 dispatch(setActiveChatMatchId(matchId));
+                
+                // CRITICAL: Clear all notifications for this chat when opened
+                // This mimics WhatsApp behavior - when user opens chat directly, all notifications for that chat are cleared
+                clearNotificationsByMatchId(matchId).catch((error) => {
+                    console.error('[TakingScreen] Error clearing notifications:', error);
+                });
                 
                 // CRITICAL: Reset unread count when chat is opened
                 const state: any = store?.getState?.();
@@ -131,7 +139,7 @@ const TakingScreen = () => {
             return () => {
                 dispatch(clearActiveChat());
             };
-        }, [dispatch, matchChatUserDetails?.matchId])
+        }, [dispatch, matchChatUserDetails?.matchId, store])
     );
 
     

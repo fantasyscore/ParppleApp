@@ -79,19 +79,19 @@ const LoginScreen = () => {
     /* ===================== LOGIN ===================== */
     const loginButton = () => {
         if (phoneNumber.length === 10) {
-            let data = {
-                phoneNumber: phoneNumber,
-                fcmtoken:fcmtoken
-                // googleToken: signInResult?.data?.idToken
-            };
-            console.log(data,"datadatadatadata");
-            
-            dispatch(userLogin(data, true))
-            // const data = {
-            //     phoneNumber:phoneNumber,
+            // let data = {
+            //     phoneNumber: phoneNumber,
             //     fcmtoken:fcmtoken
-            // }
-            // dispatch(sendOtpApi(data));
+            //     // googleToken: signInResult?.data?.idToken
+            // };
+            // console.log(data,"datadatadatadata");
+            
+            // dispatch(userLogin(data, true))
+            const data = {
+                phoneNumber:phoneNumber,
+                fcmtoken:fcmtoken
+            }
+            dispatch(sendOtpApi(data));
         } else {
             toastAlert.showToastError("Please enter a valid mobile number");
         }

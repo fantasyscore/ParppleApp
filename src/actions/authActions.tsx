@@ -87,20 +87,36 @@ export const addProfile: any = (data: any) => async (dispatch: any) => {
         return { statusCode: 500, message: String(error ?? "") };
     }
 };
-export const listProfiles: any = (navigate: any) => async (dispatch: any) => {
+export const listProfiles: any = (navigate: any, skip?: number, limit?: number, merge?: boolean) => async (dispatch: any, getState: any) => {
     // Prevent accidental rapid duplicate calls from multiple screens mounting.
     // (e.g. AuthLoading + Home focus effect)
     // Note: we only guard "in flight", not "already cached".
     if ((listProfiles as any)._inFlight) return;
     (listProfiles as any)._inFlight = true;
     try {
-        const response: any = await appOperation.customer.datingProfileAPI();
+        const payload: any = {};
+        if (skip !== undefined) payload.skip = skip;
+        if (limit !== undefined) payload.limit = limit;
+        
+        const response: any = await appOperation.customer.datingProfileAPI(payload);
         if (response?.statusCode == 200) {
             const dataWithIndex = response?.data.map((item: any, idx: number) => ({
                 ...item,
                 index: 0,
             }));
-            dispatch(setListProfiles(dataWithIndex));
+            
+            if (merge && getState) {
+                // Merge with existing profiles, avoiding duplicates
+                const state = getState();
+                const existingProfiles = state?.auth?.listProfiles || [];
+                const existingIds = new Set(existingProfiles.map((p: any) => p._id));
+                const newProfiles = dataWithIndex.filter((item: any) => !existingIds.has(item._id));
+                const mergedProfiles = [...existingProfiles, ...newProfiles];
+                dispatch(setListProfiles(mergedProfiles));
+            } else {
+                // Fresh fetch - replace all profiles
+                dispatch(setListProfiles(dataWithIndex));
+            }
             !navigate && NavigationService.reset(NAVIGATION_BOTTOMTAB_SCREEN)
         }
     } catch (error: any) {

@@ -188,8 +188,13 @@ const PeopleScreen = () => {
     const cardWidthRef = useRef(0);
     const WINDOW_SIZE = 4;
     const LOAD_THRESHOLD = 2;
+    const PROFILE_LIMIT = 10; // Target number of profiles to maintain
+    const TOP_UP_TRIGGER_COUNT = 3; // Trigger top-up when 3 profiles remain
     const hasFetchedFeedOnceRef = useRef(false);
     const skipNextSwipeRightCallbackRef = useRef(false);
+    const totalFetchedCountRef = useRef(0); // Track total profiles fetched so far
+    const isTopUpInProgressRef = useRef(false); // Prevent concurrent top-up requests
+    const lastTopUpTriggeredAtRef = useRef<number | null>(null); // Track last remaining count when top-up was triggered
     // "Home loaded" = this landing's initial profile/feed fetches have settled (success or failure).
     // Used to ensure the profile completion reminder shows only after the screen is actually ready.
     const homeLoadCycleRef = useRef(0);
@@ -453,7 +458,11 @@ const PeopleScreen = () => {
             }
             if (!hasFetchedFeedOnceRef.current && (!listProfilesData || listProfilesData.length === 0)) {
                 hasFetchedFeedOnceRef.current = true;
-                promises.push(dispatch(listProfiles(true)));
+                // Initial fetch with skip=0, limit=10
+                promises.push(dispatch(listProfiles(true, 0, PROFILE_LIMIT, false)).then((result: any) => {
+                    // Update totalFetchedCountRef after initial fetch completes
+                    // This will be set based on actual response in the effect below
+                }));
             }
 
             if (promises.length > 0) {
@@ -540,6 +549,100 @@ const PeopleScreen = () => {
             }
         }
     }, [getCurrentIndex, windowStartIndex, listProfilesData]);
+
+    // Track total fetched count: use actual list length as source of truth
+    // This handles cases where API returns fewer profiles than requested
+    useEffect(() => {
+        if (!listProfilesData || listProfilesData.length === 0) {
+            // Reset when profiles are cleared
+            totalFetchedCountRef.current = 0;
+            lastTopUpTriggeredAtRef.current = null; // Reset trigger tracking
+            return;
+        }
+        
+        const previousCount = totalFetchedCountRef.current;
+        const currentCount = listProfilesData.length;
+        
+        // Update count to match actual list length
+        // This ensures we always request from the correct skip position
+        // If list length decreased, it's a fresh fetch (filter reset) - update count
+        // If list length increased, it's a top-up merge - update count
+        totalFetchedCountRef.current = currentCount;
+        
+        // Reset trigger ref when new profiles are added (top-up completed)
+        // This allows top-up to trigger again if count drops to 3 later
+        if (currentCount > previousCount && previousCount > 0) {
+            lastTopUpTriggeredAtRef.current = null;
+        }
+    }, [listProfilesData]);
+
+    // Auto top-up logic: fetch more profiles when exactly 3 profiles remain
+    const fetchTopUpProfiles = useCallback(async () => {
+        if (isTopUpInProgressRef.current) return; // Prevent concurrent requests
+        if (!IsFocused) return; // Only top-up when screen is focused
+        
+        const currentTotal = listProfilesData?.length || 0;
+        const consumedCount = windowStartIndex + getCurrentIndex;
+        const remainingCount = currentTotal - consumedCount;
+        
+        // Only top-up when exactly 3 profiles remain (or <= 3 to handle edge cases)
+        // This ensures we fetch 7 more to reach 10 total
+        if (remainingCount <= TOP_UP_TRIGGER_COUNT && remainingCount >= 0) {
+            // Prevent duplicate triggers for the same remaining count
+            if (lastTopUpTriggeredAtRef.current === remainingCount) {
+                return;
+            }
+            
+            const neededCount = PROFILE_LIMIT - remainingCount; // Will be 7 when remainingCount is 3
+            const skip = totalFetchedCountRef.current;
+            const limit = neededCount;
+            
+            // Only fetch if we need more and haven't already fetched everything
+            if (limit > 0 && limit <= PROFILE_LIMIT) {
+                isTopUpInProgressRef.current = true;
+                lastTopUpTriggeredAtRef.current = remainingCount; // Mark that we triggered for this count
+                try {
+                    console.log(`[HomeScreen] Top-up: fetching ${limit} more profiles (skip=${skip}, remaining=${remainingCount})`);
+                    await dispatch(listProfiles(true, skip, limit, true)); // merge=true to append
+                    // totalFetchedCountRef will be updated automatically by the useEffect above
+                } catch (error) {
+                    console.warn('[HomeScreen] Top-up fetch failed:', error);
+                    // Reset trigger ref on error so it can retry
+                    lastTopUpTriggeredAtRef.current = null;
+                } finally {
+                    isTopUpInProgressRef.current = false;
+                }
+            }
+        }
+    }, [IsFocused, listProfilesData, windowStartIndex, getCurrentIndex, dispatch]);
+
+    // Monitor profile consumption and trigger top-up when exactly 3 profiles remain
+    useEffect(() => {
+        if (!IsFocused) return;
+        if (!listProfilesData || listProfilesData.length === 0) return;
+        if (isTopUpInProgressRef.current) return; // Don't trigger if already fetching
+        
+        const consumedCount = windowStartIndex + getCurrentIndex;
+        const remainingCount = listProfilesData.length - consumedCount;
+        
+        // Trigger top-up only when exactly 3 profiles remain (or <= 3 to handle edge cases)
+        // This ensures API is called only once when threshold is reached
+        if (remainingCount <= TOP_UP_TRIGGER_COUNT && remainingCount >= 0) {
+            // Check if we already triggered for this remaining count
+            if (lastTopUpTriggeredAtRef.current !== remainingCount) {
+                // Small delay to avoid rapid successive calls
+                const timer = setTimeout(() => {
+                    fetchTopUpProfiles();
+                }, 300);
+                
+                return () => clearTimeout(timer);
+            }
+        } else if (remainingCount > TOP_UP_TRIGGER_COUNT) {
+            // Reset trigger ref when remaining count goes above threshold
+            // This allows top-up to trigger again if count drops back to 3
+            lastTopUpTriggeredAtRef.current = null;
+        }
+    }, [IsFocused, listProfilesData, windowStartIndex, getCurrentIndex, fetchTopUpProfiles]);
 
     const canSwipeRight = useCallback(() => {
         // Check subscription perks for unlimited likes

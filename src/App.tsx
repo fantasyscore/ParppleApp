@@ -8,9 +8,9 @@ import { StatusBar, Text, View } from "react-native";
 import SplashScreen from "react-native-splash-screen";
 import ToastMessage from "./common/ToastMessage";
 import codePush from "@revopush/react-native-code-push";
-// import { getInitialNotification, requestPushPermission, setupPushListeners } from "./notifications/pushNotifications";
 import { recoverPurchasesOnStartup } from "./services/purchaseRecoveryService";
 import notifee, { AndroidImportance } from "@notifee/react-native"
+import { setupPushListeners, getInitialNotification } from "./notifications/pushNotifications";
 async function setupChannels() {
   await notifee.createChannel({
     id: 'parpple-popup-v2',
@@ -56,9 +56,25 @@ const App = () => {
     });
   }, []);
 
+  // useEffect(() => {
+  //   setupChannels()
+  // }, []);
+
   useEffect(() => {
-    setupChannels()
-  }, [])
+    // Handle notification tap when app is opened from killed state
+    getInitialNotification(store).catch(() => { });
+
+    // Setup push listeners for foreground and background notification taps
+    const unsubscribe = setupPushListeners({
+      onInAppNotification: data => {
+        console.log('IN-APP NOTIFICATION:', data);
+      },
+      store: store,
+    });
+  
+    return unsubscribe;
+  }, []);
+
   return (
     <SafeAreaProvider>
       <Provider store={store}>

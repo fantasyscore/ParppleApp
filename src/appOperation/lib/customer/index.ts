@@ -5,8 +5,8 @@ import { CUSTOMER_TYPE } from "../../types";
 export default (appOperation: AppOperation) => ({
   addProfileAPI: (data: any) =>
     appOperation.post(`dattingApp/users/add-profile`, data, CUSTOMER_TYPE),
-  datingProfileAPI: () =>
-    appOperation.post(`datting-profile/showProfiles`, {}, CUSTOMER_TYPE),
+  datingProfileAPI: (data?: any) =>
+    appOperation.post(`datting-profile/showProfiles`, data || {}, CUSTOMER_TYPE),
   swipeLikeDisLikeAPI: (data: any) =>
     appOperation.post(`datting-profile/swipe`, data, CUSTOMER_TYPE),
   likesLikeYouAPI: () =>
