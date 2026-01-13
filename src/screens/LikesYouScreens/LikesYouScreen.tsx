@@ -139,6 +139,7 @@ const LikesYouScreen = () => {
             </TouchableOpacityView>
         )
     };
+console.log(userData?.subscription,"subscription");
 
     const dataCorrect = () => {
         const { subscription } = userData || {};
@@ -157,7 +158,7 @@ const LikesYouScreen = () => {
 
         if (tabSelect === "Likes" && likeYoue === "You Liked") {
             data = likeYouData?.length ? likeYouData : [];
-            return data.map((item) => ({ ...item, see: true })); // You can always see who you liked
+            return data.map((item) => ({ ...item, see: canSeeLikes })); // You can always see who you liked
         }
 
         if (tabSelect === "Views" && ViewYoue === "Viewed You") {
@@ -167,7 +168,7 @@ const LikesYouScreen = () => {
 
         if (tabSelect === "Views" && ViewYoue === "You Viewed") {
             data = viewByOtherData?.length ? viewByOtherData : [];
-            return data.map((item) => ({ ...item, see: true })); // You can see whom you viewed
+            return data.map((item) => ({ ...item, see: canSeeViews })); // You can see whom you viewed
         }
 
         return [];

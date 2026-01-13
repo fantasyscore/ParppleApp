@@ -395,7 +395,7 @@ const PeopleScreen = () => {
     const socketUrl = useMemo(() => {
         const currentUserId = userData?._id;
         if (!currentUserId) return null;
-        return `http://13.201.74.29/?userId=${currentUserId}`;
+        return `https://api.parpple.com/?userId=${currentUserId}`;
     }, [userData?._id]);
 
     const socket = useMemo(() => {

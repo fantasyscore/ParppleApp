@@ -385,68 +385,69 @@ const ChatsScreen = () => {
     };
 
 
+    const ListHeaderComponent = () => (
+        <>
+            {HeaderListChats()}
+            <View style={[styles.newMatchTextContainer, {
+                paddingHorizontal: metrics.hp2,
+                marginTop: metrics.hp4
+            }]}>
+                <FastImage source={messageIcon} resizeMode="contain" style={styles.heartIcon} />
+                <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={BLACK}>
+                    {"  "}Messages{"  "}
+                </AppText>
+            </View>
+        </>
+    );
+
+    const ListFooterComponent = () => {
+        if (newMatches?.length === 0) {
+            return (
+                <View style={{ marginBottom: metrics.hp4 }}>
+                    <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: itemss })} >
+                        <FastImage source={upgradPlan} resizeMode="contain" style={{ height: metrics.hp10, width: Screen.Width / 1, }} />
+                    </TouchableOpacityView>
+                </View>
+            );
+        }
+        return null;
+    };
+
     return (
         <AppSafeAreaView>
             <PeopleHeader profile={true} filter={true} />
             <View style={styles.singlelIne} />
-            {newMatches?.length &&
+            {newMatches?.length ? (
                 <View style={{ paddingHorizontal: metrics.hp2 }}>
                     <SearchContainer onChangeText={setSearch} value={search} placeholder={"Search matches"} style={{ height: metrics.hp7 }} />
                 </View>
-            }
-            {!newMatches?.length &&
+            ) : (
                 <View style={{ paddingHorizontal: metrics.hp2 }}>
                     <SearchContainer editable={false} onChangeText={setSearch} value={search} placeholder={"Search matches"} style={{ height: metrics.hp7 }} />
                 </View>
-            }
-            {HeaderListChats()}
+            )}
             {newMatches?.length === 0 ? (
-                <>
-                    <View style={[styles.newMatchTextContainer, {
-                        paddingHorizontal: metrics.hp2,
-                        marginTop: metrics.hp4
-                    }]}>
-                        <FastImage source={messageIcon} resizeMode="contain" style={styles.heartIcon} />
-                        <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={BLACK}>
-                            {"  "}Messages{"  "}
-                        </AppText>
-                    </View>
-                    <FlatList
-                        data={query ? (normalize(botChatItem.name).includes(query) ? [botChatItem] : []) : [botChatItem]}
-                        renderItem={renderItemChats}
-                        keyExtractor={(item: any) => item.matchId}
-                        ListEmptyComponent={query ? noSearchFound : null}
-                        contentContainerStyle={{ marginTop: metrics.hp2 }}
-                    />
-                    <View style={{ marginBottom: metrics.hp4 }}>
-                        <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: itemss })} >
-                            <FastImage source={upgradPlan} resizeMode="contain" style={{ height: metrics.hp10, width: Screen.Width / 1, }} />
-                        </TouchableOpacityView>
-                    </View>
-                </>
-            ) :
-                <>
-                    <View style={[styles.newMatchTextContainer, {
-                        paddingHorizontal: metrics.hp2,
-                        marginTop: metrics.hp4
-                    }]}>
-                        <FastImage source={messageIcon} resizeMode="contain" style={styles.heartIcon} />
-                        <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={BLACK}>
-                            {"  "}Messages{"  "}
-                        </AppText>
-                    </View>
-                    <FlatList
-                        data={filteredChats}
-                        renderItem={renderItemChats}
-                        keyExtractor={(item) => item.matchId}
-                        showsVerticalScrollIndicator={false}
-                        ListEmptyComponent={noSearchFound}
-                        // ListHeaderComponent={HeaderListChats}
-                        contentContainerStyle={{ marginTop: metrics.hp2, paddingBottom: metrics.hp5 }} />
-
-                </>
-            }
-
+                <FlatList
+                    data={query ? (normalize(botChatItem.name).includes(query) ? [botChatItem] : []) : [botChatItem]}
+                    renderItem={renderItemChats}
+                    keyExtractor={(item: any) => item.matchId || item.userId || 'bot'}
+                    ListEmptyComponent={query ? noSearchFound : null}
+                    ListHeaderComponent={ListHeaderComponent}
+                    ListFooterComponent={ListFooterComponent}
+                    contentContainerStyle={{ paddingBottom: metrics.hp5 }}
+                    showsVerticalScrollIndicator={false}
+                />
+            ) : (
+                <FlatList
+                    data={filteredChats}
+                    renderItem={renderItemChats}
+                    keyExtractor={(item) => item.matchId}
+                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={noSearchFound}
+                    ListHeaderComponent={ListHeaderComponent}
+                    contentContainerStyle={{ paddingBottom: metrics.hp5 }}
+                />
+            )}
         </AppSafeAreaView>
     )
 };

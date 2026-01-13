@@ -237,7 +237,7 @@ const GlobalNotificationManager: React.FC = () => {
 
             lastSocketUserId = currentUserId;
             // Use the same socket URL as TakingScreen for consistency
-            const url = `http://13.201.74.29/?userId=${currentUserId}`;
+            const url = `https://api.parpple.com/?userId=${currentUserId}`;
             console.log('[GlobalNotificationManager] Creating socket connection:', url);
             const socket = createSocket(url);
             socketRef.current = socket;
@@ -311,7 +311,7 @@ const GlobalNotificationManager: React.FC = () => {
                 if (currentUserId && (!socketRef.current || !socketRef.current.connected)) {
                     console.log('[GlobalNotificationManager] Reconnecting socket - app coming to foreground');
                     // Use the same socket URL as TakingScreen for consistency
-                    const url = `http://13.201.74.29/?userId=${currentUserId}`;
+                    const url = `https://api.parpple.com/?userId=${currentUserId}`;
                     try {
                         if (socketRef.current) {
                             socketRef.current.removeAllListeners?.();
