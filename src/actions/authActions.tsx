@@ -46,9 +46,7 @@ export const sendOtpApi: any = (data: any, gmail: any) => async (dispatch: any) 
 export const otpVerifyAPIOne: any = (data: any, gmail: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.guest.otpVerifyAPI(data);
-        console.log(response, "responseresponseresponse");
-
-        if (response?.statusCode == 200) {
+        if (response?.success == true) {
             toastAlert.showToastError(response.message);
             appOperation.setCustomerToken(response?.data?.token);
             await AsyncStorage.setItem(USER_TOKEN_KEY, response?.data?.token);
@@ -56,6 +54,8 @@ export const otpVerifyAPIOne: any = (data: any, gmail: any) => async (dispatch: 
                 dispatch(listProfiles());
                 dispatch(getProfile(true));
                 dispatch(discoverProfile())
+            }else{
+                NavigationService.navigate(NAVIGATION_PROCCED_SCREEN, { comming: "OTP" })
             }
         } else {
             toastAlert.showToastError(response.message);

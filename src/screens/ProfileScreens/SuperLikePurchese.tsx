@@ -15,7 +15,7 @@ import { objectSendAPI, subscriptionVerifyAPI, verifyconsumableitemsAPI } from "
 
 // One-time Product SKUs
 const PRODUCT_SKUS = Platform.select({
-    android: ['10_super_likes', '3_super_likes', '1_super_like'],
+    android: ["20_super_like",'10_super_likes', '3_super_likes', '1_super_like'],
     ios: ['10_super_likes', '3_super_likes', '1_super_like'],
 }) || [];
 

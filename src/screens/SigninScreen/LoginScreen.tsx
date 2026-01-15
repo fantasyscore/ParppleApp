@@ -214,5 +214,6 @@ const styles = StyleSheet.create({
         width: Screen.Width / 1.6,
         fontSize: fontSize(18),
         fontFamily: INTER_BOLD,
+        fontWeight:"700"
     },
 });
