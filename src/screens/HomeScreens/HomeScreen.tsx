@@ -395,7 +395,8 @@ const PeopleScreen = () => {
     const socketUrl = useMemo(() => {
         const currentUserId = userData?._id;
         if (!currentUserId) return null;
-        return `https://api.parpple.com/?userId=${currentUserId}`;
+        const { config } = require('../../config/config');
+        return `${config.BASE_URL}?userId=${currentUserId}`;
     }, [userData?._id]);
 
     const socket = useMemo(() => {

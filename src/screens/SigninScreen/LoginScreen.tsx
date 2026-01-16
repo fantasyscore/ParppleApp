@@ -35,6 +35,7 @@ const LoginScreen = () => {
     const [show, setShow] = useState(false);
     const [countryCode, setCountryCode] = useState("+91");
     const [fcmtoken, setfcmToken] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         let unsubscribeTokenRefresh: (() => void) | undefined;
@@ -77,21 +78,33 @@ const LoginScreen = () => {
     }, []);
 
     /* ===================== LOGIN ===================== */
-    const loginButton = () => {
+    const loginButton = async () => {
+        // Prevent multiple clicks
+        if (isLoading) {
+            return;
+        }
+
         if (phoneNumber.length === 10) {
-            // let data = {
-            //     phoneNumber: phoneNumber,
-            //     fcmtoken:fcmtoken
-            //     // googleToken: signInResult?.data?.idToken
-            // };
-            // console.log(data,"datadatadatadata");
+            let data = {
+                phoneNumber: phoneNumber,
+                fcmtoken: fcmtoken
+                // googleToken: signInResult?.data?.idToken
+            };
+            console.log(data, "datadatadatadata");
             
-            // dispatch(userLogin(data, true))
-            const data = {
-                phoneNumber:phoneNumber,
-                fcmtoken:fcmtoken
+            setIsLoading(true);
+            try {
+                await dispatch(userLogin(data, true));
+            } catch (error) {
+                // Error is already handled in the action
+            } finally {
+                setIsLoading(false);
             }
-            dispatch(sendOtpApi(data));
+            // const data = {
+            //     phoneNumber:phoneNumber,
+            //     fcmtoken:fcmtoken
+            // }
+            // dispatch(sendOtpApi(data));
         } else {
             toastAlert.showToastError("Please enter a valid mobile number");
         }
@@ -161,8 +174,9 @@ const LoginScreen = () => {
                 >
                     <View style={{ marginTop: metrics.hp9 }}>
                         <GoButton
-                            colortrue={phoneNumber.length === 10}
+                            colortrue={phoneNumber.length === 10 && !isLoading}
                             onPress={loginButton}
+                            disabled={isLoading}
                         />
                     </View>
                 </LinearGradient>

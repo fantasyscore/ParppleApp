@@ -60,6 +60,7 @@ import OtherReport from "../screens/ProfileScreens/OtherReport";
 import SuceesReporting from "../screens/ProfileScreens/SuceesReporting";
 import ToastMessage from "../common/ToastMessage";
 import GlobalNotificationManager from "../common/GlobalNotificationManager";
+import InternetConnectionBanner from "../common/InternetConnectionBanner";
 import AuthLoding from "../screens/AuthLoding";
 import SuperLikeScreen from "../screens/HomeScreens/SuperLikeScreen";
 import PeopleScreen from "../screens/HomeScreens/HomeScreen";
@@ -173,6 +174,7 @@ const Navigator = () => {
       <RootStackScreen />
       <ToastMessage />
       <GlobalNotificationManager />
+      <InternetConnectionBanner />
     </NavigationContainer>
   );
 };

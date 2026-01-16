@@ -3,6 +3,7 @@ import admin from "./lib/admin";
 import guest from "./lib/guest";
 import customer from "./lib/customer";
 import { ADMIN_TYPE, CUSTOMER_TYPE } from "./types";
+import { config } from "../config/config";
 
 class ApiError extends Error {
   constructor(m: string) {
@@ -18,9 +19,8 @@ export class AppOperation {
   customer;
   customerToken: string | null | undefined;
   constructor() {
-    // http://13.201.74.29/
-    // https://api.parpple.com/
-    this.base_url = "https://api.parpple.com/";
+    // Use centralized base URL from config
+    this.base_url = config.BASE_URL;
     this.root_path = ``;
     this.admin = admin(this);
     this.guest = guest(this);
