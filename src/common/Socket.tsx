@@ -4,27 +4,42 @@ import { connect, io } from 'socket.io-client';
 const activeSockets = new Set<any>();
 
 export const createSocket = (url: any) => {
-  const socket = connect(url, {
-    transports: ['websocket'],
-    forceNew: true,
-    autoConnect: true,
-    upgrade: false,
-    rejectUnauthorized: false,
-    reconnectionAttempts: 5,
-  });
-
-  activeSockets.add(socket);
-
-  // Best-effort cleanup if socket disconnects naturally
-  try {
-    socket.on?.('disconnect', () => {
-      activeSockets.delete(socket);
-    });
-  } catch (e) {
-    // ignore
+  if (!url || typeof url !== 'string') {
+    console.error('[Socket] Invalid URL provided to createSocket:', url);
+    throw new Error('Invalid socket URL');
   }
 
-  return socket;
+  try {
+    const socket = connect(url, {
+      transports: ['websocket'],
+      forceNew: true,
+      autoConnect: true,
+      upgrade: false,
+      rejectUnauthorized: false,
+      reconnectionAttempts: 5,
+    });
+
+    if (!socket) {
+      throw new Error('Failed to create socket');
+    }
+
+    activeSockets.add(socket);
+
+    // Best-effort cleanup if socket disconnects naturally
+    try {
+      socket.on?.('disconnect', () => {
+        activeSockets.delete(socket);
+      });
+    } catch (e) {
+      console.warn('[Socket] Error setting disconnect handler:', e);
+      // ignore - socket still works
+    }
+
+    return socket;
+  } catch (error) {
+    console.error('[Socket] Error creating socket:', error);
+    throw error;
+  }
 };
 
 export const disconnectAllSockets = () => {

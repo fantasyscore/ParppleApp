@@ -18,37 +18,66 @@ function enqueueAction(action: any) {
 }
 
 function flushPending() {
-  if (!isNavReady || !navigator?.dispatch) return;
+  if (!isNavReady || !navigator?.dispatch) {
+    console.log('[NavigationService] Cannot flush pending actions - navigation not ready');
+    return;
+  }
   while (pendingActions.length) {
     const action = pendingActions.shift();
     try {
       navigator.dispatch(action);
-    } catch {
+    } catch (error) {
       // If something still fails, drop the action (do not crash the app)
+      console.warn('[NavigationService] Failed to dispatch queued action:', error);
     }
   }
 }
 
 function setTopLevelNavigator(navigatorRef: any) {
+  console.log('[NavigationService] Setting navigator ref', { hasRef: !!navigatorRef });
   navigator = navigatorRef;
-  flushPending();
+  // If navigator was null/undefined and now we have a ref, try to flush
+  if (navigatorRef) {
+    flushPending();
+  }
 }
 
 function setIsReady(ready: boolean) {
+  console.log('[NavigationService] Setting navigation ready state:', ready);
   isNavReady = ready;
-  flushPending();
+  if (ready) {
+    flushPending();
+  }
 }
 
 function safeDispatch(action: any) {
-  if (isNavReady && navigator?.dispatch) {
-    try {
-      navigator.dispatch(action);
-      return;
-    } catch {
-      // fall through to enqueue
-    }
+  // Enhanced safety checks for app resume scenarios
+  if (!navigator) {
+    console.warn('[NavigationService] Navigator ref is null, enqueueing action');
+    enqueueAction(action);
+    return;
   }
-  enqueueAction(action);
+
+  if (!isNavReady) {
+    console.warn('[NavigationService] Navigation not ready yet, enqueueing action');
+    enqueueAction(action);
+    return;
+  }
+
+  if (typeof navigator.dispatch !== 'function') {
+    console.warn('[NavigationService] Navigator dispatch is not a function, enqueueing action');
+    enqueueAction(action);
+    return;
+  }
+
+  try {
+    navigator.dispatch(action);
+    return;
+  } catch (error) {
+    console.error('[NavigationService] Dispatch failed, enqueueing action:', error);
+    // fall through to enqueue
+    enqueueAction(action);
+  }
 }
 
 function navigate(routeName: string, params?: object) {
@@ -100,7 +129,15 @@ function replace(routeName: string, params?: object) {
 // add other navigation functions that you need and export them
 
 function isNavigationReady(): boolean {
-  return isNavReady && navigator?.dispatch !== undefined;
+  const ready = isNavReady && navigator?.dispatch !== undefined;
+  if (!ready) {
+    console.log('[NavigationService] Navigation not ready:', {
+      isNavReady,
+      hasNavigator: !!navigator,
+      hasDispatch: !!navigator?.dispatch,
+    });
+  }
+  return ready;
 }
 
 export default {

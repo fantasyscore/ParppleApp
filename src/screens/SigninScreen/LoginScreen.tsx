@@ -94,7 +94,7 @@ const LoginScreen = () => {
             
             setIsLoading(true);
             try {
-                await dispatch(userLogin(data, true));
+                await  dispatch(sendOtpApi(data));/*  dispatch(userLogin(data, true)); */
             } catch (error) {
                 // Error is already handled in the action
             } finally {

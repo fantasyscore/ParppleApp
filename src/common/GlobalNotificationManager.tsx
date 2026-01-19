@@ -295,30 +295,68 @@ const GlobalNotificationManager: React.FC = () => {
                 // CRITICAL: App is going to background/recent apps - disconnect ALL sockets
                 // This prevents background socket events and memory leaks
                 console.log('[GlobalNotificationManager] Disconnecting ALL sockets - app going to background');
-                disconnectAllSockets();
-                if (socketRef.current) {
-                    try {
-                        socketRef.current.removeAllListeners?.();
-                        socketRef.current.disconnect?.();
-                    } catch (e) {
-                        console.error('[GlobalNotificationManager] Error disconnecting socket:', e);
+                try {
+                    disconnectAllSockets();
+                    if (socketRef.current) {
+                        try {
+                            socketRef.current.removeAllListeners?.();
+                            socketRef.current.disconnect?.();
+                        } catch (e) {
+                            console.error('[GlobalNotificationManager] Error disconnecting socket:', e);
+                        }
+                        socketRef.current = null;
                     }
+                } catch (e) {
+                    console.error('[GlobalNotificationManager] Error during background disconnect:', e);
+                    // Don't crash - ensure socket ref is cleared
                     socketRef.current = null;
                 }
             } else if (nextAppState === 'active') {
                 // App is coming to foreground - reconnect socket
                 // This tells backend user is online again
-                const currentUserId = userIdRef.current;
-                if (currentUserId && (!socketRef.current || !socketRef.current.connected)) {
-                    console.log('[GlobalNotificationManager] Reconnecting socket - app coming to foreground');
-                    // Use the same socket URL as TakingScreen for consistency
-                    const { config } = require('../config/config');
-                    const url = `${config.BASE_URL}?userId=${currentUserId}`;
+                // CRITICAL: Add delay to ensure app is fully initialized after resume
+                // This prevents crashes when app is restored from killed state
+                setTimeout(() => {
                     try {
-                        if (socketRef.current) {
-                            socketRef.current.removeAllListeners?.();
-                            socketRef.current.disconnect?.();
+                        // Verify store is available and has valid state
+                        const state: any = store.getState();
+                        if (!state) {
+                            console.warn('[GlobalNotificationManager] Store not available on resume, skipping socket reconnect');
+                            return;
                         }
+
+                        const currentUserId = userIdRef.current;
+                        if (!currentUserId) {
+                            console.log('[GlobalNotificationManager] No userId available on resume, skipping socket reconnect');
+                            return;
+                        }
+
+                        // Only reconnect if socket is not already connected
+                        if (socketRef.current?.connected) {
+                            console.log('[GlobalNotificationManager] Socket already connected, skipping reconnect');
+                            return;
+                        }
+
+                        console.log('[GlobalNotificationManager] Reconnecting socket - app coming to foreground');
+                        // Use the same socket URL as TakingScreen for consistency
+                        const { config } = require('../config/config');
+                        if (!config?.BASE_URL) {
+                            console.error('[GlobalNotificationManager] Config BASE_URL not available');
+                            return;
+                        }
+
+                        const url = `${config.BASE_URL}?userId=${currentUserId}`;
+                        
+                        // Clean up old socket if exists
+                        if (socketRef.current) {
+                            try {
+                                socketRef.current.removeAllListeners?.();
+                                socketRef.current.disconnect?.();
+                            } catch (e) {
+                                console.warn('[GlobalNotificationManager] Error cleaning up old socket:', e);
+                            }
+                        }
+
                         const socket = createSocket(url);
                         socketRef.current = socket;
 
@@ -333,6 +371,7 @@ const GlobalNotificationManager: React.FC = () => {
 
                         socket.on('connect_error', (error: any) => {
                             console.error('[GlobalNotificationManager] Socket reconnection error:', error);
+                            // Don't crash on connection error - socket will retry automatically
                         });
 
                         // CRITICAL: Remove all existing listeners first to prevent duplicates
@@ -341,9 +380,11 @@ const GlobalNotificationManager: React.FC = () => {
                         // Re-attach notification handler
                         socket.on('in_app_notification', createNotificationHandler());
                     } catch (e) {
-                        console.error('[GlobalNotificationManager] Error reconnecting socket:', e);
+                        console.error('[GlobalNotificationManager] Error reconnecting socket on resume:', e);
+                        // Don't crash - clear socket ref and let it retry later
+                        socketRef.current = null;
                     }
-                }
+                }, 500); // Delay to ensure app is fully initialized
             }
         };
 

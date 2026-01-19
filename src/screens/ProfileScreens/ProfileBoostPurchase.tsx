@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { ActivityIndicator, Alert, FlatList, ImageBackground, Platform, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, Animated, FlatList, ImageBackground, Modal, Platform, StyleSheet, View } from "react-native";
 import OneTimeProductHeader from "../../common/OneTimeProductHeader";
-import { flasIcon, goldCard, orBottomIcon, premiumIcon, superlIkeBackGround, upgradPlan } from "../../helper/ImageAssets";
-import { AppText, BLACK, EIGHT, FORTEEN, INTER_BOLD, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TEN, THIRTEEN, TWELVE, TWENTY_TWO, WHITE } from "../../common/AppText";
+import { flasIcon, goldCard, logoBlue, orBottomIcon, premiumIcon, superlIkeBackGround, upgradPlan } from "../../helper/ImageAssets";
+import LinearGradient from "react-native-linear-gradient";
+import { AppText, BLACK, EIGHT, ELEVEN, FORTEEN, INTER_BOLD, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, SCHEHERAZADE_BOLD, SIXTEEN, TEN, THIRTEEN, TWELVE, TWENTY_TWO, WHITE } from "../../common/AppText";
 import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
 import { colors } from "../../theme/colors";
@@ -12,7 +13,7 @@ import * as RNIap from 'react-native-iap';
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 import { useDispatch } from "react-redux";
-import { subscriptionVerifyAPI, verifyconsumableitemsAPI } from "../../actions/authActions";
+import { getProfile, subscriptionVerifyAPI, verifyconsumableitemsAPI } from "../../actions/authActions";
 
 // One-time Product SKUs
 const PRODUCT_SKUS = Platform.select({
@@ -36,6 +37,22 @@ const ProfileBoostPurchase = () => {
     const [processing, setProcessing] = useState<string | null>(null);
     const lastVerifiedKeyRef = useRef<string | null>(null);
     const isVerifyingRef = useRef(false);
+    const [verifyModalVisible, setVerifyModalVisible] = useState(false);
+    const [verifyStage, setVerifyStage] = useState<'verifying' | 'success' | 'error'>('verifying');
+    const [verifyError, setVerifyError] = useState<string>('');
+    const [verifyResponse, setVerifyResponse] = useState<any>(null);
+    const payModalScale = useRef(new Animated.Value(0.96)).current;
+    const payModalOpacity = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (!verifyModalVisible) return;
+        payModalOpacity.setValue(0);
+        payModalScale.setValue(0.96);
+        Animated.parallel([
+            Animated.timing(payModalOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
+            Animated.timing(payModalScale, { toValue: 1, duration: 180, useNativeDriver: true }),
+        ]).start();
+    }, [payModalOpacity, payModalScale, verifyModalVisible]);
 
     useEffect(() => {
         let purchaseUpdateSubscription: any;
@@ -150,12 +167,18 @@ const ProfileBoostPurchase = () => {
                 isVerifyingRef.current = true;
                 lastVerifiedKeyRef.current = key || null;
 
+                setVerifyModalVisible(true);
+                setVerifyStage('verifying');
+                setVerifyError('');
+                setVerifyResponse(null);
+
                 setProcessing(purchase?.productId || 'verifying');
 
                 const data = {
                     productId: purchase.productId,
                     purchaseToken: purchase.purchaseToken,
                     platform: Platform.OS === 'ios' ? 'ios' : 'android',
+                    orderId: purchase.id,
                 };
 
                 const response: any = await dispatch(verifyconsumableitemsAPI(data));
@@ -164,19 +187,14 @@ const ProfileBoostPurchase = () => {
                     throw new Error(response?.message || response?.data?.message || 'Boost verification failed');
                 }
 
+                setVerifyResponse(response);
+                setVerifyStage('success');
                 await RNIap.finishTransaction({ purchase, isConsumable: true });
-
-                Alert.alert(
-                    'Success',
-                    'Boost added successfully!',
-                    [{ text: 'OK', onPress: () => NavigationService.goBack() }]
-                );
+                dispatch(getProfile(true))
             } catch (err) {
                 console.error('[Boost] Purchase handler error:', err);
-                Alert.alert(
-                    'Verification Failed',
-                    (err as any)?.message || 'Something went wrong while verifying your purchase.'
-                );
+                setVerifyStage('error');
+                setVerifyError((err as any)?.message || 'Something went wrong while verifying your purchase.');
             } finally {
                 setProcessing(null);
                 isVerifyingRef.current = false;
@@ -322,6 +340,110 @@ const ProfileBoostPurchase = () => {
                     </TouchableOpacityView>
                 </View>
             </ImageBackground>
+
+            <Modal
+                visible={verifyModalVisible}
+                transparent
+                animationType="fade"
+                statusBarTranslucent
+                hardwareAccelerated
+                onRequestClose={() => { }}
+            >
+                <View style={styles.payBackdrop}>
+                    <Animated.View style={[styles.payCard, { opacity: payModalOpacity, transform: [{ scale: payModalScale }] }]}>
+                        <View style={styles.payContent}>
+                            <View style={styles.payIconRing}>
+                                <FastImage source={logoBlue} resizeMode="contain" style={styles.payIcon} />
+                            </View>
+
+                            <AppText
+                                type={FORTEEN}
+                                weight={INTER_EXTRA_BOLD}
+                                color={LIGHT_BLACK}
+                                style={{ textAlign: "center", marginTop: metrics.hp1 }}
+                            >
+                                {verifyStage === "success"
+                                    ? "Payment Successful"
+                                    : verifyStage === "error"
+                                        ? "Payment Verification Failed"
+                                        : "Verifying Payment"}
+                            </AppText>
+
+                            {verifyStage === "success" ? (
+                                <>
+                                    <AppText
+                                        type={ELEVEN}
+                                        weight={INTER_REGULAR}
+                                        color={OPECITY_DARK}
+                                        style={{ textAlign: "center", marginTop: metrics.hp1 }}
+                                    >
+                                        Your payment has been completed successfully. Boosts have been added to your account.
+                                    </AppText>
+                                    <AppText
+                                        type={ELEVEN}
+                                        weight={INTER_MEDIUM}
+                                        color={OPECITY_DARK}
+                                        style={{ textAlign: "center", marginTop: metrics.hp1 }}
+                                    >
+                                        Enjoy unlimited access and exclusive benefits!
+                                    </AppText>
+
+                                    {verifyResponse?.data?.transactionId ? (
+                                        <View style={styles.payMetaBox}>
+                                            <AppText type={TEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                                                Transaction ID
+                                            </AppText>
+                                            <AppText type={TEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ marginTop: metrics.hp0_5 }}>
+                                                {verifyResponse?.data?.transactionId}
+                                            </AppText>
+                                        </View>
+                                    ) : null}
+                                </>
+                            ) : verifyStage === "error" ? (
+                                <AppText
+                                    type={ELEVEN}
+                                    weight={INTER_REGULAR}
+                                    color={OPECITY_DARK}
+                                    style={{ textAlign: "center", marginTop: metrics.hp1 }}
+                                >
+                                    {verifyError || "We couldn't verify your purchase right now. Please try again."}
+                                </AppText>
+                            ) : (
+                                <View style={styles.payVerifyingRow}>
+                                    <ActivityIndicator size="small" color={colors.purple} />
+                                    <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ marginLeft: metrics.hp1 }}>
+                                        Please wait…
+                                    </AppText>
+                                </View>
+                            )}
+
+                            <TouchableOpacityView
+                                activeOpacity={0.9}
+                                disabled={verifyStage === "verifying"}
+                                onPress={() => {
+                                    if (verifyStage === "verifying") return;
+                                    setVerifyModalVisible(false);
+                                    if (verifyStage === "success") {
+                                        NavigationService.goBack();
+                                    }
+                                }}
+                                style={[styles.payBtnWrap, verifyStage === "verifying" && { opacity: 0.6 }]}
+                            >
+                                <LinearGradient
+                                    colors={verifyStage === "error" ? [colors.red, "#FF5B6B"] : ["#6F13F2", "#2B7CFF"]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.payBtn}
+                                >
+                                    <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={FORTEEN}>
+                                        {verifyStage === "success" ? "Done" : verifyStage === "error" ? "OK" : "Verifying…"}
+                                    </AppText>
+                                </LinearGradient>
+                            </TouchableOpacityView>
+                        </View>
+                    </Animated.View>
+                </View>
+            </Modal>
         </AppSafeAreaView>
     )
 };
@@ -386,5 +508,76 @@ const styles = StyleSheet.create({
         shadowRadius: metrics.hp1,
         elevation: 8,
         height: metrics.hp10, width: "100%", marginTop: metrics.hp3, marginBottom:metrics.hp4,
-    }
+    },
+    payBackdrop: {
+        flex: 1,
+        backgroundColor: "#00000066",
+        justifyContent: "center",
+        paddingHorizontal: metrics.hp2,
+    },
+    payCard: {
+        borderRadius: metrics.hp2,
+        backgroundColor: colors.white,
+        overflow: "hidden",
+        shadowColor: "#000",
+        shadowOpacity: 0.18,
+        shadowOffset: { width: 0, height: 10 },
+        shadowRadius: 18,
+        elevation: 12,
+    },
+    payContent: {
+        paddingHorizontal: metrics.hp2_5,
+        paddingTop: metrics.hp2_5,
+        paddingBottom: metrics.hp2,
+        alignItems: "center",
+    },
+    payIconRing: {
+        height: metrics.hp10,
+        width: metrics.hp10,
+        borderRadius: metrics.hp50,
+        backgroundColor: "#FFFFFF",
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: metrics.hp0_1,
+        borderColor: "#6F13F233",
+        shadowColor: "#6F13F2",
+        shadowOpacity: 0.12,
+        shadowOffset: { width: 0, height: 8 },
+        shadowRadius: 14,
+        elevation: 6,
+    },
+    payIcon: {
+        height: metrics.hp7,
+        width: metrics.hp7,
+    },
+    payVerifyingRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: metrics.hp2,
+    },
+    payMetaBox: {
+        marginTop: metrics.hp2,
+        width: "100%",
+        borderRadius: metrics.hp1_5,
+        borderWidth: metrics.hp0_1,
+        borderColor: colors.nanoOpecity,
+        backgroundColor: "#FFFFFF",
+        paddingVertical: metrics.hp1,
+        paddingHorizontal: metrics.hp1_5,
+        alignItems: "center",
+    },
+    payBtnWrap: {
+        width: "100%",
+        marginTop: metrics.hp2_5,
+        borderRadius: metrics.hp4,
+        overflow: "hidden",
+    },
+    payBtn: {
+        height: metrics.hp5_5,
+        width: "100%",
+        borderRadius: metrics.hp4,
+        alignItems: "center",
+        justifyContent: "center",
+    },
 });

@@ -11,8 +11,9 @@ import { SilverPurchasedis, GoldPurchasedis, PlatinumPurchasedis } from "../../c
 import { colors } from "../../theme/colors";
 import * as RNIap from 'react-native-iap';
 import { useDispatch, useSelector } from "react-redux";
-import { subscriptionVerifyAPI } from "../../actions/authActions";
+import { getProfile, subscriptionVerifyAPI } from "../../actions/authActions";
 import LinearGradient from "react-native-linear-gradient";
+// '20_fortesting silver_week', 'silver_month', 'silver_6month',
 
 // All Subscription SKUs
 const ALL_SUBSCRIPTION_SKUS = Platform.select({
@@ -289,9 +290,7 @@ const SubscriptionScreen = ({ route }: any) => {
 
                 const response: any = await dispatch(subscriptionVerifyAPI(data));
                 const isOk =
-                    response?.statusCode === 200 &&
-                    response?.success === true &&
-                    response?.data?.success === true;
+                    response?.statusCode === 200
 
                 if (!isOk) {
                     throw new Error(response?.message || response?.data?.message || 'Subscription verification failed');
@@ -299,7 +298,7 @@ const SubscriptionScreen = ({ route }: any) => {
 
                 setVerifyResponse(response);
                 setVerifyStage('success');
-
+                dispatch(getProfile(true))
                 // Finish/acknowledge the transaction once verification is successful
                 await RNIap.finishTransaction({ purchase, isConsumable: false });
             } catch (err) {

@@ -72,6 +72,7 @@ import CrushNotePurchase from "../screens/ProfileScreens/CrushNotePurchase";
 import SubscriptionAllScreen from "../screens/ProfileScreens/SubscriptionAllScreen";
 import AllMatchesScreen from "../screens/ChatScreens/AllMatchesScreen";
 import BotChatScreen from "../screens/ChatScreens/BotChatScreen";
+import Loader from "../common/Lodaer";
 
 const Navigator = () => {
   const Stack = createStackNavigator();
@@ -165,10 +166,38 @@ const Navigator = () => {
   return (
     <NavigationContainer
       ref={(navigatorRef) => {
-        NavigationService.setTopLevelNavigator(navigatorRef);
+        try {
+          console.log('[Navigator] Setting navigation ref', { hasRef: !!navigatorRef });
+          NavigationService.setTopLevelNavigator(navigatorRef);
+        } catch (error) {
+          console.error('[Navigator] Error setting navigation ref:', error);
+          // Don't crash - try to set it anyway
+          if (navigatorRef) {
+            NavigationService.setTopLevelNavigator(navigatorRef);
+          }
+        }
       }}
       onReady={() => {
-        NavigationService.setIsReady(true);
+        try {
+          console.log('[Navigator] Navigation container ready');
+          NavigationService.setIsReady(true);
+        } catch (error) {
+          console.error('[Navigator] Error setting navigation ready:', error);
+          // Don't crash - navigation is still ready even if logging fails
+          NavigationService.setIsReady(true);
+        }
+      }}
+      onStateChange={() => {
+        // Log navigation state changes for debugging resume issues
+        // This helps track if navigation is working after resume
+        try {
+          const isReady = NavigationService.isNavigationReady();
+          if (!isReady) {
+            console.warn('[Navigator] Navigation state changed but not ready');
+          }
+        } catch (error) {
+          // Ignore errors in logging
+        }
       }}
     >
       <RootStackScreen />

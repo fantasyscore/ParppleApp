@@ -201,3 +201,4 @@ export const completeProfileBanner = require("../assets/img/completeProfileBanne
 export const offglobleSearchAndResetFilter = require("../assets/img/offglobleSearchAndResetFilter.png");
 export const crushParchesBackPop = require("../assets/img/crushParchesBackPop.png");
 export const textforBlurImage = require("../assets/img/textforBlurImage.png");
+export const loaderHome = require("../assets/img/loaderHome.gif");

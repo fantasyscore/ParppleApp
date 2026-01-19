@@ -47,6 +47,7 @@ import { appOperation } from '../../appOperation';
 import messaging, {
     FirebaseMessagingTypes,
 } from "@react-native-firebase/messaging";
+import Loader from '../../common/Lodaer';
 const { width, height } = Dimensions.get("window");
 const FULL_IMAGE_HEIGHT = height * 0.75;
 // keep in sync with `src/swiperComponents/SwipeableCard.tsx`
@@ -54,7 +55,7 @@ const SWIPE_THRESHOLD_X = width * 0.18;
 const SWIPE_THRESHOLD_Y = height * 0.1;
 const SUPERLIKE_ESCAPE_X = SWIPE_THRESHOLD_X * 1.35;
 const SUPERLIKE_INTENT_RATIO = 1.15;
-
+// _ZG8y64lJ_5M8tk62RbCW3oeIRcm4JIyUkux7x
 // Session-only flag (resets when app is fully killed/reopened)
 let hasShownProfileCompletionReminderThisSession = false;
 
@@ -663,12 +664,12 @@ const PeopleScreen = () => {
 
     const canSuperLike = useCallback(() => {
         // Check subscription perks for super like limit
-        const superLikePerks = userData?.subscription?.perks?.superLike;
-        if (superLikePerks === 0) {
-            returningFromSubscriptionRef.current = true;
-            NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
-            return false;
-        }
+        // const superLikePerks = userData?.subscription?.perks?.superLike;
+        // if (superLikePerks === 0) {
+        //     returningFromSubscriptionRef.current = true;
+        //     NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
+        //     return false;
+        // }
 
         // Use state value (which is synced with AsyncStorage)
         const superLikes = remainingSuperLikes ?? userData?.superLikesRemaining ?? 0;
@@ -1060,7 +1061,7 @@ const PeopleScreen = () => {
                             renderCard={renderCard}
                             disableBottomSwipe
                             disableRightSwipe={userData?.subscription?.perks?.unlimitedLikes !== true && (remainingSwipes ?? userData?.swipesRemaining ?? 0) <= 0}
-                            disableTopSwipe={userData?.subscription?.perks?.superLike !== 0 && (remainingSuperLikes ?? userData?.superLikesRemaining ?? 0) <= 0}
+                            disableTopSwipe={/* userData?.subscription?.perks?.superLike !== 0 &&  */(remainingSuperLikes ?? userData?.superLikesRemaining ?? 0) <= 0}
                             OverlayLabelRight={OverlayLabelRight}
                             OverlayLabelLeft={OverlayLabelLeft}
                             OverlayLabelTop={OverlayLabelTop}
@@ -1075,14 +1076,14 @@ const PeopleScreen = () => {
                             }}
                             onSwipeTopDenied={() => {
                                 // Check if super like perk is available
-                                const superLikePerks = userData?.subscription?.perks?.superLike;
-                                if (superLikePerks === 0) {
-                                    returningFromSubscriptionRef.current = true;
-                                    NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
-                                } else {
+                                // const superLikePerks = userData?.subscription?.perks?.superLike;
+                                // if (superLikePerks === 0) {
+                                //     returningFromSubscriptionRef.current = true;
+                                //     NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
+                                // } else {
                                     returningFromSubscriptionRef.current = true;
                                     NavigationService.navigate(NAVIGATION_SUPERLIKE_PURCHESE_SCREEN);
-                                }
+                                // }
                             }}
                             onSwipeRight={(index) => {
                                 // When we trigger a programmatic swipeRight (e.g. from a modal),
@@ -1178,11 +1179,11 @@ const PeopleScreen = () => {
                                     tapSuperLike.value = 0; // hard reset (no delay)
 
                                     // Check subscription perks for super like limit
-                                    const superLikePerks = userData?.subscription?.perks?.superLike;
-                                    if (superLikePerks === 0) {
-                                        NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
-                                        return;
-                                    }
+                                    // const superLikePerks = userData?.subscription?.perks?.superLike;
+                                    // if (superLikePerks === 0) {
+                                    //     NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
+                                    //     return;
+                                    // }
 
                                     const superLikes = remainingSuperLikes ?? userData?.superLikesRemaining ?? 0;
                                     if (superLikes <= 0) {

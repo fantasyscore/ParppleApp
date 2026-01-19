@@ -288,8 +288,26 @@ export function handleNotificationNavigation(
       }
     }
 
+    // Safety check: ensure store is valid and has getState method
+    if (!store || typeof store.getState !== 'function') {
+      console.error('[PushNotifications] Store is invalid or getState is not available');
+      return;
+    }
+
     // Try to find the match in newMatches or recentMatches to get full profile data
-    const state = store.getState();
+    let state: any;
+    try {
+      state = store.getState();
+      if (!state) {
+        console.warn('[PushNotifications] Store state is null/undefined');
+        // Continue with empty state - will create minimal match object
+        state = {};
+      }
+    } catch (stateError) {
+      console.error('[PushNotifications] Error getting store state:', stateError);
+      // Continue with empty state - will create minimal match object
+      state = {};
+    }
     const newMatches = state?.auth?.newMatches || [];
     const recentMatches = state?.auth?.recentMatches || [];
     

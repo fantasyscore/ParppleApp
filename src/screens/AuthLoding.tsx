@@ -21,15 +21,59 @@ const AuthLoding = () => {
       try {
         const token = await AsyncStorage.getItem(USER_TOKEN_KEY);
         if (token) {
-          dispatch(listProfiles());
-          dispatch(getProfile(true));
-          dispatch(discoverProfile())
-          dispatch(getNewMatches())
+          // Dispatch actions safely - they should handle their own errors
+          try {
+            dispatch(listProfiles());
+            dispatch(getProfile(true));
+            dispatch(discoverProfile());
+            dispatch(getNewMatches());
+          } catch (dispatchError) {
+            console.error('[AuthLoading] Error dispatching actions:', dispatchError);
+            // Don't crash - continue with navigation if token exists
+          }
         } else {
-          NavigationService.navigate(NAVIGATION_WELCOME_SCREEN);
+          // Ensure navigation is ready before navigating
+          // NavigationService will queue if not ready, but add extra safety
+          const navigateToWelcome = () => {
+            try {
+              if (NavigationService.isNavigationReady()) {
+                NavigationService.navigate(NAVIGATION_WELCOME_SCREEN);
+              } else {
+                // Retry after a short delay if navigation not ready
+                console.log('[AuthLoading] Navigation not ready, retrying in 300ms');
+                setTimeout(() => {
+                  if (NavigationService.isNavigationReady()) {
+                    NavigationService.navigate(NAVIGATION_WELCOME_SCREEN);
+                  } else {
+                    // NavigationService will queue it, so this is safe
+                    NavigationService.navigate(NAVIGATION_WELCOME_SCREEN);
+                  }
+                }, 300);
+              }
+            } catch (navError) {
+              console.error('[AuthLoading] Navigation error:', navError);
+              // Retry once more after delay
+              setTimeout(() => {
+                try {
+                  NavigationService.navigate(NAVIGATION_WELCOME_SCREEN);
+                } catch (retryError) {
+                  console.error('[AuthLoading] Navigation retry failed:', retryError);
+                  // NavigationService should have queued it, so app won't crash
+                }
+              }, 1000);
+            }
+          };
+          navigateToWelcome();
         }
       } catch (e) {
-        console.log(e);
+        console.error('[AuthLoading] Bootstrap error:', e);
+        // On error, try to navigate to welcome screen as fallback
+        try {
+          NavigationService.navigate(NAVIGATION_WELCOME_SCREEN);
+        } catch (navError) {
+          console.error('[AuthLoading] Fallback navigation failed:', navError);
+          // Don't crash - NavigationService will queue it
+        }
       }
     };
 

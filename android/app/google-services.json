@@ -14,11 +14,19 @@
       },
       "oauth_client": [
         {
-          "client_id": "955105716636-jkd87gi9lap9vr4514i9d3br9e4to5sg.apps.googleusercontent.com",
+          "client_id": "955105716636-do050blhirapcnq4ae082fjavgmu4ss7.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.parpple",
-            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+            "certificate_hash": "1eac35ce913a1e190c01c8ecb88093b4307ba38a"
+          }
+        },
+        {
+          "client_id": "955105716636-nal23ov9cptrv7b65adqo8o9flmcasot.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.parpple",
+            "certificate_hash": "992f6b2dd0154fbb1087cd48d1c2f98bdd52c974"
           }
         },
         {

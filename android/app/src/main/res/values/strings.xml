@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">Parpple</string>
     <string moduleConfig="true" name="CodePushServerUrl">https://api.revopush.org</string>
-    <string moduleConfig="true" name="CodePushDeploymentKey">_ZG8y64lJ_5M8tk62RbCW3oeIRcm4JIyUkux7x <!-- Rlek26TyIJcGY0FL08vb7BMW5H8T4JIyUkux7x --></string>
+    <string moduleConfig="true" name="CodePushDeploymentKey">Rlek26TyIJcGY0FL08vb7BMW5H8T4JIyUkux7x</string>
 </resources>

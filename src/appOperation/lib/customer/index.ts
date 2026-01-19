@@ -44,9 +44,9 @@ export default (appOperation: AppOperation) => ({
   subscriptionverifyAPI: (data: any) =>
     appOperation.post(`subscription/verify`, data, CUSTOMER_TYPE),
   verifyconsumableAPI: (data: any) =>
-    appOperation.post(`/api/purchases/google/verify-consumable`, data, CUSTOMER_TYPE),
+    appOperation.post(`api/purchases/google/verify-consumable`, data, CUSTOMER_TYPE),
   recoverPurchaseAPI: (data: any) =>
-    appOperation.post(`/api/purchases/google/recover`, data, CUSTOMER_TYPE),
+    appOperation.post(`api/purchases/google/recover`, data, CUSTOMER_TYPE),
   crushnotesSenderAPI: (data: any) =>
     appOperation.post(`api/v1/crush-note/send`, data, CUSTOMER_TYPE),
   boostActivateAPI: () =>

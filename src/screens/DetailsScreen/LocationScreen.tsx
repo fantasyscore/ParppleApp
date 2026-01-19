@@ -82,13 +82,15 @@ const LocationScreen = () => {
             latitude,
             longitude,
           }));
-          const apiKey = "AIzaSyCRmGVNKRyXVUc1gAzuns3zZ7wKJpZUM78";
+          const apiKey = "AIzaSyCYMYcSSLr4svKcCODDMDMb5evPtrM1VHM";
           const response = await fetch(
             `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`
           );
           console.log(response,"responseresponseresponse");
+          console.log(latitude,longitude,"longitude");
           
           const data = await response.json();
+          console.log(data,"datadatadatadatadata");
 
           if (data.results && data.results.length > 0) {
             const addressComponents = data.results[0].address_components;
