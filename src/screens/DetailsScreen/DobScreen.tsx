@@ -30,6 +30,7 @@ import LinearGradient from "react-native-linear-gradient";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { bdyBack, calendarIcon, dobIcon } from "../../helper/ImageAssets";
 import DubleTextLine from "../../common/DubleTextLine";
+import RNDateTimePicker from "@react-native-community/datetimepicker";
 
 const DobScreen = () => {
     const dispatch = useDispatch();
@@ -167,7 +168,20 @@ const DobScreen = () => {
                     />
                 </View>
             </LinearGradient>
-
+            {/* {showPicker && (
+            <RNDateTimePicker value={date || minAgeDate}
+                    mode="date"
+                    maximumDate={minAgeDate}
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    onChange={(event, selectedDate) => {
+                        if (Platform.OS === "android"|| Platform.OS==="ios") {
+                            setShowPicker(false);
+                        }
+                        if (selectedDate) {
+                            setDate(selectedDate);
+                        }
+                    }} />
+                )} */}
             {/* Native Date Picker */}
             {showPicker && (
                 <DateTimePicker
@@ -176,7 +190,7 @@ const DobScreen = () => {
                     maximumDate={minAgeDate}
                     display={Platform.OS === "ios" ? "spinner" : "default"}
                     onChange={(event, selectedDate) => {
-                        if (Platform.OS === "android") {
+                        if (Platform.OS === "android"|| Platform.OS==="ios") {
                             setShowPicker(false);
                         }
                         if (selectedDate) {

@@ -43,7 +43,7 @@ const HeaderCommon = ({ onSkip, skip, title, preview, edit, PreviewOnpress, edit
                     </AppText>
                 </TouchableOpacityView>
             }
-            {edit &&
+            {edit && !preview &&
                 <TouchableOpacityView onPress={editOnPress} style={styles.containerEdit}>
                     <FastImage source={pencilIcon} resizeMode="contain" style={styles.previewIcon} />
                     <AppText type={TEN} weight={INTER_SEMI_BOLD} color={OPECITY_DARK}>

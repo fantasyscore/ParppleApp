@@ -256,7 +256,7 @@ const EditProfileScreen = () => {
 
     return (
         <AppSafeAreaView>
-            <HeaderCommon title={"Edit Profile"} preview={true} PreviewOnpress={onSubmit} />
+            <HeaderCommon title={"Edit Profile"} edit={true} preview={true} PreviewOnpress={onSubmit} />
             <View style={styles.singleLine} />
             <ScrollView contentContainerStyle={{
                 paddingHorizontal: metrics.hp2,

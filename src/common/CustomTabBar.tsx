@@ -1,11 +1,11 @@
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { colors } from "../theme/colors";
 import metrics from "../assets/Metrics";
 import { TouchableOpacityView } from "./TouchableOpacityView";
 import FastImage from "react-native-fast-image";
-import { AppText, THIRTEEN, INTER_MEDIUM, OPECITY, PURPLE, TWELVE} from "./AppText";
+import { AppText, THIRTEEN, INTER_MEDIUM, OPECITY, PURPLE, TWELVE } from "./AppText";
 import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_CHATS_SCREEN, NAVIGATION_DISCOVER_SCREEN, NAVIGATION_LIKES_YOU_SCREEN, NAVIGATION_PEOPLE_SCREEN, NAVIGATION_PROFILE_SCREEN } from "../navigation/routes";
 import { chats, chatTab, explore, explorTab, likeTab, likeyou, people, pepoleTab, profile, profileTab } from "../helper/ImageAssets";
@@ -29,35 +29,35 @@ const CustomTabBar = ({ state }: BottomTabBarProps) => {
                 {route === "NAVIGATION_PEOPLE_SCREEN" ? (
                     <View style={styles.tabInner}>
                         <FastImage source={isFocused ? people : pepoleTab} resizeMode="contain" style={styles.icons} />
-                        <AppText style={styles.label} type={TWELVE} weight={INTER_MEDIUM} color={isFocused ? PURPLE: OPECITY}>
+                        <AppText style={styles.label} type={TWELVE} weight={INTER_MEDIUM} color={isFocused ? PURPLE : OPECITY}>
                             Home
                         </AppText>
                     </View>
                 ) : route === "NAVIGATION_DISCOVER_SCREEN" ? (
                     <View style={styles.tabInner}>
                         <FastImage source={isFocused ? explore : explorTab} resizeMode="contain" style={styles.icons} />
-                        <AppText style={styles.label} type={TWELVE} weight={INTER_MEDIUM} color={isFocused ? PURPLE: OPECITY}>
+                        <AppText style={styles.label} type={TWELVE} weight={INTER_MEDIUM} color={isFocused ? PURPLE : OPECITY}>
                             Discover
                         </AppText>
                     </View>
                 ) : route === "NAVIGATION_CHATS_SCREEN" ? (
                     <View style={styles.tabInner}>
                         <FastImage source={isFocused ? chats : chatTab} resizeMode="contain" style={styles.icons} />
-                        <AppText style={styles.label} type={TWELVE} weight={INTER_MEDIUM} color={isFocused ? PURPLE: OPECITY}>
+                        <AppText style={styles.label} type={TWELVE} weight={INTER_MEDIUM} color={isFocused ? PURPLE : OPECITY}>
                             Chats
                         </AppText>
                     </View>
                 ) : route === "NAVIGATION_LIKES_YOU_SCREEN" ? (
                     <View style={styles.tabInner}>
                         <FastImage source={isFocused ? likeyou : likeTab} resizeMode="contain" style={styles.icons} />
-                        <AppText style={styles.label} type={TWELVE} weight={INTER_MEDIUM} color={isFocused ? PURPLE: OPECITY}>
+                        <AppText style={styles.label} type={TWELVE} weight={INTER_MEDIUM} color={isFocused ? PURPLE : OPECITY}>
                             Likes You
                         </AppText>
                     </View>
                 ) : (
                     <View style={styles.tabInner}>
                         <FastImage source={isFocused ? profile : profileTab} resizeMode="contain" style={styles.icons} />
-                        <AppText style={styles.label} type={TWELVE} weight={INTER_MEDIUM} color={isFocused ? PURPLE: OPECITY}>
+                        <AppText style={styles.label} type={TWELVE} weight={INTER_MEDIUM} color={isFocused ? PURPLE : OPECITY}>
                             Profile
                         </AppText>
                     </View>
@@ -90,9 +90,9 @@ const styles = StyleSheet.create({
         // Top shadow (tab bar floating effect)
         shadowColor: "#000",
         shadowOffset: { width: 0, height: -5 },
-        shadowOpacity: 1,
+        shadowOpacity: Platform.OS === "ios" ? 0.2 : 1,
         shadowRadius: 10,
-        elevation:20,
+        elevation: Platform.OS === "ios" ? 10 : 20,
     },
     flowContainer: {
         flexDirection: "row",

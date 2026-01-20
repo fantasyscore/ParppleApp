@@ -262,16 +262,16 @@ const PeopleScreen = () => {
     const nopeProgressEff = useDerivedValue(() => Math.max(nopeProgress.value, tapNope.value));
     const superLikeProgressEff = useDerivedValue(() => Math.max(superLikeProgress.value, tapSuperLike.value));
 
-    const likeBgStyle = useAnimatedStyle(() => ({ opacity: likeProgressEff.value }));
-    const nopeBgStyle = useAnimatedStyle(() => ({ opacity: nopeProgressEff.value }));
-    const likeBorderStyle = useAnimatedStyle(() => ({ opacity: likeProgressEff.value }));
-    const nopeBorderStyle = useAnimatedStyle(() => ({ opacity: nopeProgressEff.value }));
+    const likeBgStyle = useAnimatedStyle(() => ({ opacity: likeProgressEff.value, borderRadius: metrics.hp50 }));
+    const nopeBgStyle = useAnimatedStyle(() => ({ opacity: nopeProgressEff.value, borderRadius: metrics.hp50 }));
+    const likeBorderStyle = useAnimatedStyle(() => ({ opacity: likeProgressEff.value, borderRadius: metrics.hp50 }));
+    const nopeBorderStyle = useAnimatedStyle(() => ({ opacity: nopeProgressEff.value, borderRadius: metrics.hp50 }));
     const likeWhiteIconStyle = useAnimatedStyle(() => ({ opacity: likeProgressEff.value }));
     const likeBaseIconStyle = useAnimatedStyle(() => ({ opacity: 1 - likeProgressEff.value }));
     const nopeWhiteIconStyle = useAnimatedStyle(() => ({ opacity: nopeProgressEff.value }));
     const nopeBaseIconStyle = useAnimatedStyle(() => ({ opacity: 1 - nopeProgressEff.value }));
-    const superLikeBgStyle = useAnimatedStyle(() => ({ opacity: superLikeProgressEff.value }));
-    const superLikeBorderStyle = useAnimatedStyle(() => ({ opacity: superLikeProgressEff.value }));
+    const superLikeBgStyle = useAnimatedStyle(() => ({ opacity: superLikeProgressEff.value, borderRadius: metrics.hp50 }));
+    const superLikeBorderStyle = useAnimatedStyle(() => ({ opacity: superLikeProgressEff.value, borderRadius: metrics.hp50 }));
     const superLikeWhiteIconStyle = useAnimatedStyle(() => ({ opacity: superLikeProgressEff.value }));
     const superLikeBaseIconStyle = useAnimatedStyle(() => ({ opacity: 1 - superLikeProgressEff.value }));
 
@@ -561,16 +561,16 @@ const PeopleScreen = () => {
             lastTopUpTriggeredAtRef.current = null; // Reset trigger tracking
             return;
         }
-        
+
         const previousCount = totalFetchedCountRef.current;
         const currentCount = listProfilesData.length;
-        
+
         // Update count to match actual list length
         // This ensures we always request from the correct skip position
         // If list length decreased, it's a fresh fetch (filter reset) - update count
         // If list length increased, it's a top-up merge - update count
         totalFetchedCountRef.current = currentCount;
-        
+
         // Reset trigger ref when new profiles are added (top-up completed)
         // This allows top-up to trigger again if count drops to 3 later
         if (currentCount > previousCount && previousCount > 0) {
@@ -582,11 +582,11 @@ const PeopleScreen = () => {
     const fetchTopUpProfiles = useCallback(async () => {
         if (isTopUpInProgressRef.current) return; // Prevent concurrent requests
         if (!IsFocused) return; // Only top-up when screen is focused
-        
+
         const currentTotal = listProfilesData?.length || 0;
         const consumedCount = windowStartIndex + getCurrentIndex;
         const remainingCount = currentTotal - consumedCount;
-        
+
         // Only top-up when exactly 3 profiles remain (or <= 3 to handle edge cases)
         // This ensures we fetch 7 more to reach 10 total
         if (remainingCount <= TOP_UP_TRIGGER_COUNT && remainingCount >= 0) {
@@ -594,11 +594,11 @@ const PeopleScreen = () => {
             if (lastTopUpTriggeredAtRef.current === remainingCount) {
                 return;
             }
-            
+
             const neededCount = PROFILE_LIMIT - remainingCount; // Will be 7 when remainingCount is 3
             const skip = totalFetchedCountRef.current;
             const limit = neededCount;
-            
+
             // Only fetch if we need more and haven't already fetched everything
             if (limit > 0 && limit <= PROFILE_LIMIT) {
                 isTopUpInProgressRef.current = true;
@@ -623,10 +623,10 @@ const PeopleScreen = () => {
         if (!IsFocused) return;
         if (!listProfilesData || listProfilesData.length === 0) return;
         if (isTopUpInProgressRef.current) return; // Don't trigger if already fetching
-        
+
         const consumedCount = windowStartIndex + getCurrentIndex;
         const remainingCount = listProfilesData.length - consumedCount;
-        
+
         // Trigger top-up only when exactly 3 profiles remain (or <= 3 to handle edge cases)
         // This ensures API is called only once when threshold is reached
         if (remainingCount <= TOP_UP_TRIGGER_COUNT && remainingCount >= 0) {
@@ -636,7 +636,7 @@ const PeopleScreen = () => {
                 const timer = setTimeout(() => {
                     fetchTopUpProfiles();
                 }, 300);
-                
+
                 return () => clearTimeout(timer);
             }
         } else if (remainingCount > TOP_UP_TRIGGER_COUNT) {
@@ -844,8 +844,8 @@ const PeopleScreen = () => {
                         ))}
                     </View>
                     <LinearGradient start={{ x: 1, y: 1 }}
-                        end={{ x: 1, y: 0 }} colors={["#000000", "#00000099", "#00000000"]} style={styles.bottomDetails}>
-                        <View style={{ marginTop: metrics.hp8 }}>
+                        end={{ x: 1, y: 0 }} colors={Platform.OS === "ios" ? ["#00000090", "#00000040", "#00000000"] : ["#000000", "#00000099", "#00000000"]} style={styles.bottomDetails}>
+                        <View style={{ marginTop: metrics.hp8, paddingHorizontal: Platform.OS === "ios" ? metrics.hp2 : metrics.hp0 }}>
                             {profile?.online && userData?.subscription?.plan !== "FREE" &&
                                 <View style={styles.activeContainer}>
                                     <View style={styles.activeBackground}>
@@ -1081,8 +1081,8 @@ const PeopleScreen = () => {
                                 //     returningFromSubscriptionRef.current = true;
                                 //     NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
                                 // } else {
-                                    returningFromSubscriptionRef.current = true;
-                                    NavigationService.navigate(NAVIGATION_SUPERLIKE_PURCHESE_SCREEN);
+                                returningFromSubscriptionRef.current = true;
+                                NavigationService.navigate(NAVIGATION_SUPERLIKE_PURCHESE_SCREEN);
                                 // }
                             }}
                             onSwipeRight={(index) => {
@@ -1126,7 +1126,7 @@ const PeopleScreen = () => {
                             />
                         </TouchableOpacityView>
                         <View style={styles.unlickContainer} >
-                            <Animated2.View style={[StyleSheet.absoluteFill, nopeBgStyle]}>
+                            <Animated2.View style={[StyleSheet.absoluteFill, nopeBgStyle, { overflow: "hidden" }]}>
                                 <LinearGradient
                                     colors={["#6F13F2", "#400B8C"]}
                                     start={{ x: 0.5, y: 0 }}
@@ -1134,7 +1134,7 @@ const PeopleScreen = () => {
                                     style={StyleSheet.absoluteFill}
                                 />
                             </Animated2.View>
-                            <Animated2.View style={[StyleSheet.absoluteFill, nopeBorderStyle]}>
+                            <Animated2.View style={[StyleSheet.absoluteFill, nopeBorderStyle, { overflow: "hidden" }]}>
                                 <Svg width="100%" height="100%" viewBox="0 0 100 100">
                                     <Defs>
                                         <SvgLinearGradient id="nopeBorder" x1="0" y1="0.5" x2="1" y2="0.5">
@@ -1158,8 +1158,8 @@ const PeopleScreen = () => {
                                 </View>
                             </TouchableOpacityView>
                         </View>
-                        <View style={[styles.flasContaier, { overflow: "hidden" }]}>
-                            <Animated2.View style={[StyleSheet.absoluteFill, superLikeBgStyle]}>
+                        <View style={[styles.flasContaier, { overflow: Platform.OS === "ios" ? "visible" : "hidden" }]}>
+                            <Animated2.View style={[StyleSheet.absoluteFill, superLikeBgStyle, { overflow: "hidden" }]}>
                                 <LinearGradient
                                     colors={["#FF1A00", "#991000"]}
                                     start={{ x: 0.5, y: 0 }}
@@ -1167,7 +1167,7 @@ const PeopleScreen = () => {
                                     style={StyleSheet.absoluteFill}
                                 />
                             </Animated2.View>
-                            <Animated2.View style={[StyleSheet.absoluteFill, superLikeBorderStyle]}>
+                            <Animated2.View style={[StyleSheet.absoluteFill, superLikeBorderStyle, { overflow: "hidden" }]}>
                                 <Svg width="100%" height="100%" viewBox="0 0 100 100">
                                     <Circle cx="50" cy="50" r="48" fill="none" stroke="#FF0000" strokeWidth="3" />
                                 </Svg>
@@ -1199,7 +1199,7 @@ const PeopleScreen = () => {
                             </TouchableOpacityView>
                         </View>
                         <View style={styles.unlickContainer} >
-                            <Animated2.View style={[StyleSheet.absoluteFill, likeBgStyle]}>
+                            <Animated2.View style={[StyleSheet.absoluteFill, likeBgStyle, { overflow: "hidden" }]}>
                                 <LinearGradient
                                     colors={["#CCF63D", "#779024"]}
                                     start={{ x: 0.5, y: 0 }}
@@ -1207,7 +1207,7 @@ const PeopleScreen = () => {
                                     style={StyleSheet.absoluteFill}
                                 />
                             </Animated2.View>
-                            <Animated2.View style={[StyleSheet.absoluteFill, likeBorderStyle]}>
+                            <Animated2.View style={[StyleSheet.absoluteFill, likeBorderStyle, { overflow: "hidden" }]}>
                                 <Svg width="100%" height="100%" viewBox="0 0 100 100">
                                     <Defs>
                                         <SvgLinearGradient id="likeBorder" x1="0" y1="0.5" x2="1" y2="0.5">
@@ -1236,8 +1236,8 @@ const PeopleScreen = () => {
                                     triggerLike();
                                 }}>
                                 <View style={styles.iconStack}>
-                                    <Animated2.Image source={heartGreen} resizeMode="contain" style={[styles.flasIconClose, likeBaseIconStyle]} />
-                                    <Animated2.Image source={heartGreen} resizeMode="contain" style={[styles.flasIconClose, styles.iconAbs, likeWhiteIconStyle]} tintColor={colors.white} />
+                                    <Animated2.Image source={heartGreen} resizeMode="contain" style={[styles.flasIconClose, likeBaseIconStyle, { marginTop: Platform.OS === "ios" ? metrics.hp0_5 : 0 }]} />
+                                    <Animated2.Image source={heartGreen} resizeMode="contain" style={[styles.flasIconClose, styles.iconAbs, likeWhiteIconStyle, { marginTop: Platform.OS === "ios" ? metrics.hp0_5 : 0 }]} tintColor={colors.white} />
                                 </View>
                             </TouchableOpacityView>
                         </View>
@@ -1463,7 +1463,7 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp50,
         alignItems: "center",
         justifyContent: "center",
-        overflow: "hidden",
+        overflow: Platform.OS === "ios" ? "visible" : "hidden",
         shadowColor: "#000",
         shadowOpacity: 0.2,
         shadowOffset: { width: 0, height: 5 },
@@ -1488,6 +1488,7 @@ const styles = StyleSheet.create({
     flasIconClose: {
         height: metrics.hp4,
         width: metrics.hp4,
+
     },
     blueTikIcon: {
         height: metrics.hp2_5,
@@ -1501,10 +1502,12 @@ const styles = StyleSheet.create({
     },
     bottomDetails: {
         position: "absolute",
-        bottom: -metrics.hp2,
+        bottom: Platform.OS === "ios" ? metrics.hp0 : -metrics.hp2,
         width: "100%",
-        height: metrics.hp25,
-        paddingHorizontal: metrics.hp2
+        height: Platform.OS === "ios" ? metrics.hp22 : metrics.hp25,
+        paddingHorizontal: Platform.OS === "ios" ? metrics.hp0 : metrics.hp2,
+        borderBottomLeftRadius: Platform.OS === "ios" ? metrics.hp2 : metrics.hp0,
+        borderBottomRightRadius: Platform.OS === "ios" ? metrics.hp2 : metrics.hp0,
     },
     uparrowIcon: {
         height: metrics.hp2_5,

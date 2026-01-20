@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import { Platform, StyleSheet, TextInput, View } from "react-native";
 import { colors } from "../theme/colors";
 import { Screen } from "../theme/dimens";
 import { AppText, fontSize, INTER_BOLD, INTER_MEDIUM } from "./AppText";
@@ -17,7 +17,7 @@ const InputCommon = ({ placeholder, value, onChangeText, style, onPress, closeVi
                 value={value}
                 onChangeText={(text) => onChangeText(text)}
                 placeholderTextColor={colors.opecity}
-                style={{ width: Screen.Width / 1.20, fontSize: fontSize(18), fontWeight: "700", fontFamily: INTER_BOLD, color: colors.black }}
+                style={{ width: Screen.Width / 1.20, fontSize: fontSize(18), fontWeight: Platform.OS === "ios" ? "600": "700", fontFamily: INTER_BOLD, color: colors.black, marginBottom:Platform.OS === "ios" ? metrics.hp0_5:0 }}
             />
             {closeVisible &&
                 <TouchableOpacityView onPress={onPress}>

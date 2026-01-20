@@ -140,7 +140,6 @@ const styles = StyleSheet.create({
         height: Screen.Height,
         width: Screen.Width,
         position: "absolute",
-
     },
     logo: {
         height: metrics.hp7,

@@ -5,7 +5,7 @@ export const config = {
   ENVIRONMENT: `Staging`,
   // Base URL for API and Socket connections
   // BASE_URL: `https://18efedef7075.ngrok-free.app/`
-  // BASE_URL: `http://13.201.74.29/`,
+  BASE_URL: `http://13.201.74.29/`,
   // Alternative: Use production URL when ready
-  BASE_URL: `https://api.parpple.com/`,
+  // BASE_URL: `https://api.parpple.com/`,
 };
