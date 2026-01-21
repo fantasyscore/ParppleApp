@@ -10,7 +10,7 @@ import ToastMessage from "./common/ToastMessage";
 import codePush from "@revopush/react-native-code-push";
 import { recoverPurchasesOnStartup } from "./services/purchaseRecoveryService";
 import notifee, { AndroidImportance } from "@notifee/react-native"
-import { setupPushListeners, getInitialNotification } from "./notifications/pushNotifications";
+import { setupPushListeners, getInitialNotification, registerBackgroundPushHandler } from "./notifications/pushNotifications";
 import NavigationService from "./navigation/NavigationService";
 async function setupChannels() {
   await notifee.createChannel({

@@ -17,6 +17,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { addProfile, discoverProfile, getNewMatches, getProfile } from "../../actions/authActions";
 import { Image as ImageCompressor } from "react-native-compressor";
 import LinearGradient from "react-native-linear-gradient";
+import { check, request, PERMISSIONS, RESULTS } from "react-native-permissions";
+
 async function requestGalleryPermission() {
   if (Platform.OS === "android") {
     try {
@@ -36,7 +38,27 @@ async function requestGalleryPermission() {
       return false;
     }
   } else {
-    return true; // iOS auto handles
+    // iOS permission handling
+    try {
+      const permission = PERMISSIONS.IOS.PHOTO_LIBRARY;
+      const checkResult = await check(permission);
+      
+      if (checkResult === RESULTS.GRANTED) {
+        return true;
+      }
+      
+      if (checkResult === RESULTS.BLOCKED) {
+        console.warn("Photo library permission is blocked. Please enable it in settings.");
+        return false;
+      }
+      
+      // Request permission if not granted
+      const requestResult = await request(permission);
+      return requestResult === RESULTS.GRANTED;
+    } catch (err) {
+      console.warn("iOS permission error:", err);
+      return false;
+    }
   }
 }
 

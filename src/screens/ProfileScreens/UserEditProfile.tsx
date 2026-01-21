@@ -6,6 +6,7 @@ import {
     View,
     Dimensions,
     ScrollView,
+    Platform,
 } from "react-native";
 import HeaderCommon from "../../common/HeaderCommon";
 import metrics from "../../assets/Metrics";
@@ -266,7 +267,7 @@ const UserEditProfile = (props: any) => {
             <Animated.ScrollView
                 style={[
                     styles.scrollContainer,
-                    {
+                    Platform.OS === "ios" ? { opacity: 1 } : {
                         opacity: 1,
                         pointerEvents: updown ? 'auto' : 'none',
                     },

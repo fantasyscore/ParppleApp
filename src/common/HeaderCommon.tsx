@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import FastImage from "react-native-fast-image";
 import { backIcon, pencilIcon, previewIcon } from "../helper/ImageAssets";
 import metrics from "../assets/Metrics";
@@ -30,7 +30,7 @@ const HeaderCommon = ({ onSkip, skip, title, preview, edit, PreviewOnpress, edit
             </TouchableOpacityView>
             {skip &&
                 <TouchableOpacityView onPress={onSkip}>
-                    <AppText style={{ marginTop: metrics.hp5 }} weight={INTER_MEDIUM} color={OPECITY_DARK} type={FORTEEN}>
+                    <AppText style={{ marginTop: Platform.OS ==="ios" ? metrics.hp6: metrics.hp5 }} weight={INTER_MEDIUM} color={OPECITY_DARK} type={FORTEEN}>
                         Skip
                     </AppText>
                 </TouchableOpacityView>
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
         width: metrics.hp1_6
     },
     containerPreview: {
-        marginTop: metrics.hp5,
+        marginTop:  Platform.OS ==="ios" ? metrics.hp6: metrics.hp5,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp4
     },
     containerEdit: {
-        marginTop: metrics.hp5,
+        marginTop: Platform.OS ==="ios" ? metrics.hp6: metrics.hp5,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",

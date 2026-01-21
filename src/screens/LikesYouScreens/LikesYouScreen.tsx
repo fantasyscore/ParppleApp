@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { FlatList, ImageBackground, Modal, StyleSheet, View } from "react-native";
+import { FlatList, ImageBackground, Modal, Platform, StyleSheet, View } from "react-native";
 import FastImage from "react-native-fast-image";
 import { blueTikeIcon, bostIconWhite, goldCard, heartGreen, heartRed, likeYouIcon, lockIconWhite, logoBlue, profileImage, shareRedIcon, upgradPlan, viewsIcon } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
@@ -61,7 +61,7 @@ const LikesYouScreen = () => {
                 <AppText type={TWELVE} weight={INTER_REGULAR} color={OPECITY_DARK}>
                     Get profile boost to get your first sooner.
                 </AppText>
-                <TouchableOpacityView onPress={()=>NavigationService.navigate(NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN)}  style={[styles.shareDetailsContaier]}>
+                <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN)} style={[styles.shareDetailsContaier]}>
                     <FastImage source={bostIconWhite} resizeMode="contain" style={styles.shareIcon} />
                     <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
                         {"  "}
@@ -84,7 +84,7 @@ const LikesYouScreen = () => {
                 <AppText type={TWELVE} weight={INTER_REGULAR} color={OPECITY_DARK}>
                     Get profile boost to get your first sooner.
                 </AppText>
-                <TouchableOpacityView onPress={()=>NavigationService.navigate(NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN)} style={[styles.shareDetailsContaier]}>
+                <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN)} style={[styles.shareDetailsContaier]}>
                     <FastImage source={bostIconWhite} resizeMode="contain" style={styles.shareIcon} />
                     <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
                         {"  "}
@@ -95,26 +95,30 @@ const LikesYouScreen = () => {
         )
     };
     const viewProfile = (item: any) => {
-            let data = {
-                "userId": item?.userId
-            };
-            dispatch(getOtherProfile(data, false, setProfileData, true));
+        let data = {
+            "userId": item?.userId
+        };
+        dispatch(getOtherProfile(data, false, setProfileData, true));
     }
     const renderItems = ({ item, index }: any) => {
         return (
             <TouchableOpacityView disabled={item?.see == false ? true : false} activeOpacity={1} onPress={() => viewProfile(item)} key={index} style={[styles.upgradeDataContainer, { marginBottom: metrics.hp2, }]}>
-                {item?.type === "superLike" && tabSelect === "Likes" && item?.see == true && <LinearGradient colors={["#FF003D", "#990025"]} style={styles.superLikeBack} />}
-                {item?.type === "superLike" && tabSelect === "Likes" && item?.see == true && <View style={styles.superLikeBackTwo} />}
+                {Platform.OS === "ios" ? <></> :
+                    <>
+                        {item?.type === "superLike" && tabSelect === "Likes" && item?.see == true && <LinearGradient colors={["#FF003D", "#990025"]} style={styles.superLikeBack} />}
+                        {item?.type === "superLike" && tabSelect === "Likes" && item?.see == true && <View style={styles.superLikeBackTwo} />}
+                    </>
+                }
                 <ImageBackground blurRadius={item?.see == false ? metrics.hp7 : metrics.hp0} imageStyle={{ borderRadius: metrics.hp1_5 }} source={{ uri: item?.profilePicture[0]?.url }} resizeMode="cover" style={[styles.profileImageTwo, { zIndex: 2 }]}>
                     {item?.see == false ?
                         <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: item?.see == false ? "#ffffff50" : colors.transparent, borderRadius: metrics.hp1, width: metrics.hp8, position: "absolute", bottom: metrics.hp1_8, left: metrics.hp1 }}>
                             <AppText>{"                            "}</AppText>
                         </View> :
                         <LinearGradient start={{ x: 1, y: 1 }}
-                            end={{ x: 1, y: 0 }} colors={["#000000", "#00000099", "#00000000"]} style={{ flexDirection: "row", alignItems: "center", backgroundColor: item?.see == false ? "#ffffff50" : colors.transparent, borderRadius: metrics.hp1, height: metrics.hp5, position: "absolute", width: "100%", bottom: 0, paddingHorizontal: metrics.hp1 }}>
-                            {item?.see == false ? <AppText>{"                            "}</AppText> :
+                            end={{ x: 1, y: 0 }} colors={["#000000", "#00000099", "#00000000"]} style={{ flexDirection: "row", alignItems: "center", backgroundColor: item?.see == false ? "#ffffff50" : colors.transparent, borderRadius: metrics.hp1, height: metrics.hp5, position: "absolute", width: "100%", bottom: 0, paddingHorizontal: Platform.OS === "ios" ? metrics.hp0 : metrics.hp1 }}>
+                            {item?.see == false ? <AppText style={{ marginLeft: Platform.OS === "ios" ? metrics.hp1 : metrics.hp0 }}>{"                            "}</AppText> :
                                 <>
-                                    <AppText type={FORTEEN} weight={INTER_BOLD} color={WHITE}>
+                                    <AppText style={{ marginLeft: Platform.OS === "ios" ? metrics.hp1 : metrics.hp0 }} type={FORTEEN} weight={INTER_BOLD} color={WHITE}>
                                         {item.name}{" "}
                                     </AppText>
                                     {item.type === "like" && tabSelect === "Likes" ? <FastImage source={heartGreen} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2, marginTop: metrics.hp0_1 }} /> : <></>}
@@ -139,7 +143,6 @@ const LikesYouScreen = () => {
             </TouchableOpacityView>
         )
     };
-console.log(userData?.subscription,"subscription");
 
     const dataCorrect = () => {
         const { subscription } = userData || {};

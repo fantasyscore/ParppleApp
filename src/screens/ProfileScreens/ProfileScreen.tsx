@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Dimensions, FlatList, ImageBackground, Linking, ScrollView, StyleSheet, View } from "react-native";
+import { Dimensions, FlatList, ImageBackground, Linking, Platform, ScrollView, StyleSheet, View } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
 import { arrowBackForSafety, blockPurppleIcon, blueTikeIcon, callIcon, checkSafety, flasIcon, goldCardSmall, locationPurppleIcon, pencilIcon, platniumCardSmall, premiumIcon, profilebackGround, profileImage, pText, redHeart, rightArrow, sliverCardSmall, stylesRightArrow } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
@@ -472,8 +472,8 @@ const styles = StyleSheet.create({
         width: metrics.hp3
     },
     getMoreContainer: {
-        paddingHorizontal: metrics.hp0_3,
-        paddingVertical: metrics.hp0_1,
+        paddingHorizontal: Platform.OS ==="ios" ? metrics.hp0_7: metrics.hp0_3,
+        paddingVertical: Platform.OS === "ios" ? metrics.hp0_5: metrics.hp0_1,
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: colors.black,

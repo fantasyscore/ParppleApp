@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import HeaderCommon from "../../common/HeaderCommon";
 import metrics from "../../assets/Metrics";
 import DubleTextLine from "../../common/DubleTextLine";
@@ -39,6 +39,7 @@ const NameScreen = () => {
         <AppSafeAreaView>
              <KeyboardAwareScrollView
                 enableOnAndroid={true}
+                extraScrollHeight={Platform.OS === "ios" ? metrics.hp15 : metrics.hp15}
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ flexGrow: 1 }}>
             <HeaderCommon />

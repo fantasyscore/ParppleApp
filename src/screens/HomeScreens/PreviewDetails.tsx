@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Dimensions, Image, ImageBackground, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Dimensions, Image, ImageBackground, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
 import FastImage from "react-native-fast-image";
 import metrics from "../../assets/Metrics";
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp50,
         alignItems: "center",
         justifyContent: "center",
-        overflow: "hidden",
+        overflow: Platform.OS === "ios" ? "visible": "hidden",
         shadowColor: "#000",
         shadowOpacity: 0.2,
         shadowOffset: { width: 0, height: 5 },
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp50,
         alignItems: "center",
         justifyContent: "center",
-        overflow: "hidden",
+        overflow: Platform.OS === "ios" ? "visible": "hidden",
         shadowColor: "#000",
         shadowOpacity: 0.2,
         shadowOffset: { width: 0, height: 5 },

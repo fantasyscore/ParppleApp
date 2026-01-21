@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Dimensions, ImageBackground, StyleSheet, View } from "react-native";
+import { Dimensions, ImageBackground, Platform, StyleSheet, View } from "react-native";
 import { AppText, BLACK, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, TWELVE, TWENTY, WHITE } from "../../common/AppText";
 import FastImage from "react-native-fast-image";
 import { accountcircleIcon, bioqutes, blueTikeIcon, bussnisIcon, drikingIcon, lifeStyleIcon, locationCIon, moonIcon, oneIconDating, personHeartIcon, petsIcon, pronounIcon, schoolIcon, searchIcon, smookingIcon, straightenIcon, upArrowIcon, workoutIcon } from "../../helper/ImageAssets";
@@ -212,12 +212,10 @@ const ChatProfileScreen = ({ always }: any) => {
         );
     };
     return (
-        <View style={{ flex: 1 }}>
-            {/* {!updown && <Animated.View style={{ opacity: 0 }}>{renderProgressLine(false)}</Animated.View>} */}
             <Animated.ScrollView
                 style={[
                     styles.scrollContainer,
-                    {
+                    Platform.OS === "ios" ? { opacity: 1 } : {
                         opacity: 1,
                         pointerEvents: updown ? 'auto' : 'none',
                     },
@@ -235,7 +233,7 @@ const ChatProfileScreen = ({ always }: any) => {
                         <Animated.View style={bottomDetailsAnimatedStyle}>
                             <LinearGradient start={{ x: 1, y: 1 }}
                                 end={{ x: 1, y: 0 }} colors={["#000000", "#00000099", "#00000000"]} style={styles.bottomDetails}>
-                                <View style={{ marginTop: metrics.hp8 }}>
+                                <View style={{ marginTop: metrics.hp8, paddingHorizontal: Platform.OS === "ios" ? metrics.hp2 : metrics.hp0 }}>
                                     <View style={{ flexDirection: "row", alignItems: "center" }}>
                                         <AppText style={{ textTransform: "capitalize" }} type={TWENTY} color={WHITE} weight={INTER_BOLD}>
                                             {otherUserProfile?.firstName || ''}, {otherUserProfile?.age || ''}{" "}
@@ -555,7 +553,6 @@ const ChatProfileScreen = ({ always }: any) => {
                     )}
                 </Animated.View>
             </Animated.ScrollView>
-        </View>
     )
 };
 export default ChatProfileScreen;
@@ -592,10 +589,10 @@ const styles = StyleSheet.create({
     },
     bottomDetails: {
         position: "absolute",
-        bottom: -metrics.hp2,
+        bottom: Platform.OS === "ios" ? metrics.hp0 : -metrics.hp2,
         width: "100%",
         height: metrics.hp25,
-        paddingHorizontal: metrics.hp2,
+        paddingHorizontal: Platform.OS === "ios" ? 0 : metrics.hp2,
         borderBottomLeftRadius: metrics.hp2,
         borderBottomRightRadius: metrics.hp2,
     },
