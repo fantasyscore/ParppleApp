@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>LSApplicationCategoryType</key>
+	<string></string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
@@ -20,45 +22,60 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>google</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.955105716636-m2pahmb539tc7bpuf950pj2nhhsi08l4</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>google</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.955105716636-m2pahmb539tc7bpuf950pj2nhhsi08l4</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>CodePushDeploymentKey</key>
 	<string>_ZG8y64lJ_5M8tk62RbCW3oeIRcm4JIyUkux7x</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We use your location to provide better nearby matches.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Your location helps us improve features even when the app is not open.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>We use your photo library to let you choose and upload pictures.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>This allows the app to save images to your photo library.</string>
 	<key>CodePushServerURL</key>
 	<string>https://api.revopush.org</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
-			<dict>
-    		<key>NSExceptionDomains</key>
-    		<dict>
-        	<key>13.201.74.29</key>
-        	<dict>
-            <key>NSExceptionAllowsInsecureHTTPLoads</key>
-            <true/>
-            <key>NSIncludesSubdomains</key>
-            <true/>
-        	</dict>
-    		</dict>
-	</dict>
-
-	<!-- <key>NSAppTransportSecurity</key>
 	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<true/>
-		<key>NSAllowsLocalNetworking</key>
-		<true/>
-	</dict> -->
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>13.201.74.29</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Your location helps us improve features even when the app is not open.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>This allows the app to save images to your photo library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We use your photo library to let you choose and upload pictures.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Inter_24pt-Bold.ttf</string>
@@ -75,8 +92,6 @@
 		<string>ScheherazadeNew-Regular.ttf</string>
 		<string>ScheherazadeNew-SemiBold.ttf</string>
 	</array>
-	<key>UILaunchStoryboardName</key>
-	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>arm64</string>

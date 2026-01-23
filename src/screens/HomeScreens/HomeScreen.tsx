@@ -290,7 +290,7 @@ const PeopleScreen = () => {
     // - remaining boosts: userData.boostRemaining
     // - status: userData.boost { isActive, expiresAt }
     const boostRemaining = useMemo(() => {
-        const n = Number(userData?.boostRemaining);
+        const n = 4 /* Number(userData?.boostRemaining) */;
         return Number.isFinite(n) ? n : 0;
     }, [userData?.boostRemaining]);
 
@@ -1000,6 +1000,7 @@ const PeopleScreen = () => {
                         boostIcon={(boostRemaining > 0 || boostTimer.isRunning) ? flashIcon : null}
                         boostTimerText={boostTimer.isRunning ? boostTimer.remainingLabel : null}
                         onBoostPress={handleBoostPress}
+                        setModalVisible={setModalVisible}
                     />
                 </View>
                 <View style={[styles.swiperContainer, { paddingHorizontal: (visibleCards.length === 0 || (windowStartIndex + getCurrentIndex >= listProfilesData?.length)) ? 0 : metrics.hp1 }]}>
@@ -1236,8 +1237,8 @@ const PeopleScreen = () => {
                                     triggerLike();
                                 }}>
                                 <View style={styles.iconStack}>
-                                    <Animated2.Image source={heartGreen} resizeMode="contain" style={[styles.flasIconClose, likeBaseIconStyle, { marginTop: Platform.OS === "ios" ? metrics.hp0_5 : 0 }]} />
-                                    <Animated2.Image source={heartGreen} resizeMode="contain" style={[styles.flasIconClose, styles.iconAbs, likeWhiteIconStyle, { marginTop: Platform.OS === "ios" ? metrics.hp0_5 : 0 }]} tintColor={colors.white} />
+                                    <Animated2.Image source={heartGreen} resizeMode="contain" style={[styles.flasIconClose, likeBaseIconStyle, { marginTop: Platform.OS === "ios" ? metrics.hp0_2 : 0 }]} />
+                                    <Animated2.Image source={heartGreen} resizeMode="contain" style={[styles.flasIconClose, styles.iconAbs, likeWhiteIconStyle, { marginTop: Platform.OS === "ios" ? metrics.hp0_2 : 0 }]} tintColor={colors.white} />
                                 </View>
                             </TouchableOpacityView>
                         </View>

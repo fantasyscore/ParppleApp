@@ -3,11 +3,13 @@ import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
 import CodePush
+import Firebase
+import GoogleSignIn
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
-  var window: UIWindow?
 
+  var window: UIWindow?
   var reactNativeDelegate: ReactNativeDelegate?
   var reactNativeFactory: RCTReactNativeFactory?
 
@@ -15,6 +17,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+
+    // 🔥 Firebase Init
+    FirebaseApp.configure()
+
     let delegate = ReactNativeDelegate()
     let factory = RCTReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()
@@ -32,18 +38,34 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     return true
   }
+
+  // ✅ REQUIRED for Google Sign-In (URL Scheme handling)
+  func application(
+    _ app: UIApplication,
+    open url: URL,
+    options: [UIApplication.OpenURLOptionsKey : Any] = [:]
+  ) -> Bool {
+
+    if GIDSignIn.sharedInstance.handle(url) {
+      return true
+    }
+
+    return false
+  }
 }
 
 class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
+
   override func sourceURL(for bridge: RCTBridge) -> URL? {
-    self.bundleURL()
+    return bundleURL()
   }
 
   override func bundleURL() -> URL? {
 #if DEBUG
-    RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
+    return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
 #else
-    CodePush.bundleURL() ?? Bundle.main.url(forResource: "main", withExtension: "jsbundle")
+    return CodePush.bundleURL() ??
+      Bundle.main.url(forResource: "main", withExtension: "jsbundle")
 #endif
   }
 }

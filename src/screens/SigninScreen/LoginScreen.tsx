@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     },
     countryInputTwo: {
         borderBottomWidth: 1,
-        paddingVertical:  metrics.hp1,
+        paddingVertical: Platform.OS ==="ios" ? metrics.hp1 : metrics.hp0,
     },
     dropDownIcon: {
         height: metrics.hp3,

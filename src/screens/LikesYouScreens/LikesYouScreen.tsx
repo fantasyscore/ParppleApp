@@ -216,16 +216,16 @@ const LikesYouScreen = () => {
             <FastImage source={logoBlue} resizeMode="contain" style={styles.logo} />
             <View style={styles.tabContainer}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <TouchableOpacityView onPress={() => setTabSelect('Likes')} style={styles.inTabContainer}>
+                    <TouchableOpacityView onPress={() => setTabSelect('Likes')} style={[styles.inTabContainer,{height:metrics.hp4}]}>
                         <AppText type={TWELVE} weight={INTER_BOLD} color={tabSelect === 'Likes' ? PURPLE : OPECITY_DARK}>Likes</AppText>
-                        <View style={[styles.selectLine, { backgroundColor: tabSelect === 'Likes' ? colors.purple : colors.transparent }]} />
+                        <View style={[styles.selectLine, { backgroundColor: tabSelect === 'Likes' ? colors.purple : colors.transparent, marginTop:metrics.hp0_5, marginBottom:-metrics.hp1_1  }]} />
                     </TouchableOpacityView>
                     <AppText type={SIXTEEN} style={{ color: "#C3B7D0" }}>
                         /
                     </AppText>
-                    <TouchableOpacityView onPress={() => setTabSelect('Views')} style={styles.inTabContainer}>
+                    <TouchableOpacityView onPress={() => setTabSelect('Views')} style={[styles.inTabContainer,{height:metrics.hp4}]}>
                         <AppText type={TWELVE} weight={INTER_BOLD} color={tabSelect === 'Views' ? PURPLE : OPECITY_DARK}>Views</AppText>
-                        <View style={[styles.selectLine, { backgroundColor: tabSelect === 'Views' ? colors.purple : colors.transparent }]} />
+                        <View style={[styles.selectLine, { backgroundColor: tabSelect === 'Views' ? colors.purple : colors.transparent, marginTop:metrics.hp0_5, marginBottom:-metrics.hp1_1  }]} />
                     </TouchableOpacityView>
                 </View>
             </View>
@@ -268,7 +268,7 @@ export default LikesYouScreen;
 const styles = StyleSheet.create({
     logo: { marginLeft: metrics.hp2, marginTop: metrics.hp5, height: metrics.hp4, width: metrics.hp10 },
     tabContainer: { backgroundColor: colors.white, justifyContent: 'flex-end', marginTop: metrics.hp1, borderBottomWidth: metrics.hp0_1, borderBottomColor: colors.nanoOpecity },
-    selectLine: { height: metrics.hp0_3, width: metrics.hp11, borderTopRightRadius: metrics.hp1, borderTopLeftRadius: metrics.hp1 },
+    selectLine: { height: metrics.hp0_3, width: "80%", borderTopRightRadius: metrics.hp1, borderTopLeftRadius: metrics.hp1 },
     inTabContainer: { alignItems: 'center', justifyContent: 'center', flex: 1 },
     likeYouContainer: { borderWidth: metrics.hp0_2, borderColor: colors.nanoOpecity, borderRadius: metrics.hp6, marginHorizontal: metrics.hp6_5, marginBottom: metrics.hp1, flexDirection: "row", alignItems: "center" },
     selectBoxContainer: { alignItems: "center", justifyContent: "center", height: metrics.hp5, borderRadius: metrics.hp6, borderWidth: metrics.hp0_1, borderColor: colors.white, width: "50%" },

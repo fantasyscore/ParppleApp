@@ -6,8 +6,8 @@ import {AppRegistry, LogBox, Platform} from 'react-native';
 import {name as appName} from './app.json';
 import App from './src/App';
 import { registerBackgroundPushHandler } from './src/notifications/pushNotifications';
-import { getApps } from '@react-native-firebase/app';
-console.log('Firebase apps:', getApps());
+// import { getApps } from '@react-native-firebase/app';
+// console.log('Firebase apps:', getApps());
 AppRegistry.registerComponent(appName, () => App);
 LogBox.ignoreAllLogs();
 

@@ -388,7 +388,7 @@ const DiscoverScreen = () => {
 
     return (
         <AppSafeAreaView>
-            <PeopleHeader profile={true} filter={true} />
+            <PeopleHeader profile={true} filter={true} setModalVisible={setModalVisible}/>
             <Animated.ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
                 <View style={{ paddingHorizontal: metrics.hp2 }}>
                     <AppText

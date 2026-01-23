@@ -23,11 +23,20 @@ import { FCM_TOKEN_KEY } from "../../helper/Constants";
 const WelcomeScreen = () => {
     const dispatch = useDispatch();
     useEffect(() => {
-        GoogleSignin.configure({
-            webClientId: '955105716636-4pf49jso1bitv7ohduq37vb23ujf46cs.apps.googleusercontent.com',
-            offlineAccess: true,
-            forceCodeForRefreshToken: true,
-        });
+        if (Platform.OS === "ios") {
+            GoogleSignin.configure({
+                iosClientId: '955105716636-m2pahmb539tc7bpuf950pj2nhhsi08l4.apps.googleusercontent.com',
+                webClientId: '955105716636-4pf49jso1bitv7ohduq37vb23ujf46cs.apps.googleusercontent.com',
+                offlineAccess: true,
+                forceCodeForRefreshToken: true,
+            });
+        } else {
+            GoogleSignin.configure({
+                webClientId: '955105716636-4pf49jso1bitv7ohduq37vb23ujf46cs.apps.googleusercontent.com',
+                offlineAccess: true,
+                forceCodeForRefreshToken: true,
+            });
+        }
     }, []);
     const [fcmtoken, setfcmToken] = useState("");
 
@@ -103,7 +112,7 @@ const WelcomeScreen = () => {
             console.log(error);
         }
     };
-    
+
     return (
         <AppSafeAreaView>
             <FastImage style={styles.welCom}

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { FlatList, ImageBackground, StyleSheet, View } from "react-native";
+import { FlatList, ImageBackground, Platform, StyleSheet, View } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
 import metrics from "../../assets/Metrics";
 import { colors } from "../../theme/colors";
@@ -66,6 +66,7 @@ const ChatsScreen = () => {
     const userData = useSelector((state: any) => state.auth.userData);
     const dispatch = useDispatch();
     const [profileData, setProfileData] = useState();
+    const [modalVisible, setModalVisible] = useState(false);
     useEffect(() => {
         dispatch(getNewMatches())
         dispatch(getRecentMatches())
@@ -415,11 +416,11 @@ const ChatsScreen = () => {
 
     return (
         <AppSafeAreaView>
-            <PeopleHeader profile={true} filter={true} />
+            <PeopleHeader profile={true} filter={true} setModalVisible={setModalVisible}/>
             <View style={styles.singlelIne} />
             {newMatches?.length ? (
-                <View style={{ paddingHorizontal: metrics.hp2 }}>
-                    <SearchContainer onChangeText={setSearch} value={search} placeholder={"Search matches"} style={{ height: metrics.hp7 }} />
+                <View style={{ paddingHorizontal: metrics.hp2, marginTop:Platform.OS === "ios" ? metrics.hp0_7: 0 }}>
+                    <SearchContainer onChangeText={setSearch} value={search} placeholder={"Search matches"} style={{ height: metrics.hp7, marginTop:Platform.OS === "ios" ? metrics.hp0_7: 0 }} />
                 </View>
             ) : (
                 <View style={{ paddingHorizontal: metrics.hp2 }}>

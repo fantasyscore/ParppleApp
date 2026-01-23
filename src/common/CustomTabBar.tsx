@@ -93,6 +93,7 @@ const styles = StyleSheet.create({
         shadowOpacity: Platform.OS === "ios" ? 0.2 : 1,
         shadowRadius: 10,
         elevation: Platform.OS === "ios" ? 10 : 20,
+        paddingHorizontal:Platform.OS === "ios" ?  metrics.hp1 : metrics.hp0
     },
     flowContainer: {
         flexDirection: "row",

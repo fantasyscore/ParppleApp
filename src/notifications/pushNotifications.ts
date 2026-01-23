@@ -388,6 +388,8 @@ export function handleNotificationNavigation(
 export async function getInitialNotification(store?: any) {
   try {
     const initialNotification = await messaging().getInitialNotification();
+    console.log(initialNotification,"initialNotification");
+    
     if (initialNotification) {
       console.log('[PushNotifications] App opened from notification (killed state)', {
         hasData: !!initialNotification.data,

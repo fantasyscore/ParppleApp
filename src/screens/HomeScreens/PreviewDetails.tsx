@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Dimensions, Image, ImageBackground, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Animated, Dimensions, Image, ImageBackground, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
 import FastImage from "react-native-fast-image";
 import metrics from "../../assets/Metrics";
@@ -111,7 +111,7 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
 
     return (
         <AppSafeAreaView>
-            <PeopleHeader profile={false} userName={true} name={discover ? data?.firstName : data?.name} age={data?.age} />
+            <PeopleHeader profile={false} userName={true} name={discover ? data?.firstName : data?.name} age={data?.age} setModalVisible={setModalVisible}/>
             <ScrollView
                 ref={scrollViewRef}
                 style={styles.container}
@@ -192,7 +192,7 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                                         colors={["#6F13F2", "#400B8C"]}
                                         start={{ x: 0.5, y: 0 }}
                                         end={{ x: 0.5, y: 1 }}
-                                        style={StyleSheet.absoluteFill}
+                                        style={[StyleSheet.absoluteFill,{borderRadius:Platform.OS === "ios" ? metrics.hp50 : metrics.hp0}]}
                                     />
                                 )}
                                 {pressed && (
@@ -241,7 +241,7 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                                         colors={["#FF1A00", "#991000"]}
                                         start={{ x: 0.5, y: 0 }}
                                         end={{ x: 0.5, y: 1 }}
-                                        style={StyleSheet.absoluteFill}
+                                        style={[StyleSheet.absoluteFill,{borderRadius:Platform.OS === "ios" ? metrics.hp50 : metrics.hp0}]}
                                     />
                                 )}
                                 {pressed && (
@@ -280,7 +280,7 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                                         colors={["#CCF63D", "#779024"]}
                                         start={{ x: 0.5, y: 0 }}
                                         end={{ x: 0.5, y: 1 }}
-                                        style={StyleSheet.absoluteFill}
+                                        style={[StyleSheet.absoluteFill,{borderRadius:Platform.OS === "ios" ? metrics.hp50 : metrics.hp0}]}
                                     />
                                 )}
                                 {pressed && (
