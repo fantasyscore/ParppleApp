@@ -4,14 +4,14 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "com.parpple",
+  "applicationId": "com.app.parpple",
   "variantName": "release",
   "elements": [
     {
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 11,
+      "versionCode": 16,
       "versionName": "1.0",
       "outputFile": "app-release.apk"
     }

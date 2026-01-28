@@ -91,6 +91,7 @@ const UserEditProfile = (props: any) => {
     // UI-thread driven animation (smoother than RN Animated for layout-heavy transitions)
     const progress = useSharedValue(0); // 0 = expanded, 1 = collapsed
     const cardWidthRef = useRef(0);
+    const scrollViewRef = useRef<Animated.ScrollView>(null);
 
     const preloadAroundIndex = (gallery: any[] | undefined, idx: number) => {
         try {
@@ -158,16 +159,23 @@ const UserEditProfile = (props: any) => {
         };
     });
 
+   
     const updownAction = () => {
-        const toValue = updown ? 0 : 1;
+        const goingToCollapse = !updown;
+      
+        // ✅ RESET SCROLL ONLY ON JS THREAD
+        if (!goingToCollapse && scrollViewRef.current) {
+          scrollViewRef.current.scrollTo({ y: 0, animated: false });
+        }
+      
         progress.value = withTiming(
-            toValue,
-            { duration: 260, easing: Easing.out(Easing.cubic) },
-            () => {
-                runOnJS(setupdown)(!updown);
-            }
+          goingToCollapse ? 1 : 0,
+          { duration: 260, easing: Easing.out(Easing.cubic) }
         );
-    };
+      
+        // ✅ Update state on JS thread
+        setupdown(goingToCollapse);
+      };
 
     const handleTap = (evt: any) => {
         if (!evt?.nativeEvent?.locationX || !cardWidthRef.current) return;
@@ -264,6 +272,7 @@ const UserEditProfile = (props: any) => {
                 </View> : <></>
             }
             <Animated.ScrollView
+                ref={scrollViewRef}
                 style={[
                     styles.scrollContainer,
                     {

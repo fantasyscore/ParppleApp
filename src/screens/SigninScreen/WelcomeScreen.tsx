@@ -24,7 +24,7 @@ const WelcomeScreen = () => {
     const dispatch = useDispatch();
     useEffect(() => {
         GoogleSignin.configure({
-            webClientId: '955105716636-4pf49jso1bitv7ohduq37vb23ujf46cs.apps.googleusercontent.com',
+            webClientId: '316625885811-shjdrjnhmqr84qt5klkeaij9qvcj33bj.apps.googleusercontent.com',
             offlineAccess: true,
             forceCodeForRefreshToken: true,
         });
@@ -79,6 +79,8 @@ const WelcomeScreen = () => {
             } catch { }
 
             const signInResult: any = await GoogleSignin.signIn({ prompt: 'select_account' } as any);
+            console.log(signInResult,"signInResultsignInResultsignInResult");
+            
             let idToken = signInResult.data?.idToken;
             if (!idToken) {
                 idToken = signInResult.idToken;

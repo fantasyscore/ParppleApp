@@ -31,6 +31,7 @@ const ChatProfileScreen = ({ always }: any) => {
     // UI-thread animation progress (0 = expanded, 1 = collapsed)
     const progress = useSharedValue(0);
     const isMountedRef = useRef(true);
+    const scrollViewRef = useRef<Animated.ScrollView>(null);
 
     useEffect(() => {
         return () => {
@@ -83,19 +84,23 @@ const ChatProfileScreen = ({ always }: any) => {
     });
 
     const updownAction = () => {
-        const toValue = updown ? 0 : 1;
-        const nextUpdown = !updown;
+        const goingToCollapse = !updown;
+       
+        // ✅ RESET SCROLL ONLY ON JS THREAD
+        if (!goingToCollapse && scrollViewRef.current) {
+          scrollViewRef.current.scrollTo({ y: 0, animated: false });
+        }
+       
+        progress.value = withTiming(
+          goingToCollapse ? 1 : 0,
+          { duration: 260, easing: Easing.out(Easing.cubic) }
+        );
+       
+        // ✅ Update state on JS thread
         const safeSetUpdown = (v: boolean) => {
             if (isMountedRef.current) setupdown(v);
         };
-        progress.value = withTiming(
-            toValue,
-            // Match `UserEditProfile.tsx` timing/easing for the same smooth feel
-            { duration: 260, easing: Easing.out(Easing.cubic) },
-            () => {
-                runOnJS(safeSetUpdown)(nextUpdown);
-            }
-        );
+        safeSetUpdown(goingToCollapse);
     };
 
     const preloadAroundIndex = (gallery: any[] | undefined, idx: number) => {
@@ -215,6 +220,7 @@ const ChatProfileScreen = ({ always }: any) => {
         <View style={{ flex: 1 }}>
             {/* {!updown && <Animated.View style={{ opacity: 0 }}>{renderProgressLine(false)}</Animated.View>} */}
             <Animated.ScrollView
+                ref={scrollViewRef}
                 style={[
                     styles.scrollContainer,
                     {

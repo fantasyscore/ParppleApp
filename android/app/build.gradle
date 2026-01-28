@@ -17,10 +17,10 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.parpple"
+    namespace "com.app.parpple"
 
     defaultConfig {
-        applicationId "com.parpple"
+        applicationId "com.app.parpple"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 16
@@ -35,9 +35,13 @@ android {
             keyPassword 'android'
         }
         release {
-            storeFile file('keystore.jks')
+            // storeFile file('keystore.jks')
+            // storePassword '12345678'
+            // keyAlias 'key0'
+            // keyPassword '12345678'
+            storeFile file('release.jks')
             storePassword '12345678'
-            keyAlias 'key0'
+            keyAlias 'key1'
             keyPassword '12345678'
         }
     }
