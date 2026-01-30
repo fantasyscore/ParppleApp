@@ -23,7 +23,7 @@ android {
         applicationId "com.app.parpple"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 16
+        versionCode 1
         versionName "1.0"
     }
 
@@ -35,10 +35,6 @@ android {
             keyPassword 'android'
         }
         release {
-            // storeFile file('keystore.jks')
-            // storePassword '12345678'
-            // keyAlias 'key0'
-            // keyPassword '12345678'
             storeFile file('release.jks')
             storePassword '12345678'
             keyAlias 'key1'
