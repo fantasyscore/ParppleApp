@@ -24,6 +24,7 @@
 		E4E0B7D60BF341228C4445F0 /* Inter_24pt-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A968977BB78F49BFB956A936 /* Inter_24pt-Light.ttf */; };
 		E6CD1B0DDF1577FAC7EA7E52 /* Pods_parpple.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8181AC96E66360F019A4ABFB /* Pods_parpple.framework */; };
 		EA1107AF951CDE15E6110FBB /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
+		EBB9037D2F2CC07F002240C7 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EBB9037C2F2CC07F002240C7 /* StoreKit.framework */; };
 		EBBBE5522F22122C007E2AA8 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = EBBBE5502F220EFB007E2AA8 /* GoogleService-Info.plist */; };
 		EBBBE55C2F2240C8007E2AA8 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = EBBBE55B2F2240C8007E2AA8 /* LaunchScreen.storyboard */; };
 /* End PBXBuildFile section */
@@ -49,6 +50,7 @@
 		ACDC6B34DE644E54BC6D9015 /* Inter_24pt-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_24pt-Bold.ttf"; path = "../src/assets/fonts/Inter_24pt-Bold.ttf"; sourceTree = "<group>"; };
 		B8CA3F1D5A604BC4A624AC65 /* Inter_28pt-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_28pt-Bold.ttf"; path = "../src/assets/fonts/Inter_28pt-Bold.ttf"; sourceTree = "<group>"; };
 		DB381DB982074CA389DA443A /* ScheherazadeNew-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "ScheherazadeNew-Regular.ttf"; path = "../src/assets/fonts/ScheherazadeNew-Regular.ttf"; sourceTree = "<group>"; };
+		EBB9037C2F2CC07F002240C7 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		EBBBE5502F220EFB007E2AA8 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		EBBBE5542F221D87007E2AA8 /* parpple.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = parpple.entitlements; path = parpple/parpple.entitlements; sourceTree = "<group>"; };
 		EBBBE55B2F2240C8007E2AA8 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -62,6 +64,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E6CD1B0DDF1577FAC7EA7E52 /* Pods_parpple.framework in Frameworks */,
+				EBB9037D2F2CC07F002240C7 /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -84,6 +87,7 @@
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				EBB9037C2F2CC07F002240C7 /* StoreKit.framework */,
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
 				8181AC96E66360F019A4ABFB /* Pods_parpple.framework */,
 			);
