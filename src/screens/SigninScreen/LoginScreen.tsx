@@ -94,7 +94,7 @@ const LoginScreen = () => {
             
             setIsLoading(true);
             try {
-                await  /* dispatch(sendOtpApi(data)); */ dispatch(userLogin(data, true));
+                await /*  dispatch(sendOtpApi(data)); */ dispatch(userLogin(data, true));
             } catch (error) {
                 // Error is already handled in the action
             } finally {
@@ -185,6 +185,9 @@ const LoginScreen = () => {
                     show={show}
                     lang="en"
                     onBackdropPress={() => setShow(false)}
+                    style={{modal:{
+                        flex: 0.8
+                    }}}
                     pickerButtonOnPress={(item: any) => {
                         setCountryCode(item.dial_code);
                         setShow(false);
@@ -208,10 +211,11 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         borderBottomWidth: 1,
-        paddingVertical: metrics.hp0_8,
+        paddingVertical: Platform.OS === "ios" ?  metrics.hp0_8 : metrics.hp0,
     },
     countryInputTwo: {
         borderBottomWidth: 1,
+        paddingVertical: Platform.OS ==="ios" ? metrics.hp1 : metrics.hp0,
     },
     dropDownIcon: {
         height: metrics.hp3,
@@ -228,6 +232,6 @@ const styles = StyleSheet.create({
         width: Screen.Width / 1.6,
         fontSize: fontSize(18),
         fontFamily: INTER_BOLD,
-        fontWeight:"700"
+        fontWeight:Platform.OS === "ios" ? "400": "700",
     },
 });
