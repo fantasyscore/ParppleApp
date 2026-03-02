@@ -24,7 +24,9 @@ const WelcomeScreen = () => {
     const dispatch = useDispatch();
     useEffect(() => {
         GoogleSignin.configure({
-            webClientId: '316625885811-shjdrjnhmqr84qt5klkeaij9qvcj33bj.apps.googleusercontent.com',
+            // 232327857977-khkva7h6sip8cmb1vqae5elvi9j8otnj.apps.googleusercontent.com
+            
+            webClientId: '316625885811-s7ak9u8n13up5egaqa3l07hdi7i8sau1.apps.googleusercontent.com',
             offlineAccess: true,
             forceCodeForRefreshToken: true,
         });

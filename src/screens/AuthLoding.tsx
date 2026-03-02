@@ -37,16 +37,16 @@ const AuthLoding = () => {
           const navigateToWelcome = () => {
             try {
               if (NavigationService.isNavigationReady()) {
-                NavigationService.navigate(NAVIGATION_WELCOME_SCREEN);
+                NavigationService.reset(NAVIGATION_WELCOME_SCREEN);
               } else {
                 // Retry after a short delay if navigation not ready
                 console.log('[AuthLoading] Navigation not ready, retrying in 300ms');
                 setTimeout(() => {
                   if (NavigationService.isNavigationReady()) {
-                    NavigationService.navigate(NAVIGATION_WELCOME_SCREEN);
+                    NavigationService.reset(NAVIGATION_WELCOME_SCREEN);
                   } else {
                     // NavigationService will queue it, so this is safe
-                    NavigationService.navigate(NAVIGATION_WELCOME_SCREEN);
+                    NavigationService.reset(NAVIGATION_WELCOME_SCREEN);
                   }
                 }, 300);
               }
@@ -55,7 +55,7 @@ const AuthLoding = () => {
               // Retry once more after delay
               setTimeout(() => {
                 try {
-                  NavigationService.navigate(NAVIGATION_WELCOME_SCREEN);
+                  NavigationService.reset(NAVIGATION_WELCOME_SCREEN);
                 } catch (retryError) {
                   console.error('[AuthLoading] Navigation retry failed:', retryError);
                   // NavigationService should have queued it, so app won't crash
@@ -67,9 +67,9 @@ const AuthLoding = () => {
         }
       } catch (e) {
         console.error('[AuthLoading] Bootstrap error:', e);
-        // On error, try to navigate to welcome screen as fallback
+        // On error, try to reset to welcome screen as fallback
         try {
-          NavigationService.navigate(NAVIGATION_WELCOME_SCREEN);
+          NavigationService.reset(NAVIGATION_WELCOME_SCREEN);
         } catch (navError) {
           console.error('[AuthLoading] Fallback navigation failed:', navError);
           // Don't crash - NavigationService will queue it

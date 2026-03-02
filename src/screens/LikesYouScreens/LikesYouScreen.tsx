@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { FlatList, ImageBackground, Modal, StyleSheet, View } from "react-native";
 import FastImage from "react-native-fast-image";
-import { blueTikeIcon, bostIconWhite, goldCard, heartGreen, heartRed, likeYouIcon, lockIconWhite, logoBlue, profileImage, shareRedIcon, upgradPlan, viewsIcon } from "../../helper/ImageAssets";
+import { blueTikeIcon, bostIconWhite, goldCard, heartGreen, heartRed, likeYouIcon, lockIconWhite, logoBlue, profileImage, shareRedIcon, silverCard, upgradPlan, viewsIcon } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { AppText, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, PURPLE, SCHEHERAZADE_BOLD, SIXTEEN, TEN, THIRTEEN, TWELVE, TWENTY_FOUR, WHITE } from "../../common/AppText";
@@ -37,6 +37,7 @@ const LikesYouScreen = () => {
         dispatch(youView());
     }, [fouces]);
     let item = { id: "2", icon: goldCard, title: "Gold" }
+    let itemTwo = { id: "1", icon: silverCard, title: "Silver" }
     const renderUpgradeData = () => {
         return (
             <View style={styles.upgradeDataContainer}>
@@ -95,14 +96,18 @@ const LikesYouScreen = () => {
         )
     };
     const viewProfile = (item: any) => {
+        if(item?.see == false ? true : false){
+       NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: item })
+        }else{
             let data = {
                 "userId": item?.userId
             };
             dispatch(getOtherProfile(data, false, setProfileData, true));
+        }
     }
     const renderItems = ({ item, index }: any) => {
         return (
-            <TouchableOpacityView disabled={item?.see == false ? true : false} activeOpacity={1} onPress={() => viewProfile(item)} key={index} style={[styles.upgradeDataContainer, { marginBottom: metrics.hp2, }]}>
+            <TouchableOpacityView activeOpacity={1} onPress={() => viewProfile(item)} key={index} style={[styles.upgradeDataContainer, { marginBottom: metrics.hp2, }]}>
                 {item?.type === "superLike" && tabSelect === "Likes" && item?.see == true && <LinearGradient colors={["#FF003D", "#990025"]} style={styles.superLikeBack} />}
                 {item?.type === "superLike" && tabSelect === "Likes" && item?.see == true && <View style={styles.superLikeBackTwo} />}
                 <ImageBackground blurRadius={item?.see == false ? metrics.hp7 : metrics.hp0} imageStyle={{ borderRadius: metrics.hp1_5 }} source={{ uri: item?.profilePicture[0]?.url }} resizeMode="cover" style={[styles.profileImageTwo, { zIndex: 2 }]}>
