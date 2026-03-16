@@ -5,7 +5,7 @@ import { backIcon, pencilIcon, previewIcon } from "../helper/ImageAssets";
 import metrics from "../assets/Metrics";
 import { TouchableOpacityView } from "./TouchableOpacityView";
 import NavigationService from "../navigation/NavigationService";
-import { AppText, EIGHTEEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, OPECITY_DARK, TEN } from "./AppText";
+import { AppText, EIGHTEEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, OPECITY_DARK, SIXTEEN, TEN } from "./AppText";
 import { colors } from "../theme/colors";
 
 const HeaderCommon = ({ onSkip, skip, title, preview, edit, PreviewOnpress, editOnPress,age }: any) => {
@@ -20,8 +20,8 @@ const HeaderCommon = ({ onSkip, skip, title, preview, edit, PreviewOnpress, edit
                                 {"     "}{title}
                             </AppText> :
                             <View style={{flexDirection:"row", alignItems:"center"}}>
-                            <AppText style={{marginTop:-metrics.hp0_5, textTransform:"capitalize"}} type={EIGHTEEN} weight={INTER_BOLD}>{"     "}{title},</AppText>
-                            <AppText  type={EIGHTEEN} weight={INTER_MEDIUM}> {age}</AppText>
+                            <AppText style={{ textTransform:"capitalize"}} type={FORTEEN} weight={INTER_BOLD}>{"     "}{title},</AppText>
+                            <AppText  type={SIXTEEN} weight={INTER_MEDIUM}> {age}</AppText>
                             </View>
                         }
                     </>

@@ -28,6 +28,7 @@ const SwipeableCard = forwardRef(function SwipeableCard<T>(
     sharedTranslateY?: SharedValue<number>;
     onSwipeRightDenied?: () => void;
     onSwipeTopDenied?: () => void;
+    disableTouchSwipe?: boolean;
   },
   ref: React.ForwardedRef<SwiperCardRefType>
 ) {
@@ -79,6 +80,7 @@ const SwipeableCard = forwardRef(function SwipeableCard<T>(
     sharedTranslateY,
     onSwipeRightDenied,
     onSwipeTopDenied,
+    disableTouchSwipe,
   } = props;
 
   const { width, height } = useWindowDimensions();
@@ -94,6 +96,12 @@ const SwipeableCard = forwardRef(function SwipeableCard<T>(
   // IMPORTANT: This does NOT change LIKE/NOPE thresholds; it only gates them while locked.
   const SUPERLIKE_ESCAPE_X = SWIPE_THRESHOLD_X * 1.35;
   const SUPERLIKE_INTENT_RATIO = 1.15; // vertical must be meaningfully dominant
+  const isTouchSwipeDisabled =
+    !!disableTouchSwipe ||
+    !!disableLeftSwipe &&
+    !!disableRightSwipe &&
+    !!disableTopSwipe &&
+    !!disableBottomSwipe;
 
   const swipeRight = useCallback(() => {
     onSwipeRight?.(index);
@@ -326,6 +334,7 @@ const SwipeableCard = forwardRef(function SwipeableCard<T>(
     .onBegin(() => {
       const currentActive = Math.floor(activeIndex.value);
       if (currentActive !== index) return;
+      if (isTouchSwipeDisabled) return;
       if (sharedTranslateX) sharedTranslateX.value = 0;
       if (sharedTranslateY) sharedTranslateY.value = 0;
       if (onSwipeStart) scheduleOnRN(onSwipeStart);
@@ -333,6 +342,7 @@ const SwipeableCard = forwardRef(function SwipeableCard<T>(
     .onUpdate((event) => {
       const currentActive = Math.floor(activeIndex.value);
       if (currentActive !== index) return;
+      if (isTouchSwipeDisabled) return;
 
       translateX.value = event.translationX;
       translateY.value = event.translationY;
@@ -348,6 +358,13 @@ const SwipeableCard = forwardRef(function SwipeableCard<T>(
     .onFinalize((event) => {
       const currentActive = Math.floor(activeIndex.value);
       if (currentActive !== index) return;
+      if (isTouchSwipeDisabled) {
+        translateX.value = 0;
+        translateY.value = 0;
+        if (sharedTranslateX) sharedTranslateX.value = 0;
+        if (sharedTranslateY) sharedTranslateY.value = 0;
+        return;
+      }
       if (onSwipeEnd) scheduleOnRN(onSwipeEnd);
 
       const { translationX, translationY } = event;
@@ -442,7 +459,7 @@ const SwipeableCard = forwardRef(function SwipeableCard<T>(
       );
     });
 
-  const composed = Gesture.Race(tap, pan);
+  const composed = isTouchSwipeDisabled ? tap : Gesture.Race(tap, pan);
 
   return (
     <GestureDetector gesture={composed}>

@@ -150,6 +150,7 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                             style={styles.flasContaierTwo}
                             onPress={() => {
                                 if ((crushNotesRemaining ?? 0) <= 0) {
+                                    setModalVisible(false)
                                     NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN);
                                     return;
                                 }
@@ -225,6 +226,7 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                         onPress={() => {
                             // If user has 0 superlikes -> go to purchase
                             if (canSuperLike && !canSuperLike()) {
+                                setModalVisible(false)
                                 NavigationService.navigate(NAVIGATION_SUPERLIKE_PURCHESE_SCREEN);
                             return;
                         }

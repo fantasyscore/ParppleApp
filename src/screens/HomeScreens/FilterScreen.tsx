@@ -17,6 +17,7 @@ import { DrinkData, ExerciseData, ganderDATA, LanguageData, LookignForData, rela
 import { useDispatch, useSelector } from "react-redux";
 import { attributesGet, discoverProfile, getNewMatches, getProfile, listProfiles, sendAdvanceFilter } from "../../actions/authActions";
 import { appOperation } from "../../appOperation";
+import { datingIntentionsFilter } from "../../helper/utility";
 
 const FilterScreen = () => {
     const dispatch = useDispatch();
@@ -270,8 +271,11 @@ const FilterScreen = () => {
                             titile={filterData?.preferredGender ? filterData?.preferredGender : userData?.preferredGender}
                             onPress={() => NavigationService.navigate(NAVIGATION_COMMONSELECT_PAGE_SCREEN, { headline: "Who would you like to see?", data: ganderDATA, secondHeadline: "Select whom you like to date.", title: "gender", select: userData?.preferredGender })} />
                         <ButtonSheet Icons={partnerheart} headLines={"What are you looking for?"}
-                            titile={filterData?.relationshipPreference ? filterData?.relationshipPreference : userData?.relationsShipStatus}
-                            onPress={() => NavigationService.navigate(NAVIGATION_COMMONSELECT_PAGE_SCREEN, { headline: "What are you looking for", data: relationShipStatus, secondHeadline: "Select what you are looking for.", title: "relationsShipStatus", select: userData?.relationsShipStatus?.toLowerCase() })} />
+                            titile={(() => {
+                                const val = filterData?.relationshipPreference || userData?.relationshipPreference || userData?.relationsShipStatus;
+                                return val ? (datingIntentionsFilter(val) ?? val) : undefined;
+                            })()}
+                            onPress={() => NavigationService.navigate(NAVIGATION_COMMONSELECT_PAGE_SCREEN, { headline: "What are you looking for", data: lookingList, secondHeadline: "Select what you are looking for.", title: "relationsShipStatus", select: filterData?.relationshipPreference || userData?.relationshipPreference || userData?.relationsShipStatus || "" })} />
                         <AgeSlider range={ageRange}
                             togleShow={lookingShow}
                             setToggleShow={setlookinShow}

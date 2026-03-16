@@ -386,7 +386,7 @@ const EditProfileScreen = () => {
                     title={"Pets"}
                     filluptext={pets?.displayLabel}
                     onPress={() => { dispatch(attributesGet()), NavigationService.navigate(NAVIGATION_LIFE_STYLE_SCREEN, { filter: "Pets", data: attributesRemove, ids: idsOnly }) }} />
-                <EditButtonCommon Icons={religiousIcon}
+                {/* <EditButtonCommon Icons={religiousIcon}
                     title={"Religious Beliefs"}
                     hidden={userData?.fieldVisibility?.relegiousBelief}
                     filluptext={userData?.relegiousBelief
@@ -394,7 +394,7 @@ const EditProfileScreen = () => {
                             index === userData?.relegiousBelief?.length - 1 ? `${item}` : `${item}, `
                         )
                         .join('')}
-                    onPress={() => NavigationService.navigate(NAVIGATION_RELIGIOUS_SCREEN, { filter: "Religious Beliefs", data: userData?.relegiousBelief, fieldVisibility: userData?.fieldVisibility })} />
+                    onPress={() => NavigationService.navigate(NAVIGATION_RELIGIOUS_SCREEN, { filter: "Religious Beliefs", data: userData?.relegiousBelief, fieldVisibility: userData?.fieldVisibility })} /> */}
                 <View style={styles.singleLine} />
                 <HeadLineContiner
                     circle={userData?.education && userData?.work && userData?.jobTitle}

@@ -25,6 +25,8 @@ const NameScreen = () => {
     const datalist = new Array(13).fill(null).map((_, index) => ({ id: String(index), }))
     const [firstNmae, setFirstName] = useState(emailAuth?.data?.user?.givenName ? emailAuth?.data?.user?.givenName : "");
     const [lastNmae, setLastName] = useState("");
+    console.log(emailAuth,"emailAuthemailAuthemailAuth");
+    
     const onSubmit = () => {
         if (!firstNmae) toastAlert.showToastError("Please enter your first name")
         const data = {

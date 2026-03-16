@@ -10,6 +10,8 @@ import { chatHistoryDetails, matchChatDetails, setAttributes, setDiscoverData, s
 export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.guest.login(data);
+        console.log(response,"responseresponseresponse");
+        
         if (response?.statusCode == 200) {
             toastAlert.showToastError(response.message);
             appOperation.setCustomerToken(response?.data?.tokenData?.token);
@@ -409,6 +411,7 @@ export const crushNoteAccecptAPI: any = (data: any, matchChatUserDetails: any, n
             }
         }
     } catch (error: any) {
+        console.log(error,"errorerrorerrorerrorerror");
         throw error;
     }
 };
@@ -424,6 +427,19 @@ export const deleteAccountAPI: any = () => async (dispatch: any) => {
         throw error;
     }
 };
+export const iosPucrchesAPIIs: any = (data:any) => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.iosPurchesAPI(data);
+        if (response?.statusCode == 200) {
+            console.log(response,"responseresponseresponse");
+            
+        }
+        return response;
+    } catch (error: any) {
+        throw error;
+    }
+};
+
 
 export const reportUserAPI: any =
     (payload: { reportedUserId: string; subject: string; body: string }) => async () => {

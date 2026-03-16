@@ -32,6 +32,10 @@ type TinderDeniedCallbacks = {
   onSwipeTopDenied?: () => void;
 };
 
+type SwipeGestureControl = {
+  disableTouchSwipe?: boolean;
+};
+
 const Swiper = <T,>(
   {
     data,
@@ -86,7 +90,11 @@ const Swiper = <T,>(
     sharedTranslateY,
     onSwipeRightDenied,
     onSwipeTopDenied,
-  }: SwiperOptions<T> & TinderSharedState & TinderDeniedCallbacks,
+    disableTouchSwipe,
+  }: SwiperOptions<T> &
+    TinderSharedState &
+    TinderDeniedCallbacks &
+    SwipeGestureControl,
   ref: ForwardedRef<SwiperCardRefType>
 ) => {
   const clampedInitialIndex = Math.max(
@@ -149,6 +157,7 @@ const Swiper = <T,>(
       sharedTranslateY?: SharedValue<number>;
       onSwipeRightDenied?: () => void;
       onSwipeTopDenied?: () => void;
+      disableTouchSwipe?: boolean;
     }
   >;
 
@@ -217,6 +226,7 @@ const Swiper = <T,>(
           sharedTranslateY={sharedTranslateY}
           onSwipeRightDenied={onSwipeRightDenied}
           onSwipeTopDenied={onSwipeTopDenied}
+          disableTouchSwipe={disableTouchSwipe}
         >
           {renderCard(item, actualIndex)}
         </Card>

@@ -23,7 +23,6 @@ const ProfileScreen = () => {
     const [tabSelect, setTabSelect] = useState("Premium");
     const [activeIndex, setActiveIndex] = useState(0);
     const userData = useSelector((state: any) => state.auth.userData);
-console.log(userData,"userData");
 
     useEffect(() => {
         const n = Number(userData?.profileCompletion);

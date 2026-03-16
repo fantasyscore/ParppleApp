@@ -27,7 +27,11 @@ const ALL_SUBSCRIPTION_SKUS = Platform.select({
         'gold_week', 'gold_month', 'gold_6month',
         'platinum_week', 'platinum_month', 'platinum_6month'
     ],
-}) || [];
+}) ?? [
+        'silver_week', 'silver_month', 'silver_6month',
+        'gold_week', 'gold_month', 'gold_6month',
+        'platinum_week', 'platinum_month', 'platinum_6month'
+    ];
 
 // Helper to extract tier from productId
 const getTierFromProductId = (productId: string) => {
@@ -174,11 +178,26 @@ const SubscriptionScreen = ({ route }: any) => {
                 setLoading(true);
                 await RNIap.initConnection();
 
-                // Fetch ALL products at once
-                const availableProducts = await RNIap.fetchProducts({
-                    skus: ALL_SUBSCRIPTION_SKUS,
-                    type: 'subs'
-                });
+                // iOS (v12): getSubscriptions({ skus }) for subscriptions. v14 has fetchProducts({ skus, type: 'subs' }).
+                let rawProducts: any[] = [];
+                if (Platform.OS === 'ios') {
+                    if ((RNIap as any).getSubscriptions) {
+                        rawProducts = await (RNIap as any).getSubscriptions({ skus: ALL_SUBSCRIPTION_SKUS });
+                    } else {
+                        rawProducts = await RNIap.getProducts({ skus: ALL_SUBSCRIPTION_SKUS });
+                    }
+                } else if (typeof (RNIap as any).fetchProducts === 'function') {
+                    rawProducts = await (RNIap as any).fetchProducts({
+                        skus: ALL_SUBSCRIPTION_SKUS,
+                        type: 'subs',
+                    });
+                } else if ((RNIap as any).getSubscriptions) {
+                    rawProducts = await (RNIap as any).getSubscriptions({ skus: ALL_SUBSCRIPTION_SKUS });
+                } else {
+                    rawProducts = await RNIap.getProducts({ skus: ALL_SUBSCRIPTION_SKUS });
+                }
+
+                const availableProducts = Array.isArray(rawProducts) ? rawProducts : [];
 
                 if (availableProducts && availableProducts.length > 0) {
                     // First pass: calculate all products with weekly pricing
@@ -287,8 +306,12 @@ const SubscriptionScreen = ({ route }: any) => {
                     purchaseToken: purchase.purchaseToken,
                     platform: Platform.OS === 'ios' ? 'ios' : 'android',
                 };
-
-                const response: any = await dispatch(subscriptionVerifyAPI(data));
+                const newdata = {
+                    productId: purchase.productId,
+                    purchaseToken: purchase.transactionReceipt,
+                    platform: 'ios',
+                }
+                const response: any = await dispatch(subscriptionVerifyAPI(newdata));
                 const isOk =
                     response?.statusCode === 200
 
@@ -337,15 +360,40 @@ const SubscriptionScreen = ({ route }: any) => {
         const selectedPlan = currentTierPlans[selectedPlanIndex];
         if (!selectedPlan?.rawSubscription) return;
 
-        try {
-            setProcessing(selectedPlan.id);
-            const platformRequest: any = Platform.OS === 'android'
-                ? { android: { skus: [selectedPlan.id] } }
-                : { ios: { sku: selectedPlan.id } };
+        const productId = selectedPlan.id;
+        if (!productId) return;
 
-            await RNIap.requestPurchase({ request: platformRequest, type: 'subs' });
+        try {
+            setProcessing(productId);
+
+            // iOS (v12): requestSubscription({ sku }). Android (v14): requestPurchase({ request: { android: { skus } }, type: 'subs' }).
+            if (Platform.OS === 'ios') {
+                if ((RNIap as any).requestSubscription) {
+                    await (RNIap as any).requestSubscription({
+                        sku: productId,
+                        andDangerouslyFinishTransactionAutomaticallyIOS: false,
+                    });
+                } else {
+                    await RNIap.requestPurchase({
+                        sku: productId,
+                        andDangerouslyFinishTransactionAutomaticallyIOS: false,
+                    });
+                }
+            } else if (typeof (RNIap as any).fetchProducts === 'function') {
+                await (RNIap as any).requestPurchase({
+                    request: { android: { skus: [productId] } },
+                    type: 'subs',
+                });
+            } else if ((RNIap as any).requestSubscription) {
+                await (RNIap as any).requestSubscription(productId);
+            } else {
+                await RNIap.requestPurchase({ skus: [productId] });
+            }
         } catch (err: any) {
             setProcessing(null);
+            if (!err?.message?.toLowerCase?.().includes('cancel')) {
+                console.warn('Subscription Purchase Error:', err);
+            }
         }
     };
 

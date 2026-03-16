@@ -12,7 +12,7 @@ import { colors } from "../../theme/colors";
 import * as RNIap from 'react-native-iap';
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 import { useDispatch } from "react-redux";
-import { getProfile, verifyconsumableitemsAPI } from "../../actions/authActions";
+import { deleteAccountAPI, getProfile, iosPucrchesAPIIs, verifyconsumableitemsAPI } from "../../actions/authActions";
 
 // Product IDs must match exactly what you created in App Store Connect (iOS) / Play Console (Android).
 // react-native-iap v12 (iOS branch): use getProducts({ skus }). v14 (Android) uses fetchProducts.
@@ -132,7 +132,7 @@ const SuperLikePurchese = () => {
 
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
             try {
-             
+
                 const key = (purchase?.transactionId || purchase?.orderId || purchase?.purchaseToken || purchase?.productId || '').toString();
                 if (isVerifyingRef.current) return;
                 if (key && lastVerifiedKeyRef.current === key) return;
@@ -149,13 +149,20 @@ const SuperLikePurchese = () => {
 
                 // Same verification API pattern as subscriptions
                 const data = {
-                    productId: purchase.productId, 
+                    productId: purchase.productId,
                     purchaseToken: purchase.purchaseToken,
                     platform: Platform.OS === 'ios' ? 'ios' : 'android',
                     orderId: purchase.id,
                 };
-
-                const response: any = await dispatch(verifyconsumableitemsAPI(data));
+                const newdata = {
+                    productId :purchase?.productId,
+                    transactionReceipt:purchase?.transactionReceipt,
+                    transactionId:purchase?.transactionId
+                }
+                
+                const response: any = await dispatch(iosPucrchesAPIIs(newdata))
+                console.log(response,"responseTworesponseTworesponseTworesponseTworesponseTworesponseTwo")
+                // const response: any = await dispatch(verifyconsumableitemsAPI(data));
                 const isOk = response?.statusCode === 200
                 if (!isOk) {
                     throw new Error(response?.message || response?.data?.message || 'Super Like verification failed');
@@ -484,12 +491,12 @@ const styles = StyleSheet.create({
         top: -metrics.hp0_6
     },
     imageiContainer: {
-        shadowColor: colors.black,
-        shadowOffset: { width: 0, height: metrics.hp1_2 },
-        shadowOpacity: 0.22,
-        shadowRadius: metrics.hp1,
+        // shadowColor: colors.black,
+        // shadowOffset: { width: 0, height: metrics.hp1_2 },
+        // shadowOpacity: 0.22,
+        // shadowRadius: metrics.hp1,
         elevation: 8,
-        height: metrics.hp10, width: "100%", marginTop: metrics.hp3, marginBottom:metrics.hp4,
+        height: metrics.hp10, width: "100%", marginTop: metrics.hp3, marginBottom: metrics.hp4,
     },
     payBackdrop: {
         flex: 1,

@@ -202,3 +202,6 @@ export const offglobleSearchAndResetFilter = require("../assets/img/offglobleSea
 export const crushParchesBackPop = require("../assets/img/crushParchesBackPop.png");
 export const textforBlurImage = require("../assets/img/textforBlurImage.png");
 export const loaderHome = require("../assets/img/loaderHome.gif");
+export const Appleicon = require("../assets/img/Appleicon.png");
+export const viewProfileICon = require("../assets/img/viewProfileICon.png");
+export const openLikeSection = require("../assets/img/openLikeSection.png");

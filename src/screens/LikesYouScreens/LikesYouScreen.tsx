@@ -94,15 +94,25 @@ const LikesYouScreen = () => {
             </View>
         )
     };
+    // const viewProfile = (item: any) => {
+    //     let data = {
+    //         "userId": item?.userId
+    //     };
+    //     dispatch(getOtherProfile(data, false, setProfileData, true));
+    // }
     const viewProfile = (item: any) => {
-        let data = {
-            "userId": item?.userId
-        };
-        dispatch(getOtherProfile(data, false, setProfileData, true));
+        if(item?.see == false ? true : false){
+       NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: item })
+        }else{
+            let data = {
+                "userId": item?.userId
+            };
+            dispatch(getOtherProfile(data, false, setProfileData, true));
+        }
     }
     const renderItems = ({ item, index }: any) => {
         return (
-            <TouchableOpacityView disabled={item?.see == false ? true : false} activeOpacity={1} onPress={() => viewProfile(item)} key={index} style={[styles.upgradeDataContainer, { marginBottom: metrics.hp2, }]}>
+            <TouchableOpacityView  activeOpacity={1} onPress={() => viewProfile(item)} key={index} style={[styles.upgradeDataContainer, { marginBottom: metrics.hp2, }]}>
                 {Platform.OS === "ios" ? <></> :
                     <>
                         {item?.type === "superLike" && tabSelect === "Likes" && item?.see == true && <LinearGradient colors={["#FF003D", "#990025"]} style={styles.superLikeBack} />}
@@ -245,22 +255,14 @@ const LikesYouScreen = () => {
                             Upgrade to gold to see people who have already{'\n'}liked you
                         </AppText>
                     ) : (
-                        ViewYoue == "Viewed You" && tabSelect == "Views" && userData?.subscription?.plan === "FREE" ? (
-                            <AppText style={{ textAlign: "center", marginTop: metrics.hp2 }} type={TWELVE} weight={INTER_MEDIUM} color={LIGHT_BLACK}>
-                                Upgrade to gold to see people who have already{'\n'}liked you
-                            </AppText>
-                        ) : (<></>)
+                        <></>
                     )
                 }} />
-            {likeYoue == "Likes You" && tabSelect === "Likes" && userData?.subscription?.plan === "FREE" ?
+            {likeYoue == "Likes You" && tabSelect === "Likes" && userData?.subscription?.plan === "FREE" ? (
                 <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: item })} >
-                    <FastImage source={upgradPlan} resizeMode="contain" style={{ height: metrics.hp10, width: Screen.Width / 1, marginBottom: metrics.hp1, marginTop: metrics.hp1 }} />
-                </TouchableOpacityView> :
-                ViewYoue == "Viewed You" && tabSelect == "Views" && userData?.subscription?.plan === "FREE" ?
-                    <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: item })} >
-                        <FastImage source={upgradPlan} resizeMode="contain" style={{ height: metrics.hp10, width: Screen.Width / 1, marginBottom: metrics.hp1, marginTop: metrics.hp1 }} />
-                    </TouchableOpacityView> : <></>
-            }
+                    <FastImage source={upgradPlan} resizeMode="contain" style={{ height: metrics.hp10, width: Screen.Width / 1, marginBottom: metrics.hp3, marginTop: metrics.hp1 }} />
+                </TouchableOpacityView>
+            ) : null}
         </AppSafeAreaView>
     )
 };

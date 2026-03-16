@@ -31,7 +31,7 @@
 			<string>google</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.955105716636-m2pahmb539tc7bpuf950pj2nhhsi08l4</string>
+				<string>com.googleusercontent.apps.316625885811-8kcqbhsjv3e4efe4fadnpodi02lkk8th</string>
 			</array>
 		</dict>
 		<dict>
@@ -41,7 +41,7 @@
 			<string>google</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.955105716636-m2pahmb539tc7bpuf950pj2nhhsi08l4</string>
+				<string>com.googleusercontent.apps.316625885811-8kcqbhsjv3e4efe4fadnpodi02lkk8th</string>
 			</array>
 		</dict>
 	</array>
@@ -67,15 +67,20 @@
 		</dict>
 	</dict>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Your location helps us improve features even when the app is not open.</string>
+	<string>Parpple uses your location to help you discover and connect with nearby matches, even when the app is running in the background.</string>
+
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string>Parpple uses your location to show potential matches and profiles near you.</string>
+
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>This allows the app to save images to your photo library.</string>
+	<string>Parpple needs permission to save photos you download or share from the app to your photo library.</string>
+
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>We use your photo library to let you choose and upload pictures.</string>
+	<string>Parpple needs access to your photo library so you can upload profile pictures and share photos with matches.</string>
+
 	<key>UIAppFonts</key>
 	<array>
 		<string>Inter_24pt-Bold.ttf</string>

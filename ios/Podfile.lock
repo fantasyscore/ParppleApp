@@ -2200,6 +2200,8 @@ PODS:
     - React-perflogger (= 0.79.2)
     - React-utils (= 0.79.2)
   - RecaptchaInterop (101.0.0)
+  - RNAppleAuthentication (2.5.1):
+    - React-Core
   - RNCAsyncStorage (2.2.0):
     - DoubleConversion
     - glog
@@ -2749,6 +2751,7 @@ DEPENDENCIES:
   - ReactAppDependencyProvider (from `build/generated/ios`)
   - ReactCodegen (from `build/generated/ios`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
+  - "RNAppleAuthentication (from `../node_modules/@invertase/react-native-apple-authentication`)"
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - "RNCClipboard (from `../node_modules/@react-native-clipboard/clipboard`)"
   - "RNDateTimePicker (from `../node_modules/@react-native-community/datetimepicker`)"
@@ -2972,6 +2975,8 @@ EXTERNAL SOURCES:
     :path: build/generated/ios
   ReactCommon:
     :path: "../node_modules/react-native/ReactCommon"
+  RNAppleAuthentication:
+    :path: "../node_modules/@invertase/react-native-apple-authentication"
   RNCAsyncStorage:
     :path: "../node_modules/@react-native-async-storage/async-storage"
   RNCClipboard:
@@ -3120,6 +3125,7 @@ SPEC CHECKSUMS:
   ReactCodegen: aea17732a7f6a3169e3b2800c58dc12034f874f9
   ReactCommon: 35a5629d7159876dd048c63751eaeb3aa3a6a53b
   RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
+  RNAppleAuthentication: d6fe579e5f43cf8db54bdc48518bccea61c592a4
   RNCAsyncStorage: faf86846c58994b6b8aab074a4914eb1796c2a9f
   RNCClipboard: d289855ffe435538fb7c08e2b8b9e9c10c9893bd
   RNDateTimePicker: 6cc47f54bdcd2e57fd8304da9752ee2518457e2a

@@ -65,6 +65,8 @@ export default (appOperation: AppOperation) => ({
     appOperation.post(`dattingApp/users/delete-account`, {}, CUSTOMER_TYPE),
   reportUserAPI: (data: any) =>
     appOperation.post(`api/reports/reporteUser`, data, CUSTOMER_TYPE),
+  iosPurchesAPI: (data:any) =>
+    appOperation.post(`api/purchases/apple/verify-consumable`, data, CUSTOMER_TYPE),
   // Alternative: If API requires POST instead of GET
   // loadChatMessagesAPI: (data: any) =>
   //   appOperation.post(`chat/conversation`, data, CUSTOMER_TYPE),

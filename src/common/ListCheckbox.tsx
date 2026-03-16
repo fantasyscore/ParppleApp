@@ -11,7 +11,8 @@ const ListCheckBox = ({ item, notsend, index, selectPronoun, setSelectPronoun, r
     const isSelected = round
         ? notsend ? selectPronoun === item?.title : selectPronoun === item?.sendTitle
         : notsend ? selectPronoun?.includes(item?.title) : selectPronoun?.includes(item?.sendTitle);
-
+console.log(item,"itemitemitemitem");
+console.log(selectPronoun,"selectPronoun")
     const handlePress = () => {
         if (round) {
             setSelectPronoun(notsend ? item?.title : item?.sendTitle);

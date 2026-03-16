@@ -6,6 +6,7 @@ import metrics from "../../assets/Metrics";
 import { colors } from "../../theme/colors";
 import { AppText, BLACK, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, TWENTY_TWO, WHITE } from "../AppText";
 import { TouchableOpacityView } from "../TouchableOpacityView";
+import { Screen } from "../../theme/dimens";
 
 type Props = {
   visible: boolean;
@@ -186,16 +187,22 @@ const styles = StyleSheet.create({
   },
   sheet: {
     borderRadius: metrics.hp2,
+    width:"100%",
+    backgroundColor:colors.white,
+    paddingHorizontal:metrics.hp2,
+    paddingVertical:metrics.hp2
   },
   card: {
     borderRadius: metrics.hp2,
-    padding: metrics.hp2,
+    // padding: metrics.hp2,
     backgroundColor: colors.white,
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: metrics.hp1,
+    paddingHorizontal:metrics.hp1,
+    paddingVertical:metrics.hp1
+    // gap: metrics.hp1,
   },
   closeBtn: {
     paddingHorizontal: metrics.hp1_5,
@@ -204,7 +211,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#0000000A",
   },
   runningCard: {
-    marginTop: metrics.hp2,
+    marginTop: metrics.hp1,
     borderRadius: metrics.hp1_5,
     paddingVertical: metrics.hp1_5,
     paddingHorizontal: metrics.hp1_5,
@@ -225,7 +232,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.purple,
   },
   infoRow: {
-    marginTop: metrics.hp2,
+    marginTop: metrics.hp1,
     flexDirection: "row",
     alignItems: "center",
     borderRadius: metrics.hp1_5,

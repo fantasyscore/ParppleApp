@@ -36,6 +36,7 @@ const LoginScreen = () => {
     const [countryCode, setCountryCode] = useState("+91");
     const [fcmtoken, setfcmToken] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [foucs, setFoucs] = useState(false)
 
     useEffect(() => {
         let unsubscribeTokenRefresh: (() => void) | undefined;
@@ -94,7 +95,7 @@ const LoginScreen = () => {
             
             setIsLoading(true);
             try {
-                await  /* dispatch(sendOtpApi(data)); */ dispatch(userLogin(data, true));
+                await  dispatch(sendOtpApi(data));/*  dispatch(userLogin(data, true)); */
             } catch (error) {
                 // Error is already handled in the action
             } finally {
@@ -133,17 +134,18 @@ const LoginScreen = () => {
 
                     <View style={styles.inputFlow}>
                         <TouchableOpacityView
-                            onPress={() => setShow(true)}
+                            onPress={()=>console.log("helloo") /* () => setShow(true) */}
                             style={styles.countryInput}
                         >
                             <AppText type={TWENTY} weight={INTER_BOLD}>
-                                IN {countryCode}
+                                {"   "}IN {countryCode}{"    "}
                             </AppText>
-                            <FastImage
+                            {/* <FastImage
                                 source={dropDownIcon}
                                 resizeMode="contain"
                                 style={styles.dropDownIcon}
-                            />
+                                tintColor={colors.white}
+                            /> */}
                         </TouchableOpacityView>
 
                         <View style={styles.countryInputTwo}>
@@ -153,6 +155,14 @@ const LoginScreen = () => {
                                 value={phoneNumber}
                                 onChangeText={setPhoneNumber}
                                 style={styles.input}
+                                onFocus={() => {
+                                    setFoucs(true);
+                                    console.log("Input Open:", true);
+                                  }}
+                                  onBlur={() => {
+                                    setFoucs(false);
+                                    console.log("Input Open:", false);
+                                  }}
                             />
                         </View>
                     </View>
@@ -169,7 +179,7 @@ const LoginScreen = () => {
                 <LinearGradient
                     start={{ x: 0, y: 0 }}
                     end={{ x: 0, y: 1 }}
-                    style={{ height: metrics.hp19 }}
+                    style={{ height: /* foucs?  metrics.hp54 :  */metrics.hp19 }}
                     colors={["#ffffff50", colors.white, colors.white]}
                 >
                     <View style={{ marginTop: metrics.hp9 }}>
