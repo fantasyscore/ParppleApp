@@ -1382,7 +1382,7 @@ const PeopleScreen = () => {
                                 swipeFunction(index, "superLike");
                             }}
                             // Keep Fabric mount graph stable: this prop is meant for first mount only.
-                            initialIndex={0}
+                            initialIndex={getCurrentIndex}
                             prerenderItems={4}
                         />}
                 </View>
