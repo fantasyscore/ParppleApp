@@ -205,3 +205,6 @@ export const loaderHome = require("../assets/img/loaderHome.gif");
 export const Appleicon = require("../assets/img/Appleicon.png");
 export const viewProfileICon = require("../assets/img/viewProfileICon.png");
 export const openLikeSection = require("../assets/img/openLikeSection.png");
+export const disLikeNewIcon = require("../assets/img/disLikeNewIcon.png");
+export const likeNewICon = require("../assets/img/likeNewICon.png");
+export const spolightWhite = require("../assets/img/spolightWhite.png");

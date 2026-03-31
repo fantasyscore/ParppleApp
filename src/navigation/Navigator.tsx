@@ -73,6 +73,7 @@ import SubscriptionAllScreen from "../screens/ProfileScreens/SubscriptionAllScre
 import AllMatchesScreen from "../screens/ChatScreens/AllMatchesScreen";
 import BotChatScreen from "../screens/ChatScreens/BotChatScreen";
 import Loader from "../common/Lodaer";
+import NewHomeScreen from "../screens/HomeScreens/NewHomeScreen";
 
 const Navigator = () => {
   const Stack = createStackNavigator();
@@ -82,7 +83,7 @@ const Navigator = () => {
       <BottomTab.Navigator initialRouteName={routes.NAVIGATION_PEOPLE_SCREEN}
         backBehavior="initialRoute"
         tabBar={(props: BottomTabBarProps) => <CustomTabBar {...props} />}>
-        <BottomTab.Screen name={routes.NAVIGATION_PEOPLE_SCREEN} component={PeopleScreen} options={{ headerShown: false }} />
+        <BottomTab.Screen name={routes.NAVIGATION_PEOPLE_SCREEN} component={NewHomeScreen} options={{ headerShown: false }} />
         <BottomTab.Screen name={routes.NAVIGATION_DISCOVER_SCREEN} component={DiscoverScreen} options={{ headerShown: false }} />
         <BottomTab.Screen name={routes.NAVIGATION_CHATS_SCREEN} component={ChatsScreen} options={{ headerShown: false }} />
         <BottomTab.Screen name={routes.NAVIGATION_LIKES_YOU_SCREEN} component={LikesYouScreen} options={{ headerShown: false }} />

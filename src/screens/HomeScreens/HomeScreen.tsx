@@ -1850,6 +1850,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         width: "40%",
         alignSelf: "center",
+        
 
     },
     activeContainer: { height: metrics.hp2, paddingHorizontal: metrics.hp1, flexDirection: "row", alignItems: "center", borderRadius: metrics.hp5, backgroundColor: "#FFFFFF33", marginTop: metrics.hp0_5, width: metrics.hp8 },
