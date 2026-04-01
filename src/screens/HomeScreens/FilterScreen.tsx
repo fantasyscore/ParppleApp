@@ -89,7 +89,7 @@ const FilterScreen = () => {
                 "max": ageRange[1]
             },
             "preferredDistanceKm": klMiter[0],
-            "globalSearch": kiloKMShow,
+            "globalSearch": true,
             "languagePrefrence": userData?.languagePrefrence || [],
         };
         
@@ -282,6 +282,7 @@ const FilterScreen = () => {
                             max={70} />
                         <AgeSlider range={klMiter}
                             togleShow={kiloKMShow}
+                            togaloff={true}
                             setToggleShow={setkiloKMShow}
                             innerUpertitle={"Upto Kilometers"}
                             underTitle={"Show people beyond my preference"} setRange={setKlMiter} Icons={social_distanceIcon} headLines={"How far are you looking for?"}
