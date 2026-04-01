@@ -163,7 +163,7 @@ console.log(userData?.subscription,"subscription");
 
         if (tabSelect === "Likes" && likeYoue === "You Liked") {
             data = likeYouData?.length ? likeYouData : [];
-            return data.map((item) => ({ ...item, see: canSeeLikes })); // You can always see who you liked
+            return data.map((item) => ({ ...item, see: true })); // You can always see who you liked
         }
 
         if (tabSelect === "Views" && ViewYoue === "Viewed You") {
@@ -173,7 +173,7 @@ console.log(userData?.subscription,"subscription");
 
         if (tabSelect === "Views" && ViewYoue === "You Viewed") {
             data = viewByOtherData?.length ? viewByOtherData : [];
-            return data.map((item) => ({ ...item, see: canSeeViews })); // You can see whom you viewed
+            return data.map((item) => ({ ...item, see: true })); // You can see whom you viewed
         }
 
         return [];

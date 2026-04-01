@@ -159,23 +159,23 @@ const UserEditProfile = (props: any) => {
         };
     });
 
-   
+
     const updownAction = () => {
         const goingToCollapse = !updown;
-      
+
         // ✅ RESET SCROLL ONLY ON JS THREAD
         if (!goingToCollapse && scrollViewRef.current) {
-          scrollViewRef.current.scrollTo({ y: 0, animated: false });
+            scrollViewRef.current.scrollTo({ y: 0, animated: false });
         }
-      
+
         progress.value = withTiming(
-          goingToCollapse ? 1 : 0,
-          { duration: 260, easing: Easing.out(Easing.cubic) }
+            goingToCollapse ? 1 : 0,
+            { duration: 260, easing: Easing.out(Easing.cubic) }
         );
-      
+
         // ✅ Update state on JS thread
         setupdown(goingToCollapse);
-      };
+    };
 
     const handleTap = (evt: any) => {
         if (!evt?.nativeEvent?.locationX || !cardWidthRef.current) return;
@@ -583,25 +583,25 @@ const UserEditProfile = (props: any) => {
                         }
                     </View>
 
-
-                    <View style={styles.bioContinaer}>
-                        <View style={{ flexDirection: "row", alignItems: "center" }}>
-                            <FastImage tintColor={colors.darkOpecity} source={personHeartIcon} resizeMode="contain" style={styles.iconsFrom} />
-                            <AppText type={ELEVEN} weight={INTER_BOLD} color={OPECITY_DARK}>
-                                {"  "}
-                                Interests
-                            </AppText>
-                        </View>
-                        <View style={styles.wrapContainerTwo}>
-                            {attributes?.map((item: any, idx: number) => (
-                                <View key={item._id} style={styles.containerSelect}>
-                                    <AppText type={TWELVE} weight={INTER_MEDIUM}>
-                                        {item?.displayLabel}
-                                    </AppText>
-                                </View>
-                            ))}
-                        </View>
-                    </View>
+                    {attributes?.length ?
+                        <View style={styles.bioContinaer}>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <FastImage tintColor={colors.darkOpecity} source={personHeartIcon} resizeMode="contain" style={styles.iconsFrom} />
+                                <AppText type={ELEVEN} weight={INTER_BOLD} color={OPECITY_DARK}>
+                                    {"  "}
+                                    Interests
+                                </AppText>
+                            </View>
+                            <View style={styles.wrapContainerTwo}>
+                                {attributes?.map((item: any, idx: number) => (
+                                    <View key={item._id} style={styles.containerSelect}>
+                                        <AppText type={TWELVE} weight={INTER_MEDIUM}>
+                                            {item?.displayLabel}
+                                        </AppText>
+                                    </View>
+                                ))}
+                            </View>
+                        </View> : <></>}
                 </Animated.View>
             </Animated.ScrollView>
         </AppSafeAreaView>
