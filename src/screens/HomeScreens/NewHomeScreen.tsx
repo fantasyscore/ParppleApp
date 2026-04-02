@@ -1,5 +1,5 @@
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { Dimensions, GestureResponderEvent, Modal, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Dimensions, GestureResponderEvent, Image, ImageBackground, Modal, PermissionsAndroid, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import Animated, {
     Extrapolation,
@@ -8,6 +8,7 @@ import Animated, {
     runOnJS,
     useAnimatedStyle,
     useSharedValue,
+    withSequence,
     withTiming,
 } from 'react-native-reanimated';
 import { useDispatch, useSelector } from 'react-redux';
@@ -21,7 +22,9 @@ import {
     INTER_BOLD,
     INTER_MEDIUM,
     INTER_SEMI_BOLD,
+    LIGHT_BLACK,
     OPECITY_DARK,
+    SCHEHERAZADE_BOLD,
     TEN,
     THIRTEEN,
     TWELVE,
@@ -32,11 +35,11 @@ import {
 import { activateBoostAPI, getProfile, listProfiles, swipeLikeDisLike } from '../../actions/authActions';
 import metrics from '../../assets/Metrics';
 import { colors } from '../../theme/colors';
-import { blueTikeIcon, bussinessIcon, disLikeNewIcon, flashIcon, likeNewICon, locationCIon } from '../../helper/ImageAssets';
+import { blueTikeIcon, bussinessIcon, disLikeNewIcon, flashIcon, goldCard, likeNewICon, locationCIon, swipeUpIcon } from '../../helper/ImageAssets';
 import PeopleHeader from '../../common/PeopleHeader';
 import { useBoostTimer } from '../../hooks/useBoostTimer';
 import NavigationService from '../../navigation/NavigationService';
-import { NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN } from '../../navigation/routes';
+import { NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from '../../navigation/routes';
 import { setGetProfile, setListProfiles } from '../../slices/loginServices/authSlice';
 import LinearGradient from 'react-native-linear-gradient';
 import { BlurView } from '@react-native-community/blur';
@@ -45,7 +48,15 @@ import PulsingCircle from '../../common/PulsingCircle';
 import PreviewDetails from './PreviewDetails';
 import { viewProfileICon } from '../../helper/ImageAssets';
 import { NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from '../../navigation/routes';
-
+import MatchScreen from './MatchScreen';
+import { BoostModal } from '../../common/boost/BoostModal';
+import { completeProfileBanner } from '../../helper/ImageAssets';
+import { NAVIGATION_EDIT_PROFILE_SCREEN } from '../../navigation/routes';
+import { createSocket } from '../../common/Socket';
+import { useIsFocused } from '@react-navigation/native';
+import messaging, {
+    FirebaseMessagingTypes,
+} from "@react-native-firebase/messaging";
 const { width, height } = Dimensions.get('window');
 
 const CARD_WIDTH = width * 0.90;
@@ -56,6 +67,9 @@ const TRANSITION_MS = 320;
 
 type SwipeType = 'dislike' | 'like' | 'superLike';
 
+// Session-only flag (resets when app is fully killed/reopened)
+let hasShownProfileCompletionReminderThisSession = false;
+
 
 const NewHomeScreen = () => {
     const dispatch = useDispatch();
@@ -64,8 +78,27 @@ const NewHomeScreen = () => {
     const [boostModalVisible, setBoostModalVisible] = useState(false);
     const [isBoostActivating, setIsBoostActivating] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
+    const [matchVisible, setMatchVisible] = useState(false);
+    const [matchData, setMatchData] = useState([]);
+    const [showProfileCompletionReminder, setShowProfileCompletionReminder] = useState(false);
+    const [remainingSwipes, setRemainingSwipes] = useState(0);
     const [currentIndex, setCurrentIndex] = useState(0);
     const activeIndex = useSharedValue(0);
+    const isFocused = useIsFocused();
+    const isDislikeFxRunningRef = useRef(false);
+    const dislikeFxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isLikeFxRunningRef = useRef(false);
+    const likeFxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const dislikeOverlayOpacity = useSharedValue(0);
+    const dislikeIconScale = useSharedValue(0.7);
+    const likeOverlayOpacity = useSharedValue(0);
+    const likeIconScale = useSharedValue(0.7);
+    const itemtwo = useMemo(() => ({ id: "2", icon: goldCard, title: "Gold" }), []);
+
+    useEffect(() => {
+        const swipes = Number(userData?.swipesRemaining ?? 0);
+        setRemainingSwipes(Number.isFinite(swipes) ? swipes : 0);
+    }, [userData?.swipesRemaining]);
 
     useEffect(() => {
         const maxIndex = Math.max(listProfilesData.length - 1, 0);
@@ -79,6 +112,7 @@ const NewHomeScreen = () => {
         (type: SwipeType) => {
             const current = listProfilesData[currentIndex];
             if (!current) return;
+            const isLastProfile = currentIndex >= listProfilesData.length - 1;
 
             dispatch(
                 swipeLikeDisLike({
@@ -94,9 +128,42 @@ const NewHomeScreen = () => {
                     runOnJS(setCurrentIndex)(nextIndex);
                 }
             });
+
+            if (isLastProfile && (type === 'like' || type === 'dislike')) {
+                dispatch(setListProfiles([]));
+                dispatch(listProfiles());
+                dispatch(getProfile(true));
+            }
         },
         [activeIndex, currentIndex, dispatch, listProfilesData]
     );
+
+    const handleLikeWithoutSlide = useCallback(() => {
+        const current = listProfilesData[currentIndex];
+        if (!current) return;
+        const isLastProfile = currentIndex >= listProfilesData.length - 1;
+        const unlimitedLikes = userData?.subscription?.perks?.unlimitedLikes === true;
+
+        dispatch(
+            swipeLikeDisLike({
+                swipedId: current._id,
+                type: 'like',
+            })
+        );
+        if (!unlimitedLikes) {
+            setRemainingSwipes((prev) => Math.max(prev - 1, 0));
+        }
+
+        const nextIndex = Math.min(currentIndex + 1, listProfilesData.length - 1);
+        activeIndex.value = nextIndex;
+        setCurrentIndex(nextIndex);
+
+        if (isLastProfile) {
+            dispatch(setListProfiles([]));
+            dispatch(listProfiles(true));
+            dispatch(getProfile(true));
+        }
+    }, [activeIndex, currentIndex, dispatch, listProfilesData, userData?.subscription?.perks?.unlimitedLikes]);
 
     const handleTap = useCallback(
         (evt: GestureResponderEvent, profile: any) => {
@@ -153,6 +220,53 @@ const NewHomeScreen = () => {
             });
         });
     }, [listProfilesData]);
+
+    const socketUrl = useMemo(() => {
+        const currentUserId = userData?._id;
+        if (!currentUserId) return null;
+        const { config } = require('../../config/config');
+        return `${config.BASE_URL}?userId=${currentUserId}`;
+    }, [userData?._id]);
+
+    const socket = useMemo(() => {
+        if (!socketUrl) return null;
+        return createSocket(socketUrl);
+    }, [socketUrl]);
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleNewMatch = (response: any) => {
+            if (!response) return;
+            setMatchVisible(true);
+            setMatchData(response?.matchData ?? []);
+        };
+
+        socket.on('newMatch', handleNewMatch);
+
+        return () => {
+            socket.off?.('newMatch', handleNewMatch);
+            socket.disconnect?.();
+        };
+    }, [socket]);
+
+    useEffect(() => {
+        if (!isFocused) return;
+        if (hasShownProfileCompletionReminderThisSession) return;
+
+        const timer = setTimeout(() => {
+            if (!isFocused) return;
+            if (hasShownProfileCompletionReminderThisSession) return;
+
+            const completion = Math.trunc(userData?.profileCompletion ?? 0);
+            if (completion <= 70) {
+                hasShownProfileCompletionReminderThisSession = true;
+                setShowProfileCompletionReminder(true);
+            }
+        }, 3000);
+
+        return () => clearTimeout(timer);
+    }, [isFocused, userData?.profileCompletion]);
 
     const hasProfiles = listProfilesData.length > 0;
     const BOOST_DURATION_MS = 30 * 60 * 1000;
@@ -212,24 +326,106 @@ const NewHomeScreen = () => {
         }
     }, [BOOST_DURATION_MS, activateBoostAPI, boostRemaining, boostTimer.isRunning, dispatch, isBoostActivating, userData]);
 
+    const dislikeOverlayStyle = useAnimatedStyle(() => ({
+        opacity: dislikeOverlayOpacity.value,
+    }));
+
+    const dislikeIconAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: dislikeIconScale.value }],
+    }));
+
+    const likeOverlayStyle = useAnimatedStyle(() => ({
+        opacity: likeOverlayOpacity.value,
+    }));
+
+    const likeIconAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: likeIconScale.value }],
+    }));
+
+    const runDislikeAnimation = useCallback(() => {
+        if (isDislikeFxRunningRef.current) return;
+        isDislikeFxRunningRef.current = true;
+        dislikeOverlayOpacity.value = 0;
+        dislikeIconScale.value = 0.7;
+
+        dislikeOverlayOpacity.value = withTiming(1, { duration: 70 });
+        dislikeIconScale.value = withSequence(
+            withTiming(1.28, { duration: 120 }),
+            withTiming(0.9, { duration: 90 }),
+            withTiming(1, { duration: 70 })
+        );
+
+        if (dislikeFxTimerRef.current) {
+            clearTimeout(dislikeFxTimerRef.current);
+        }
+        dislikeFxTimerRef.current = setTimeout(() => {
+            handleNext('dislike');
+            dislikeOverlayOpacity.value = withTiming(0, { duration: 90 });
+            isDislikeFxRunningRef.current = false;
+            dislikeFxTimerRef.current = null;
+        }, 240);
+    }, [dislikeIconScale, dislikeOverlayOpacity, handleNext]);
+
+    const runLikeAnimation = useCallback(() => {
+        const unlimitedLikes = userData?.subscription?.perks?.unlimitedLikes;
+        if (unlimitedLikes !== true) {
+            if (remainingSwipes <= 0) {
+                NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: itemtwo });
+                return;
+            }
+        }
+        if (isLikeFxRunningRef.current) return;
+        isLikeFxRunningRef.current = true;
+        likeOverlayOpacity.value = 0;
+        likeIconScale.value = 0.7;
+
+        likeOverlayOpacity.value = withTiming(1, { duration: 70 });
+        likeIconScale.value = withSequence(
+            withTiming(1.28, { duration: 120 }),
+            withTiming(0.9, { duration: 90 }),
+            withTiming(1, { duration: 70 })
+        );
+
+        if (likeFxTimerRef.current) {
+            clearTimeout(likeFxTimerRef.current);
+        }
+        likeFxTimerRef.current = setTimeout(() => {
+            handleLikeWithoutSlide();
+            likeOverlayOpacity.value = withTiming(0, { duration: 90 });
+            isLikeFxRunningRef.current = false;
+            likeFxTimerRef.current = null;
+        }, 240);
+    }, [handleLikeWithoutSlide, itemtwo, likeIconScale, likeOverlayOpacity, remainingSwipes, userData?.subscription?.perks?.unlimitedLikes]);
+
+    useEffect(() => {
+        return () => {
+            if (dislikeFxTimerRef.current) {
+                clearTimeout(dislikeFxTimerRef.current);
+            }
+            if (likeFxTimerRef.current) {
+                clearTimeout(likeFxTimerRef.current);
+            }
+        };
+    }, [likeFxTimerRef]);
+
     // PreviewDetails triggers actions using these "swipe" setter props.
     // Since NewHomeScreen moves via button presses, proxy those setters to handleNext().
     const setSwipeRightProxy = useCallback(
         (val: boolean) => {
             if (!val) return;
             setModalVisible(false);
-            handleNext('like');
+            runLikeAnimation();
         },
-        [handleNext]
+        [runLikeAnimation]
     );
 
     const setSwipeLeftProxy = useCallback(
         (val: boolean) => {
             if (!val) return;
             setModalVisible(false);
-            handleNext('dislike');
+            runDislikeAnimation();
         },
-        [handleNext]
+        [runDislikeAnimation]
     );
 
     const setSwipeUpProxy = useCallback(
@@ -255,6 +451,38 @@ const NewHomeScreen = () => {
         return Number.isFinite(remaining) && remaining > 0;
     }, [userData?.superLikesRemaining]);
 
+
+    async function requestAndroidNotificationPermission() {
+        await messaging().registerDeviceForRemoteMessages();
+        try {
+            if (Platform.OS === 'android' && Platform.Version >= 33) {
+                const granted = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+                );
+
+                if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+                    console.log('Notification permission granted');
+                } else {
+                    console.log('Notification permission denied');
+                }
+            }
+        } catch (e) {
+            // Never crash HomeScreen due to permission API edge cases
+            console.warn('Notification permission request failed:', e);
+        }
+        await messaging().requestPermission();
+    }
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            requestAndroidNotificationPermission()
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, [])
+
+
+
+
+
     const ProfileCard = memo(function ProfileCard({
         profile,
         index,
@@ -268,6 +496,10 @@ const NewHomeScreen = () => {
         onImageTap: (evt: GestureResponderEvent, profile: any) => void;
         onOpenPreview: (profile: any) => void;
     }) {
+        const touchStartYRef = useRef(0);
+        const didSwipeUpRef = useRef(false);
+        const SWIPE_UP_THRESHOLD = 55;
+
         const animatedStyle = useAnimatedStyle(() => {
             const relative = index - activeIndex.value;
             const translateX = relative * STEP;
@@ -302,7 +534,27 @@ const NewHomeScreen = () => {
             <Animated.View style={[styles.card, animatedStyle]}>
                 <TouchableOpacity
                     activeOpacity={1}
-                    onPress={(evt) => onImageTap(evt, profile)}
+                    onPress={(evt) => {
+                        if (didSwipeUpRef.current) {
+                            didSwipeUpRef.current = false;
+                            return;
+                        }
+                        onImageTap(evt, profile);
+                    }}
+                    onPressIn={(evt: any) => {
+                        touchStartYRef.current = evt.nativeEvent.pageY;
+                    }}
+                    onPressOut={(evt: any) => {
+                        const deltaY = touchStartYRef.current - evt.nativeEvent.pageY;
+                        // console.log(deltaY,"deltaY");
+                        // console.log(SWIPE_UP_THRESHOLD,"SWIPE_UP_THRESHOLD");
+
+                        if (deltaY > SWIPE_UP_THRESHOLD) {
+                            didSwipeUpRef.current = true;
+                            onOpenPreview(profile);
+                            return;
+                        }
+                    }}
                     style={styles.imageTapArea}
                 >
                     <View style={styles.imageContainer}>
@@ -330,17 +582,17 @@ const NewHomeScreen = () => {
                             <View style={[styles.image, styles.imageFallback]} />
                         )}
                     </View>
-             
+
                 </TouchableOpacity>
                 <View
                     pointerEvents="none"
                     style={{
-                    height: metrics.hp4, borderWidth: 0.1, borderColor: colors.white, flexDirection: "row", alignItems: "center", borderRadius: metrics.hp6, justifyContent: "space-between",
-                    position: "absolute", top: metrics.hp1,
-                    overflow: "hidden",
-                    alignSelf: "center",
-                    paddingHorizontal: metrics.hp0_4
-                }}>
+                        height: metrics.hp4, borderWidth: 0.1, borderColor: colors.white, flexDirection: "row", alignItems: "center", borderRadius: metrics.hp6, justifyContent: "space-between",
+                        position: "absolute", top: metrics.hp1,
+                        overflow: "hidden",
+                        alignSelf: "center",
+                        paddingHorizontal: metrics.hp0_4
+                    }}>
                     <BlurView
                         style={StyleSheet.absoluteFillObject}
                         blurType="light"
@@ -360,131 +612,153 @@ const NewHomeScreen = () => {
                                 <FastImage
                                     source={{ uri: item.url }}
                                     resizeMode="cover"
-                                    style={{ height: metrics.hp3, width: metrics.hp3, borderRadius: metrics.hp50, borderWidth:thumbIdx === (profile?.index ?? 0) ?  metrics.hp0_1 : 0, borderColor:colors.white }}
+                                    style={{ height: metrics.hp3, width: metrics.hp3, borderRadius: metrics.hp50, borderWidth: thumbIdx === (profile?.index ?? 0) ? metrics.hp0_1 : 0, borderColor: colors.white }}
                                 />
                                 {!isLast ? <AppText> </AppText> : null}
                             </React.Fragment>
                         );
                     })}
                 </View>
-                <LinearGradient start={{ x: 1, y: 1 }}
-                    end={{ x: 1, y: 0 }} colors={Platform.OS === "ios" ? ["#00000090", "#00000040", "#00000000"] : ["#000000", "#00000099", "#00000000"]}
-                    style={{ height: metrics.hp30, width: "100%", position: "absolute", bottom: 0, alignItems: "center", justifyContent: "center" }}>
-                    {profile?.online ? (
-                        <View style={styles.activeContainer}>
-                            <View style={styles.activeBackground}>
-                                <View style={styles.activeDot} />
+                <TouchableOpacityView onPressOut={(evt: any) => {
+                    const deltaY = touchStartYRef.current - evt.nativeEvent.pageY;
+                    // console.log(deltaY,"deltaY");
+                    // console.log(SWIPE_UP_THRESHOLD,"SWIPE_UP_THRESHOLD");
+
+                    if (deltaY > SWIPE_UP_THRESHOLD) {
+                        didSwipeUpRef.current = true;
+                        onOpenPreview(profile);
+                        return;
+                    }
+                }}>
+                    <LinearGradient start={{ x: 1, y: 1 }}
+                        end={{ x: 1, y: 0 }} colors={Platform.OS === "ios" ? ["#00000090", "#00000040", "#00000000"] : ["#000000", "#00000099", "#00000000"]}
+                        style={{ height: metrics.hp30, width: "100%", position: "absolute", bottom: 0, alignItems: "center", justifyContent: "center" }}>
+                        {profile?.online ? (
+                            <View style={styles.activeContainer}>
+                                <View style={styles.activeBackground}>
+                                    <View style={styles.activeDot} />
+                                </View>
+                                <AppText type={TEN} color={WHITE} weight={INTER_SEMI_BOLD}>
+                                    {' '}Active
+                                </AppText>
                             </View>
-                            <AppText type={TEN} color={WHITE} weight={INTER_SEMI_BOLD}>
-                                {' '}Active
+                        ) : null}
+
+                        <View style={styles.nameRow}>
+                            <AppText style={{ fontWeight: "700", fontSize: fontSize(28) }} color={WHITE} weight={INTER_BOLD}>
+                                {profile?.name ?? 'Unknown'}, {profile?.age ?? '--'}
                             </AppText>
+                            <FastImage source={blueTikeIcon} style={styles.blueTickIcon} resizeMode="contain" />
                         </View>
-                    ) : null}
 
-                    <View style={styles.nameRow}>
-                        <AppText style={{ fontWeight: "700", fontSize:fontSize(28) }}  color={WHITE} weight={INTER_BOLD}>
-                            {profile?.name ?? 'Unknown'}, {profile?.age ?? '--'}
-                        </AppText>
-                        <FastImage source={blueTikeIcon} style={styles.blueTickIcon} resizeMode="contain" />
-                    </View>
-
-                    <View style={[styles.metaRow,{marginTop:metrics.hp0_5}]}>
-                        <FastImage source={locationCIon} style={styles.metaIcon} resizeMode="contain" />
-                        <AppText type={THIRTEEN} color={WHITE} weight={INTER_BOLD}>
-                            {'  '}
-                            {profile?.distanceInKm ? `${profile.distanceInKm} Km away` : 'Nearby'}
-                        </AppText>
-                    </View>
-
-                    {!!profile?.work ? (
-                        <View style={[styles.metaRow,{marginTop:metrics.hp1}]}>
-                            <FastImage source={bussinessIcon} style={styles.metaIcon} resizeMode="contain" />
+                        <View style={[styles.metaRow, { marginTop: metrics.hp0_5 }]}>
+                            <FastImage source={locationCIon} style={styles.metaIcon} resizeMode="contain" />
                             <AppText type={THIRTEEN} color={WHITE} weight={INTER_BOLD}>
                                 {'  '}
-                                {profile?.work}
+                                {profile?.distanceInKm ? `${profile.distanceInKm} Km away` : 'Nearby'}
                             </AppText>
                         </View>
-                    ) : null}
 
-                    <TouchableOpacityView
-                        onPress={() => onOpenPreview(profile)}
-                        style={styles.viewProfileBtn}
-                    >
-                        <AppText color={WHITE} type={THIRTEEN}>
-                            View Profile{'  '}
-                        </AppText>
-                        <FastImage source={viewProfileICon} resizeMode="contain" style={styles.viewProfileIcon} />
-                    </TouchableOpacityView>
+                        {!!profile?.work ? (
+                            <View style={[styles.metaRow, { marginTop: metrics.hp1 }]}>
+                                <FastImage source={bussinessIcon} style={styles.metaIcon} resizeMode="contain" />
+                                <AppText type={THIRTEEN} color={WHITE} weight={INTER_BOLD}>
+                                    {'  '}
+                                    {profile?.work}
+                                </AppText>
+                            </View>
+                        ) : null}
 
-                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "95%", position: "absolute", bottom: metrics.hp1 }}>
-                        <TouchableOpacityView onPress={() => handleNext("dislike")}
-                            style={{
-                                height: metrics.hp7,
-                                width: metrics.hp7,
-                                borderRadius: metrics.hp50,
-                                overflow: 'hidden',
-                            }}>
-                            <BlurView
-                                style={StyleSheet.absoluteFillObject}
-                                blurType="light"
-                                blurAmount={1}
-                            />
-                            <View
+                        <TouchableOpacityView
+                            onPress={() => onOpenPreview(profile)}
+                            style={styles.viewProfileBtn}
+                            onPressIn={(evt: any) => {
+                                touchStartYRef.current = evt.nativeEvent.pageY;
+                            }}
+                            onPressOut={(evt: any) => {
+                                const deltaY = touchStartYRef.current - evt.nativeEvent.pageY;
+                                // console.log(deltaY,"deltaY");
+                                // console.log(SWIPE_UP_THRESHOLD,"SWIPE_UP_THRESHOLD");
+
+                                if (deltaY > SWIPE_UP_THRESHOLD) {
+                                    didSwipeUpRef.current = true;
+                                    onOpenPreview(profile);
+                                    return;
+                                }
+                            }}
+                        >
+                            <FastImage source={swipeUpIcon} resizeMode='contain' style={{ height: metrics.hp17, width: metrics.hp17, marginLeft: -metrics.hp0_5 }} />
+                        </TouchableOpacityView>
+
+                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "95%", position: "absolute", bottom: metrics.hp1 }}>
+                            <TouchableOpacityView onPress={runDislikeAnimation}
                                 style={{
-                                    ...StyleSheet.absoluteFillObject,
-                                    borderWidth: 1,
-                                    borderColor: 'rgba(255,255,255,0.25)',
-                                }}
-                            />
-                            <View
-                                style={{
-                                    flex: 1,
-                                    alignItems: "center",
-                                    justifyContent: "center",
+                                    height: metrics.hp7,
+                                    width: metrics.hp7,
+                                    borderRadius: metrics.hp50,
+                                    overflow: 'hidden',
                                 }}>
-                                <FastImage
-                                    source={disLikeNewIcon}
-                                    resizeMode="contain"
-                                    style={{ height: metrics.hp3, width: metrics.hp3 }}
+                                <BlurView
+                                    style={StyleSheet.absoluteFillObject}
+                                    blurType="light"
+                                    blurAmount={1}
                                 />
-                            </View>
-                        </TouchableOpacityView>
-                        <TouchableOpacityView onPress={() => handleNext("like")}
-                            style={{
-                                height: metrics.hp7,
-                                width: metrics.hp7,
-                                borderRadius: metrics.hp50,
-                                overflow: 'hidden',
-                            }}>
-                            <BlurView
-                                style={StyleSheet.absoluteFillObject}
-                                blurType="light"
-                                blurAmount={1}
-                            />
-                            <View
-                                style={{
-                                    ...StyleSheet.absoluteFillObject,
-                                    borderWidth: 1,
-                                    borderColor: 'rgba(255,255,255,0.25)',
-                                }}
-                            />
-                            <View
-                                style={{
-                                    flex: 1,
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                }}
-                            >
-                                <FastImage
-                                    source={likeNewICon}
-                                    resizeMode="contain"
-                                    style={{ height: metrics.hp3, width: metrics.hp3 }}
+                                <View
+                                    style={{
+                                        ...StyleSheet.absoluteFillObject,
+                                        borderWidth: 1,
+                                        borderColor: 'rgba(255,255,255,0.25)',
+                                    }}
                                 />
-                            </View>
-                        </TouchableOpacityView>
-                    </View>
-                </LinearGradient>
-
+                                <View
+                                    style={{
+                                        flex: 1,
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                    }}>
+                                    <FastImage
+                                        source={disLikeNewIcon}
+                                        resizeMode="contain"
+                                        style={{ height: metrics.hp3, width: metrics.hp3 }}
+                                    />
+                                </View>
+                            </TouchableOpacityView>
+                            <TouchableOpacityView onPress={runLikeAnimation}
+                                style={{
+                                    height: metrics.hp7,
+                                    width: metrics.hp7,
+                                    borderRadius: metrics.hp50,
+                                    overflow: 'hidden',
+                                }}>
+                                <BlurView
+                                    style={StyleSheet.absoluteFillObject}
+                                    blurType="light"
+                                    blurAmount={1}
+                                />
+                                <View
+                                    style={{
+                                        ...StyleSheet.absoluteFillObject,
+                                        borderWidth: 1,
+                                        borderColor: 'rgba(255,255,255,0.25)',
+                                    }}
+                                />
+                                <View
+                                    style={{
+                                        flex: 1,
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    <FastImage
+                                        source={likeNewICon}
+                                        resizeMode="contain"
+                                        style={{ height: metrics.hp3, width: metrics.hp3 }}
+                                    />
+                                </View>
+                            </TouchableOpacityView>
+                        </View>
+                    </LinearGradient>
+                </TouchableOpacityView>
             </Animated.View>
         );
     });
@@ -531,7 +805,7 @@ const NewHomeScreen = () => {
                             <AppText style={{ position: "absolute", top: "63%" }} type={TWELVE} color={OPECITY_DARK} weight={INTER_MEDIUM}>
                                 Searching people near you...
                             </AppText>
-                            {userData?.globalSearch === false &&
+                            {/* {userData?.globalSearch === false &&
                                 <LinearGradient colors={["#6F13F200", "#6F13F220", "#6F13F200", "#6F13F200"]} style={{ alignItems: "center", justifyContent: "center", width: "100%", position: "absolute", height: metrics.hp25, bottom: -metrics.hp5 }}>
                                     <AppText type={FORTEEN} weight={INTER_BOLD}>
                                         Your Story Isn’t Over Yet
@@ -566,14 +840,14 @@ const NewHomeScreen = () => {
                                         </AppText>
                                     </TouchableOpacityView>
                                 </LinearGradient>
-                            }
+                            } */}
                         </>
                     )}
                 </View>
             </View>
 
             <Modal
-                animationType="fade"
+                animationType="slide"
                 visible={modalVisible}
                 statusBarTranslucent
                 onRequestClose={() => setModalVisible(false)}
@@ -585,11 +859,75 @@ const NewHomeScreen = () => {
                     setSwipeLeft={setSwipeLeftProxy}
                     setSwipeUp={setSwipeUpProxy}
                     modalVisible={modalVisible}
-                    setProfileData={() => {}}
+                    setProfileData={() => { }}
                     setSuperLikeVisible={setSuperLikeVisibleProxy}
                     canSuperLike={canSuperLike}
                 />
             </Modal>
+
+            <Animated.View pointerEvents="none" style={[styles.dislikeFxOverlay, dislikeOverlayStyle]}>
+                <Animated.View style={dislikeIconAnimatedStyle}>
+                    <FastImage source={disLikeNewIcon} tintColor={colors.black} resizeMode="contain" style={styles.dislikeFxIcon} />
+                </Animated.View>
+            </Animated.View>
+
+            <Animated.View pointerEvents="none" style={[styles.likeFxOverlay, likeOverlayStyle]}>
+                <Animated.View style={likeIconAnimatedStyle}>
+                    <FastImage source={likeNewICon}  tintColor={colors.black} resizeMode="contain" style={styles.likeFxIcon} />
+                </Animated.View>
+            </Animated.View>
+
+            <Modal
+                animationType="fade"
+                transparent={true}
+                statusBarTranslucent
+                visible={matchVisible}
+                onRequestClose={() => setMatchVisible(false)}>
+                <MatchScreen setMatchVisible={setMatchVisible} matchData={matchData} />
+            </Modal>
+
+            <BoostModal
+                visible={boostModalVisible}
+                onClose={() => setBoostModalVisible(false)}
+                boostsAvailable={boostRemaining}
+                durationMinutes={30}
+                isRunning={boostTimer.isRunning}
+                remainingFraction={boostTimer.remainingFraction}
+                remainingLabel={boostTimer.remainingLabel}
+                onStart={handleActivateBoost}
+                isActivating={isBoostActivating}
+            />
+
+            {/* <Modal
+                animationType="fade"
+                transparent={true}
+                visible={showProfileCompletionReminder}
+                statusBarTranslucent
+                onRequestClose={() => setShowProfileCompletionReminder(false)}>
+                <View style={styles.centeredView}>
+                    <View style={styles.confirmContainer}>
+                        <FastImage source={completeProfileBanner} resizeMode="stretch" style={styles.bdyBack} />
+                        <AppText style={{ textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK}>
+                            Complete your profile
+                        </AppText>
+                        <AppText style={{ marginTop: -metrics.hp3, textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK}>
+                            to get more matches!
+                        </AppText>
+                        <TouchableOpacityView onPress={() => {
+                            setShowProfileCompletionReminder(false);
+                            NavigationService.navigate(NAVIGATION_EDIT_PROFILE_SCREEN);
+                        }} style={[styles.ediButton, { backgroundColor: colors.purple, marginTop: metrics.hp0 }]}>
+                            <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
+                                Complete Profile
+                            </AppText>
+                        </TouchableOpacityView>
+                        <AppText onPress={() => setShowProfileCompletionReminder(false)} weight={INTER_SEMI_BOLD} type={TWELVE} style={{ textAlign: "center", marginTop: metrics.hp2 }} color={LIGHT_BLACK}>
+                            No, skip now
+                        </AppText>
+                    </View>
+                </View>
+            </Modal> */}
+
 
         </AppSafeAreaView>
     );
@@ -622,7 +960,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         width: CARD_WIDTH,
         height: CARD_HEIGHT,
-        borderRadius: metrics.hp3_7,
+        borderRadius: metrics.hp2,
         overflow: 'hidden',
         backgroundColor: '#151519',
         shadowColor: '#000',
@@ -753,18 +1091,20 @@ const styles = StyleSheet.create({
         backgroundColor: '#D92D6E',
     },
     viewProfileBtn: {
-        alignSelf: 'center',
-        flexDirection: 'row',
+        // alignSelf: 'center',
+        // flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         width: metrics.hp12,
-        height: metrics.hp5,
-        borderRadius: metrics.hp50,
-        borderWidth: metrics.hp0_1,
-        borderColor: '#FFFFFF4D',
-        backgroundColor: '#00000033',
-        marginTop: metrics.hp1,
+        height: metrics.hp12,
+        // borderRadius: metrics.hp50,
+        // borderWidth: metrics.hp0_1,
+        // borderColor: '#FFFFFF4D',
+        // backgroundColor: '#00000033',
+        // marginTop: metrics.hp1,
         paddingHorizontal: metrics.hp1,
+        position: "absolute",
+        bottom: -metrics.hp2_3
     },
     viewProfileIcon: {
         height: metrics.hp2_5,
@@ -782,6 +1122,56 @@ const styles = StyleSheet.create({
     },
     emptyImage: {
         height: metrics.hp14, width: metrics.hp14, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: colors.white
+    },
+    centeredView: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: colors.transparentBlack,
+        paddingHorizontal: metrics.hp2
+    },
+    confirmContainer: {
+        height: metrics.hp40,
+        backgroundColor: colors.white,
+        width: width / 1.20,
+        borderRadius: metrics.hp2,
+    },
+    bdyBack: {
+        height: metrics.hp17,
+        borderTopRightRadius: metrics.hp2,
+        borderTopLeftRadius: metrics.hp2,
+    },
+    ediButton: {
+        height: metrics.hp5,
+        borderWidth: 1,
+        borderColor: colors.purple,
+        borderRadius: metrics.hp4,
+        alignItems: "center",
+        justifyContent: "center",
+        width: "40%",
+        alignSelf: "center",
+    },
+    dislikeFxOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: colors.white,
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 999,
+    },
+    dislikeFxIcon: {
+        height: metrics.hp11,
+        width: metrics.hp11,
+    },
+    likeFxOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: colors.white,
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 999,
+    },
+    likeFxIcon: {
+        height: metrics.hp11,
+        width: metrics.hp11,
     },
 });
 

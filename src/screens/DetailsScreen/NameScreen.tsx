@@ -23,10 +23,9 @@ const NameScreen = () => {
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
     const emailAuth = useSelector((state: any) => state?.auth?.emailAuth);
     const datalist = new Array(13).fill(null).map((_, index) => ({ id: String(index), }))
-    const [firstNmae, setFirstName] = useState(emailAuth?.data?.user?.givenName ? emailAuth?.data?.user?.givenName : "");
-    const [lastNmae, setLastName] = useState("");
-    console.log(emailAuth,"emailAuthemailAuthemailAuth");
-    
+    const [firstNmae, setFirstName] = useState(emailAuth?.data?.user?.givenName ? emailAuth?.data?.user?.givenName : emailAuth?.fullName?.givenName ? emailAuth?.fullName?.givenName : "");
+    const [lastNmae, setLastName] = useState(emailAuth?.fullName?.familyName ? emailAuth?.fullName?.familyName : "");
+
     const onSubmit = () => {
         if (!firstNmae) toastAlert.showToastError("Please enter your first name")
         const data = {
@@ -39,29 +38,29 @@ const NameScreen = () => {
 
     return (
         <AppSafeAreaView>
-             <KeyboardAwareScrollView
+            <KeyboardAwareScrollView
                 enableOnAndroid={true}
                 extraScrollHeight={Platform.OS === "ios" ? metrics.hp15 : metrics.hp15}
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ flexGrow: 1 }}>
-            <HeaderCommon />
-            <View style={styles.container}>
-                <TopCommonLine icon={nameIcon} datalist={datalist} />
-                <View style={{ paddingHorizontal: metrics.hp2, }}>
-                    <DubleTextLine firstText={"What’s your name?"} />
-                    <InputCommon value={firstNmae} onChangeText={setFirstName} placeholder={"Enter your first name"} />
-                    <InputCommon style={{ marginTop: metrics.hp2, }} value={lastNmae} onChangeText={setLastName} placeholder={"Enter your last name (Optional)"} />
-                    <AppText style={{ marginTop: metrics.hp1 }} color={LIGHT_BLACK} weight={INTER_MEDIUM} type={TWELVE}>
-                        This name will appear on your profile. Finalize now, can’t change lter.
-                    </AppText>
+                <HeaderCommon />
+                <View style={styles.container}>
+                    <TopCommonLine icon={nameIcon} datalist={datalist} />
+                    <View style={{ paddingHorizontal: metrics.hp2, }}>
+                        <DubleTextLine firstText={"What’s your name?"} />
+                        <InputCommon value={firstNmae} onChangeText={setFirstName} placeholder={"Enter your first name"} />
+                        <InputCommon style={{ marginTop: metrics.hp2, }} value={lastNmae} onChangeText={setLastName} placeholder={"Enter your last name (Optional)"} />
+                        <AppText style={{ marginTop: metrics.hp1 }} color={LIGHT_BLACK} weight={INTER_MEDIUM} type={TWELVE}>
+                            This name will appear on your profile. Finalize now, can’t change lter.
+                        </AppText>
+                    </View>
                 </View>
-            </View>
-            <LinearGradient start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
-                <View style={{ marginTop: metrics.hp9 }}>
-                    <GoButton colortrue={firstNmae} onPress={() => onSubmit()} />
-                </View>
-            </LinearGradient>
+                <LinearGradient start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                    <View style={{ marginTop: metrics.hp9 }}>
+                        <GoButton colortrue={firstNmae} onPress={() => onSubmit()} />
+                    </View>
+                </LinearGradient>
             </KeyboardAwareScrollView>
         </AppSafeAreaView>
     )

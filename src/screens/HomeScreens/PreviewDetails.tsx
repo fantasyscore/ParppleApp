@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Animated, Dimensions, Image, ImageBackground, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Dimensions, Image, ImageBackground, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
 import FastImage from "react-native-fast-image";
 import metrics from "../../assets/Metrics";
@@ -172,10 +172,10 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                         </LinearGradient>
                     </ImageBackground>
                 </TouchableOpacityView>
-                <View style={{ alignItems: "center", justifyContent: "center",marginTop:metrics.hp0_5 }}>
+                <View style={{ alignItems: "center", justifyContent: "center", marginTop: metrics.hp0_5 }}>
                     <View style={styles.nameRow}>
                         <AppText style={{ fontWeight: "700", fontSize: fontSize(28) }} color={BLACK} weight={INTER_BOLD}>
-                            {data?.name ?? 'Unknown'}, {data?.age ?? '--'}
+                            {data?.name ? data?.name : data?.firstName ? data?.firstName : 'Unknown'}, {data?.age ?? '--'}
                         </AppText>
                         <FastImage source={blueTikeIcon} style={styles.blueTickIcon} resizeMode="contain" />
                     </View>
@@ -198,61 +198,71 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                         </View>
                     ) : null}
                 </View>
-                <View style={{
-                    height: metrics.hp7,
-                    width: metrics.hp7,
-                    borderRadius: metrics.hp50,
-                    backgroundColor:colors.white,
-                    marginLeft:metrics.hp2,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 5 },
-                    shadowOpacity: 0.25,
-                    shadowRadius: 10,
-                
-                    // 🤖 Android Shadow
-                    elevation: 8,
-                
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom:metrics.hp2
-                }}>
+                <TouchableOpacityView
+                    onPress={() => {
+                        scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+                        setSwipeLeft?.(true);
+                    }}
+                    style={{
+                        height: metrics.hp7,
+                        width: metrics.hp7,
+                        borderRadius: metrics.hp50,
+                        backgroundColor: colors.white,
+                        marginLeft: metrics.hp2,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 5 },
+                        shadowOpacity: 0.25,
+                        shadowRadius: 10,
+
+                        // 🤖 Android Shadow
+                        elevation: 8,
+
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: metrics.hp2
+                    }}>
                     <FastImage
                         source={disLikeNewIcon}
                         resizeMode="contain"
                         tintColor={colors.black}
                         style={{ height: metrics.hp3, width: metrics.hp3 }}
                     />
-                </View>
-               
+                </TouchableOpacityView>
+
                 <ProfileBottomDetails visibleCards={data} discover={discover} setModalVisibleHome={setModalVisible} setSwipeLeft={setSwipeLeft} />
             </ScrollView>
-            <View style={{
+            <TouchableOpacityView
+                onPress={() => {
+                    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+                    setSwipeRight?.(true);
+                }}
+                style={{
                     height: metrics.hp7,
                     width: metrics.hp7,
                     borderRadius: metrics.hp50,
-                    backgroundColor:colors.white,
-                    marginLeft:metrics.hp2,
+                    backgroundColor: colors.white,
+                    marginLeft: metrics.hp2,
                     shadowColor: '#000',
                     shadowOffset: { width: 0, height: 5 },
                     shadowOpacity: 0.25,
                     shadowRadius: 10,
-                
+
                     // 🤖 Android Shadow
                     elevation: 8,
-                
+
                     alignItems: 'center',
                     justifyContent: 'center',
-                    position:"absolute",
-                    right:metrics.hp2,
-                    bottom:metrics.hp4
+                    position: "absolute",
+                    right: metrics.hp2,
+                    bottom: metrics.hp4
                 }}>
-                    <FastImage
-                        source={likeNewICon}
-                        resizeMode="contain"
-                        tintColor={colors.black}
-                        style={{ height: metrics.hp3, width: metrics.hp3 }}
-                    />
-                </View>
+                <FastImage
+                    source={likeNewICon}
+                    resizeMode="contain"
+                    tintColor={colors.black}
+                    style={{ height: metrics.hp3, width: metrics.hp3 }}
+                />
+            </TouchableOpacityView>
             <View style={{ height: metrics.hp12, position: "absolute", top: 0, width: "100%", overflow: "visible" }}>
                 <BlurView
                     style={StyleSheet.absoluteFillObject}

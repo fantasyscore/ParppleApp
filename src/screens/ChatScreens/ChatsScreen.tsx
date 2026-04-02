@@ -208,7 +208,7 @@ const ChatsScreen = () => {
             >
                 <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
                     <ImageBackground
-                        blurRadius={item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM" ? metrics.hp7 : 0}
+                        blurRadius={item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM" ? metrics.hp3 : 0}
                         source={isBot ? AppIcon : { uri: item?.profilePicture?.url }}
                         resizeMode="cover"
                         style={styles.newMatchProfile}
@@ -434,7 +434,7 @@ const ChatsScreen = () => {
                     keyExtractor={(item: any) => item.matchId || item.userId || 'bot'}
                     ListEmptyComponent={query ? noSearchFound : null}
                     ListHeaderComponent={ListHeaderComponent}
-                    ListFooterComponent={ListFooterComponent}
+                    // ListFooterComponent={ListFooterComponent}
                     contentContainerStyle={{ paddingBottom: metrics.hp5 }}
                     showsVerticalScrollIndicator={false}
                 />

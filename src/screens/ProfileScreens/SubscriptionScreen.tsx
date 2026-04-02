@@ -420,7 +420,7 @@ const SubscriptionScreen = ({ route }: any) => {
             <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1, backgroundColor: "#F5F7FA" }}>
                 <View style={styles.PremiumText}>
                     <FastImage source={premiumIcon} resizeMode="contain" style={styles.pencilIcon} />
-                    <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>{"  "}Choose {selectedTier} Plan</AppText>
+                    <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>{"  "}Choose {selectedTier === "Platinum"? "Flame":selectedTier === "Gold"? "Spark":  selectedTier} Plan</AppText>
                 </View>
 
                 {currentTierPlans.length > 0 ? (
@@ -464,7 +464,7 @@ const SubscriptionScreen = ({ route }: any) => {
 
                         <View style={styles.PremiumText}>
                             <FastImage source={infinityICon} resizeMode="contain" style={styles.pencilIcon} />
-                            <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>{"  "}Included with {selectedTier}</AppText>
+                            <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>{"  "}Included with {selectedTier === "Platinum"? "Flame":selectedTier === "Gold"? "Spark": selectedTier}</AppText>
                         </View>
                         <View style={{ marginTop: metrics.hp2, paddingHorizontal: metrics.hp2, paddingBottom: metrics.hp10 }}>
                             {(() => {

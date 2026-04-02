@@ -83,7 +83,7 @@ const UserEditProfile = (props: any) => {
     const attributes = otherUserProfile?.attributes?.filter(
         (item: any) => !["smoke", "drink", "workout", "pets"].includes(item?.type)
     ) || [];
-    
+
     // Ensure currentPhotoIndex is within bounds
     const gallery = otherUserProfile?.gallery || [];
     const safePhotoIndex = gallery.length > 0 ? Math.min(currentPhotoIndex, gallery.length - 1) : 0;
@@ -166,20 +166,20 @@ const UserEditProfile = (props: any) => {
 
     const updownAction = () => {
         const goingToCollapse = !updown;
-      
+
         // ✅ RESET SCROLL ONLY ON JS THREAD
         if (!goingToCollapse && scrollViewRef.current) {
-          scrollViewRef.current.scrollTo({ y: 0, animated: false });
+            scrollViewRef.current.scrollTo({ y: 0, animated: false });
         }
-      
+
         progress.value = withTiming(
-          goingToCollapse ? 1 : 0,
-          { duration: 260, easing: Easing.out(Easing.cubic) }
+            goingToCollapse ? 1 : 0,
+            { duration: 260, easing: Easing.out(Easing.cubic) }
         );
-      
+
         // ✅ Update state on JS thread
         setupdown(goingToCollapse);
-      };
+    };
 
     const handleTap = (evt: any) => {
         if (!evt?.nativeEvent?.locationX || !cardWidthRef.current) return;
@@ -204,7 +204,7 @@ const UserEditProfile = (props: any) => {
     useEffect(() => {
         preloadAroundIndex(otherUserProfile?.gallery, safePhotoIndex);
     }, [otherUserProfile?.gallery, safePhotoIndex]);
-    
+
     // Reset photo index if gallery changes and current index is out of bounds
     useEffect(() => {
         if (gallery.length > 0 && currentPhotoIndex >= gallery.length) {
@@ -592,25 +592,25 @@ const UserEditProfile = (props: any) => {
                         }
                     </View>
 
-
-                    <View style={styles.bioContinaer}>
-                        <View style={{ flexDirection: "row", alignItems: "center" }}>
-                            <FastImage tintColor={colors.darkOpecity} source={personHeartIcon} resizeMode="contain" style={styles.iconsFrom} />
-                            <AppText type={ELEVEN} weight={INTER_BOLD} color={OPECITY_DARK}>
-                                {"  "}
-                                Interests
-                            </AppText>
-                        </View>
-                        <View style={styles.wrapContainerTwo}>
-                            {attributes && Array.isArray(attributes) && attributes.map((item: any, idx: number) => (
-                                <View key={item?._id || idx} style={styles.containerSelect}>
-                                    <AppText type={TWELVE} weight={INTER_MEDIUM}>
-                                        {String(item?.displayLabel || "")}
-                                    </AppText>
-                                </View>
-                            ))}
-                        </View>
-                    </View>
+                    {attributes?.length ?
+                        <View style={styles.bioContinaer}>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <FastImage tintColor={colors.darkOpecity} source={personHeartIcon} resizeMode="contain" style={styles.iconsFrom} />
+                                <AppText type={ELEVEN} weight={INTER_BOLD} color={OPECITY_DARK}>
+                                    {"  "}
+                                    Interests
+                                </AppText>
+                            </View>
+                            <View style={styles.wrapContainerTwo}>
+                                {attributes && Array.isArray(attributes) && attributes.map((item: any, idx: number) => (
+                                    <View key={item?._id || idx} style={styles.containerSelect}>
+                                        <AppText type={TWELVE} weight={INTER_MEDIUM}>
+                                            {String(item?.displayLabel || "")}
+                                        </AppText>
+                                    </View>
+                                ))}
+                            </View>
+                        </View> : <></>}
                 </Animated.View>
             </Animated.ScrollView>
         </AppSafeAreaView>

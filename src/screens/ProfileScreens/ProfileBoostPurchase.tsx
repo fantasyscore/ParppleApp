@@ -275,7 +275,7 @@ const ProfileBoostPurchase = () => {
                     ) : null}
                     <AppText color={isSelected ? WHITE : BLACK} type={SIXTEEN} weight={INTER_EXTRA_BOLD}>
                         {item.boostCount}<AppText color={isSelected ? WHITE : BLACK} type={FORTEEN} weight={INTER_BOLD}>
-                            {"  "}Boost
+                            {"  "}{item.boostCount>1?  "Spotlights" : "Spotlight"}
                         </AppText>
                     </AppText>
                 </View>
@@ -324,7 +324,7 @@ const ProfileBoostPurchase = () => {
                 </View>
                 <View style={styles.PremiumText}>
                     <FastImage source={premiumIcon} resizeMode="contain" style={styles.pencilIcon} />
-                    <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>{"  "}Choose your boost</AppText>
+                    <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>{"  "}Choose your spotlight</AppText>
                 </View>
                 <FlatList 
                     data={products}
@@ -333,10 +333,10 @@ const ProfileBoostPurchase = () => {
                     renderItem={renderItem}
                     contentContainerStyle={{ paddingHorizontal: metrics.hp2, marginTop: metrics.hp2 }} 
                 />
-                   <FastImage source={orBottomIcon} resizeMode="contain" style={{ height: metrics.hp2_4, width: "100%", marginTop: metrics.hp4 }} />
+                   {/* <FastImage source={orBottomIcon} resizeMode="contain" style={{ height: metrics.hp2_4, width: "100%", marginTop: metrics.hp4 }} />
             <TouchableOpacityView  onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem })}>
                 <FastImage source={upgradPlan} resizeMode="contain" style={styles.imageiContainer} />
-            </TouchableOpacityView>
+            </TouchableOpacityView> */}
                 <View style={styles.bottomcontainer}>
                     <AppText weight={INTER_REGULAR} type={TEN}>
                         By tapping Upgrade, your payment will be charged... Manage your subscription anytime in settings and you agree to our
@@ -351,7 +351,7 @@ const ProfileBoostPurchase = () => {
                             <ActivityIndicator size="small" color={colors.white} />
                         ) : (
                             <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={FORTEEN}>
-                                Get {products[select]?.boostCount || ''} Boosts for {products[select]?.displayPrice || ''}
+                                Get {products[select]?.boostCount || ''} {products[select]?.boostCount>1?  "Spotlights" : "Spotlight"} for {products[select]?.displayPrice || ''}
                             </AppText>
                         )}
                     </TouchableOpacityView>

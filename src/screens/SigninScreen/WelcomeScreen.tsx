@@ -102,7 +102,7 @@ const WelcomeScreen = () => {
                 phoneNumber: null,
                 googleToken: idToken,
                 fcmtoken: fcmtoken,
-                iosToken:null
+                iosToken: null
             };
             dispatch(userLogin(data, true))
             return signInWithCredential(getAuth(), googleCredential);
@@ -127,7 +127,7 @@ const WelcomeScreen = () => {
                 requestedOperation: appleAuth.Operation.LOGIN,
                 requestedScopes: [appleAuth.Scope.FULL_NAME, appleAuth.Scope.EMAIL],
             });
-console.log(appleAuthRequestResponse,"appleAuthRequestResponse");
+            console.log(appleAuthRequestResponse, "appleAuthRequestResponse");
 
 
             const { identityToken, fullName, email, user: appleUserIdentifier } = appleAuthRequestResponse;
@@ -138,7 +138,7 @@ console.log(appleAuthRequestResponse,"appleAuthRequestResponse");
             let data = {
                 phoneNumber: null,
                 googleToken: null,
-                iosToken:identityToken,
+                iosToken: identityToken,
                 fcmtoken: fcmtoken
             };
             dispatch(userLogin(data, true));
@@ -164,9 +164,9 @@ console.log(appleAuthRequestResponse,"appleAuthRequestResponse");
                         {"          "}Continue with Phone Number
                     </AppText>
                 </TouchableOpacityView>
-                <TouchableOpacityView onPress={onAppleButtonPress} style={[styles.phoneContainer,{ marginTop: metrics.hp2 }]}>
+                <TouchableOpacityView onPress={onAppleButtonPress} style={[styles.phoneContainer, { marginTop: metrics.hp2 }]}>
                     <View style={styles.callIconContainer}>
-                        <FastImage source={Appleicon} resizeMode="contain" style={[styles.callIcon,{height:metrics.hp3, width:metrics.hp3}]} />
+                        <FastImage source={Appleicon} resizeMode="contain" style={[styles.callIcon, { height: metrics.hp3, width: metrics.hp3 }]} />
                     </View>
                     <AppText weight={INTER_BOLD} type={FORTEEN}>
                         {"                  "}Continue with Apple
@@ -192,8 +192,8 @@ console.log(appleAuthRequestResponse,"appleAuthRequestResponse");
                     </View>
                 )} */}
                 <AppText type={INTER_REGULAR} style={{ textAlign: "center", marginTop: metrics.hp3 }} color={WHITE}>
-                    By tapping Create Account or Sign In, you agree to our <AppText onPress={()=>Linking.openURL("https://parpple.com/terms_conditions")} color={WHITE} type={INTER_REGULAR} style={{ textDecorationLine: "underline" }}>Terms &{'\n'} Services.</AppText> Learn how we process your data in our{'\n'}
-                    <AppText onPress={()=>Linking.openURL("https://parpple.com/privacy_policy")} color={WHITE} type={INTER_REGULAR} style={{ textDecorationLine: "underline" }}>Privacy Policy</AppText> and <AppText onPress={()=>Linking.openURL("https://parpple.com/")} color={WHITE} type={INTER_REGULAR} style={{ textDecorationLine: "underline" }}>Cookies Policy.</AppText>
+                    By tapping Create Account or Sign In, you agree to our <AppText onPress={() => Linking.openURL("https://parpple.com/terms_conditions")} color={WHITE} type={INTER_REGULAR} style={{ textDecorationLine: "underline" }}>Terms &{'\n'} Services.</AppText> Learn how we process your data in our{'\n'}
+                    <AppText onPress={() => Linking.openURL("https://parpple.com/privacy_policy")} color={WHITE} type={INTER_REGULAR} style={{ textDecorationLine: "underline" }}>Privacy Policy</AppText> and <AppText onPress={() => Linking.openURL("https://parpple.com/")} color={WHITE} type={INTER_REGULAR} style={{ textDecorationLine: "underline" }}>Cookies Policy.</AppText>
                 </AppText>
             </View>
         </AppSafeAreaView>

@@ -59,7 +59,7 @@ const DispatchSelectScreen = () => {
             ...addProfileData,
             preferredDistanceKm: sliderValue,
             bio: "Please tell me about your self",
-            globalSearch: toggleGlobel,
+            globalSearch: true,
             fieldVisibility: { ...addProfileData?.fieldVisibility }
         };
 
@@ -121,7 +121,7 @@ const DispatchSelectScreen = () => {
                     />
 
                 </View>
-                <EditButtonCommon
+                {/* <EditButtonCommon
                     style={{ backgroundColor: colors.transparent }}
                     setting={true}
                     title={"Search Globel"}
@@ -136,7 +136,7 @@ const DispatchSelectScreen = () => {
                     color={OPECITY}
                 >
                     You can change preferences in settings.
-                </AppText>
+                </AppText> */}
             </View>
 
             <LinearGradient

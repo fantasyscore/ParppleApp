@@ -30,7 +30,7 @@ import {
 } from "../../common/AppText";
 import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
-import { accountcircleIcon, blueTikeIcon, bussnisIcon, closeIcon, filterIcon, goldCard, heartRed, locationCIon, moonIcon, recommonedICon } from "../../helper/ImageAssets";
+import { accountcircleIcon, blueTikeIcon, bussnisIcon, closeIcon, disLikeNewIcon, filterIcon, goldCard, heartRed, likeNewICon, locationCIon, moonIcon, recommonedICon } from "../../helper/ImageAssets";
 import { datapersonal, editDiscover, editProfileData, profileDataDiscover, similarProfileFilter } from "../../common/UiltData";
 import { colors } from "../../theme/colors";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
@@ -38,7 +38,14 @@ import RBSheet from "react-native-raw-bottom-sheet";
 import ListCheckBox from "../../common/ListCheckbox";
 import PurpuleButton from "../../common/PurpuleButton";
 import { useDispatch, useSelector } from "react-redux";
+import Animated2, {
+    useAnimatedStyle,
+    useSharedValue,
+    withSequence,
+    withTiming,
+} from "react-native-reanimated";
 import { discoverProfile, getOtherProfile, swipeLikeDisLike } from "../../actions/authActions";
+import { setDiscoverData } from "../../slices/loginServices/authSlice";
 import { SwiperCardRefType } from "rn-swiper-list";
 import SuperLikeScreen from "../HomeScreens/SuperLikeScreen";
 import PreviewDetails from "../HomeScreens/PreviewDetails";
@@ -66,9 +73,13 @@ const DiscoverScreen = () => {
     const [modalVisible, setModalVisible] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
     const [swipeUp, setSwipeUp] = useState(false);
+    const [swipeLeft, setSwipeLeft] = useState(false);
+    const [swipeRight, setSwipeRight] = useState(false);
     const [superLikeVisible, setSuperLikeVisible] = useState(false);
     const [profileData, setProfileData] = useState<any>(null);
+    const [likedProfiles, setLikedProfiles] = useState<any[]>([]);
     const [remainingSuperLikes, setRemainingSuperLikes] = useState(userData?.superLikesRemaining ?? 0);
+    const [remainingSwipes, setRemainingSwipes] = useState(0);
     const subscriptionItem = useMemo(() => ({ id: '2', icon: goldCard, title: 'Gold' }), []);
     const middleIndex = Math.ceil(discoverProfileData?.length / 2);
     const firstPart = discoverProfileData?.slice(0, middleIndex);
@@ -77,6 +88,120 @@ const DiscoverScreen = () => {
     useEffect(() => {
         setRemainingSuperLikes(userData?.superLikesRemaining ?? 0);
     }, [userData?.superLikesRemaining]);
+
+    useEffect(() => {
+        const swipes = Number(userData?.swipesRemaining ?? 0);
+        setRemainingSwipes(Number.isFinite(swipes) ? swipes : 0);
+    }, [userData?.swipesRemaining]);
+
+    const isDislikeFxRunningRef = useRef(false);
+    const dislikeFxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isLikeFxRunningRef = useRef(false);
+    const likeFxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const dislikeOverlayOpacity = useSharedValue(0);
+    const dislikeIconScale = useSharedValue(0.7);
+    const likeOverlayOpacity = useSharedValue(0);
+    const likeIconScale = useSharedValue(0.7);
+
+    const dislikeOverlayStyle = useAnimatedStyle(() => ({
+        opacity: dislikeOverlayOpacity.value,
+    }));
+    const dislikeIconAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: dislikeIconScale.value }],
+    }));
+    const likeOverlayStyle = useAnimatedStyle(() => ({
+        opacity: likeOverlayOpacity.value,
+    }));
+    const likeIconAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: likeIconScale.value }],
+    }));
+
+    const runDislikeAnimation = useCallback(() => {
+        if (isDislikeFxRunningRef.current) return;
+        isDislikeFxRunningRef.current = true;
+        dislikeOverlayOpacity.value = 0;
+        dislikeIconScale.value = 0.7;
+
+        dislikeOverlayOpacity.value = withTiming(1, { duration: 70 });
+        dislikeIconScale.value = withSequence(
+            withTiming(1.28, { duration: 120 }),
+            withTiming(0.9, { duration: 90 }),
+            withTiming(1, { duration: 70 })
+        );
+
+        if (dislikeFxTimerRef.current) {
+            clearTimeout(dislikeFxTimerRef.current);
+        }
+        dislikeFxTimerRef.current = setTimeout(() => {
+            setSwipeLeft(true);
+            dislikeOverlayOpacity.value = withTiming(0, { duration: 90 });
+            isDislikeFxRunningRef.current = false;
+            dislikeFxTimerRef.current = null;
+        }, 240);
+    }, [dislikeIconScale, dislikeOverlayOpacity]);
+
+    const runLikeAnimation = useCallback(() => {
+        const unlimitedLikes = userData?.subscription?.perks?.unlimitedLikes === true;
+        if (!unlimitedLikes) {
+            if (remainingSwipes <= 0) {
+                NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem });
+                return;
+            }
+        }
+        if (isLikeFxRunningRef.current) return;
+        isLikeFxRunningRef.current = true;
+        likeOverlayOpacity.value = 0;
+        likeIconScale.value = 0.7;
+
+        likeOverlayOpacity.value = withTiming(1, { duration: 70 });
+        likeIconScale.value = withSequence(
+            withTiming(1.28, { duration: 120 }),
+            withTiming(0.9, { duration: 90 }),
+            withTiming(1, { duration: 70 })
+        );
+
+        if (likeFxTimerRef.current) {
+            clearTimeout(likeFxTimerRef.current);
+        }
+        likeFxTimerRef.current = setTimeout(() => {
+            setSwipeRight(true);
+            if (!unlimitedLikes) {
+                setRemainingSwipes((prev) => Math.max(prev - 1, 0));
+            }
+            likeOverlayOpacity.value = withTiming(0, { duration: 90 });
+            isLikeFxRunningRef.current = false;
+            likeFxTimerRef.current = null;
+        }, 240);
+    }, [likeIconScale, likeOverlayOpacity, remainingSwipes, subscriptionItem, userData?.subscription?.perks?.unlimitedLikes]);
+
+    useEffect(() => {
+        return () => {
+            if (dislikeFxTimerRef.current) {
+                clearTimeout(dislikeFxTimerRef.current);
+            }
+            if (likeFxTimerRef.current) {
+                clearTimeout(likeFxTimerRef.current);
+            }
+        };
+    }, []);
+
+    const setSwipeLeftProxy = useCallback(
+        (val: boolean) => {
+            if (!val) return;
+            setModalVisible(false);
+            runDislikeAnimation();
+        },
+        [runDislikeAnimation]
+    );
+
+    const setSwipeRightProxy = useCallback(
+        (val: boolean) => {
+            if (!val) return;
+            setModalVisible(false);
+            runLikeAnimation();
+        },
+        [runLikeAnimation]
+    );
 
     const canSuperLike = useCallback(() => {
         if ((remainingSuperLikes ?? 0) <= 0) {
@@ -184,7 +309,7 @@ const DiscoverScreen = () => {
                         marginRight: SPACING,
                     }}>
                     <ImageBackground
-                        blurRadius={item?.see == false ? metrics.hp7 : metrics.hp0}
+                        blurRadius={item?.see == false ? metrics.hp3 : metrics.hp0}
                         resizeMode="cover"
                         imageStyle={{ borderRadius: metrics.hp1_5 }}
                         style={styles.discoverImage}
@@ -265,7 +390,7 @@ const DiscoverScreen = () => {
                                             </AppText>
                                         </View>
                                     </View>
-                                    <TouchableOpacityView onPress={() => {
+                                    {/* <TouchableOpacityView onPress={() => {
                                         if (item.see == false) {
                                             NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem })
                                             return;
@@ -275,7 +400,7 @@ const DiscoverScreen = () => {
                                         viewProfile(item, true);
                                     }} style={[styles.flasContaier]}>
                                         <FastImage source={heartRed} resizeMode="contain" style={styles.flasIcon} />
-                                    </TouchableOpacityView>
+                                    </TouchableOpacityView> */}
                                 </View>
                             </View>
                         </View>
@@ -311,7 +436,7 @@ const DiscoverScreen = () => {
                     }}>
                     <ImageBackground
                         resizeMode="cover"
-                        blurRadius={item?.see == false ? metrics.hp7 : metrics.hp0}
+                        blurRadius={item?.see == false ? metrics.hp3 : metrics.hp0}
                         imageStyle={{ borderRadius: metrics.hp1_5 }}
                         style={styles.simlierImage}
                         source={{ uri: item?.profilePicture[0]?.url }}>
@@ -346,7 +471,7 @@ const DiscoverScreen = () => {
                                         />
                                     </View>
                                 }
-                                <TouchableOpacityView onPress={() => {
+                                {/* <TouchableOpacityView onPress={() => {
                                     if (item.see == false) {
                                         NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem })
                                         return;
@@ -356,7 +481,7 @@ const DiscoverScreen = () => {
                                     viewProfile(item, true);
                                 }} style={[styles.flasContaier, { marginLeft: metrics.hp1 }]}>
                                     <FastImage source={heartRed} resizeMode="contain" style={styles.flasIcon} />
-                                </TouchableOpacityView>
+                                </TouchableOpacityView> */}
                             </View>
                         </View>
                     </ImageBackground>
@@ -385,6 +510,46 @@ const DiscoverScreen = () => {
             return () => clearTimeout(timer);
         }
     }, [modalVisible, swipeUp, canSuperLike]);
+
+    useEffect(() => {
+        if (modalVisible || !swipeLeft || !profileData?._id) return;
+        const timer = setTimeout(() => {
+            dispatch(
+                swipeLikeDisLike({
+                    swipedId: profileData?._id,
+                    type: "dislike",
+                })
+            );
+            const nextDiscoverProfiles = (discoverProfileData ?? []).filter(
+                (item: any) => item?._id !== profileData?._id
+            );
+            dispatch(setDiscoverData(nextDiscoverProfiles));
+            setSwipeLeft(false);
+        }, 200);
+        return () => clearTimeout(timer);
+    }, [discoverProfileData, dispatch, modalVisible, profileData?._id, swipeLeft]);
+
+    useEffect(() => {
+        if (modalVisible || !swipeRight || !profileData?._id) return;
+        const timer = setTimeout(() => {
+            dispatch(
+                swipeLikeDisLike({
+                    swipedId: profileData?._id,
+                    type: "like",
+                })
+            );
+            setLikedProfiles((prev) => {
+                if (prev.some((item: any) => item?._id === profileData?._id)) return prev;
+                return [...prev, profileData];
+            });
+            const nextDiscoverProfiles = (discoverProfileData ?? []).filter(
+                (item: any) => item?._id !== profileData?._id
+            );
+            dispatch(setDiscoverData(nextDiscoverProfiles));
+            setSwipeRight(false);
+        }, 200);
+        return () => clearTimeout(timer);
+    }, [discoverProfileData, dispatch, modalVisible, profileData, profileData?._id, swipeRight]);
 
     return (
         <AppSafeAreaView>
@@ -528,6 +693,8 @@ const DiscoverScreen = () => {
                 onRequestClose={() => setModalVisible(false)}>
                 <PreviewDetails data={profileData} setModalVisible={setModalVisible}
                     setSwipeUp={setSwipeUp} modalVisible={modalVisible}
+                    setSwipeRight={setSwipeRightProxy}
+                    setSwipeLeft={setSwipeLeftProxy}
                     setProfileData={setProfileData}
                     discover={true}
                     setSuperLikeVisible={setSuperLikeVisible}
@@ -541,6 +708,16 @@ const DiscoverScreen = () => {
                 <SuperLikeScreen data={profileData} setSuperLikeVisible={setSuperLikeVisible}
                     setSwipeUp={setSwipeUp} ref={ref} />
             </Modal>
+            <Animated2.View pointerEvents="none" style={[styles.dislikeFxOverlay, dislikeOverlayStyle]}>
+                <Animated2.View style={dislikeIconAnimatedStyle}>
+                    <FastImage source={disLikeNewIcon} tintColor={colors.black} resizeMode="contain" style={styles.dislikeFxIcon} />
+                </Animated2.View>
+            </Animated2.View>
+            <Animated2.View pointerEvents="none" style={[styles.likeFxOverlay, likeOverlayStyle]}>
+                <Animated2.View style={likeIconAnimatedStyle}>
+                    <FastImage source={likeNewICon} tintColor={colors.black} resizeMode="contain" style={styles.likeFxIcon} />
+                </Animated2.View>
+            </Animated2.View>
         </AppSafeAreaView>
     );
 };
@@ -670,4 +847,26 @@ const styles = StyleSheet.create({
     activeContainer: { height: metrics.hp2, paddingHorizontal: metrics.hp1, flexDirection: "row", alignItems: "center", borderRadius: metrics.hp5, backgroundColor: "#FFFFFF33", marginTop: metrics.hp0_5, width: metrics.hp8 },
     activeBackground: { height: metrics.hp1_2, width: metrics.hp1_2, borderWidth: metrics.hp0_1, borderColor: "#28EC594D", backgroundColor: "#28EC591A", borderRadius: metrics.hp20, alignItems: "center", justifyContent: "center", marginRight: metrics.hp0_3 },
     activeDot: { height: metrics.hp0_8, width: metrics.hp0_8, backgroundColor: "#28EC59", borderRadius: metrics.hp50 },
+    dislikeFxOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: colors.white,
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 999,
+    },
+    dislikeFxIcon: {
+        height: metrics.hp11,
+        width: metrics.hp11,
+    },
+    likeFxOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: colors.white,
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 999,
+    },
+    likeFxIcon: {
+        height: metrics.hp11,
+        width: metrics.hp11,
+    },
 });

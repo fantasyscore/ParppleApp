@@ -59,13 +59,13 @@ const LikesYouScreen = () => {
                     like yet!
                 </AppText>
                 <AppText type={TWELVE} weight={INTER_REGULAR} color={OPECITY_DARK}>
-                    Get profile boost to get your first sooner.
+                    Get profile spotlight to get your first sooner.
                 </AppText>
                 <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN)} style={[styles.shareDetailsContaier]}>
                     <FastImage source={bostIconWhite} resizeMode="contain" style={styles.shareIcon} />
                     <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
                         {"  "}
-                        Boost your profile
+                        Spotlight your profile
                     </AppText>
                 </TouchableOpacityView>
             </View>
@@ -82,13 +82,13 @@ const LikesYouScreen = () => {
                     views yet!
                 </AppText>
                 <AppText type={TWELVE} weight={INTER_REGULAR} color={OPECITY_DARK}>
-                    Get profile boost to get your first sooner.
+                    Get profile spotlight to get your first sooner.
                 </AppText>
                 <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN)} style={[styles.shareDetailsContaier]}>
                     <FastImage source={bostIconWhite} resizeMode="contain" style={styles.shareIcon} />
                     <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
                         {"  "}
-                        Boost your profile
+                        Spotlight your profile
                     </AppText>
                 </TouchableOpacityView>
             </View>
@@ -119,7 +119,7 @@ const LikesYouScreen = () => {
                         {item?.type === "superLike" && tabSelect === "Likes" && item?.see == true && <View style={styles.superLikeBackTwo} />}
                     </>
                 }
-                <ImageBackground blurRadius={item?.see == false ? metrics.hp7 : metrics.hp0} imageStyle={{ borderRadius: metrics.hp1_5 }} source={{ uri: item?.profilePicture[0]?.url }} resizeMode="cover" style={[styles.profileImageTwo, { zIndex: 2 }]}>
+                <ImageBackground blurRadius={item?.see == false ? metrics.hp3 : metrics.hp0} imageStyle={{ borderRadius: metrics.hp1_5 }} source={{ uri: item?.profilePicture[0]?.url }} resizeMode="cover" style={[styles.profileImageTwo, { zIndex: 2 }]}>
                     {item?.see == false ?
                         <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: item?.see == false ? "#ffffff50" : colors.transparent, borderRadius: metrics.hp1, width: metrics.hp8, position: "absolute", bottom: metrics.hp1_8, left: metrics.hp1 }}>
                             <AppText>{"                            "}</AppText>
@@ -171,7 +171,7 @@ const LikesYouScreen = () => {
 
         if (tabSelect === "Likes" && likeYoue === "You Liked") {
             data = likeYouData?.length ? likeYouData : [];
-            return data.map((item) => ({ ...item, see: canSeeLikes })); // You can always see who you liked
+            return data.map((item) => ({ ...item, see: true })); // You can always see who you liked
         }
 
         if (tabSelect === "Views" && ViewYoue === "Viewed You") {
@@ -181,7 +181,7 @@ const LikesYouScreen = () => {
 
         if (tabSelect === "Views" && ViewYoue === "You Viewed") {
             data = viewByOtherData?.length ? viewByOtherData : [];
-            return data.map((item) => ({ ...item, see: canSeeViews })); // You can see whom you viewed
+            return data.map((item) => ({ ...item, see: true })); // You can see whom you viewed
         }
 
         return [];
@@ -250,19 +250,15 @@ const LikesYouScreen = () => {
                 contentContainerStyle={{ paddingHorizontal: metrics.hp2, marginTop: metrics.hp1, paddingBottom: metrics.hp10 }}
                 ListEmptyComponent={tabSelect == "Views" ? renderEmptyView : renderEmptyLikes}
                 ListFooterComponent={() => {
-                    return likeYoue == "Likes You" && tabSelect === "Likes" && userData?.subscription?.plan === "FREE" ? (
-                        <AppText style={{ textAlign: "center", marginTop: metrics.hp2 }} type={TWELVE} weight={INTER_MEDIUM} color={LIGHT_BLACK}>
-                            Upgrade to gold to see people who have already{'\n'}liked you
-                        </AppText>
-                    ) : (
+                    return likeYoue == "Likes You" && tabSelect === "Likes" && userData?.subscription?.plan === "FREE" ? <></> :  (
                         <></>
                     )
                 }} />
-            {likeYoue == "Likes You" && tabSelect === "Likes" && userData?.subscription?.plan === "FREE" ? (
+            {/* {likeYoue == "Likes You" && tabSelect === "Likes" && userData?.subscription?.plan === "FREE" ? (
                 <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: item })} >
                     <FastImage source={upgradPlan} resizeMode="contain" style={{ height: metrics.hp10, width: Screen.Width / 1, marginBottom: metrics.hp3, marginTop: metrics.hp1 }} />
                 </TouchableOpacityView>
-            ) : null}
+            ) : null} */}
         </AppSafeAreaView>
     )
 };

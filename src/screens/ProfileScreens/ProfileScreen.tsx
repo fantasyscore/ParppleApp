@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { Dimensions, FlatList, ImageBackground, Linking, Platform, ScrollView, StyleSheet, View } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
-import { arrowBackForSafety, blockPurppleIcon, blueTikeIcon, callIcon, checkSafety, flasIcon, goldCardSmall, locationPurppleIcon, pencilIcon, platniumCardSmall, premiumIcon, profilebackGround, profileImage, pText, redHeart, rightArrow, sliverCardSmall, spolightWhite, stylesRightArrow, superlikeiconwhite } from "../../helper/ImageAssets";
+import { appLogoSubscription, arrowBackForSafety, blockPurppleIcon, blueTikeIcon, callIcon, checkSafety, flamIcon, flamSubscriptionFram, flasIcon, goldCard, goldCardSmall, locationPurppleIcon, pencilIcon, Platinum, platniumCardSmall, premiumIcon, profilebackGround, profileImage, pText, redHeart, rightArrow, sliverCardSmall, sparkIcon, sparkSubscriptionFram, spolightWhite, stylesRightArrow, superlikeiconwhite } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
 import { colors } from "../../theme/colors";
 import Svg, { Circle } from "react-native-svg";
@@ -22,6 +22,7 @@ const ProfileScreen = () => {
     const dispatch = useDispatch();
     const [percentage, setPercentage] = useState(25);
     const [tabSelect, setTabSelect] = useState("Premium");
+    const [tabSelectSpark, setTabSelectSpark] = useState("spark")
     const [activeIndex, setActiveIndex] = useState(0);
     const userData = useSelector((state: any) => state.auth.userData);
 
@@ -75,6 +76,14 @@ const ProfileScreen = () => {
             icon: superlikeiconwhite,
         },
     ]
+    const onSubcription = () => {
+        let item = { id: "3", icon: Platinum, title: "Platinum" };
+        let itemtwo = { id: "2", icon: goldCard, title: "Gold" };
+
+        NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: tabSelectSpark === "spark" ? itemtwo : item })
+    }
+    console.log(userData, "userData");
+
     return (
         <AppSafeAreaView>
             <ImageBackground
@@ -151,46 +160,107 @@ const ProfileScreen = () => {
                 </View>
                 {tabSelect == "Premium" &&
                     <View style={styles.bottomContainer}>
-                        <View style={styles.containerSpot}>
-                            <TouchableOpacityView  onPress={() => navigateButton("Boost")} style={{width:"50%"}}>
-                            <LinearGradient start={{ x: 0, y: 1 }}
-                                end={{ x: 1, y: 0 }} colors={["#E4EFF6", "#C9DFEE"]} style={styles.inerSpot}>
-                                <View style={styles.imageSpotCircle}>
-                                    <FastImage source={spolightWhite} resizeMode="contain" style={{ height: metrics.hp2_5, width: metrics.hp2_5 }} />
-                                    <View style={[styles.countSpot, { backgroundColor: "#005999" }]}>
-                                        <AppText weight={INTER_BOLD} style={{ fontWeight: "600" }} color={WHITE}>
-                                            {userData?.boostRemaining}
-                                        </AppText>
+                        {/* <View style={styles.containerSpot}>
+                            <TouchableOpacityView onPress={() => navigateButton("Boost")} style={{ width: "100%" }}>
+                                <LinearGradient start={{ x: 0, y: 1 }}
+                                    end={{ x: 1, y: 0 }} colors={["#E4EFF6", "#C9DFEE"]} style={styles.inerSpot}>
+                                    <View style={styles.imageSpotCircle}>
+                                        <FastImage source={spolightWhite} resizeMode="contain" style={{ height: metrics.hp2_5, width: metrics.hp2_5 }} />
+                                        <View style={[styles.countSpot, { backgroundColor: "#005999" }]}>
+                                            <AppText weight={INTER_BOLD} style={{ fontWeight: "600" }} color={WHITE}>
+                                                {userData?.boostRemaining}
+                                            </AppText>
+                                        </View>
                                     </View>
+                                    <AppText type={THIRTEEN} style={{ fontWeight: "500", marginTop: metrics.hp1 }} weight={INTER_BOLD}>
+                                        Spotlight
+                                    </AppText>
+                                    <AppText style={{ fontSize: fontSize(9.8), marginTop: metrics.hp0_2 }} weight={INTER_SEMI_BOLD}>
+                                        Get seen first 5x more matches
+                                    </AppText>
+                                </LinearGradient>
+                            </TouchableOpacityView>
+                            <TouchableOpacityView onPress={() => navigateButton("Super Like")} style={{ width: "50%" }}>
+                                <LinearGradient start={{ x: 0, y: 1 }}
+                                    end={{ x: 1, y: 0 }} colors={["#FFEBE9", "#F0B8B1"]} style={styles.inerSpot}>
+                                    <View style={[styles.imageSpotCircle, { backgroundColor: "#FF1A00" }]}>
+                                        <FastImage source={superlikeiconwhite} resizeMode="contain" style={{ height: metrics.hp2_5, width: metrics.hp2_5 }} />
+                                        <View style={styles.countSpot}>
+                                            <AppText weight={INTER_BOLD} style={{ fontWeight: "600" }} color={WHITE}>
+                                                {userData?.superLikesRemaining}
+                                            </AppText>
+                                        </View>
+                                    </View>
+                                    <AppText type={THIRTEEN} style={{ fontWeight: "500", marginTop: metrics.hp1 }} weight={INTER_BOLD}>
+                                        Super Like
+                                    </AppText>
+                                    <AppText style={{ fontSize: fontSize(9.8), marginTop: metrics.hp0_2 }} weight={INTER_SEMI_BOLD}>
+                                        Stand out instantly get noticed
+                                    </AppText>
+                                </LinearGradient>
+                            </TouchableOpacityView>
+                        </View> */}
+                        <TouchableOpacityView onPress={() => navigateButton("Boost")} style={styles.subscriptionContainerUnderSpot}>
+                            <View style={styles.imageSpotCircle}>
+                                <FastImage source={spolightWhite} resizeMode="contain" style={{ height: metrics.hp2_5, width: metrics.hp2_5 }} />
+                                <View style={[styles.countSpot, { backgroundColor: "#005999" }]}>
+                                    <AppText weight={INTER_BOLD} style={{ fontWeight: "600" }} color={WHITE}>
+                                        {userData?.boostRemaining}
+                                    </AppText>
                                 </View>
-                                <AppText type={THIRTEEN} style={{ fontWeight: "500", marginTop:metrics.hp1 }} weight={INTER_BOLD}>
+                            </View>
+                            <View style={{ marginLeft: metrics.hp1 }}>
+                                <AppText type={THIRTEEN} style={{ fontWeight: "500", marginTop: metrics.hp0 ,color:"#005999" }} weight={INTER_BOLD}>
                                     Spotlight
                                 </AppText>
-                                <AppText style={{ fontSize:fontSize(9.8), marginTop:metrics.hp0_2 }} weight={INTER_SEMI_BOLD}>
-                                Get seen first 5x more matches
+                                <AppText style={{ fontSize: fontSize(9.8), marginTop: metrics.hp0_2 }} weight={INTER_SEMI_BOLD}>
+                                    Get seen first 5x more matches
                                 </AppText>
-                            </LinearGradient>
-                            </TouchableOpacityView>
-                            <TouchableOpacityView onPress={() => navigateButton("Super Like")} style={{width:"50%"}}>
-                            <LinearGradient start={{ x: 0, y: 1 }}
-                                end={{ x: 1, y: 0 }} colors={["#FFEBE9", "#F0B8B1"]} style={styles.inerSpot}>
-                                <View style={[styles.imageSpotCircle, { backgroundColor: "#FF1A00" }]}>
-                                    <FastImage source={superlikeiconwhite} resizeMode="contain" style={{ height: metrics.hp2_5, width: metrics.hp2_5 }} />
-                                    <View style={styles.countSpot}>
-                                        <AppText weight={INTER_BOLD} style={{ fontWeight: "600" }} color={WHITE}>
-                                            {userData?.superLikesRemaining}
-                                        </AppText>
-                                    </View>
-                                </View>
-                                <AppText type={THIRTEEN} style={{ fontWeight: "500", marginTop:metrics.hp1 }} weight={INTER_BOLD}>
-                                Super Like
+                            </View>
+                        </TouchableOpacityView>
+                        <View style={styles.subscriptionContainerUnderSpot}>
+                            <FastImage source={appLogoSubscription} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp4 }} />
+                            <View style={{ marginLeft: metrics.hp1 }}>
+                                <AppText style={{ fontWeight: "600", marginTop: -metrics.hp0_1 }} type={FORTEEN} weight={INTER_BOLD} color={PURPLE}>
+                                    {userData?.subscription?.plan === "PLATINUM" || userData?.subscription?.plan === "GOLD" ? "Paid" : "Free"}
                                 </AppText>
-                                <AppText style={{  fontSize:fontSize(9.8), marginTop:metrics.hp0_2 }} weight={INTER_SEMI_BOLD}>
-                                Stand out instantly get noticed
+                                <AppText style={{ marginTop: metrics.hp0_2 }} type={TEN} weight={INTER_MEDIUM}>
+                                    You have {userData?.subscription?.plan === "PLATINUM" ? "Flame" : userData?.subscription?.plan === "GOLD" ? "Spark" : "no"} subscription
                                 </AppText>
-                            </LinearGradient>
-                            </TouchableOpacityView>
+                            </View>
                         </View>
+                        <TouchableOpacityView onPress={onSubcription} style={{ paddingHorizontal: metrics.hp2, marginTop: metrics.hp2 }}>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <TouchableOpacityView onPress={() => setTabSelectSpark("spark")}
+                                    style={[
+                                        styles.sparkSubBox,
+                                        {
+                                            zIndex: tabSelectSpark === "spark" ? 2 : 1,
+                                            backgroundColor: tabSelectSpark === "spark" ? colors.black : "#B6B6B6",
+                                        }
+                                    ]}>
+                                    <FastImage source={sparkIcon} style={{ height: metrics.hp1_6, width: metrics.hp1_6 }} />
+                                    <AppText type={TWELVE} weight={INTER_BOLD} color={WHITE}>
+                                        {"  "}Spark{"  "}
+                                    </AppText>
+                                </TouchableOpacityView>
+                                <TouchableOpacityView onPress={() => setTabSelectSpark("flam")}
+                                    style={[
+                                        styles.sparkSubBox,
+                                        {
+                                            marginLeft: -metrics.hp2,
+                                            zIndex: tabSelectSpark === "flam" ? 2 : 1,
+                                            backgroundColor: tabSelectSpark === "flam" ? colors.black : "#B6B6B6",
+                                        }
+                                    ]}>
+                                    <FastImage source={flamIcon} style={{ height: metrics.hp1_6, width: metrics.hp1_6 }} />
+                                    <AppText type={TWELVE} weight={INTER_BOLD} color={WHITE}>
+                                        {"  "}Flame{"  "}
+                                    </AppText>
+                                </TouchableOpacityView>
+                            </View>
+                            <ImageBackground source={tabSelectSpark === "spark" ? sparkSubscriptionFram : flamSubscriptionFram} resizeMode="contain" style={{ height: metrics.hp21, width: "100%" }} />
+                        </TouchableOpacityView>
                         {/* <View style={styles.one}>
                             {premiumDetaiData?.map((item, index) => {
                                 return userData?.subscription?.plan !== "FREE" && item.id === "3" ? (
@@ -652,7 +722,14 @@ const styles = StyleSheet.create({
     containerSpot: {
         flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: metrics.hp1
     },
-    inerSpot: { width: "100%", height: metrics.hp13, paddingHorizontal: metrics.hp1, paddingVertical: metrics.hp1, borderRadius: metrics.hp1_2 },
+    inerSpot: { width: "100%", height: metrics.hp14, paddingHorizontal: metrics.hp1, paddingVertical: metrics.hp1_3, borderRadius: metrics.hp1_2 },
     imageSpotCircle: { height: metrics.hp4, width: metrics.hp4, backgroundColor: "#0095FF", borderRadius: metrics.hp50, alignItems: "center", justifyContent: "center" },
-    countSpot: { height: metrics.hp2_3, width: metrics.hp2_3, backgroundColor: "#991000", alignItems: "center", justifyContent: "center", borderRadius: metrics.hp50, position: "absolute", top: -metrics.hp0_5, right: -metrics.hp0_5, borderWidth: metrics.hp0_1, borderColor: colors.white }
+    countSpot: { height: metrics.hp2_3, width: metrics.hp2_3, backgroundColor: "#991000", alignItems: "center", justifyContent: "center", borderRadius: metrics.hp50, position: "absolute", top: -metrics.hp0_5, right: -metrics.hp0_5, borderWidth: metrics.hp0_1, borderColor: colors.white },
+    subscriptionContainerUnderSpot: { height: metrics.hp7, borderWidth: metrics.hp0_1, borderColor: "#F3F3F3", backgroundColor: colors.white, marginHorizontal: metrics.hp2, borderRadius: metrics.hp2, marginTop: metrics.hp1, paddingVertical: metrics.hp2, paddingHorizontal: metrics.hp1, flexDirection: "row", alignItems: "center" },
+    sparkSubBox: {
+        height: metrics.hp3, width: metrics.hp12, borderTopRightRadius: metrics.hp4_6, borderTopLeftRadius: metrics.hp4_6, backgroundColor: colors.black, marginLeft: metrics.hp3,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center"
+    }
 });
