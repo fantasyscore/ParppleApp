@@ -37,6 +37,11 @@ const LoginScreen = () => {
     const [fcmtoken, setfcmToken] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
+    const onPhoneChange = (text: string) => {
+        const digitsOnly = text.replace(/\D/g, "").slice(0, 10);
+        setPhoneNumber(digitsOnly);
+    };
+
     useEffect(() => {
         let unsubscribeTokenRefresh: (() => void) | undefined;
 
@@ -149,9 +154,17 @@ const LoginScreen = () => {
                         <View style={styles.countryInputTwo}>
                             <TextInput
                                 maxLength={10}
-                                keyboardType="numeric"
+                                keyboardType="number-pad"
+                                returnKeyType="done"
+                                autoCorrect={false}
+                                autoComplete="tel"
+                                textContentType="telephoneNumber"
+                                importantForAutofill="yes"
+                                {...(Platform.OS === "android"
+                                    ? { inputMode: "numeric" as const }
+                                    : {})}
                                 value={phoneNumber}
-                                onChangeText={setPhoneNumber}
+                                onChangeText={onPhoneChange}
                                 style={styles.input}
                             />
                         </View>

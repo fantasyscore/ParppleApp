@@ -19,7 +19,7 @@ import CrushNotesSender from "./CrushNotesSender";
 
 const { width, height } = Dimensions.get("window");
 const COLLAPSED_IMAGE_HEIGHT = height * 0.67;
-const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setSwipeLeft, setProfileData, discover, setSuperLikeVisible, canSuperLike }: any) => {
+const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setSwipeLeft, setProfileData, discover, setSuperLikeVisible, canSuperLike, canSwipeRight }: any) => {
     const dispatch = useDispatch();
     const cardWidthRef = useRef(0);
     const listProfilesData = useSelector((state: any) => state.auth.listProfiles);
@@ -267,6 +267,7 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                     <Pressable
                         disabled={discover}
                         onPress={() => {
+                            if (canSwipeRight && !canSwipeRight()) return;
                             scrollViewRef.current?.scrollTo({ y: 0, animated: false });
                             setModalVisible(false);
                             setSwipeRight(true);
@@ -330,6 +331,7 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                     discover={discover}
                     setSuperLikeVisible={setSuperLikeVisible}
                     canSuperLike={canSuperLike}
+                    canSwipeRight={canSwipeRight}
                 />
             </Modal>
         </AppSafeAreaView>

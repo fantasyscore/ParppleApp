@@ -21,7 +21,7 @@ import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_CRUSH_PURCHESE_SCREEN } from "../../navigation/routes";
 import { toastAlert } from "../../actions/UploadImageActions";
 
-const CrushNotesSender = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setSwipeLeft, setProfileData, discover, setSuperLikeVisible, canSuperLike }: any) => {
+const CrushNotesSender = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setSwipeLeft, setProfileData, discover, setSuperLikeVisible, canSuperLike, canSwipeRight }: any) => {
     const dispatch = useDispatch();
     const cardWidthRef = useRef(0);
     const [inputText, setInputText] = useState('');
@@ -98,6 +98,7 @@ const CrushNotesSender = ({ data, setModalVisible, setSwipeRight, setSwipeUp, se
             const response = await dispatch(sendCrushNotesAPI(datasend));
             
             if (response?.statusCode === 200) {
+                if (canSwipeRight && !canSwipeRight()) return;
                 // First set swipeRight to true (this will trigger the swipe animation and like action when modal closes)
                 if (setSwipeRight) {
                     setSwipeRight(true);

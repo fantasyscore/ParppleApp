@@ -450,7 +450,7 @@ const EditProfileScreen = () => {
                 <ButtonSheet Icons={personHeartIcon} headLines={"What are their interests?"}
                     color={userData?.gender ? true : false}
                     titile={userData?.gender ? "Gender" : "Add Gender"} edit={true} hidden={userData?.fieldVisibility?.gender ? userData?.gender : "Hidden"}
-                    onPress={() => NavigationService.navigate(NAVIGATION_GANDER_SCREEN, { filter: "Add Gender", data: userData?.gender, fieldVisibility: userData?.fieldVisibility })} />
+                    /* onPress={() => NavigationService.navigate(NAVIGATION_GANDER_SCREEN, { filter: "Add Gender", data: userData?.gender, fieldVisibility: userData?.fieldVisibility })} */ />
                 <View style={styles.singleLine} />
                 <HeadLineContiner
                     circle={userData?.sexualOrientation} s

@@ -1267,6 +1267,7 @@ const PeopleScreen = () => {
                         ImageIndex={currentImageIndex}
                         CurrentImageIndex={setCurrentImageIndex}
                         canSuperLike={canSuperLike}
+                        canSwipeRight={canSwipeRight}
                         setSuperLikeVisible={setSuperLikeVisible} />
                 </Modal>
                 <Modal
@@ -1280,7 +1281,8 @@ const PeopleScreen = () => {
                         setSwipeUp={setSwipeUp} modalVisible={crushNotesSednder} ref={ref}
                         ImageIndex={currentImageIndex}
                         CurrentImageIndex={setCurrentImageIndex}
-                        setSuperLikeVisible={setSuperLikeVisible} />
+                        setSuperLikeVisible={setSuperLikeVisible}
+                        canSwipeRight={canSwipeRight} />
                 </Modal>
                 <Modal
                     animationType="fade"
