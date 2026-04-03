@@ -165,6 +165,7 @@ const LoginScreen = () => {
                                     : {})}
                                 value={phoneNumber}
                                 onChangeText={onPhoneChange}
+                                selectionColor={colors.black}
                                 style={styles.input}
                             />
                         </View>
@@ -250,6 +251,8 @@ const styles = StyleSheet.create({
         fontFamily: INTER_BOLD,
         fontWeight: Platform.OS === "ios" ? "400" : "700",
         marginTop: -metrics.hp1_3,
-        height: metrics.hp6
+        height: metrics.hp6,
+        color: colors.black,
+        backgroundColor: "transparent",
     },
 });
