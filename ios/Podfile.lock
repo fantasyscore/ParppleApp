@@ -1522,6 +1522,30 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - react-native-capture-protection (2.4.1):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.11.18.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-hermes
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
   - react-native-compressor (1.13.0):
     - DoubleConversion
     - glog
@@ -2733,6 +2757,7 @@ DEPENDENCIES:
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
   - "react-native-blur (from `../node_modules/@react-native-community/blur`)"
+  - react-native-capture-protection (from `../node_modules/react-native-capture-protection`)
   - react-native-compressor (from `../node_modules/react-native-compressor`)
   - react-native-geolocation-service (from `../node_modules/react-native-geolocation-service`)
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
@@ -2916,6 +2941,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
   react-native-blur:
     :path: "../node_modules/@react-native-community/blur"
+  react-native-capture-protection:
+    :path: "../node_modules/react-native-capture-protection"
   react-native-compressor:
     :path: "../node_modules/react-native-compressor"
   react-native-geolocation-service:
@@ -3109,6 +3136,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: f581f01e9c766bbfb7d1f57a6f6ceb86bdc310f1
   React-microtasksnativemodule: 8fc1bfccd27980ed6cfec1f52ffcd6af336f48f7
   react-native-blur: d179f9d0898977578a42b0b536d4df57b8d7bd21
+  react-native-capture-protection: 75a415ab89d57a16cd724642954fb003fa00e7a8
   react-native-compressor: 4073c0f043b4aef6b9759a3e600d0d4dbe31adb3
   react-native-geolocation-service: 608e1da71a1ac31b4de64d9ef2815f697978c55b
   react-native-image-picker: 6ccf4bb98d38facc22db35fc2ee59a574fca4d16

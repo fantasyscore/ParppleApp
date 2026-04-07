@@ -28,6 +28,7 @@ const GanderScreen = ({ route }: any) => {
     const datalistnew = new Array(9).fill(null).map((_, index) => ({ id: String(index), }))
     const [selectPronoun, setSelectPronoun] = useState(dataFilter ? dataFilter : '');
     const [showProfile, setShowProfile] = useState(fieldVisibility? fieldVisibility?.gender : true);
+console.log(addProfileData,"addProfileData");
 
     const onSubmit = () => {
         if (!selectPronoun) return toastAlert.showToastError("Please add gender")

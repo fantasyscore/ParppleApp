@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, GestureResponderEvent, Image, ImageBackground, Modal, PermissionsAndroid, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, GestureResponderEvent, Image, ImageBackground, Modal, PermissionsAndroid, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import Animated, {
     Extrapolation,
@@ -17,6 +17,7 @@ import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 import { TouchableOpacityView } from '../../common/TouchableOpacityView';
 import {
     AppText,
+    ELEVEN,
     fontSize,
     FORTEEN,
     INTER_BOLD,
@@ -35,7 +36,7 @@ import {
 import { activateBoostAPI, getProfile, listProfiles, swipeLikeDisLike } from '../../actions/authActions';
 import metrics from '../../assets/Metrics';
 import { colors } from '../../theme/colors';
-import { blueTikeIcon, bussinessIcon, disLikeNewIcon, flashIcon, goldCard, likeNewICon, locationCIon, swipeUpIcon } from '../../helper/ImageAssets';
+import { blueTikeIcon, bussinessIcon, disLikeNewIcon, flashIcon, goldCard, likeNewICon, locationCIon, mapIcon, swipeUpIcon } from '../../helper/ImageAssets';
 import PeopleHeader from '../../common/PeopleHeader';
 import { useBoostTimer } from '../../hooks/useBoostTimer';
 import NavigationService from '../../navigation/NavigationService';
@@ -57,6 +58,7 @@ import { useIsFocused } from '@react-navigation/native';
 import messaging, {
     FirebaseMessagingTypes,
 } from "@react-native-firebase/messaging";
+import { check, openSettings, PERMISSIONS, request, RESULTS } from "react-native-permissions";
 const { width, height } = Dimensions.get('window');
 
 const CARD_WIDTH = width * 0.90;
@@ -69,6 +71,7 @@ type SwipeType = 'dislike' | 'like' | 'superLike';
 
 // Session-only flag (resets when app is fully killed/reopened)
 let hasShownProfileCompletionReminderThisSession = false;
+let hasShownLocationPermissionPromptThisSession = false;
 
 
 const NewHomeScreen = () => {
@@ -81,6 +84,8 @@ const NewHomeScreen = () => {
     const [matchVisible, setMatchVisible] = useState(false);
     const [matchData, setMatchData] = useState([]);
     const [showProfileCompletionReminder, setShowProfileCompletionReminder] = useState(false);
+    const [locationPromptVisible, setLocationPromptVisible] = useState(false);
+    const [isRequestingLocationPermission, setIsRequestingLocationPermission] = useState(false);
     const [remainingSwipes, setRemainingSwipes] = useState(0);
     const [currentIndex, setCurrentIndex] = useState(0);
     const activeIndex = useSharedValue(0);
@@ -94,6 +99,7 @@ const NewHomeScreen = () => {
     const likeOverlayOpacity = useSharedValue(0);
     const likeIconScale = useSharedValue(0.7);
     const itemtwo = useMemo(() => ({ id: "2", icon: goldCard, title: "Gold" }), []);
+    const locationPromptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         const swipes = Number(userData?.swipesRemaining ?? 0);
@@ -450,6 +456,83 @@ const NewHomeScreen = () => {
         const remaining = Number(userData?.superLikesRemaining ?? 0);
         return Number.isFinite(remaining) && remaining > 0;
     }, [userData?.superLikesRemaining]);
+
+    const getLocationPermissionType = useCallback(() => {
+        if (Platform.OS === "ios") return PERMISSIONS.IOS.LOCATION_WHEN_IN_USE;
+        return PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION;
+    }, []);
+
+    const isLocationPermissionGranted = useCallback(async () => {
+        try {
+            const status = await check(getLocationPermissionType());
+            return status === RESULTS.GRANTED;
+        } catch (error) {
+            console.warn("Location permission check failed:", error);
+            return false;
+        }
+    }, [getLocationPermissionType]);
+
+    const requestLocationPermissionAgain = useCallback(async () => {
+        if (isRequestingLocationPermission) return;
+        setIsRequestingLocationPermission(true);
+        try {
+            const status = await request(getLocationPermissionType());
+            if (status === RESULTS.GRANTED) {
+                setLocationPromptVisible(false);
+                dispatch(listProfiles(true));
+                dispatch(getProfile(true));
+                return;
+            }
+
+            if (status === RESULTS.BLOCKED) {
+                Alert.alert(
+                    "Location permission is disabled",
+                    "Location permission is disabled. You can enable it from Settings.",
+                    [
+                        { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
+                        { text: "Cancel", style: "cancel" },
+                    ]
+                );
+            }
+        } catch (error) {
+            console.warn("Location permission request failed:", error);
+        } finally {
+            setIsRequestingLocationPermission(false);
+        }
+    }, [dispatch, getLocationPermissionType, isRequestingLocationPermission]);
+
+    useEffect(() => {
+        if (!isFocused) return;
+        if (hasShownLocationPermissionPromptThisSession) return;
+
+        let isMounted = true;
+
+        const scheduleLocationPromptIfNeeded = async () => {
+            const granted = await isLocationPermissionGranted();
+            if (!isMounted || granted) return;
+
+            if (locationPromptTimerRef.current) {
+                clearTimeout(locationPromptTimerRef.current);
+            }
+
+            locationPromptTimerRef.current = setTimeout(() => {
+                if (!isMounted) return;
+                if (hasShownLocationPermissionPromptThisSession) return;
+                hasShownLocationPermissionPromptThisSession = true;
+                setLocationPromptVisible(true);
+            }, 10000);
+        };
+
+        scheduleLocationPromptIfNeeded();
+
+        return () => {
+            isMounted = false;
+            if (locationPromptTimerRef.current) {
+                clearTimeout(locationPromptTimerRef.current);
+                locationPromptTimerRef.current = null;
+            }
+        };
+    }, [isFocused, isLocationPermissionGranted]);
 
 
     async function requestAndroidNotificationPermission() {
@@ -873,7 +956,7 @@ const NewHomeScreen = () => {
 
             <Animated.View pointerEvents="none" style={[styles.likeFxOverlay, likeOverlayStyle]}>
                 <Animated.View style={likeIconAnimatedStyle}>
-                    <FastImage source={likeNewICon}  tintColor={colors.black} resizeMode="contain" style={styles.likeFxIcon} />
+                    <FastImage source={likeNewICon} tintColor={colors.black} resizeMode="contain" style={styles.likeFxIcon} />
                 </Animated.View>
             </Animated.View>
 
@@ -897,6 +980,43 @@ const NewHomeScreen = () => {
                 onStart={handleActivateBoost}
                 isActivating={isBoostActivating}
             />
+
+            <Modal
+                animationType="fade"
+                transparent
+                visible={locationPromptVisible}
+                onRequestClose={() => setLocationPromptVisible(false)}
+            >
+                <View style={styles.centeredView}>
+                    <View style={styles.locationPromptContainer}>
+                        <FastImage source={mapIcon} resizeMode='contain' style={{ height: metrics.hp8, width: metrics.hp8, alignSelf: "center" }}  />
+                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
+                            Enable location
+                        </AppText>
+                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ textAlign: "center", marginTop: -metrics.hp0_5 }}>
+                            Set your location so that other people around You
+                            could match with your profile.
+                        </AppText>
+                        <TouchableOpacityView
+                            onPress={requestLocationPermissionAgain}
+                            style={[styles.locationPromptButton, { backgroundColor: colors.purple, borderColor: colors.purple, marginTop:metrics.hp3 }]}
+                        >
+                            <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
+                                {isRequestingLocationPermission ? "Please wait..." : "Allow Location"}
+                            </AppText>
+                        </TouchableOpacityView>
+
+                    </View>
+                    <TouchableOpacityView
+                        onPress={() => setLocationPromptVisible(false)}
+                        style={[styles.locationPromptButton,{backgroundColor: colors.transparent, borderColor: colors.transparent}]}
+                    >
+                        <AppText color={WHITE} weight={INTER_BOLD} type={FORTEEN}>
+                        No, skip now
+                        </AppText>
+                    </TouchableOpacityView>
+                </View>
+            </Modal>
 
             {/* <Modal
                 animationType="fade"
@@ -1172,6 +1292,22 @@ const styles = StyleSheet.create({
     likeFxIcon: {
         height: metrics.hp11,
         width: metrics.hp11,
+    },
+    locationPromptContainer: {
+        backgroundColor: colors.white,
+        width: width / 1.15,
+        borderRadius: metrics.hp2,
+        paddingHorizontal: metrics.hp2,
+        paddingVertical: metrics.hp3,
+    },
+    locationPromptButton: {
+        height: metrics.hp5,
+        borderWidth: 1,
+        borderColor: colors.darkBorder,
+        borderRadius: metrics.hp4,
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: metrics.hp1_5,
     },
 });
 

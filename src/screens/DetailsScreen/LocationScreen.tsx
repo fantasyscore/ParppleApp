@@ -6,7 +6,7 @@ import TopCommonLine from "../../common/TopCommonLine";
 import HeaderCommon from "../../common/HeaderCommon";
 import metrics from "../../assets/Metrics";
 import { locIcon, mapIcon, mockLocationIcon } from "../../helper/ImageAssets";
-import { AppText, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, OPECITY, SIXTEEN, TWELVE } from "../../common/AppText";
+import { AppText, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, OPECITY, SIXTEEN, TWELVE, WHITE } from "../../common/AppText";
 import FastImage from "react-native-fast-image";
 import { colors } from "../../theme/colors";
 import { check, request, PERMISSIONS, RESULTS, openSettings } from "react-native-permissions";
@@ -40,6 +40,7 @@ const LocationScreen = () => {
     longitudeDelta: region?.longitudeDelta,
   });
   const [permissionAllow, setPermissionAllow] = useState(false);
+  const [permissionDeniedOnce, setPermissionDeniedOnce] = useState(false);
   const [addressName, setAddressName] = useState("")
   const requestLocationPermission = async () => {
     try {
@@ -52,13 +53,33 @@ const LocationScreen = () => {
       const result = await request(permission);
       if (result === RESULTS.GRANTED) {
         setPermissionAllow(true);
+        setPermissionDeniedOnce(false);
       } else if (result === RESULTS.BLOCKED) {
         Alert.alert(
           "Permission Required",
-          "Please enable location permission from settings."
+          "Please enable location permission from settings.",
+          [
+            {
+              text: "Open Settings",
+              onPress: () => {
+                openSettings().catch(() => {
+                  console.warn("Unable to open settings");
+                });
+              },
+            },
+            { text: "Cancel", style: "cancel" },
+          ]
         );
       } else {
         setPermissionAllow(false);
+        // If user denied once already, second tap takes them to Settings.
+        if (permissionDeniedOnce) {
+          openSettings().catch(() => {
+            console.warn("Unable to open settings");
+          });
+          return;
+        }
+        setPermissionDeniedOnce(true);
       }
     } catch (error) {
       console.warn("Permission error:", error);
@@ -202,12 +223,26 @@ const LocationScreen = () => {
         country: country,
         pronouns: [],
       };
+      console.log(dataToSave,"dataToSave");
+      
       dispatch(setAddProfile(dataToSave));
       console.log("📍 Location data:", dataToSave);
     } else {
       // Alert.alert("Error", "Unable to fetch address. Try again later.");
     }
   };
+  const skipButton = () =>{
+    const dataToSave = {
+      ...addProfileData,
+      coordinates: { long: "", lat: "" },
+      city:"",
+      state: "",
+      country: "",
+      pronouns: [],
+    };
+    dispatch(setAddProfile(dataToSave));
+    NavigationService.navigate(NAVIGATION_GANDER_SCREEN)
+  }
   return (
     <AppSafeAreaView>
       <HeaderCommon />
@@ -259,9 +294,16 @@ const LocationScreen = () => {
               />
               <TouchableOpacityView
                 onPress={requestLocationPermission}
-                style={styles.allowButton}>
+                style={[styles.allowButton,{    borderColor: colors.transparent, backgroundColor:colors.purple}]}>
+                <AppText type={FORTEEN} color={WHITE} weight={INTER_SEMI_BOLD}>
+                  Continue
+                </AppText>
+              </TouchableOpacityView>
+              <TouchableOpacityView
+                onPress={skipButton}
+                style={[styles.allowButton,{    marginTop: metrics.hp1,}]}>
                 <AppText type={FORTEEN} weight={INTER_SEMI_BOLD}>
-                  Allow device location
+                  Skip
                 </AppText>
               </TouchableOpacityView>
             </View>

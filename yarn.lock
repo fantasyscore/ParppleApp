@@ -6963,6 +6963,11 @@ react-lifecycles-compat@^3.0.4:
   resolved "https://registry.yarnpkg.com/react-lifecycles-compat/-/react-lifecycles-compat-3.0.4.tgz#4f1a273afdfc8f3488a8c516bfda78f872352362"
   integrity sha512-fBASbA6LnOU9dOU2eW7aQ8xmYBSXUIWr+UmF9b1efZBazGNO+rcXT/icdKnYm2pTwcRylVUYwW7H1PHfLekVzA==
 
+react-native-capture-protection@^2.4.1:
+  version "2.4.1"
+  resolved "https://registry.yarnpkg.com/react-native-capture-protection/-/react-native-capture-protection-2.4.1.tgz#5868982830cf3ba3b58ce526a9d2bee1dee70255"
+  integrity sha512-X2AN+YrgExPRSdjmPpUCanHIUdMnax73z6CfEfcSeZyBkB8AYo3AjNjYOTuTbk1U7HU2UJoz7X5WviShqYQrLQ==
+
 react-native-card-stack-swiper@^1.2.5:
   version "1.2.5"
   resolved "https://registry.yarnpkg.com/react-native-card-stack-swiper/-/react-native-card-stack-swiper-1.2.5.tgz#c5497b4025e7963d50249a440aaf693e8e4c12e6"

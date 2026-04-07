@@ -38,6 +38,7 @@
     "postinstall-postinstall": "^2.1.0",
     "react": "19.0.0",
     "react-native": "0.79.2",
+    "react-native-capture-protection": "^2.4.1",
     "react-native-card-stack-swiper": "^1.2.5",
     "react-native-compressor": "^1.13.0",
     "react-native-country-codes-picker": "^2.3.5",
