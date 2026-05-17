@@ -43,7 +43,7 @@ const DispatchSelectScreen = () => {
     const dispatch = useDispatch();
     const navigation = useNavigation();
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
-    const [range, setRange] = useState([1]);
+    const [range, setRange] = useState([70]);
     const [toggleGlobel, setToggleGlobel] = useState(true);
     const sliderValue = range[0];
 

@@ -336,11 +336,8 @@ const DiscoverScreen = () => {
                                         <AppText type={TWENTY} style={{ textTransform: "capitalize" }} color={WHITE} weight={INTER_BOLD}>
                                             {`${item.firstName}, ${item.age}`}{" "}
                                         </AppText>
-                                        <FastImage
-                                            source={blueTikeIcon}
-                                            resizeMode="contain"
-                                            style={styles.blueTikIcon}
-                                        />
+                                     
+                                             {item?.faceVerified == true ?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} />:<></>}
                                     </View>
                                 }
 
@@ -461,14 +458,10 @@ const DiscoverScreen = () => {
                                         <AppText type={FORTEEN} style={{ textTransform: "capitalize" }} color={WHITE} weight={INTER_BOLD}>
                                             {`${item.firstName}, ${item.age}`}{" "}
                                         </AppText>
-                                        <FastImage
-                                            source={blueTikeIcon}
-                                            resizeMode="contain"
-                                            style={[styles.blueTikIcon, {
+                                        {item?.faceVerified == true ?  <FastImage source={blueTikeIcon} resizeMode="contain"   style={[styles.blueTikIcon, {
                                                 height: metrics.hp2,
                                                 width: metrics.hp2,
-                                            }]}
-                                        />
+                                            }]} />:<></>}
                                     </View>
                                 }
                                 {/* <TouchableOpacityView onPress={() => {

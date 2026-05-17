@@ -16,6 +16,7 @@ use_frameworks! :linkage => :static
 setup_permissions([
   'LocationWhenInUse',
   'PhotoLibrary',
+  'Camera',
 ])
 target 'parpple' do
   config = use_native_modules!
@@ -24,6 +25,11 @@ target 'parpple' do
     :path => config[:reactNativePath],
     :app_path => "#{Pod::Config.instance.installation_root}/..",
   )
+
+  # AWS iOS SDK (used to obtain temporary credentials from Cognito Identity Pool)
+  pod 'AWSCore'
+  pod 'AWSCognitoIdentityProvider'
+  pod 'AWSRekognition'
 
   post_install do |installer|
     react_native_post_install(

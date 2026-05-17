@@ -109,7 +109,10 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
             });
         }
     }, [data]);
-
+const inUnderFunction = () =>{
+    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    setSwipeLeft?.(true);
+}
     return (
         <AppSafeAreaView>
             <ScrollView
@@ -177,7 +180,8 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                         <AppText style={{ fontWeight: "700", fontSize: fontSize(28) }} color={BLACK} weight={INTER_BOLD}>
                             {data?.name ? data?.name : data?.firstName ? data?.firstName : 'Unknown'}, {data?.age ?? '--'}
                         </AppText>
-                        <FastImage source={blueTikeIcon} style={styles.blueTickIcon} resizeMode="contain" />
+                        {userData?.faceVerified == true ?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />:<></>}
+                        {/* <FastImage source={blueTikeIcon} style={styles.blueTickIcon} resizeMode="contain" /> */}
                     </View>
 
                     <View style={[styles.metaRow, { marginTop: metrics.hp0_5 }]}>
@@ -229,7 +233,7 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                     />
                 </TouchableOpacityView>
 
-                <ProfileBottomDetails visibleCards={data} discover={discover} setModalVisibleHome={setModalVisible} setSwipeLeft={setSwipeLeft} />
+                <ProfileBottomDetails scrollViewRef={scrollViewRef} visibleCards={data} discover={discover} setModalVisibleHome={setModalVisible} inUnderFunction={inUnderFunction} setSwipeLeft={setSwipeLeft} />
             </ScrollView>
             <TouchableOpacityView
                 onPress={() => {

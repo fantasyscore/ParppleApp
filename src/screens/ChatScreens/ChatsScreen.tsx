@@ -230,7 +230,7 @@ const ChatsScreen = () => {
                                 <AppText style={{ textTransform: "capitalize" }} type={SIXTEEN} weight={INTER_BOLD} color={LIGHT_BLACK}>
                                     {item.name}{"  "}
                                 </AppText>
-                                <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />
+                                {item?.faceVerified == true ?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />:<></>}
                             </View>
                         }
                         {item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM" ?

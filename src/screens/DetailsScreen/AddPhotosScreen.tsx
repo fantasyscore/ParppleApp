@@ -12,9 +12,9 @@ import FastImage from "react-native-fast-image";
 import { launchImageLibrary } from "react-native-image-picker";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import GoButton from "../../common/GoButton";
-import { toastAlert, uploadImageCloud } from "../../actions/UploadImageActions";
+import { toastAlert } from "../../actions/UploadImageActions";
 import { useDispatch, useSelector } from "react-redux";
-import { addProfile, discoverProfile, getNewMatches, getProfile } from "../../actions/authActions";
+import { addProfile, discoverProfile, getNewMatches, getProfile, uploadImagesPhotoAPI } from "../../actions/authActions";
 import { Image as ImageCompressor } from "react-native-compressor";
 import LinearGradient from "react-native-linear-gradient";
 import { check, request, PERMISSIONS, RESULTS } from "react-native-permissions";
@@ -42,16 +42,16 @@ async function requestGalleryPermission() {
     try {
       const permission = PERMISSIONS.IOS.PHOTO_LIBRARY;
       const checkResult = await check(permission);
-      
+
       if (checkResult === RESULTS.GRANTED) {
         return true;
       }
-      
+
       if (checkResult === RESULTS.BLOCKED) {
         console.warn("Photo library permission is blocked. Please enable it in settings.");
         return false;
       }
-      
+
       // Request permission if not granted
       const requestResult = await request(permission);
       return requestResult === RESULTS.GRANTED;
@@ -75,7 +75,7 @@ const AddPhotoScreen = () => {
   const [previewImage, setPreviewImage] = useState("");
   const isPickerOpenRef = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+  const [responseMessage, setResponseMessage] = useState("")
   const onLongPressImage = (imageUri: string) => {
     if (!imageUri) return;
     setPreviewImage(imageUri);
@@ -84,23 +84,23 @@ const AddPhotoScreen = () => {
   const pickMultipleImages = async () => {
     // Prevent multiple simultaneous picker launches
     if (isPickerOpenRef.current) return;
-    
+
     const hasPermission = await requestGalleryPermission();
     if (!hasPermission) return;
 
     isPickerOpenRef.current = true;
 
     launchImageLibrary(
-      { 
-        mediaType: "photo", 
+      {
+        mediaType: "photo",
         selectionLimit: 6,
         quality: 0.8,
         ...(Platform.OS === 'ios' && { presentationStyle: 'pageSheet' })
-      }, 
+      },
       async (res: any) => {
         // Always reset the flag when picker closes
         isPickerOpenRef.current = false;
-        
+
         // Handle cancellation or errors
         if (res.didCancel) return;
         if (res.errorCode || res.errorMessage) {
@@ -109,59 +109,76 @@ const AddPhotoScreen = () => {
         }
         if (!res.assets || res.assets.length === 0) return;
 
-      const assets = res.assets.slice(0, 6);
+        const assets = res.assets.slice(0, 6);
 
         // Set loading state
-      setPhotos((prev) => {
-        const updated = [...prev];
-        let count = 0;
-        for (let i = 0; i < updated.length && count < assets.length; i++) {
-          if (updated[i].image === "") {
-            updated[i].loading = true;
-            count++;
-          }
-        }
-        return updated;
-      });
-
-        // Process uploads asynchronously after state update
-      try {
-        const uploadedUrls: string[] = [];
-
-        for (const asset of assets) {
-          try {
-            const compressedUri = await ImageCompressor.compress(asset.uri, {
-              compressionMethod: "auto",
-              quality: 0.6,
-              maxWidth: 720,
-              maxHeight: 1080,
-            });
-
-            const cloudUrl = await uploadImageCloud(compressedUri);
-            uploadedUrls.push(cloudUrl);
-          } catch (err) {
-            console.error("Compression or upload failed:", err);
-            uploadedUrls.push("");
-          }
-        }
-
-          // Update photos with uploaded URLs
         setPhotos((prev) => {
           const updated = [...prev];
-          let uploadIndex = 0;
-          for (let i = 0; i < updated.length && uploadIndex < uploadedUrls.length; i++) {
-            if (updated[i].loading) {
-              updated[i].loading = false;
-              if (uploadedUrls[uploadIndex]) updated[i].image = uploadedUrls[uploadIndex];
-              uploadIndex++;
+          let count = 0;
+          for (let i = 0; i < updated.length && count < assets.length; i++) {
+            if (updated[i].image === "") {
+              updated[i].loading = true;
+              count++;
             }
           }
           return updated;
         });
-      } catch (err) {
-        console.error("Upload failed:", err);
-        setPhotos((prev) => prev.map((p) => ({ ...p, loading: false })));
-      }
+
+        // Process uploads asynchronously after state update
+        try {
+          const uploadedUrls: string[] = [];
+
+          for (const asset of assets) {
+            try {
+              const compressedUri = await ImageCompressor.compress(asset.uri, {
+                compressionMethod: "auto",
+                quality: 0.6,
+                maxWidth: 720,
+                maxHeight: 1080,
+              });
+
+              const formData = new FormData();
+              formData.append("image", {
+                uri: compressedUri,
+                type: asset.type || "image/jpeg",
+                name: asset.fileName || `image_${Date.now()}.jpg`,
+              } as any);
+
+              const response: any = await dispatch(uploadImagesPhotoAPI(formData));
+              console.log("response", response);
+
+              if (response?.statusCode === 200 && response?.data) {
+                const imageUrl = typeof response.data === 'string' ? response.data : (response.data.url || response.data.image || response.data.fileUrl || "");
+                uploadedUrls.push(imageUrl || "Unsupported");
+                if (response?.data?.success === false) {
+                  setResponseMessage(response?.data?.message)
+                }
+              } else {
+                uploadedUrls.push("Unsupported");
+              }
+            } catch (err) {
+              console.error("Compression or upload failed:", err);
+              uploadedUrls.push("Unsupported");
+            }
+          }
+
+          // Update photos with uploaded URLs
+          setPhotos((prev) => {
+            const updated = [...prev];
+            let uploadIndex = 0;
+            for (let i = 0; i < updated.length && uploadIndex < uploadedUrls.length; i++) {
+              if (updated[i].loading) {
+                updated[i].loading = false;
+                if (uploadedUrls[uploadIndex]) updated[i].image = uploadedUrls[uploadIndex];
+                uploadIndex++;
+              }
+            }
+            return updated;
+          });
+        } catch (err) {
+          console.error("Upload failed:", err);
+          setPhotos((prev) => prev.map((p) => ({ ...p, loading: false })));
+        }
       }
     );
   };
@@ -169,23 +186,23 @@ const AddPhotoScreen = () => {
   const pickSingleImage = async (index: number) => {
     // Prevent multiple simultaneous picker launches
     if (isPickerOpenRef.current) return;
-    
+
     const hasPermission = await requestGalleryPermission();
     if (!hasPermission) return;
 
     isPickerOpenRef.current = true;
 
     launchImageLibrary(
-      { 
-        mediaType: "photo", 
+      {
+        mediaType: "photo",
         selectionLimit: 1,
         quality: 0.8,
         ...(Platform.OS === 'ios' && { presentationStyle: 'pageSheet' })
-      }, 
+      },
       async (res: any) => {
         // Always reset the flag when picker closes
         isPickerOpenRef.current = false;
-        
+
         // Handle cancellation or errors
         if (res.didCancel) return;
         if (res.errorCode || res.errorMessage) {
@@ -195,42 +212,56 @@ const AddPhotoScreen = () => {
         if (!res.assets || res.assets.length === 0) return;
 
         // Set loading state
-      setPhotos((prev) => {
-        const updated = [...prev];
-        updated[index].loading = true;
-        return updated;
-      });
+        setPhotos((prev) => {
+          const updated = [...prev];
+          updated[index].loading = true;
+          return updated;
+        });
 
         // Process upload asynchronously after state update
-      try {
-        const compressedUri = await ImageCompressor.compress(res.assets[0].uri, {
-          compressionMethod: "auto",
-          quality: 0.6,
-          maxWidth: 720,
-          maxHeight: 1080,
-        });
+        try {
+          const compressedUri = await ImageCompressor.compress(res.assets[0].uri, {
+            compressionMethod: "auto",
+            quality: 0.6,
+            maxWidth: 720,
+            maxHeight: 1080,
+          });
 
-        const cloudUrl = await uploadImageCloud(compressedUri);
-        setPhotos((prev) => {
-          const updated = [...prev];
-          updated[index].loading = false;
-          updated[index].image = cloudUrl;
-          return updated;
-        });
-      } catch (err) {
-        console.error("Single upload failed:", err);
-        setPhotos((prev) => {
-          const updated = [...prev];
-          updated[index].loading = false;
-          return updated;
-        });
-      }
+          const formData = new FormData();
+          formData.append("image", {
+            uri: compressedUri,
+            type: res.assets[0].type || "image/jpeg",
+            name: res.assets[0].fileName || `image_${Date.now()}.jpg`,
+          } as any);
+
+          const response: any = await dispatch(uploadImagesPhotoAPI(formData));
+
+          setPhotos((prev) => {
+            const updated = [...prev];
+            updated[index].loading = false;
+            if (response?.statusCode === 200 && response?.data) {
+              const imageUrl = typeof response.data === 'string' ? response.data : (response.data.url || response.data.image || response.data.fileUrl || "");
+              updated[index].image = imageUrl || "Unsupported";
+            } else {
+              updated[index].image = "Unsupported";
+            }
+            return updated;
+          });
+        } catch (err) {
+          console.error("Single upload failed:", err);
+          setPhotos((prev) => {
+            const updated = [...prev];
+            updated[index].loading = false;
+            updated[index].image = "Unsupported";
+            return updated;
+          });
+        }
       }
     );
   };
 
 
-  const uploadedCount = photos.filter((p) => p.image !== "").length;
+  const uploadedCount = photos.filter((p) => p.image !== "" && p.image !== "Unsupported").length;
   const minRequired = 2;
   const remaining = Math.max(0, minRequired - uploadedCount);
 
@@ -247,6 +278,12 @@ const AddPhotoScreen = () => {
             Uploading...
           </AppText>
         </View>
+      ) : item.image === "Unsupported" ? (
+        <View style={styles.loaderContainer}>
+          <AppText color={RED} weight={INTER_BOLD}>
+            Unsupported
+          </AppText>
+        </View>
       ) : item.image ? (
         <FastImage source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
       ) : (
@@ -256,12 +293,13 @@ const AddPhotoScreen = () => {
   );
 
 
+
   const onSubmit = async () => {
     if (isSubmitting) return;
     if (remaining > 0) return toastAlert.showToastError(`Please add ${remaining} more photo${remaining > 1 ? "s" : ""} to continue`);
 
     setIsSubmitting(true);
-    const uploadedPhotos = photos.filter((p) => p.image !== "");
+    const uploadedPhotos = photos.filter((p) => p.image !== "" && p.image !== "Unsupported");
     const galleryData = uploadedPhotos.map((p, index) => ({
       priority: index === 0,
       url: p.image,
@@ -285,7 +323,10 @@ const AddPhotoScreen = () => {
       setIsSubmitting(false);
     }
   };
-
+  const unsupportedImage = photos.find(
+    item => item.image === "Unsupported"
+  );
+  
   return (
     <AppSafeAreaView>
       <HeaderCommon />
@@ -306,11 +347,19 @@ const AddPhotoScreen = () => {
             numColumns={3}
             columnWrapperStyle={{ gap: metrics.hp2 }}
           />
-          {remaining > 0 && (
-            <AppText color={RED} weight={INTER_MEDIUM} type={TWELVE}>
-              Please add {remaining} more photo{remaining > 1 ? "s" : ""} to continue
-            </AppText>
-          )}
+          {unsupportedImage ?
+            <AppText type={TWELVE} weight={INTER_MEDIUM} color={RED}>
+              {responseMessage}
+            </AppText> :
+            <>
+              {remaining > 0 && (
+                <AppText color={RED} weight={INTER_MEDIUM} type={TWELVE}>
+                  Please add {remaining} more photo{remaining > 1 ? "s" : ""} to continue
+                </AppText>
+              )}
+            </>
+          }
+
         </View>
       </View>
       <LinearGradient start={{ x: 0, y: 0 }}
@@ -401,6 +450,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: metrics.hp3,
     paddingVertical: metrics.hp1,
     borderRadius: metrics.hp5,
+
   },
   modalCloseArea: {
     ...StyleSheet.absoluteFillObject,

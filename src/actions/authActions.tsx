@@ -460,6 +460,31 @@ export const reportUserAPI: any =
         }
     };
 
+    export const blockByIdAPIUser: any = (data:any) => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.blockByIdAPI(data);
+        if (response?.statusCode == 200)
+            console.log(response,"responseresponseresponse");
+    } catch (error: any) {
+        console.log(error,"responseresponseresponse");
+    }
+};
+
+
+export const uploadImagesPhotoAPI: any = (data: any, params: any) => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.uplaodPhotoAPI(data);
+        console.log(response,"responseresponseresponseresponse")
+
+        if (response?.statusCode == 200) {
+            console.log(response,"responseresponseresponseresponse")
+        }
+        return response;
+    } catch (error: any) {
+        throw error;
+    }
+};
+
 export const userLogout: any = () => async () => {
     appOperation.setCustomerToken('');
     await AsyncStorage.removeItem(USER_TOKEN_KEY);

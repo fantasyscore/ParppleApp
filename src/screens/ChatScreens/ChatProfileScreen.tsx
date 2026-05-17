@@ -258,7 +258,7 @@ const ChatProfileScreen = ({ always }: any) => {
                                         <AppText style={{ textTransform: "capitalize" }} type={TWENTY} color={WHITE} weight={INTER_BOLD}>
                                             {String(otherUserProfile?.firstName || "")}, {String(otherUserProfile?.age || "")}{" "}
                                         </AppText>
-                                        {otherUserProfile?.isVerified && (
+                                        {otherUserProfile?.faceVerified && (
                                             <FastImage
                                                 source={blueTikeIcon}
                                                 resizeMode="contain"

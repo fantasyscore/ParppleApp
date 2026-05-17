@@ -1060,7 +1060,8 @@ const PeopleScreen = () => {
                                 <AppText type={TWENTY_TWO} color={WHITE} weight={INTER_BOLD}>
                                     {profile.name}, {profile.age}{" "}
                                 </AppText>
-                                <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} />
+                                {/* <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} /> */}
+                                {userData?.faceVerified == true ?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} />:<></>}
                             </View>
                             <View style={{ flexDirection: "row", alignItems: "center" }}>
                                 <FastImage source={locationCIon} resizeMode="contain" style={styles.loctionIcon} />

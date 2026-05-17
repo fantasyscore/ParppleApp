@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Dimensions, GestureResponderEvent, Image, ImageBackground, Modal, PermissionsAndroid, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, AppState, AppStateStatus, Dimensions, GestureResponderEvent, Image, ImageBackground, Modal, NativeModules, PermissionsAndroid, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import Animated, {
     Extrapolation,
@@ -41,6 +41,7 @@ import PeopleHeader from '../../common/PeopleHeader';
 import { useBoostTimer } from '../../hooks/useBoostTimer';
 import NavigationService from '../../navigation/NavigationService';
 import { NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from '../../navigation/routes';
+import { NAVIGATION_FACE_LIVENESS_TEST_SCREEN } from '../../navigation/routes';
 import { setGetProfile, setListProfiles } from '../../slices/loginServices/authSlice';
 import LinearGradient from 'react-native-linear-gradient';
 import { BlurView } from '@react-native-community/blur';
@@ -59,6 +60,7 @@ import messaging, {
     FirebaseMessagingTypes,
 } from "@react-native-firebase/messaging";
 import { check, openSettings, PERMISSIONS, request, RESULTS } from "react-native-permissions";
+import Geolocation from "react-native-geolocation-service";
 const { width, height } = Dimensions.get('window');
 
 const CARD_WIDTH = width * 0.90;
@@ -72,7 +74,14 @@ type SwipeType = 'dislike' | 'like' | 'superLike';
 // Session-only flag (resets when app is fully killed/reopened)
 let hasShownProfileCompletionReminderThisSession = false;
 let hasShownLocationPermissionPromptThisSession = false;
+let hasShownFaceVerificationPromptThisSession = false;
 
+
+type FaceLivenessResult =
+    | { status?: string; message?: string }
+    | string
+    | null
+    | undefined;
 
 const NewHomeScreen = () => {
     const dispatch = useDispatch();
@@ -84,8 +93,11 @@ const NewHomeScreen = () => {
     const [matchVisible, setMatchVisible] = useState(false);
     const [matchData, setMatchData] = useState([]);
     const [showProfileCompletionReminder, setShowProfileCompletionReminder] = useState(false);
+    const [faceVerificationPromptVisible, setFaceVerificationPromptVisible] = useState(false);
     const [locationPromptVisible, setLocationPromptVisible] = useState(false);
     const [isRequestingLocationPermission, setIsRequestingLocationPermission] = useState(false);
+    const [hasLocationPermission, setHasLocationPermission] = useState(true);
+    const [currentLocation, setCurrentLocation] = useState<{ lat: string; long: string }>({ lat: '', long: '' });
     const [remainingSwipes, setRemainingSwipes] = useState(0);
     const [currentIndex, setCurrentIndex] = useState(0);
     const activeIndex = useSharedValue(0);
@@ -94,12 +106,19 @@ const NewHomeScreen = () => {
     const dislikeFxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isLikeFxRunningRef = useRef(false);
     const likeFxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isRequestingLocationPermissionRef = useRef(false);
+    const hasAutoRequestedLocationOnFocusRef = useRef(false);
     const dislikeOverlayOpacity = useSharedValue(0);
     const dislikeIconScale = useSharedValue(0.7);
     const likeOverlayOpacity = useSharedValue(0);
     const likeIconScale = useSharedValue(0.7);
     const itemtwo = useMemo(() => ({ id: "2", icon: goldCard, title: "Gold" }), []);
     const locationPromptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+
+    const handleCloseFaceVerificationPrompt = useCallback(() => {
+        setFaceVerificationPromptVisible(false);
+    }, []);
 
     useEffect(() => {
         const swipes = Number(userData?.swipesRemaining ?? 0);
@@ -231,8 +250,13 @@ const NewHomeScreen = () => {
         const currentUserId = userData?._id;
         if (!currentUserId) return null;
         const { config } = require('../../config/config');
-        return `${config.BASE_URL}?userId=${currentUserId}`;
-    }, [userData?._id]);
+        const lat = hasLocationPermission ? currentLocation.lat : '';
+        const long = hasLocationPermission ? currentLocation.long : '';
+        // Backend asked for latitude/longitude. Send empty when permission missing.
+        return `${config.BASE_URL}?userId=${encodeURIComponent(String(currentUserId))}&lat=${encodeURIComponent(
+            String(lat ?? '')
+        )}&long=${encodeURIComponent(String(long ?? ''))}`;
+    }, [currentLocation.lat, currentLocation.long, hasLocationPermission, userData?._id]);
 
     const socket = useMemo(() => {
         if (!socketUrl) return null;
@@ -241,22 +265,26 @@ const NewHomeScreen = () => {
 
     useEffect(() => {
         if (!socket) return;
-
         const handleNewMatch = (response: any) => {
             if (!response) return;
             setMatchVisible(true);
             setMatchData(response?.matchData ?? []);
         };
-
+        const handleConnect = () => {
+            console.log('✅ Socket connected:', socket.id);
+        };
+        socket.on('connect', handleConnect);
         socket.on('newMatch', handleNewMatch);
 
         return () => {
+            socket.off?.('connect', handleConnect);
             socket.off?.('newMatch', handleNewMatch);
             socket.disconnect?.();
         };
     }, [socket]);
 
     useEffect(() => {
+        if (!userData?.faceVerified) return;
         if (!isFocused) return;
         if (hasShownProfileCompletionReminderThisSession) return;
 
@@ -273,6 +301,26 @@ const NewHomeScreen = () => {
 
         return () => clearTimeout(timer);
     }, [isFocused, userData?.profileCompletion]);
+
+    useEffect(() => {
+        if (!isFocused) return;
+        if (hasShownFaceVerificationPromptThisSession) return;
+
+        const timer = setTimeout(() => {
+            if (!isFocused) return;
+            if (hasShownFaceVerificationPromptThisSession) return;
+
+            const isFaceVerified = userData?.faceVerified === true;
+            console.log(userData?.faceVerified, "userData?.faceVerified");
+
+            if (!isFaceVerified) {
+                hasShownFaceVerificationPromptThisSession = true;
+                setFaceVerificationPromptVisible(true);
+            }
+        }, 3000);
+
+        return () => clearTimeout(timer);
+    }, [isFocused, userData?.faceVerified]);
 
     const hasProfiles = listProfilesData.length > 0;
     const BOOST_DURATION_MS = 30 * 60 * 1000;
@@ -472,18 +520,145 @@ const NewHomeScreen = () => {
         }
     }, [getLocationPermissionType]);
 
+    const fetchCurrentLocationForSocket = useCallback(() => {
+        Geolocation.getCurrentPosition(
+            (position) => {
+                const lat = String(position?.coords?.latitude ?? '');
+                const long = String(position?.coords?.longitude ?? '');
+                setCurrentLocation({ lat, long });
+            },
+            (error) => {
+                console.warn("Location fetch failed:", error);
+                setCurrentLocation({ lat: '', long: '' });
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 20000,
+                maximumAge: 10000,
+                forceRequestLocation: true,
+            }
+        );
+    }, []);
+
+    const refreshLocationPermission = useCallback(async () => {
+        let granted = await isLocationPermissionGranted();
+        
+        if (!granted) {
+            const status = await check(getLocationPermissionType());
+            if (status === RESULTS.DENIED) {
+                if (!isRequestingLocationPermissionRef.current) {
+                    isRequestingLocationPermissionRef.current = true;
+                    setIsRequestingLocationPermission(true);
+                    try {
+                        const reqStatus = await request(getLocationPermissionType());
+                        granted = (reqStatus === RESULTS.GRANTED);
+                    } catch (error) {
+                        console.warn("Location permission request failed:", error);
+                    } finally {
+                        isRequestingLocationPermissionRef.current = false;
+                        setIsRequestingLocationPermission(false);
+                    }
+                }
+            }
+        }
+
+        setHasLocationPermission(granted);
+        if (granted) {
+            fetchCurrentLocationForSocket();
+            // If user enabled permission in Settings, refresh feed.
+            dispatch(listProfiles(true));
+            dispatch(getProfile(true));
+        } else {
+            setCurrentLocation({ lat: '', long: '' });
+        }
+    }, [dispatch, fetchCurrentLocationForSocket, isLocationPermissionGranted, getLocationPermissionType]);
+
+    useEffect(() => {
+        if (!isFocused) return;
+        hasAutoRequestedLocationOnFocusRef.current = false;
+        let mounted = true;
+
+        const syncLocationPermission = async () => {
+            const granted = await isLocationPermissionGranted();
+            if (!mounted) return;
+            setHasLocationPermission(granted);
+            if (granted) {
+                // If user enabled permission in Settings, refresh feed.
+                dispatch(listProfiles(true));
+                dispatch(getProfile(true));
+                hasAutoRequestedLocationOnFocusRef.current = true;
+                return;
+            }
+
+            // iOS "Allow Once" expires on next app open; re-trigger native prompt automatically.
+            if (
+                Platform.OS === "ios" &&
+                !hasAutoRequestedLocationOnFocusRef.current &&
+                !isRequestingLocationPermissionRef.current
+            ) {
+                hasAutoRequestedLocationOnFocusRef.current = true;
+                isRequestingLocationPermissionRef.current = true;
+                setIsRequestingLocationPermission(true);
+                try {
+                    const status = await request(getLocationPermissionType());
+                    if (!mounted) return;
+
+                    if (status === RESULTS.GRANTED) {
+                        setHasLocationPermission(true);
+                        fetchCurrentLocationForSocket();
+                        dispatch(listProfiles(true));
+                        dispatch(getProfile(true));
+                    } else {
+                        setHasLocationPermission(false);
+                        setCurrentLocation({ lat: '', long: '' });
+                    }
+                } catch (error) {
+                    console.warn("Location permission request failed:", error);
+                } finally {
+                    isRequestingLocationPermissionRef.current = false;
+                    setIsRequestingLocationPermission(false);
+                }
+            }
+        };
+
+        syncLocationPermission();
+        return () => {
+            mounted = false;
+        };
+    }, [dispatch, fetchCurrentLocationForSocket, getLocationPermissionType, isFocused, isLocationPermissionGranted]);
+
+    useEffect(() => {
+        // When user goes to Settings and returns, re-check permission.
+        // `isFocused` may remain true, so AppState is the reliable trigger.
+        if (!isFocused) return;
+
+        const onChange = (nextState: AppStateStatus) => {
+            if (nextState === "active") {
+                refreshLocationPermission();
+            }
+        };
+
+        const sub = AppState.addEventListener("change", onChange);
+        return () => sub.remove();
+    }, [isFocused, refreshLocationPermission]);
+
     const requestLocationPermissionAgain = useCallback(async () => {
-        if (isRequestingLocationPermission) return;
+        if (isRequestingLocationPermissionRef.current) return;
+        isRequestingLocationPermissionRef.current = true;
         setIsRequestingLocationPermission(true);
         try {
             const status = await request(getLocationPermissionType());
             if (status === RESULTS.GRANTED) {
                 setLocationPromptVisible(false);
+                setHasLocationPermission(true);
+                fetchCurrentLocationForSocket();
                 dispatch(listProfiles(true));
                 dispatch(getProfile(true));
                 return;
             }
 
+            setHasLocationPermission(false);
+            setCurrentLocation({ lat: '', long: '' });
             if (status === RESULTS.BLOCKED) {
                 Alert.alert(
                     "Location permission is disabled",
@@ -497,9 +672,10 @@ const NewHomeScreen = () => {
         } catch (error) {
             console.warn("Location permission request failed:", error);
         } finally {
+            isRequestingLocationPermissionRef.current = false;
             setIsRequestingLocationPermission(false);
         }
-    }, [dispatch, getLocationPermissionType, isRequestingLocationPermission]);
+    }, [dispatch, fetchCurrentLocationForSocket, getLocationPermissionType]);
 
     useEffect(() => {
         if (!isFocused) return;
@@ -731,7 +907,9 @@ const NewHomeScreen = () => {
                             <AppText style={{ fontWeight: "700", fontSize: fontSize(28) }} color={WHITE} weight={INTER_BOLD}>
                                 {profile?.name ?? 'Unknown'}, {profile?.age ?? '--'}
                             </AppText>
-                            <FastImage source={blueTikeIcon} style={styles.blueTickIcon} resizeMode="contain" />
+                            {profile?.faceVerified == true ? <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} /> : <></>}
+
+                            {/* <FastImage source={blueTikeIcon} style={styles.blueTickIcon} resizeMode="contain" /> */}
                         </View>
 
                         <View style={[styles.metaRow, { marginTop: metrics.hp0_5 }]}>
@@ -846,6 +1024,157 @@ const NewHomeScreen = () => {
         );
     });
 
+    const FaceLiveness = (NativeModules as any)?.FaceLiveness as
+        | { startLiveness?: (sessionId: string) => Promise<FaceLivenessResult> }
+        | undefined;
+
+    const moduleAvailable = useMemo(() => {
+        return Boolean(FaceLiveness && typeof FaceLiveness.startLiveness === 'function');
+    }, [FaceLiveness]);
+
+    const [loading, setLoading] = useState(false);
+    const [resultText, setResultText] = useState<string>('');
+    const [faceVerificationPromptFailedVisible, setFaceVerificationPromptFailedVisible] = useState(false);
+    const [faceVerificationPromptSuccessVisible, setFaceVerificationPromptSuccessVisible] = useState(false);
+    const handleCloseFaceVerificationSuccessPrompt = useCallback(() => {
+        setFaceVerificationPromptSuccessVisible(false);
+    }, []);
+    const handleCloseFaceVerificationFailedPrompt = useCallback(() => {
+        setFaceVerificationPromptFailedVisible(false);
+    }, []);
+
+    const ensureCameraPermission = useCallback(async (): Promise<boolean> => {
+        try {
+            if (Platform.OS === 'android') {
+                const granted = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.CAMERA,
+                    {
+                        title: 'Camera Permission Required',
+                        message: 'Face verification requires camera access.',
+                        buttonNeutral: 'Ask Me Later',
+                        buttonNegative: 'Cancel',
+                        buttonPositive: 'OK',
+                    }
+                );
+
+                if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+                    return true;
+                } else {
+                    Alert.alert(
+                        "Camera permission denied",
+                        "Face verification requires camera access. You can enable it from Settings.",
+                        [
+                            { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
+                            { text: "Cancel", style: "cancel" },
+                        ]
+                    );
+                    return false;
+                }
+            } else {
+                const permissionType = PERMISSIONS.IOS.CAMERA;
+                const currentStatus = await check(permissionType);
+
+                if (currentStatus === RESULTS.GRANTED) return true;
+
+                if (currentStatus === RESULTS.BLOCKED) {
+                    Alert.alert(
+                        "Camera permission required",
+                        "Camera permission is disabled. Please enable it from Settings to continue face verification.",
+                        [
+                            { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
+                            { text: "Cancel", style: "cancel" },
+                        ]
+                    );
+                    return false;
+                }
+
+                const requestedStatus = await request(permissionType);
+                if (requestedStatus === RESULTS.GRANTED) return true;
+
+                Alert.alert(
+                    "Camera permission denied",
+                    "Face verification requires camera access. You can enable it from Settings.",
+                    [
+                        { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
+                        { text: "Cancel", style: "cancel" },
+                    ]
+                );
+                return false;
+            }
+        } catch (error) {
+            console.warn("Camera permission check failed:", error);
+            Alert.alert("Permission error", "Unable to check camera permission. Please try again.");
+            return false;
+        }
+    }, []);
+    const [faceMessage, setFaneMessage] = useState("")
+    const start = async () => {
+        if (!moduleAvailable) {
+            const msg =
+                'FaceLiveness native module not found. Make sure you rebuilt the app (not just Metro reload).';
+            console.warn('[FaceLivenessTest] ' + msg);
+            setResultText(msg);
+            return;
+        }
+
+        setLoading(true);
+        setResultText('');
+
+        try {
+            const isCameraAllowed = await ensureCameraPermission();
+            console.log(isCameraAllowed, "isCameraAllowed");
+
+            if (!isCameraAllowed) {
+                return;
+            }
+
+            console.log('[FaceLivenessTest] Requesting session from /faceId/liveliness');
+            const sessionResp = await (appOperation.customer as any).createFaceLivenessSessionAPI();
+            const sessionId = sessionResp?.data
+            console.log(sessionResp, "sessionResp");
+
+            if (!sessionId) {
+                throw new Error('Session API did not return a valid sessionId');
+            }
+
+            console.log('[FaceLivenessTest] Starting native liveness with sessionId:', sessionId);
+            const res = await FaceLiveness!.startLiveness!(sessionId);
+            console.log('[FaceLivenessTest] Native result:', res);
+
+            // Normalize a few common shapes.
+            if (res && typeof res === 'object') {
+                const status = (res as any).status;
+                if (status === 'success') {
+                    setFaceVerificationPromptVisible(false);
+                    console.log('[FaceLivenessTest] Verifying session via faceId/verifySessionResult');
+                    const verifyResp = await (appOperation.customer as any).verifyFaceLivenessSessionAPI({
+                        sessionId,
+                    });
+
+                    if (verifyResp?.data?.success) {
+                        dispatch(getProfile(true))
+                        setFaceVerificationPromptSuccessVisible(true)
+                        setFaceVerificationPromptFailedVisible(false);
+                    } else if (!verifyResp?.data?.success) {
+                        setFaneMessage(verifyResp?.data?.message)
+                        setFaceVerificationPromptVisible(false);
+                        setFaceVerificationPromptFailedVisible(true);
+                    }
+                } else if (status === 'cancelled') {
+                    Alert.alert((res as any).message ? `Cancelled: ${(res as any).message}` : 'Cancelled')
+                } else {
+                    Alert.alert(`Result: ${JSON.stringify(res)}`)
+                }
+            } else {
+                Alert.alert(res ? `Result: ${String(res)}` : 'Liveness Success')
+            }
+        } catch (e: any) {
+            const msg = e?.message ?? String(e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <AppSafeAreaView>
             <View style={styles.screen}>
@@ -862,7 +1191,28 @@ const NewHomeScreen = () => {
                 </View>
 
                 <View style={styles.carouselViewport}>
-                    {hasProfiles ? (
+                    {!hasLocationPermission ? (
+                        <View style={styles.locationGateContainer}>
+                            <FastImage source={mapIcon} resizeMode="contain" style={styles.locationGateIcon} />
+                            <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center", marginTop: metrics.hp0 }}>
+                                Unable to connect
+                            </AppText>
+                            <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={OPECITY_DARK} style={{ textAlign: "center", marginTop: metrics.hp0 }}>
+                                To use Purpple, you need to enable you location sharing so we can show you who's around
+                            </AppText>
+                            <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={OPECITY_DARK} style={{ textAlign: "center", marginTop: metrics.hp2 }}>
+                                {`Go to Settings > Purpple > Location > Enable Location \n While Using the App`}
+                            </AppText>
+                            <TouchableOpacityView
+                                onPress={() => openSettings().catch(() => null)}
+                                style={[styles.locationPromptButton, { backgroundColor: colors.purple, borderColor: colors.purple, marginTop: metrics.hp2, width: metrics.hp15 }]}
+                            >
+                                <AppText color={WHITE} weight={INTER_BOLD} type={TWELVE}>
+                                    Open Settings
+                                </AppText>
+                            </TouchableOpacityView>
+                        </View>
+                    ) : hasProfiles ? (
                         <View style={styles.carouselLayer}>
                             {listProfilesData.map((profile: any, index: number) => (
                                 <ProfileCard
@@ -981,7 +1331,7 @@ const NewHomeScreen = () => {
                 isActivating={isBoostActivating}
             />
 
-            <Modal
+            {/* <Modal
                 animationType="fade"
                 transparent
                 visible={locationPromptVisible}
@@ -989,7 +1339,7 @@ const NewHomeScreen = () => {
             >
                 <View style={styles.centeredView}>
                     <View style={styles.locationPromptContainer}>
-                        <FastImage source={mapIcon} resizeMode='contain' style={{ height: metrics.hp8, width: metrics.hp8, alignSelf: "center" }}  />
+                        <FastImage source={mapIcon} resizeMode='contain' style={{ height: metrics.hp8, width: metrics.hp8, alignSelf: "center" }} />
                         <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
                             Enable location
                         </AppText>
@@ -999,7 +1349,7 @@ const NewHomeScreen = () => {
                         </AppText>
                         <TouchableOpacityView
                             onPress={requestLocationPermissionAgain}
-                            style={[styles.locationPromptButton, { backgroundColor: colors.purple, borderColor: colors.purple, marginTop:metrics.hp3 }]}
+                            style={[styles.locationPromptButton, { backgroundColor: colors.purple, borderColor: colors.purple, marginTop: metrics.hp3 }]}
                         >
                             <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
                                 {isRequestingLocationPermission ? "Please wait..." : "Allow Location"}
@@ -1009,16 +1359,108 @@ const NewHomeScreen = () => {
                     </View>
                     <TouchableOpacityView
                         onPress={() => setLocationPromptVisible(false)}
-                        style={[styles.locationPromptButton,{backgroundColor: colors.transparent, borderColor: colors.transparent}]}
+                        style={[styles.locationPromptButton, { backgroundColor: colors.transparent, borderColor: colors.transparent }]}
                     >
                         <AppText color={WHITE} weight={INTER_BOLD} type={FORTEEN}>
-                        No, skip now
+                            No, skip now
                         </AppText>
                     </TouchableOpacityView>
                 </View>
+            </Modal> */}
+
+            <Modal
+                animationType="fade"
+                transparent
+                visible={faceVerificationPromptVisible}
+                onRequestClose={handleCloseFaceVerificationPrompt}
+            >
+                <View style={styles.centeredView}>
+                    <View style={styles.locationPromptContainer}>
+                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
+                            Verify Your Identity
+                        </AppText>
+                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ textAlign: "center", marginTop: metrics.hp0 }}>
+                            Complete a quick face verification to secure your account. This process takes only a few seconds.
+                        </AppText>
+                        <TouchableOpacityView
+                            onPress={start}
+                            style={[styles.locationPromptButton, { backgroundColor: colors.purple, borderColor: colors.purple, marginTop: metrics.hp3 }]}
+                        >
+                            <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
+                                Start Verification
+                            </AppText>
+                        </TouchableOpacityView>
+                        <TouchableOpacityView
+                            onPress={handleCloseFaceVerificationPrompt}
+                            style={[styles.locationPromptButton, { backgroundColor: colors.transparent, borderColor: colors.transparent, marginTop: metrics.hp1 }]}
+                        >
+                            <AppText color={LIGHT_BLACK} weight={INTER_BOLD} type={FORTEEN}>
+                                Skip for Now
+                            </AppText>
+                        </TouchableOpacityView>
+                    </View>
+                </View>
+            </Modal>
+            <Modal
+                animationType="fade"
+                transparent
+                visible={faceVerificationPromptSuccessVisible}
+                onRequestClose={handleCloseFaceVerificationSuccessPrompt}
+            >
+                <View style={styles.centeredView}>
+                    <View style={styles.locationPromptContainer}>
+                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
+                            Verification Successful
+                        </AppText>
+                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ textAlign: "center", marginTop: metrics.hp0_5 }}>
+                            Your face verification has been completed successfully. Your account is now fully verified.
+                        </AppText>
+                        <TouchableOpacityView
+                            onPress={handleCloseFaceVerificationSuccessPrompt}
+                            style={[styles.locationPromptButton, { backgroundColor: colors.purple, borderColor: colors.purple, marginTop: metrics.hp3 }]}
+                        >
+                            <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
+                                Continue
+                            </AppText>
+                        </TouchableOpacityView>
+                    </View>
+                </View>
+            </Modal>
+            <Modal
+                animationType="fade"
+                transparent
+                visible={faceVerificationPromptFailedVisible}
+                onRequestClose={handleCloseFaceVerificationFailedPrompt}
+            >
+                <View style={styles.centeredView}>
+                    <View style={styles.locationPromptContainer}>
+                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
+                            Verification Failed
+                        </AppText>
+                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ textAlign: "center", marginTop: metrics.hp0_5 }}>
+                            We were unable to verify your identity. {faceMessage ? faceMessage : `Please try again in a well-lit environment and ensure your face is clearly visible.`}
+                        </AppText>
+                        <TouchableOpacityView
+                            onPress={start}
+                            style={[styles.locationPromptButton, { backgroundColor: colors.purple, borderColor: colors.purple, marginTop: metrics.hp3 }]}
+                        >
+                            <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
+                                Try Again
+                            </AppText>
+                        </TouchableOpacityView>
+                        <TouchableOpacityView
+                            onPress={handleCloseFaceVerificationFailedPrompt}
+                            style={[styles.locationPromptButton, { backgroundColor: colors.transparent, borderColor: colors.transparent, marginTop: metrics.hp1_5 }]}
+                        >
+                            <AppText color={LIGHT_BLACK} weight={INTER_BOLD} type={FORTEEN}>
+                                Cancel
+                            </AppText>
+                        </TouchableOpacityView>
+                    </View>
+                </View>
             </Modal>
 
-            {/* <Modal
+            <Modal
                 animationType="fade"
                 transparent={true}
                 visible={showProfileCompletionReminder}
@@ -1046,7 +1488,7 @@ const NewHomeScreen = () => {
                         </AppText>
                     </View>
                 </View>
-            </Modal> */}
+            </Modal>
 
 
         </AppSafeAreaView>
@@ -1308,6 +1750,17 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         marginTop: metrics.hp1_5,
+    },
+    locationGateContainer: {
+        flex: 1,
+        width: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: metrics.hp3,
+    },
+    locationGateIcon: {
+        height: metrics.hp15,
+        width: metrics.hp15,
     },
 });
 

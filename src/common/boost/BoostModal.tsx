@@ -4,7 +4,7 @@ import LinearGradient from "react-native-linear-gradient";
 
 import metrics from "../../assets/Metrics";
 import { colors } from "../../theme/colors";
-import { AppText, BLACK, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, TWENTY_TWO, WHITE } from "../AppText";
+import { AppText, BLACK, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, SCHEHERAZADE_BOLD, SCHEHERAZADE_REGULAR, TWENTY_TWO, WHITE } from "../AppText";
 import { TouchableOpacityView } from "../TouchableOpacityView";
 import { Screen } from "../../theme/dimens";
 
@@ -82,8 +82,8 @@ export const BoostModal: React.FC<Props> = ({
           >
             <View style={styles.headerRow}>
               <View style={{ flex: 1 }}>
-                <AppText type={TWENTY_TWO} weight={INTER_BOLD} color={BLACK}>
-                  Boost
+                <AppText type={EIGHTEEN} weight={SCHEHERAZADE_BOLD} color={BLACK}>
+                  Spotlight
                 </AppText>
                 <AppText type={ELEVEN} weight={INTER_MEDIUM} color={colors.darkOpecity}>
                   {subTitle}
@@ -119,7 +119,7 @@ export const BoostModal: React.FC<Props> = ({
                     ]}
                   />
                   <AppText type={ELEVEN} weight={INTER_BOLD} color={colors.purple}>
-                    Boost is LIVE
+                  Spotlight is LIVE
                   </AppText>
                 </View>
                 <AppText type={TWENTY_TWO} weight={INTER_BOLD} color={BLACK} style={{ marginTop: metrics.hp0_5 }}>
@@ -134,7 +134,7 @@ export const BoostModal: React.FC<Props> = ({
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
                 <AppText type={ELEVEN} weight={INTER_MEDIUM} color={colors.darkOpecity}>
-                  Boosters left
+                Spotlights left
                 </AppText>
                 <AppText type={FORTEEN} weight={INTER_BOLD} color={colors.purple}>
                   {boostsAvailable}
@@ -161,13 +161,13 @@ export const BoostModal: React.FC<Props> = ({
                 ]}
               >
                 <AppText type={FORTEEN} weight={INTER_BOLD} color={WHITE}>
-                  {isActivating ? "Starting..." : "Start Boost"}
+                  {isActivating ? "Starting..." : "Start Spotlight"}
                 </AppText>
               </TouchableOpacityView>
             ) : (
               <View style={styles.runningHint}>
                 <AppText type={ELEVEN} weight={INTER_MEDIUM} color={colors.darkOpecity}>
-                  Boost is running • {remainingLabel} remaining
+                Spotlight is running • {remainingLabel} remaining
                 </AppText>
               </View>
             )}

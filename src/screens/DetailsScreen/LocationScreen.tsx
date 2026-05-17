@@ -1,23 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Alert, Platform, StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import DubleTextLine from "../../common/DubleTextLine";
 import TopCommonLine from "../../common/TopCommonLine";
 import HeaderCommon from "../../common/HeaderCommon";
 import metrics from "../../assets/Metrics";
-import { locIcon, mapIcon, mockLocationIcon } from "../../helper/ImageAssets";
+import { locIcon, mapIcon } from "../../helper/ImageAssets";
 import { AppText, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, OPECITY, SIXTEEN, TWELVE, WHITE } from "../../common/AppText";
 import FastImage from "react-native-fast-image";
 import { colors } from "../../theme/colors";
-import { check, request, PERMISSIONS, RESULTS, openSettings } from "react-native-permissions";
+import { check, request, PERMISSIONS, RESULTS } from "react-native-permissions";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import MapView, { MapPressEvent, Marker } from "react-native-maps";
 import Geolocation, { GeoPosition } from "react-native-geolocation-service";
 import { useDispatch, useSelector } from "react-redux";
 import { setAddProfile } from "../../slices/loginServices/authSlice";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_GANDER_SCREEN, NAVIGATION_PRONOUN_SCREEN } from "../../navigation/routes";
-import { getAddressFromCoordinates } from "../../helper/utility";
+import { NAVIGATION_GANDER_SCREEN } from "../../navigation/routes";
 import { Screen } from "../../theme/dimens";
 import LinearGradient from "react-native-linear-gradient";
 import GoButton from "../../common/GoButton";
@@ -40,7 +39,6 @@ const LocationScreen = () => {
     longitudeDelta: region?.longitudeDelta,
   });
   const [permissionAllow, setPermissionAllow] = useState(false);
-  const [permissionDeniedOnce, setPermissionDeniedOnce] = useState(false);
   const [addressName, setAddressName] = useState("")
   const requestLocationPermission = async () => {
     try {
@@ -53,33 +51,9 @@ const LocationScreen = () => {
       const result = await request(permission);
       if (result === RESULTS.GRANTED) {
         setPermissionAllow(true);
-        setPermissionDeniedOnce(false);
-      } else if (result === RESULTS.BLOCKED) {
-        Alert.alert(
-          "Permission Required",
-          "Please enable location permission from settings.",
-          [
-            {
-              text: "Open Settings",
-              onPress: () => {
-                openSettings().catch(() => {
-                  console.warn("Unable to open settings");
-                });
-              },
-            },
-            { text: "Cancel", style: "cancel" },
-          ]
-        );
       } else {
         setPermissionAllow(false);
-        // If user denied once already, second tap takes them to Settings.
-        if (permissionDeniedOnce) {
-          openSettings().catch(() => {
-            console.warn("Unable to open settings");
-          });
-          return;
-        }
-        setPermissionDeniedOnce(true);
+        skipButton();
       }
     } catch (error) {
       console.warn("Permission error:", error);

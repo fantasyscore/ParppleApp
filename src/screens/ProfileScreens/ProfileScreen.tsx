@@ -82,7 +82,6 @@ const ProfileScreen = () => {
 
         NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: tabSelectSpark === "spark" ? itemtwo : item })
     }
-    console.log(userData, "userData");
 
     return (
         <AppSafeAreaView>
@@ -134,7 +133,7 @@ const ProfileScreen = () => {
                         <View style={{ flexDirection: "row", alignItems: "center" }}>
                             <AppText style={{ marginTop: metrics.hp2, textTransform: "capitalize", fontWeight: "700" }} type={EIGHTEEN} weight={INTER_BOLD}>{"    "}{userData?.firstName},<AppText type={EIGHTEEN} weight={INTER_MEDIUM}> {userData?.age}{"  "}</AppText>
                             </AppText>
-                            <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} />
+                            {userData?.faceVerified == true ? <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} /> : <></>}
                         </View>
                         <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_EDIT_PROFILE_SCREEN)} style={styles.completeContainer}>
                             <FastImage source={pencilIcon} tintColor={colors.lightBlack} resizeMode="contain" style={styles.pencilIcon} />
@@ -210,7 +209,7 @@ const ProfileScreen = () => {
                                 </View>
                             </View>
                             <View style={{ marginLeft: metrics.hp1 }}>
-                                <AppText type={THIRTEEN} style={{ fontWeight: "500", marginTop: metrics.hp0 ,color:"#005999" }} weight={INTER_BOLD}>
+                                <AppText type={THIRTEEN} style={{ fontWeight: "500", marginTop: metrics.hp0, color: "#005999" }} weight={INTER_BOLD}>
                                     Spotlight
                                 </AppText>
                                 <AppText style={{ fontSize: fontSize(9.8), marginTop: metrics.hp0_2 }} weight={INTER_SEMI_BOLD}>

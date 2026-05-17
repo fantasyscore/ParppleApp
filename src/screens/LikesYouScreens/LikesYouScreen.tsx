@@ -101,9 +101,9 @@ const LikesYouScreen = () => {
     //     dispatch(getOtherProfile(data, false, setProfileData, true));
     // }
     const viewProfile = (item: any) => {
-        if(item?.see == false ? true : false){
-       NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: item })
-        }else{
+        if (item?.see == false ? true : false) {
+            NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: item })
+        } else {
             let data = {
                 "userId": item?.userId
             };
@@ -112,7 +112,7 @@ const LikesYouScreen = () => {
     }
     const renderItems = ({ item, index }: any) => {
         return (
-            <TouchableOpacityView  activeOpacity={1} onPress={() => viewProfile(item)} key={index} style={[styles.upgradeDataContainer, { marginBottom: metrics.hp2, }]}>
+            <TouchableOpacityView activeOpacity={1} onPress={() => viewProfile(item)} key={index} style={[styles.upgradeDataContainer, { marginBottom: metrics.hp2, }]}>
                 {Platform.OS === "ios" ? <></> :
                     <>
                         {item?.type === "superLike" && tabSelect === "Likes" && item?.see == true && <LinearGradient colors={["#FF003D", "#990025"]} style={styles.superLikeBack} />}
@@ -131,9 +131,10 @@ const LikesYouScreen = () => {
                                     <AppText style={{ marginLeft: Platform.OS === "ios" ? metrics.hp1 : metrics.hp0 }} type={FORTEEN} weight={INTER_BOLD} color={WHITE}>
                                         {item.name}{" "}
                                     </AppText>
+                                    {/* {userData?.faceVerified == true ?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} />:<></>} */}
                                     {item.type === "like" && tabSelect === "Likes" ? <FastImage source={heartGreen} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2, marginTop: metrics.hp0_1 }} /> : <></>}
                                     {item.type === "superLike" && tabSelect === "Likes" ? <FastImage source={heartRed} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2, marginTop: metrics.hp0_1 }} /> : <></>}
-
+                                    {item?.see === true &&item?.faceVerified == true && <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} />}
                                 </>
                             }
                         </LinearGradient>
@@ -226,16 +227,16 @@ const LikesYouScreen = () => {
             <FastImage source={logoBlue} resizeMode="contain" style={styles.logo} />
             <View style={styles.tabContainer}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <TouchableOpacityView onPress={() => setTabSelect('Likes')} style={[styles.inTabContainer,{height:metrics.hp4}]}>
+                    <TouchableOpacityView onPress={() => setTabSelect('Likes')} style={[styles.inTabContainer, { height: metrics.hp4 }]}>
                         <AppText type={TWELVE} weight={INTER_BOLD} color={tabSelect === 'Likes' ? PURPLE : OPECITY_DARK}>Likes</AppText>
-                        <View style={[styles.selectLine, { backgroundColor: tabSelect === 'Likes' ? colors.purple : colors.transparent, marginTop:metrics.hp0_5, marginBottom:-metrics.hp1_1  }]} />
+                        <View style={[styles.selectLine, { backgroundColor: tabSelect === 'Likes' ? colors.purple : colors.transparent, marginTop: metrics.hp0_5, marginBottom: -metrics.hp1_1 }]} />
                     </TouchableOpacityView>
                     <AppText type={SIXTEEN} style={{ color: "#C3B7D0" }}>
                         /
                     </AppText>
-                    <TouchableOpacityView onPress={() => setTabSelect('Views')} style={[styles.inTabContainer,{height:metrics.hp4}]}>
+                    <TouchableOpacityView onPress={() => setTabSelect('Views')} style={[styles.inTabContainer, { height: metrics.hp4 }]}>
                         <AppText type={TWELVE} weight={INTER_BOLD} color={tabSelect === 'Views' ? PURPLE : OPECITY_DARK}>Views</AppText>
-                        <View style={[styles.selectLine, { backgroundColor: tabSelect === 'Views' ? colors.purple : colors.transparent, marginTop:metrics.hp0_5, marginBottom:-metrics.hp1_1  }]} />
+                        <View style={[styles.selectLine, { backgroundColor: tabSelect === 'Views' ? colors.purple : colors.transparent, marginTop: metrics.hp0_5, marginBottom: -metrics.hp1_1 }]} />
                     </TouchableOpacityView>
                 </View>
             </View>
@@ -250,7 +251,7 @@ const LikesYouScreen = () => {
                 contentContainerStyle={{ paddingHorizontal: metrics.hp2, marginTop: metrics.hp1, paddingBottom: metrics.hp10 }}
                 ListEmptyComponent={tabSelect == "Views" ? renderEmptyView : renderEmptyLikes}
                 ListFooterComponent={() => {
-                    return likeYoue == "Likes You" && tabSelect === "Likes" && userData?.subscription?.plan === "FREE" ? <></> :  (
+                    return likeYoue == "Likes You" && tabSelect === "Likes" && userData?.subscription?.plan === "FREE" ? <></> : (
                         <></>
                     )
                 }} />
@@ -302,5 +303,10 @@ const styles = StyleSheet.create({
 
         // Android Shadow
         elevation: 18,
+    },
+    blueTikIcon: {
+        height: metrics.hp2,
+        width: metrics.hp2,
+        marginTop: metrics.hp0,
     },
 })

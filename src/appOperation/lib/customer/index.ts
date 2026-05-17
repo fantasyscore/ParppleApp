@@ -67,6 +67,14 @@ export default (appOperation: AppOperation) => ({
     appOperation.post(`api/reports/reporteUser`, data, CUSTOMER_TYPE),
   iosPurchesAPI: (data:any) =>
     appOperation.post(`api/purchases/apple/verify-consumable`, data, CUSTOMER_TYPE),
+  createFaceLivenessSessionAPI: () =>
+    appOperation.post(`faceId/liveliness`, {}, CUSTOMER_TYPE),
+  verifyFaceLivenessSessionAPI: (data: {sessionId: string}) =>
+    appOperation.post(`faceId/verifySessionResult`, data, CUSTOMER_TYPE),
+  blockByIdAPI: (data: {sessionId: string}) =>
+    appOperation.post(`app/userAction/blockById`, data, CUSTOMER_TYPE),
+  uplaodPhotoAPI: (data: any) =>
+    appOperation.post(`asset/upload`, data, CUSTOMER_TYPE),
   // Alternative: If API requires POST instead of GET
   // loadChatMessagesAPI: (data: any) =>
   //   appOperation.post(`chat/conversation`, data, CUSTOMER_TYPE),

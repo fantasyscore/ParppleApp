@@ -78,6 +78,7 @@ const UserEditProfile = (props: any) => {
     const from = props?.route?.params?.from ?? "";
     const otherUserProfile = useSelector((state: any) => state.auth.otherUserProfile);
     const matchChatUserDetails = useSelector((state: any) => state.auth.matchChatUserDetails);
+    const userData = useSelector((state: any) => state.auth.userData);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [updown, setupdown] = useState(false);
     const attributes = otherUserProfile?.attributes?.filter(
@@ -344,11 +345,8 @@ const UserEditProfile = (props: any) => {
                                             <AppText style={{ textTransform: "capitalize" }} type={TWENTY} color={WHITE} weight={INTER_BOLD}>
                                                 {String(otherUserProfile?.firstName || "")}, {String(otherUserProfile?.age || "")}{" "}
                                             </AppText>
-                                            <FastImage
-                                                source={blueTikeIcon}
-                                                resizeMode="contain"
-                                                style={styles.blueTikIcon}
-                                            />
+                                            {userData?.faceVerified == true ?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} />:<></>}
+                                          
                                         </View>
                                         {otherUserProfile?.work &&
                                             <View style={{ flexDirection: "row", alignItems: "center" }}>

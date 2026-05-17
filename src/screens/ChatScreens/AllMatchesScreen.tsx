@@ -73,7 +73,8 @@ const AllMatchesScreen = () => {
                   {item?.username}
                 </AppText>
               )}
-              <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />
+              
+              {userData?.faceVerified == true ?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />:<></>}
             </View>
             <AppText type={TWELVE} numberOfLines={1} weight={INTER_REGULAR} color={OPECITY_DARK}>
               Write your first message

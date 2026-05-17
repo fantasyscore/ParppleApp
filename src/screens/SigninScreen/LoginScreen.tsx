@@ -91,11 +91,9 @@ const LoginScreen = () => {
                 fcmtoken: fcmtoken
                 // googleToken: signInResult?.data?.idToken
             };
-            console.log(data, "datadatadatadata");
-            
             setIsLoading(true);
             try {
-                await  dispatch(sendOtpApi(data)); /* dispatch(userLogin(data, true)); */
+                await  /* dispatch(sendOtpApi(data)); */ dispatch(userLogin(data, true));
             } catch (error) {
                 // Error is already handled in the action
             } finally {
@@ -114,11 +112,12 @@ const LoginScreen = () => {
     return (
         <AppSafeAreaView>
             <KeyboardAwareScrollView
-                showsVerticalScrollIndicator={false}
-                enableOnAndroid
+                enableOnAndroid={true}
+                scrollEnabled={false}
+                extraScrollHeight={Platform.OS === "ios" ? metrics.hp15 : metrics.hp15}
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ flexGrow: 1 }}
-            >
+                showsVerticalScrollIndicator={false}>
                 <HeaderCommon />
 
                 <View style={styles.container}>
@@ -175,11 +174,16 @@ const LoginScreen = () => {
                         We’ll send you a verification code on your mobile number.
                     </AppText>
                 </View>
-
+                {/* <LinearGradient start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
+                    <View style={{ marginTop: metrics.hp9 }}>
+                        <GoButton colortrue={firstNmae} onPress={() => onSubmit()} />
+                    </View>
+                </LinearGradient> */}
                 <LinearGradient
                     start={{ x: 0, y: 0 }}
                     end={{ x: 0, y: 1 }}
-                    style={{ height: /* foucs?  metrics.hp54 :  */metrics.hp19 }}
+                    style={{ height: metrics.hp19 }}
                     colors={["#ffffff50", colors.white, colors.white]}
                 >
                     <View style={{ marginTop: metrics.hp9 }}>
