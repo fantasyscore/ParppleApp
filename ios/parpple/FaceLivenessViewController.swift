@@ -82,8 +82,19 @@ final class FaceLivenessViewController: UIViewController {
       guard !self.finished else { return }
       self.finished = true
 
-      self.dismiss(animated: true) {
-        self.onFinish(outcome)
+      let performDismissal = {
+        self.dismiss(animated: true) {
+          self.onFinish(outcome)
+        }
+      }
+
+      if self.isBeingPresented {
+        // Defer dismissal if presentation is still in progress (iOS 18 transition safety)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+          performDismissal()
+        }
+      } else {
+        performDismissal()
       }
     }
   }
@@ -159,42 +170,47 @@ private final class LivenessCredentialsProvider: AWSPluginsCore.AWSCredentialsPr
   func fetchAWSCredentials() async throws -> AWSPluginsCore.AWSCredentials {
     try await withCheckedThrowingContinuation { continuation in
       awsCognitoProvider.credentials().continueWith { task -> Any? in
-        if let error = task.error as NSError? {
-          continuation.resume(throwing: error)
-          return nil
-        }
-        guard let creds = task.result else {
-          continuation.resume(
-            throwing: NSError(
-              domain: "FaceLiveness",
-              code: -1,
-              userInfo: [NSLocalizedDescriptionKey: "Failed to obtain AWS credentials"]
+        // ✅ Ensure all mapping and continuation resumption happens on the main thread.
+        // This is critical for iOS 18 / iPhone 16 Pro Max to prevent background thread
+        // camera session initialization and SwiftUI layout updates.
+        DispatchQueue.main.async {
+          if let error = task.error as NSError? {
+            continuation.resume(throwing: error)
+            return
+          }
+          guard let creds = task.result else {
+            continuation.resume(
+              throwing: NSError(
+                domain: "FaceLiveness",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Failed to obtain AWS credentials"]
+              )
             )
+            return
+          }
+
+          let mapped = TemporaryCredentials(
+            accessKeyId: creds.accessKey ?? "",
+            secretAccessKey: creds.secretKey ?? "",
+            sessionToken: creds.sessionKey ?? "",
+            expiration: creds.expiration ?? Date().addingTimeInterval(55 * 60)
           )
-          return nil
-        }
 
-        let mapped = TemporaryCredentials(
-          accessKeyId: creds.accessKey ?? "",
-          secretAccessKey: creds.secretKey ?? "",
-          sessionToken: creds.sessionKey ?? "",
-          expiration: creds.expiration ?? Date().addingTimeInterval(55 * 60)
-        )
-
-        guard !mapped.accessKeyId.isEmpty,
-              !mapped.secretAccessKey.isEmpty,
-              !mapped.sessionToken.isEmpty else {
-          continuation.resume(
-            throwing: NSError(
-              domain: "FaceLiveness",
-              code: -2,
-              userInfo: [NSLocalizedDescriptionKey: "Invalid AWS credentials received from Cognito"]
+          guard !mapped.accessKeyId.isEmpty,
+                !mapped.secretAccessKey.isEmpty,
+                !mapped.sessionToken.isEmpty else {
+            continuation.resume(
+              throwing: NSError(
+                domain: "FaceLiveness",
+                code: -2,
+                userInfo: [NSLocalizedDescriptionKey: "Invalid AWS credentials received from Cognito"]
+              )
             )
-          )
-          return nil
-        }
+            return
+          }
 
-        continuation.resume(returning: mapped)
+          continuation.resume(returning: mapped)
+        }
         return nil
       }
     }

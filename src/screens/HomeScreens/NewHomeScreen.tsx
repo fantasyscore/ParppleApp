@@ -36,7 +36,7 @@ import {
 import { activateBoostAPI, getProfile, listProfiles, swipeLikeDisLike } from '../../actions/authActions';
 import metrics from '../../assets/Metrics';
 import { colors } from '../../theme/colors';
-import { blueTikeIcon, bussinessIcon, disLikeNewIcon, flashIcon, goldCard, likeNewICon, locationCIon, mapIcon, swipeUpIcon } from '../../helper/ImageAssets';
+import { accountcircleIcon, blueTikeIcon, bussinessIcon, disLikeNewIcon, flashIcon, goldCard, likeNewICon, locationCIon, mapIcon, swipeUpIcon } from '../../helper/ImageAssets';
 import PeopleHeader from '../../common/PeopleHeader';
 import { useBoostTimer } from '../../hooks/useBoostTimer';
 import NavigationService from '../../navigation/NavigationService';
@@ -100,6 +100,7 @@ const NewHomeScreen = () => {
     const [currentLocation, setCurrentLocation] = useState<{ lat: string; long: string }>({ lat: '', long: '' });
     const [remainingSwipes, setRemainingSwipes] = useState(0);
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [failedUrls, setFailedUrls] = useState<Record<string, boolean>>({});
     const activeIndex = useSharedValue(0);
     const isFocused = useIsFocused();
     const isDislikeFxRunningRef = useRef(false);
@@ -229,22 +230,43 @@ const NewHomeScreen = () => {
     useEffect(() => {
         if (!listProfilesData?.length) return;
 
-        listProfilesData.forEach((profile: any) => {
+        // Only preload for the current profile and the next profile in stack
+        const activeProfiles = [
+            listProfilesData[currentIndex],
+            currentIndex < listProfilesData.length - 1 ? listProfilesData[currentIndex + 1] : null,
+        ].filter(Boolean);
+
+        const urlsToPreload: string[] = [];
+
+        activeProfiles.forEach((profile: any, index: number) => {
             if (!profile?.gallery?.length) return;
             const currentIdx = profile.index || 0;
             const gallery = profile.gallery;
 
-            const urls = [
-                gallery[currentIdx]?.url,
-                currentIdx > 0 ? gallery[currentIdx - 1]?.url : null,
-                currentIdx < gallery.length - 1 ? gallery[currentIdx + 1]?.url : null,
-            ].filter(Boolean) as string[];
-
-            urls.forEach((url) => {
-                FastImage.preload([{ uri: url, priority: FastImage.priority.normal }]);
-            });
+            if (index === 0) {
+                // For the active profile, preload current image + adjacent images
+                const urls = [
+                    gallery[currentIdx]?.url,
+                    currentIdx > 0 ? gallery[currentIdx - 1]?.url : null,
+                    currentIdx < gallery.length - 1 ? gallery[currentIdx + 1]?.url : null,
+                ].filter(Boolean) as string[];
+                urlsToPreload.push(...urls);
+            } else {
+                // For the next profile, just preload its first/current image
+                if (gallery[currentIdx]?.url) {
+                    urlsToPreload.push(gallery[currentIdx].url);
+                }
+            }
         });
-    }, [listProfilesData]);
+
+        // Deduplicate and preload to prevent redundant SDWebImage threads
+        const uniqueUrls = Array.from(new Set(urlsToPreload));
+        uniqueUrls.forEach((url) => {
+            if (url) {
+                FastImage.preload([{ uri: url, priority: FastImage.priority.normal }]);
+            }
+        });
+    }, [listProfilesData, currentIndex]);
 
     const socketUrl = useMemo(() => {
         const currentUserId = userData?._id;
@@ -789,6 +811,7 @@ const NewHomeScreen = () => {
         const prevImage = currentImageIndex > 0 ? gallery[currentImageIndex - 1] : null;
         const nextImage = currentImageIndex < gallery.length - 1 ? gallery[currentImageIndex + 1] : null;
 
+
         return (
             <Animated.View style={[styles.card, animatedStyle]}>
                 <TouchableOpacity
@@ -831,14 +854,20 @@ const NewHomeScreen = () => {
                                 resizeMode={FastImage.resizeMode.cover}
                             />
                         ) : null}
-                        {currentImage?.url ? (
+                        {currentImage?.url && !failedUrls[currentImage.url] ? (
                             <FastImage
                                 source={{ uri: currentImage.url, priority: FastImage.priority.high }}
                                 style={styles.image}
                                 resizeMode={FastImage.resizeMode.cover}
+                                onError={() => {
+                                    console.log(`[NewHomeScreen] Failed to load/decode image: ${currentImage.url}, falling back to placeholder.`);
+                                    setFailedUrls(prev => ({ ...prev, [currentImage.url]: true }));
+                                }}
                             />
                         ) : (
-                            <View style={[styles.image, styles.imageFallback]} />
+                            <View style={[styles.image, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#222' }]}>
+                                <FastImage source={accountcircleIcon} resizeMode="contain" tintColor="#555" style={{ width: 100, height: 100 }} />
+                            </View>
                         )}
                     </View>
 
@@ -850,7 +879,7 @@ const NewHomeScreen = () => {
                         position: "absolute", top: metrics.hp1,
                         overflow: "hidden",
                         alignSelf: "center",
-                        paddingHorizontal: metrics.hp0_4
+                        paddingHorizontal: metrics.hp0_4,
                     }}>
                     <BlurView
                         style={StyleSheet.absoluteFillObject}
@@ -891,7 +920,7 @@ const NewHomeScreen = () => {
                 }}>
                     <LinearGradient start={{ x: 1, y: 1 }}
                         end={{ x: 1, y: 0 }} colors={Platform.OS === "ios" ? ["#00000090", "#00000040", "#00000000"] : ["#000000", "#00000099", "#00000000"]}
-                        style={{ height: metrics.hp30, width: "100%", position: "absolute", bottom: 0, alignItems: "center", justifyContent: "center" }}>
+                        style={{ height: metrics.hp20, width: "100%", position: "absolute", bottom: 0, alignItems: "center", justifyContent: "center", }}>
                         {profile?.online ? (
                             <View style={styles.activeContainer}>
                                 <View style={styles.activeBackground}>
@@ -905,7 +934,7 @@ const NewHomeScreen = () => {
 
                         <View style={styles.nameRow}>
                             <AppText style={{ fontWeight: "700", fontSize: fontSize(28) }} color={WHITE} weight={INTER_BOLD}>
-                                {profile?.name ?? 'Unknown'}, {profile?.age ?? '--'}
+                                {profile?.firstName ?? 'Unknown'}, {profile?.age ?? '--'}
                             </AppText>
                             {profile?.faceVerified == true ? <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} /> : <></>}
 
@@ -1138,7 +1167,10 @@ const NewHomeScreen = () => {
             }
 
             console.log('[FaceLivenessTest] Starting native liveness with sessionId:', sessionId);
-            const res = await FaceLiveness!.startLiveness!(sessionId);
+            if (!FaceLiveness || typeof FaceLiveness.startLiveness !== 'function') {
+                throw new Error('FaceLiveness native module is not available on this device.');
+            }
+            const res = await FaceLiveness.startLiveness(sessionId);
             console.log('[FaceLivenessTest] Native result:', res);
 
             // Normalize a few common shapes.
@@ -1592,6 +1624,7 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp5,
         backgroundColor: '#FFFFFF33',
         width: metrics.hp8,
+        marginTop:-metrics.hp2
     },
     activeBackground: {
         height: metrics.hp1_2,
@@ -1613,7 +1646,7 @@ const styles = StyleSheet.create({
     nameRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: metrics.hp0_5,
+        marginTop: -metrics.hp12,
     },
     blueTickIcon: {
         height: metrics.hp3,

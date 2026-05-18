@@ -5,6 +5,7 @@ import ReactAppDependencyProvider
 import CodePush
 import Firebase
 import GoogleSignIn
+import SDWebImage
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -18,8 +19,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
 
+    
+
     // 🔥 Firebase Init
     FirebaseApp.configure()
+
+    // 🚀 SDWebImage Memory & Thread Optimization
+    // Limit memory cost to 80MB to prevent EXC_BAD_ACCESS memory crashes under high preloading pressure
+    SDImageCache.shared.config.maxMemoryCost = 80 * 1024 * 1024
+    SDImageCache.shared.config.maxMemoryCount = 60
+    SDImageCache.shared.config.shouldUseWeakMemoryCache = true
+    SDImageCache.shared.config.shouldCacheImagesInMemory = true
+    SDWebImageDownloader.shared.config.maxConcurrentDownloads = 4
+    // Limit parallel downloads/decodes to 4 to reduce thread safety contention and memory spikes on iPhone 16
+    
 
     let delegate = ReactNativeDelegate()
     let factory = RCTReactNativeFactory(delegate: delegate)
@@ -69,3 +82,7 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
 #endif
   }
 }
+
+
+
+

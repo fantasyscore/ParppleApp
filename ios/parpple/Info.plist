@@ -84,6 +84,8 @@
 
 	<key>NSCameraUsageDescription</key>
 	<string>Parpple needs camera access to complete face liveness verification.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Parpple needs microphone access to support secure face liveness verification and media recording.</string>
 
 	<key>AWS_REKOGNITION_REGION</key>
 	<string>ap-south-1</string>

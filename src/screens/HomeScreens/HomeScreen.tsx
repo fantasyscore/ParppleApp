@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { AppText, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, SCHEHERAZADE_BOLD, TEN, THIRTEEN, TWELVE, TWENTY_FOUR, TWENTY_TWO, WHITE } from '../../common/AppText';
-import { blueTikeIcon, bussinessIcon, CloseBlueIcon, completeProfileBanner, flashIcon, goldCard, heartGreen, heartRed, locationCIon, nopeIcon, openLikeSection, shareRedIcon, silverCard, superlike, superlikeiconwhite, upArrowIcon, viewProfileICon, yesIcon } from '../../helper/ImageAssets';
+import { accountcircleIcon, blueTikeIcon, bussinessIcon, CloseBlueIcon, completeProfileBanner, flashIcon, goldCard, heartGreen, heartRed, locationCIon, nopeIcon, openLikeSection, shareRedIcon, silverCard, superlike, superlikeiconwhite, upArrowIcon, viewProfileICon, yesIcon } from '../../helper/ImageAssets';
 import metrics from '../../assets/Metrics';
 import FastImage from 'react-native-fast-image';
 import { colors } from '../../theme/colors';
@@ -192,6 +192,7 @@ const PeopleScreen = () => {
     const userData = useSelector((state: any) => state.auth.userData);
     const position: any = useRef(new Animated.ValueXY()).current;
     const [getCurrentIndex, setGetCurrentIndex] = useState(0);
+    const [failedUrls, setFailedUrls] = useState<Record<string, boolean>>({});
     const [windowStartIndex, setWindowStartIndex] = useState(0);
     const [modalVisible, setModalVisible] = useState(false);
     const [crushNotesSednder, setCrushNotesSender] = useState(false);
@@ -937,27 +938,47 @@ const PeopleScreen = () => {
     };
 
     useEffect(() => {
-        if (listProfilesData && listProfilesData.length > 0) {
-            listProfilesData.forEach((profile: any) => {
-                if (profile?.gallery && profile?.gallery.length > 0) {
-                    const currentIndex = profile.index || 0;
-                    const gallery = profile.gallery;
+        if (!listProfilesData || listProfilesData.length === 0) return;
 
-                    const imagesToPreload = [
-                        gallery[currentIndex]?.url,
-                        currentIndex > 0 ? gallery[currentIndex - 1]?.url : null,
-                        currentIndex < gallery.length - 1 ? gallery[currentIndex + 1]?.url : null,
-                    ].filter(Boolean);
+        const activeIndex = windowStartIndex + getCurrentIndex;
 
-                    imagesToPreload.forEach((url: string) => {
-                        if (url) {
-                            FastImage.preload([{ uri: url, priority: FastImage.priority.normal }]);
-                        }
-                    });
+        // Only preload for the current profile and the next profile in stack
+        const activeProfiles = [
+            listProfilesData[activeIndex],
+            activeIndex < listProfilesData.length - 1 ? listProfilesData[activeIndex + 1] : null,
+        ].filter(Boolean);
+
+        const urlsToPreload: string[] = [];
+
+        activeProfiles.forEach((profile: any, index: number) => {
+            if (!profile?.gallery?.length) return;
+            const currentIdx = profile.index || 0;
+            const gallery = profile.gallery;
+
+            if (index === 0) {
+                // For the active profile, preload current image + adjacent images
+                const urls = [
+                    gallery[currentIdx]?.url,
+                    currentIdx > 0 ? gallery[currentIdx - 1]?.url : null,
+                    currentIdx < gallery.length - 1 ? gallery[currentIdx + 1]?.url : null,
+                ].filter(Boolean) as string[];
+                urlsToPreload.push(...urls);
+            } else {
+                // For the next profile, just preload its first/current image
+                if (gallery[currentIdx]?.url) {
+                    urlsToPreload.push(gallery[currentIdx].url);
                 }
-            });
-        }
-    }, [listProfilesData]);
+            }
+        });
+
+        // Deduplicate and preload to prevent redundant SDWebImage threads
+        const uniqueUrls = Array.from(new Set(urlsToPreload));
+        uniqueUrls.forEach((url: string) => {
+            if (url) {
+                FastImage.preload([{ uri: url, priority: FastImage.priority.normal }]);
+            }
+        });
+    }, [listProfilesData, windowStartIndex, getCurrentIndex]);
 
     async function requestAndroidNotificationPermission() {
         await messaging().registerDeviceForRemoteMessages();
@@ -1017,7 +1038,7 @@ const PeopleScreen = () => {
                             />
                         )}
                         {/* Main visible image */}
-                        {currentImage?.url ? (
+                        {currentImage?.url && !failedUrls[currentImage.url] ? (
                             <FastImage
                                 source={{
                                     uri: currentImage.url,
@@ -1025,8 +1046,16 @@ const PeopleScreen = () => {
                                 }}
                                 style={[styles.image, { height: FULL_IMAGE_HEIGHT }]}
                                 resizeMode={FastImage.resizeMode.cover}
+                                onError={() => {
+                                    console.log(`[HomeScreen] Failed to load/decode image: ${currentImage.url}, falling back to placeholder.`);
+                                    setFailedUrls(prev => ({ ...prev, [currentImage.url]: true }));
+                                }}
                             />
-                        ) : null}
+                        ) : (
+                            <View style={[styles.image, { height: FULL_IMAGE_HEIGHT, justifyContent: 'center', alignItems: 'center', backgroundColor: '#222' }]}>
+                                <FastImage source={accountcircleIcon} resizeMode="contain" tintColor="#555" style={{ width: 100, height: 100 }} />
+                            </View>
+                        )}
                     </View>
                     <View style={styles.paginationContainer}>
                         {profile?.gallery?.map((_: any, i: number) => (

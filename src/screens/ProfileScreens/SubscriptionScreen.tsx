@@ -453,7 +453,10 @@ const SubscriptionScreen = ({ route }: any) => {
             }
 
             console.log('[FaceLivenessTest] Starting native liveness with sessionId:', sessionId);
-            const res = await FaceLiveness!.startLiveness!(sessionId);
+            if (!FaceLiveness || typeof FaceLiveness.startLiveness !== 'function') {
+                throw new Error('FaceLiveness native module is not available on this device.');
+            }
+            const res = await FaceLiveness.startLiveness(sessionId);
             console.log('[FaceLivenessTest] Native result:', res);
 
             // Normalize a few common shapes.

@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Dimensions, FlatList, Modal, PermissionsAndroid, Platform, StyleSheet, View } from "react-native";
+import { Alert, Dimensions, FlatList, Modal, PermissionsAndroid, Platform, StyleSheet, View } from "react-native";
 import HeaderCommon from "../../common/HeaderCommon";
 import TopCommonLine from "../../common/TopCommonLine";
 import DubleTextLine from "../../common/DubleTextLine";
@@ -17,9 +17,14 @@ import { useDispatch, useSelector } from "react-redux";
 import { addProfile, discoverProfile, getNewMatches, getProfile, uploadImagesPhotoAPI } from "../../actions/authActions";
 import { Image as ImageCompressor } from "react-native-compressor";
 import LinearGradient from "react-native-linear-gradient";
-import { check, request, PERMISSIONS, RESULTS } from "react-native-permissions";
+import { check, request, PERMISSIONS, RESULTS, openSettings } from "react-native-permissions";
 
-async function requestGalleryPermission() {
+interface PermissionResult {
+  granted: boolean;
+  newlyGranted: boolean;
+}
+
+async function requestGalleryPermission(): Promise<PermissionResult> {
   if (Platform.OS === "android") {
     try {
       const granted = await PermissionsAndroid.request(
@@ -32,10 +37,11 @@ async function requestGalleryPermission() {
           buttonPositive: "OK",
         }
       );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
+      const isGranted = granted === PermissionsAndroid.RESULTS.GRANTED;
+      return { granted: isGranted, newlyGranted: false };
     } catch (err) {
-      console.warn(err);
-      return false;
+      console.warn("Android permission error:", err);
+      return { granted: false, newlyGranted: false };
     }
   } else {
     // iOS permission handling
@@ -43,21 +49,39 @@ async function requestGalleryPermission() {
       const permission = PERMISSIONS.IOS.PHOTO_LIBRARY;
       const checkResult = await check(permission);
 
-      if (checkResult === RESULTS.GRANTED) {
-        return true;
+      if (checkResult === RESULTS.GRANTED || checkResult === RESULTS.LIMITED) {
+        return { granted: true, newlyGranted: false };
       }
 
       if (checkResult === RESULTS.BLOCKED) {
-        console.warn("Photo library permission is blocked. Please enable it in settings.");
-        return false;
+        Alert.alert(
+          "Photo Library Permission Required",
+          "Photo library access is disabled. Please enable it in your device Settings to choose profile photos.",
+          [
+            { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
+            { text: "Cancel", style: "cancel" },
+          ]
+        );
+        return { granted: false, newlyGranted: false };
       }
 
-      // Request permission if not granted
+      // Request permission if not determined
       const requestResult = await request(permission);
-      return requestResult === RESULTS.GRANTED;
+      if (requestResult === RESULTS.BLOCKED) {
+        Alert.alert(
+          "Photo Library Permission Required",
+          "Photo library access is disabled. Please enable it in your device Settings to choose profile photos.",
+          [
+            { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
+            { text: "Cancel", style: "cancel" },
+          ]
+        );
+      }
+      const isAllowed = requestResult === RESULTS.GRANTED || requestResult === RESULTS.LIMITED;
+      return { granted: isAllowed, newlyGranted: isAllowed };
     } catch (err) {
       console.warn("iOS permission error:", err);
-      return false;
+      return { granted: false, newlyGranted: false };
     }
   }
 }
@@ -83,181 +107,233 @@ const AddPhotoScreen = () => {
   };
   const pickMultipleImages = async () => {
     // Prevent multiple simultaneous picker launches
-    if (isPickerOpenRef.current) return;
+    if (isPickerOpenRef.current) {
+      console.log("[AddPhotosScreen] pickMultipleImages: picker is already open or transitioning. Request ignored.");
+      return;
+    }
 
-    const hasPermission = await requestGalleryPermission();
-    if (!hasPermission) return;
+    try {
+      const permissionResult = await requestGalleryPermission();
+      console.log("[AddPhotosScreen] pickMultipleImages permission result:", permissionResult);
 
-    isPickerOpenRef.current = true;
+      if (!permissionResult.granted) {
+        return;
+      }
 
-    launchImageLibrary(
-      {
-        mediaType: "photo",
-        selectionLimit: 6,
-        quality: 0.8,
-        ...(Platform.OS === 'ios' && { presentationStyle: 'pageSheet' })
-      },
-      async (res: any) => {
-        // Always reset the flag when picker closes
-        isPickerOpenRef.current = false;
+      isPickerOpenRef.current = true;
 
-        // Handle cancellation or errors
-        if (res.didCancel) return;
-        if (res.errorCode || res.errorMessage) {
-          console.error("Image picker error:", res.errorMessage);
-          return;
-        }
-        if (!res.assets || res.assets.length === 0) return;
+      // Safe presentation buffer delay for first-time grants on iOS
+      if (Platform.OS === "ios" && permissionResult.newlyGranted) {
+        console.log("[AddPhotosScreen] Newly granted iOS photo permission. Deferring picker presentation by 800ms...");
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
 
-        const assets = res.assets.slice(0, 6);
+      console.log("[AddPhotosScreen] Launching image library for multiple images selection...");
+      launchImageLibrary(
+        {
+          mediaType: "photo",
+          selectionLimit: 6,
+          quality: 0.8,
+          ...(Platform.OS === 'ios' && { presentationStyle: 'pageSheet' })
+        },
+        async (res: any) => {
+          // Always reset the flag when picker closes
+          isPickerOpenRef.current = false;
 
-        // Set loading state
-        setPhotos((prev) => {
-          const updated = [...prev];
-          let count = 0;
-          for (let i = 0; i < updated.length && count < assets.length; i++) {
-            if (updated[i].image === "") {
-              updated[i].loading = true;
-              count++;
-            }
+          // Handle cancellation or errors
+          if (res.didCancel) {
+            console.log("[AddPhotosScreen] Multiple images picker cancelled by user.");
+            return;
           }
-          return updated;
-        });
-
-        // Process uploads asynchronously after state update
-        try {
-          const uploadedUrls: string[] = [];
-
-          for (const asset of assets) {
-            try {
-              const compressedUri = await ImageCompressor.compress(asset.uri, {
-                compressionMethod: "auto",
-                quality: 0.6,
-                maxWidth: 720,
-                maxHeight: 1080,
-              });
-
-              const formData = new FormData();
-              formData.append("image", {
-                uri: compressedUri,
-                type: asset.type || "image/jpeg",
-                name: asset.fileName || `image_${Date.now()}.jpg`,
-              } as any);
-
-              const response: any = await dispatch(uploadImagesPhotoAPI(formData));
-              console.log("response", response);
-
-              if (response?.statusCode === 200 && response?.data) {
-                const imageUrl = typeof response.data === 'string' ? response.data : (response.data.url || response.data.image || response.data.fileUrl || "");
-                uploadedUrls.push(imageUrl || "Unsupported");
-                if (response?.data?.success === false) {
-                  setResponseMessage(response?.data?.message)
-                }
-              } else {
-                uploadedUrls.push("Unsupported");
-              }
-            } catch (err) {
-              console.error("Compression or upload failed:", err);
-              uploadedUrls.push("Unsupported");
-            }
+          if (res.errorCode || res.errorMessage) {
+            console.error("[AddPhotosScreen] Image picker error:", res.errorMessage || res.errorCode);
+            return;
+          }
+          if (!res.assets || res.assets.length === 0) {
+            console.log("[AddPhotosScreen] No assets selected.");
+            return;
           }
 
-          // Update photos with uploaded URLs
+          const assets = res.assets.slice(0, 6);
+          console.log(`[AddPhotosScreen] Selected ${assets.length} image(s) to upload.`);
+
+          // Set loading state
           setPhotos((prev) => {
             const updated = [...prev];
-            let uploadIndex = 0;
-            for (let i = 0; i < updated.length && uploadIndex < uploadedUrls.length; i++) {
-              if (updated[i].loading) {
-                updated[i].loading = false;
-                if (uploadedUrls[uploadIndex]) updated[i].image = uploadedUrls[uploadIndex];
-                uploadIndex++;
+            let count = 0;
+            for (let i = 0; i < updated.length && count < assets.length; i++) {
+              if (updated[i].image === "") {
+                updated[i].loading = true;
+                count++;
               }
             }
             return updated;
           });
-        } catch (err) {
-          console.error("Upload failed:", err);
-          setPhotos((prev) => prev.map((p) => ({ ...p, loading: false })));
+
+          // Process uploads asynchronously after state update
+          try {
+            const uploadedUrls: string[] = [];
+
+            for (const asset of assets) {
+              try {
+                const compressedUri = await ImageCompressor.compress(asset.uri, {
+                  compressionMethod: "auto",
+                  quality: 0.6,
+                  maxWidth: 720,
+                  maxHeight: 1080,
+                });
+
+                const formData = new FormData();
+                formData.append("image", {
+                  uri: compressedUri,
+                  type: asset.type || "image/jpeg",
+                  name: asset.fileName || `image_${Date.now()}.jpg`,
+                } as any);
+
+                const response: any = await dispatch(uploadImagesPhotoAPI(formData));
+                console.log("[AddPhotosScreen] Upload response:", response);
+
+                if (response?.statusCode === 200 && response?.data) {
+                  const imageUrl = typeof response.data === 'string' ? response.data : (response.data.url || response.data.image || response.data.fileUrl || "");
+                  uploadedUrls.push(imageUrl || "Unsupported");
+                  if (response?.data?.success === false) {
+                    setResponseMessage(response?.data?.message)
+                  }
+                } else {
+                  uploadedUrls.push("Unsupported");
+                }
+              } catch (err) {
+                console.error("[AddPhotosScreen] Compression or upload failed:", err);
+                uploadedUrls.push("Unsupported");
+              }
+            }
+
+            // Update photos with uploaded URLs
+            setPhotos((prev) => {
+              const updated = [...prev];
+              let uploadIndex = 0;
+              for (let i = 0; i < updated.length && uploadIndex < uploadedUrls.length; i++) {
+                if (updated[i].loading) {
+                  updated[i].loading = false;
+                  if (uploadedUrls[uploadIndex]) updated[i].image = uploadedUrls[uploadIndex];
+                  uploadIndex++;
+                }
+              }
+              return updated;
+            });
+          } catch (err) {
+            console.error("[AddPhotosScreen] Upload processing failed:", err);
+            setPhotos((prev) => prev.map((p) => ({ ...p, loading: false })));
+          }
         }
-      }
-    );
+      );
+    } catch (e) {
+      console.error("[AddPhotosScreen] pickMultipleImages outer exception:", e);
+      isPickerOpenRef.current = false;
+    }
   };
 
   const pickSingleImage = async (index: number) => {
     // Prevent multiple simultaneous picker launches
-    if (isPickerOpenRef.current) return;
+    if (isPickerOpenRef.current) {
+      console.log("[AddPhotosScreen] pickSingleImage: picker is already open or transitioning. Request ignored.");
+      return;
+    }
 
-    const hasPermission = await requestGalleryPermission();
-    if (!hasPermission) return;
+    try {
+      const permissionResult = await requestGalleryPermission();
+      console.log("[AddPhotosScreen] pickSingleImage permission result:", permissionResult);
 
-    isPickerOpenRef.current = true;
-
-    launchImageLibrary(
-      {
-        mediaType: "photo",
-        selectionLimit: 1,
-        quality: 0.8,
-        ...(Platform.OS === 'ios' && { presentationStyle: 'pageSheet' })
-      },
-      async (res: any) => {
-        // Always reset the flag when picker closes
-        isPickerOpenRef.current = false;
-
-        // Handle cancellation or errors
-        if (res.didCancel) return;
-        if (res.errorCode || res.errorMessage) {
-          console.error("Image picker error:", res.errorMessage);
-          return;
-        }
-        if (!res.assets || res.assets.length === 0) return;
-
-        // Set loading state
-        setPhotos((prev) => {
-          const updated = [...prev];
-          updated[index].loading = true;
-          return updated;
-        });
-
-        // Process upload asynchronously after state update
-        try {
-          const compressedUri = await ImageCompressor.compress(res.assets[0].uri, {
-            compressionMethod: "auto",
-            quality: 0.6,
-            maxWidth: 720,
-            maxHeight: 1080,
-          });
-
-          const formData = new FormData();
-          formData.append("image", {
-            uri: compressedUri,
-            type: res.assets[0].type || "image/jpeg",
-            name: res.assets[0].fileName || `image_${Date.now()}.jpg`,
-          } as any);
-
-          const response: any = await dispatch(uploadImagesPhotoAPI(formData));
-
-          setPhotos((prev) => {
-            const updated = [...prev];
-            updated[index].loading = false;
-            if (response?.statusCode === 200 && response?.data) {
-              const imageUrl = typeof response.data === 'string' ? response.data : (response.data.url || response.data.image || response.data.fileUrl || "");
-              updated[index].image = imageUrl || "Unsupported";
-            } else {
-              updated[index].image = "Unsupported";
-            }
-            return updated;
-          });
-        } catch (err) {
-          console.error("Single upload failed:", err);
-          setPhotos((prev) => {
-            const updated = [...prev];
-            updated[index].loading = false;
-            updated[index].image = "Unsupported";
-            return updated;
-          });
-        }
+      if (!permissionResult.granted) {
+        return;
       }
-    );
+
+      isPickerOpenRef.current = true;
+
+      // Safe presentation buffer delay for first-time grants on iOS
+      if (Platform.OS === "ios" && permissionResult.newlyGranted) {
+        console.log("[AddPhotosScreen] Newly granted iOS photo permission. Deferring picker presentation by 800ms...");
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
+
+      console.log("[AddPhotosScreen] Launching image library for single image selection...");
+      launchImageLibrary(
+        {
+          mediaType: "photo",
+          selectionLimit: 1,
+          quality: 0.8,
+          ...(Platform.OS === 'ios' && { presentationStyle: 'pageSheet' })
+        },
+        async (res: any) => {
+          // Always reset the flag when picker closes
+          isPickerOpenRef.current = false;
+
+          // Handle cancellation or errors
+          if (res.didCancel) {
+            console.log("[AddPhotosScreen] Single image picker cancelled by user.");
+            return;
+          }
+          if (res.errorCode || res.errorMessage) {
+            console.error("[AddPhotosScreen] Image picker error:", res.errorMessage || res.errorCode);
+            return;
+          }
+          if (!res.assets || res.assets.length === 0) {
+            console.log("[AddPhotosScreen] No asset selected.");
+            return;
+          }
+
+          // Set loading state
+          setPhotos((prev) => {
+            const updated = [...prev];
+            updated[index].loading = true;
+            return updated;
+          });
+
+          // Process upload asynchronously after state update
+          try {
+            const compressedUri = await ImageCompressor.compress(res.assets[0].uri, {
+              compressionMethod: "auto",
+              quality: 0.6,
+              maxWidth: 720,
+              maxHeight: 1080,
+            });
+
+            const formData = new FormData();
+            formData.append("image", {
+              uri: compressedUri,
+              type: res.assets[0].type || "image/jpeg",
+              name: res.assets[0].fileName || `image_${Date.now()}.jpg`,
+            } as any);
+
+            const response: any = await dispatch(uploadImagesPhotoAPI(formData));
+            console.log("[AddPhotosScreen] Single upload response:", response);
+
+            setPhotos((prev) => {
+              const updated = [...prev];
+              updated[index].loading = false;
+              if (response?.statusCode === 200 && response?.data) {
+                const imageUrl = typeof response.data === 'string' ? response.data : (response.data.url || response.data.image || response.data.fileUrl || "");
+                updated[index].image = imageUrl || "Unsupported";
+              } else {
+                updated[index].image = "Unsupported";
+              }
+              return updated;
+            });
+          } catch (err) {
+            console.error("[AddPhotosScreen] Single upload failed:", err);
+            setPhotos((prev) => {
+              const updated = [...prev];
+              updated[index].loading = false;
+              updated[index].image = "Unsupported";
+              return updated;
+            });
+          }
+        }
+      );
+    } catch (e) {
+      console.error("[AddPhotosScreen] pickSingleImage outer exception:", e);
+      isPickerOpenRef.current = false;
+    }
   };
 
 
@@ -326,7 +402,7 @@ const AddPhotoScreen = () => {
   const unsupportedImage = photos.find(
     item => item.image === "Unsupported"
   );
-  
+
   return (
     <AppSafeAreaView>
       <HeaderCommon />
