@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, AppState, AppStateStatus, Dimensions, GestureResponderEvent, Image, ImageBackground, InteractionManager, Modal, NativeModules, PermissionsAndroid, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, AppState, AppStateStatus, Dimensions, GestureResponderEvent, Image, ImageBackground, Modal, NativeModules, PermissionsAndroid, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import Animated, {
     Extrapolation,
@@ -68,16 +68,6 @@ const CARD_HEIGHT = height * 0.75;
 const SIDE_PEEK = width * 0.01;
 const STEP = CARD_WIDTH - SIDE_PEEK;
 const TRANSITION_MS = 320;
-const PROFILE_BATCH_LIMIT = 10;
-const PROFILE_PREFETCH_THRESHOLD = 3;
-const PROFILE_RENDER_AHEAD = 4;
-const PROFILE_RENDER_BEHIND = 1;
-const IMAGE_PREFETCH_PROFILE_COUNT = 4;
-const IMAGE_PREFETCH_CACHE_LIMIT = 140;
-const STARTUP_RENDER_SETTLE_MS = 1400;
-const STARTUP_PREFETCH_DELAY_MS = 900;
-const PREFETCH_BATCH_SIZE = 2;
-const PREFETCH_BATCH_DELAY_MS = 180;
 
 type SwipeType = 'dislike' | 'like' | 'superLike';
 
@@ -93,62 +83,37 @@ type FaceLivenessResult =
     | null
     | undefined;
 
-const getProfileKey = (profile: any, fallback: number | string = '') => String(profile?._id ?? fallback);
-
-const createFastImageSource = (
-    url: string,
-    priority: keyof typeof FastImage.priority = 'normal'
-) => ({
-    uri: url,
-    priority: FastImage.priority[priority],
-    cache: FastImage.cacheControl.immutable,
-});
-
-const clampImageIndex = (index: number, galleryLength: number) => {
-    if (galleryLength <= 0) return 0;
-    if (!Number.isFinite(index)) return 0;
-    return Math.max(0, Math.min(index, galleryLength - 1));
-};
-
-const runAfterInitialInteractions = (callback: () => void, delay = 0) => {
-    let interactionHandle: { cancel?: () => void } | null = null;
-    const timer = setTimeout(() => {
-        interactionHandle = InteractionManager.runAfterInteractions(callback);
-    }, delay);
-
-    return () => {
-        clearTimeout(timer);
-        interactionHandle?.cancel?.();
-    };
-};
-
-type ProfileCardProps = {
+interface ProfileCardProps {
     profile: any;
     index: number;
-    imageIndex: number;
     activeIndex: SharedValue<number>;
     onImageTap: (evt: GestureResponderEvent, profile: any) => void;
     onOpenPreview: (profile: any) => void;
-    onDislikePress: () => void;
     onLikePress: () => void;
-    renderThumbnails: boolean;
-};
+    onDislikePress: () => void;
+}
 
-const ProfileCard = memo(function ProfileCard({
+const ProfileCard = memo(({
     profile,
     index,
-    imageIndex,
     activeIndex,
     onImageTap,
     onOpenPreview,
-    onDislikePress,
     onLikePress,
-    renderThumbnails,
-}: ProfileCardProps) {
+    onDislikePress,
+}: ProfileCardProps) => {
     const touchStartYRef = useRef(0);
     const didSwipeUpRef = useRef(false);
-    const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
     const SWIPE_UP_THRESHOLD = 55;
+    const [imageError, setImageError] = useState(false);
+
+    const currentImageIndex = profile?.index || 0;
+    const gallery = profile?.gallery || [];
+    const currentImage = gallery[currentImageIndex];
+
+    useEffect(() => {
+        setImageError(false);
+    }, [currentImage?.url]);
 
     const animatedStyle = useAnimatedStyle(() => {
         const relative = index - activeIndex.value;
@@ -173,11 +138,6 @@ const ProfileCard = memo(function ProfileCard({
             zIndex: 100 - Math.round(Math.abs(relative)),
         };
     }, [index]);
-
-    const gallery = Array.isArray(profile?.gallery) ? profile.gallery : [];
-    const currentImageIndex = clampImageIndex(imageIndex, gallery.length);
-    const currentImage = gallery[currentImageIndex];
-    const currentImageFailed = !!currentImage?.url && failedImageUrl === currentImage.url;
 
     return (
         <Animated.View style={[styles.card, animatedStyle]}>
@@ -204,13 +164,14 @@ const ProfileCard = memo(function ProfileCard({
                 style={styles.imageTapArea}
             >
                 <View style={styles.imageContainer}>
-                    {currentImage?.url && !currentImageFailed ? (
+                    {currentImage?.url && !imageError ? (
                         <FastImage
-                            source={createFastImageSource(currentImage.url, 'high')}
+                            source={{ uri: currentImage.url, priority: FastImage.priority.high }}
                             style={styles.image}
                             resizeMode={FastImage.resizeMode.cover}
                             onError={() => {
-                                setFailedImageUrl(currentImage.url);
+                                console.log(`[NewHomeScreen] Failed to load/decode image: ${currentImage.url}, falling back to placeholder.`);
+                                setImageError(true);
                             }}
                         />
                     ) : (
@@ -219,17 +180,25 @@ const ProfileCard = memo(function ProfileCard({
                         </View>
                     )}
                 </View>
-
             </TouchableOpacity>
+
             <View
                 pointerEvents="none"
                 style={{
-                    height: metrics.hp4, borderWidth: 0.1, borderColor: colors.white, flexDirection: "row", alignItems: "center", borderRadius: metrics.hp6, justifyContent: "space-between",
-                    position: "absolute", top: metrics.hp1,
+                    height: metrics.hp4,
+                    borderWidth: 0.1,
+                    borderColor: colors.white,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    borderRadius: metrics.hp6,
+                    justifyContent: "space-between",
+                    position: "absolute",
+                    top: metrics.hp1,
                     overflow: "hidden",
                     alignSelf: "center",
                     paddingHorizontal: metrics.hp0_4,
-                }}>
+                }}
+            >
                 <BlurView
                     style={StyleSheet.absoluteFillObject}
                     blurType="light"
@@ -242,31 +211,50 @@ const ProfileCard = memo(function ProfileCard({
                         borderColor: 'rgba(255,255,255,0.25)',
                     }}
                 />
-                {renderThumbnails ? gallery.map((item: any, thumbIdx: number) => {
-                    const isLast = thumbIdx === gallery.length - 1;
+                {profile?.gallery?.map((item: any, thumbIdx: number) => {
+                    const isLast = thumbIdx === profile?.gallery.length - 1;
                     return (
                         <React.Fragment key={item?.url ?? thumbIdx}>
                             <FastImage
-                                source={createFastImageSource(item.url, 'low')}
+                                source={{ uri: item.url }}
                                 resizeMode="cover"
-                                style={{ height: metrics.hp3, width: metrics.hp3, borderRadius: metrics.hp50, borderWidth: thumbIdx === currentImageIndex ? metrics.hp0_1 : 0, borderColor: colors.white }}
+                                style={{
+                                    height: metrics.hp3,
+                                    width: metrics.hp3,
+                                    borderRadius: metrics.hp50,
+                                    borderWidth: thumbIdx === (profile?.index ?? 0) ? metrics.hp0_1 : 0,
+                                    borderColor: colors.white,
+                                }}
                             />
                             {!isLast ? <AppText> </AppText> : null}
                         </React.Fragment>
                     );
-                }) : null}
+                })}
             </View>
-            <TouchableOpacityView onPressOut={(evt: any) => {
-                const deltaY = touchStartYRef.current - evt.nativeEvent.pageY;
-                if (deltaY > SWIPE_UP_THRESHOLD) {
-                    didSwipeUpRef.current = true;
-                    onOpenPreview(profile);
-                    return;
-                }
-            }}>
-                <LinearGradient start={{ x: 1, y: 1 }}
-                    end={{ x: 1, y: 0 }} colors={Platform.OS === "ios" ? ["#00000090", "#00000040", "#00000000"] : ["#000000", "#00000099", "#00000000"]}
-                    style={{ height: metrics.hp20, width: "100%", position: "absolute", bottom: 0, alignItems: "center", justifyContent: "center", }}>
+
+            <TouchableOpacityView
+                onPressOut={(evt: any) => {
+                    const deltaY = touchStartYRef.current - evt.nativeEvent.pageY;
+                    if (deltaY > SWIPE_UP_THRESHOLD) {
+                        didSwipeUpRef.current = true;
+                        onOpenPreview(profile);
+                        return;
+                    }
+                }}
+            >
+                <LinearGradient
+                    start={{ x: 1, y: 1 }}
+                    end={{ x: 1, y: 0 }}
+                    colors={Platform.OS === "ios" ? ["#00000090", "#00000040", "#00000000"] : ["#000000", "#00000099", "#00000000"]}
+                    style={{
+                        height: metrics.hp20,
+                        width: "100%",
+                        position: "absolute",
+                        bottom: 0,
+                        alignItems: "center",
+                        justifyContent: "center",
+                    }}
+                >
                     {profile?.online ? (
                         <View style={styles.activeContainer}>
                             <View style={styles.activeBackground}>
@@ -322,13 +310,15 @@ const ProfileCard = memo(function ProfileCard({
                     </TouchableOpacityView>
 
                     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "95%", position: "absolute", bottom: metrics.hp1 }}>
-                        <TouchableOpacityView onPress={onDislikePress}
+                        <TouchableOpacityView
+                            onPress={onDislikePress}
                             style={{
                                 height: metrics.hp7,
                                 width: metrics.hp7,
                                 borderRadius: metrics.hp50,
                                 overflow: 'hidden',
-                            }}>
+                            }}
+                        >
                             <BlurView
                                 style={StyleSheet.absoluteFillObject}
                                 blurType="light"
@@ -346,7 +336,8 @@ const ProfileCard = memo(function ProfileCard({
                                     flex: 1,
                                     alignItems: "center",
                                     justifyContent: "center",
-                                }}>
+                                }}
+                            >
                                 <FastImage
                                     source={disLikeNewIcon}
                                     resizeMode="contain"
@@ -354,13 +345,16 @@ const ProfileCard = memo(function ProfileCard({
                                 />
                             </View>
                         </TouchableOpacityView>
-                        <TouchableOpacityView onPress={onLikePress}
+
+                        <TouchableOpacityView
+                            onPress={onLikePress}
                             style={{
                                 height: metrics.hp7,
                                 width: metrics.hp7,
                                 borderRadius: metrics.hp50,
                                 overflow: 'hidden',
-                            }}>
+                            }}
+                        >
                             <BlurView
                                 style={StyleSheet.absoluteFillObject}
                                 blurType="light"
@@ -392,18 +386,6 @@ const ProfileCard = memo(function ProfileCard({
             </TouchableOpacityView>
         </Animated.View>
     );
-}, (prev, next) => {
-    return (
-        prev.profile === next.profile &&
-        prev.index === next.index &&
-        prev.imageIndex === next.imageIndex &&
-        prev.activeIndex === next.activeIndex &&
-        prev.onImageTap === next.onImageTap &&
-        prev.onOpenPreview === next.onOpenPreview &&
-        prev.onDislikePress === next.onDislikePress &&
-        prev.onLikePress === next.onLikePress &&
-        prev.renderThumbnails === next.renderThumbnails
-    );
 });
 
 const NewHomeScreen = () => {
@@ -423,20 +405,9 @@ const NewHomeScreen = () => {
     const [currentLocation, setCurrentLocation] = useState<{ lat: string; long: string }>({ lat: '', long: '' });
     const [remainingSwipes, setRemainingSwipes] = useState(0);
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [startupSettled, setStartupSettled] = useState(false);
-    const [photoIndexByProfileId, setPhotoIndexByProfileId] = useState<Record<string, number>>({});
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
     const activeIndex = useSharedValue(0);
     const isFocused = useIsFocused();
-    const profilesRef = useRef<any[]>(listProfilesData);
-    const currentIndexRef = useRef(0);
-    const photoIndexByProfileIdRef = useRef<Record<string, number>>({});
-    const isProfileFetchInFlightRef = useRef(false);
-    const exhaustedTopUpSkipRef = useRef<number | null>(null);
-    const pendingAdvanceAfterTopUpRef = useRef<number | null>(null);
-    const preloadedImageUrlsRef = useRef<Set<string>>(new Set());
-    const prefetchBatchTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-    const isSwipeAnimatingRef = useRef(false);
-    const swipeAnimationReleaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isDislikeFxRunningRef = useRef(false);
     const dislikeFxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isLikeFxRunningRef = useRef(false);
@@ -451,29 +422,20 @@ const NewHomeScreen = () => {
     const locationPromptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
-        profilesRef.current = Array.isArray(listProfilesData) ? listProfilesData : [];
-    }, [listProfilesData]);
-
-    useEffect(() => {
-        currentIndexRef.current = currentIndex;
-    }, [currentIndex]);
-
-    useEffect(() => {
-        photoIndexByProfileIdRef.current = photoIndexByProfileId;
-    }, [photoIndexByProfileId]);
-
-    useEffect(() => {
-        if (!isFocused) {
-            setStartupSettled(false);
-            return;
+        // Preload first profile's image in the background during the loading overlay to prevent loading flash.
+        if (listProfilesData.length > 0) {
+            const firstProfile = listProfilesData[0];
+            if (firstProfile?.gallery && firstProfile.gallery[0]?.url) {
+                FastImage.preload([{ uri: firstProfile.gallery[0].url, priority: FastImage.priority.high }]);
+            }
         }
 
-        setStartupSettled(false);
-        return runAfterInitialInteractions(() => {
-            setStartupSettled(true);
-        }, STARTUP_RENDER_SETTLE_MS);
-    }, [isFocused]);
+        const timer = setTimeout(() => {
+            setIsInitialLoading(false);
+        }, 500);
 
+        return () => clearTimeout(timer);
+    }, []);
 
     const handleCloseFaceVerificationPrompt = useCallback(() => {
         setFaceVerificationPromptVisible(false);
@@ -487,167 +449,32 @@ const NewHomeScreen = () => {
     useEffect(() => {
         const maxIndex = Math.max(listProfilesData.length - 1, 0);
         if (currentIndex > maxIndex) {
-            currentIndexRef.current = maxIndex;
             setCurrentIndex(maxIndex);
             activeIndex.value = maxIndex;
         }
     }, [activeIndex, currentIndex, listProfilesData.length]);
 
+    // Background prefetching and queue buffering strategy refs
+    const isPrefetchingRef = useRef(false);
+    const noMoreProfilesRef = useRef(false);
+    const prevLengthRef = useRef(0);
+    const listProfilesLengthRef = useRef(listProfilesData.length);
+
     useEffect(() => {
-        const pendingIndex = pendingAdvanceAfterTopUpRef.current;
-        if (pendingIndex === null || pendingIndex >= listProfilesData.length) return;
+        listProfilesLengthRef.current = listProfilesData.length;
+    }, [listProfilesData.length]);
 
-        pendingAdvanceAfterTopUpRef.current = null;
-        currentIndexRef.current = pendingIndex;
-        activeIndex.value = withTiming(pendingIndex, { duration: TRANSITION_MS }, (finished) => {
-            if (finished) {
-                runOnJS(setCurrentIndex)(pendingIndex);
-            }
-        });
-    }, [activeIndex, listProfilesData.length]);
-
-    const preloadImageUrls = useCallback((urls: Array<string | null | undefined>, priority: keyof typeof FastImage.priority = 'normal') => {
-        const sources: any[] = [];
-        const cache = preloadedImageUrlsRef.current;
-
-        urls.forEach((url) => {
-            if (!url || cache.has(url)) return;
-            cache.add(url);
-            if (cache.size > IMAGE_PREFETCH_CACHE_LIMIT) {
-                const oldest = cache.values().next().value;
-                if (oldest) cache.delete(oldest);
-            }
-            sources.push(createFastImageSource(url, priority));
-        });
-
-        if (sources.length > 0) {
-            for (let i = 0; i < sources.length; i += PREFETCH_BATCH_SIZE) {
-                const batch = sources.slice(i, i + PREFETCH_BATCH_SIZE);
-                const delay = isSwipeAnimatingRef.current
-                    ? PREFETCH_BATCH_DELAY_MS * (i + 2)
-                    : PREFETCH_BATCH_DELAY_MS * (i / PREFETCH_BATCH_SIZE);
-
-                const timer = setTimeout(() => {
-                    FastImage.preload(batch);
-                }, delay);
-                prefetchBatchTimersRef.current.push(timer);
-            }
-        }
-    }, []);
-
-    const preloadGalleryAroundIndex = useCallback(
-        (gallery: any[] | undefined, targetIndex: number, priority: keyof typeof FastImage.priority = 'normal') => {
-            if (!Array.isArray(gallery) || gallery.length === 0) return;
-            const safeIndex = clampImageIndex(targetIndex, gallery.length);
-            preloadImageUrls(
-                [
-                    gallery[safeIndex]?.url,
-                    safeIndex > 0 ? gallery[safeIndex - 1]?.url : null,
-                    safeIndex < gallery.length - 1 ? gallery[safeIndex + 1]?.url : null,
-                ],
-                priority
-            );
-        },
-        [preloadImageUrls]
-    );
-
-    const updateProfileImageIndex = useCallback(
-        (profile: any, nextIndex: number) => {
-            const profileId = getProfileKey(profile);
-            if (!profileId) return;
-            const gallery = Array.isArray(profile?.gallery) ? profile.gallery : [];
-            const safeIndex = clampImageIndex(nextIndex, gallery.length);
-
-            setPhotoIndexByProfileId((prev) => {
-                if (prev[profileId] === safeIndex) return prev;
-                return { ...prev, [profileId]: safeIndex };
-            });
-            preloadGalleryAroundIndex(gallery, safeIndex, 'high');
-        },
-        [preloadGalleryAroundIndex]
-    );
-
-    const requestProfileBatch = useCallback(
-        async ({
-            merge = true,
-            refreshUser = false,
-            force = false,
-            limit = PROFILE_BATCH_LIMIT,
-        }: { merge?: boolean; refreshUser?: boolean; force?: boolean; limit?: number } = {}) => {
-            if (isProfileFetchInFlightRef.current) return;
-
-            const currentProfiles = profilesRef.current;
-            const shouldMerge = merge && currentProfiles.length > 0;
-            const skip = shouldMerge ? currentProfiles.length : 0;
-
-            if (shouldMerge && exhaustedTopUpSkipRef.current === skip && !force) return;
-
-            isProfileFetchInFlightRef.current = true;
-            try {
-                const result: any = await dispatch(listProfiles(true, skip, limit, shouldMerge));
-                if (refreshUser) {
-                    dispatch(getProfile(true));
-                }
-                if (result?.skipped) return;
-
-                const newCount = Array.isArray(result?.newProfiles) ? result.newProfiles.length : 0;
-                if (shouldMerge && newCount === 0) {
-                    exhaustedTopUpSkipRef.current = skip;
-                    if (pendingAdvanceAfterTopUpRef.current !== null) {
-                        pendingAdvanceAfterTopUpRef.current = null;
-                        activeIndex.value = 0;
-                        currentIndexRef.current = 0;
-                        setCurrentIndex(0);
-                        dispatch(setListProfiles([]));
-                    }
-                    return;
-                }
-
-                exhaustedTopUpSkipRef.current = null;
-                const pendingIndex = pendingAdvanceAfterTopUpRef.current;
-                if (pendingIndex !== null) {
-                    pendingAdvanceAfterTopUpRef.current = null;
-                    currentIndexRef.current = pendingIndex;
-                    activeIndex.value = withTiming(pendingIndex, { duration: TRANSITION_MS }, (finished) => {
-                        if (finished) {
-                            runOnJS(setCurrentIndex)(pendingIndex);
-                        }
-                    });
-                }
-            } finally {
-                isProfileFetchInFlightRef.current = false;
-            }
-        },
-        [activeIndex, dispatch]
-    );
-
-    const finishAdvanceOnJS = useCallback(
-        (nextIndex: number, requestedNextIndex: number, hasNextProfile: boolean) => {
-            currentIndexRef.current = nextIndex;
-            setCurrentIndex(nextIndex);
-
-            if (!hasNextProfile) {
-                pendingAdvanceAfterTopUpRef.current = requestedNextIndex;
-                requestProfileBatch({ merge: true, refreshUser: true, force: true });
-                return;
-            }
-
-            const remainingAfterCurrent = profilesRef.current.length - nextIndex - 1;
-            if (remainingAfterCurrent <= PROFILE_PREFETCH_THRESHOLD) {
-                requestProfileBatch({ merge: true });
-            }
-        },
-        [requestProfileBatch]
-    );
+    const handleLastProfileSwiped = useCallback(() => {
+        dispatch(setListProfiles([]));
+        dispatch(listProfiles(true));
+        dispatch(getProfile(true));
+    }, [dispatch]);
 
     const handleNext = useCallback(
         (type: SwipeType) => {
-            if (pendingAdvanceAfterTopUpRef.current !== null) return;
-
-            const profiles = profilesRef.current;
-            const index = currentIndexRef.current;
-            const current = profiles[index];
+            const current = listProfilesData[currentIndex];
             if (!current) return;
+            const isLastProfile = currentIndex >= listProfilesData.length - 1;
 
             dispatch(
                 swipeLikeDisLike({
@@ -656,26 +483,24 @@ const NewHomeScreen = () => {
                 })
             );
 
-            const requestedNextIndex = index + 1;
-            const hasNextProfile = requestedNextIndex < profiles.length;
-            const nextIndex = hasNextProfile ? requestedNextIndex : index;
+            const nextIndex = Math.min(currentIndex + 1, listProfilesData.length - 1);
 
             activeIndex.value = withTiming(nextIndex, { duration: TRANSITION_MS }, (finished) => {
                 if (finished) {
-                    runOnJS(finishAdvanceOnJS)(nextIndex, requestedNextIndex, hasNextProfile);
+                    runOnJS(setCurrentIndex)(nextIndex);
+                    if (isLastProfile && (type === 'like' || type === 'dislike')) {
+                        runOnJS(handleLastProfileSwiped)();
+                    }
                 }
             });
         },
-        [activeIndex, dispatch, finishAdvanceOnJS]
+        [activeIndex, currentIndex, dispatch, listProfilesData, handleLastProfileSwiped]
     );
 
     const handleLikeWithoutSlide = useCallback(() => {
-        if (pendingAdvanceAfterTopUpRef.current !== null) return;
-
-        const profiles = profilesRef.current;
-        const index = currentIndexRef.current;
-        const current = profiles[index];
+        const current = listProfilesData[currentIndex];
         if (!current) return;
+        const isLastProfile = currentIndex >= listProfilesData.length - 1;
         const unlimitedLikes = userData?.subscription?.perks?.unlimitedLikes === true;
 
         dispatch(
@@ -688,84 +513,117 @@ const NewHomeScreen = () => {
             setRemainingSwipes((prev) => Math.max(prev - 1, 0));
         }
 
-        const requestedNextIndex = index + 1;
-        const hasNextProfile = requestedNextIndex < profiles.length;
-        const nextIndex = hasNextProfile ? requestedNextIndex : index;
+        const nextIndex = Math.min(currentIndex + 1, listProfilesData.length - 1);
         activeIndex.value = nextIndex;
-        finishAdvanceOnJS(nextIndex, requestedNextIndex, hasNextProfile);
-    }, [activeIndex, dispatch, finishAdvanceOnJS, userData?.subscription?.perks?.unlimitedLikes]);
+        setCurrentIndex(nextIndex);
+
+        if (isLastProfile) {
+            handleLastProfileSwiped();
+        }
+    }, [activeIndex, currentIndex, dispatch, listProfilesData, userData?.subscription?.perks?.unlimitedLikes, handleLastProfileSwiped]);
 
     const handleTap = useCallback(
         (evt: GestureResponderEvent, profile: any) => {
             const totalImages = profile?.gallery?.length || 0;
             if (!evt?.nativeEvent?.locationX || totalImages === 0) return;
             const x = evt.nativeEvent.locationX;
-            const profileId = getProfileKey(profile);
-            const currentPhotoIndex = clampImageIndex(
-                photoIndexByProfileIdRef.current[profileId] ?? profile?.index ?? 0,
-                totalImages
-            );
 
-            const nextIndex = x > CARD_WIDTH / 2
-                ? Math.min(currentPhotoIndex + 1, totalImages - 1)
-                : Math.max(currentPhotoIndex - 1, 0);
+            const updatedProfiles = listProfilesData.map((p: any) => {
+                if (p._id !== profile._id) return p;
 
-            if (nextIndex !== currentPhotoIndex) {
-                updateProfileImageIndex(profile, nextIndex);
-            }
+                let newIndex = p.index || 0;
+                if (x > CARD_WIDTH / 2) {
+                    newIndex = newIndex < totalImages - 1 ? newIndex + 1 : newIndex;
+                } else {
+                    newIndex = newIndex > 0 ? newIndex - 1 : newIndex;
+                }
+
+                if (newIndex !== p.index && p.gallery && p.gallery[newIndex]?.url) {
+                    const targetImageUrl = p.gallery[newIndex].url;
+                    const preloadList: any[] = [{ uri: targetImageUrl, priority: FastImage.priority.high }];
+
+                    if (newIndex > 0 && p.gallery[newIndex - 1]?.url) {
+                        preloadList.push({ uri: p.gallery[newIndex - 1].url, priority: FastImage.priority.normal });
+                    }
+                    if (newIndex < totalImages - 1 && p.gallery[newIndex + 1]?.url) {
+                        preloadList.push({ uri: p.gallery[newIndex + 1].url, priority: FastImage.priority.normal });
+                    }
+                    FastImage.preload(preloadList);
+                }
+
+                return { ...p, index: newIndex };
+            });
+
+            dispatch(setListProfiles(updatedProfiles));
         },
-        [updateProfileImageIndex]
+        [dispatch, listProfilesData]
     );
 
-    const handleOpenPreview = useCallback(() => {
-        setModalVisible(true);
-    }, []);
-
+    // Consolidated single batch image preloading effect
     useEffect(() => {
         if (!listProfilesData?.length) return;
 
-        const preloadDelay = startupSettled ? 80 : STARTUP_PREFETCH_DELAY_MS;
-        const profileCount = startupSettled ? IMAGE_PREFETCH_PROFILE_COUNT : 2;
+        const activeProfiles = [
+            listProfilesData[currentIndex],
+            currentIndex < listProfilesData.length - 1 ? listProfilesData[currentIndex + 1] : null,
+        ].filter(Boolean);
 
-        return runAfterInitialInteractions(() => {
-            const urlsToPreload: string[] = [];
-            const end = Math.min(listProfilesData.length, currentIndex + profileCount);
+        const urlsToPreload: string[] = [];
 
-            for (let i = currentIndex; i < end; i += 1) {
-                const profile = listProfilesData[i];
-                const gallery = Array.isArray(profile?.gallery) ? profile.gallery : [];
-                if (gallery.length === 0) continue;
+        activeProfiles.forEach((profile: any, index: number) => {
+            if (!profile?.gallery?.length) return;
+            const currentIdx = profile.index || 0;
+            const gallery = profile.gallery;
 
-                const profileId = getProfileKey(profile, i);
-                const imageIndex = clampImageIndex(
-                    photoIndexByProfileIdRef.current[profileId] ?? profile?.index ?? 0,
-                    gallery.length
-                );
-
-                urlsToPreload.push(gallery[imageIndex]?.url);
-                if (i === currentIndex) {
-                    urlsToPreload.push(
-                        imageIndex > 0 ? gallery[imageIndex - 1]?.url : '',
-                        imageIndex < gallery.length - 1 ? gallery[imageIndex + 1]?.url : ''
-                    );
+            if (index === 0) {
+                const urls = [
+                    gallery[currentIdx]?.url,
+                    currentIdx > 0 ? gallery[currentIdx - 1]?.url : null,
+                    currentIdx < gallery.length - 1 ? gallery[currentIdx + 1]?.url : null,
+                ].filter(Boolean) as string[];
+                urlsToPreload.push(...urls);
+            } else {
+                if (gallery[currentIdx]?.url) {
+                    urlsToPreload.push(gallery[currentIdx].url);
                 }
             }
+        });
 
-            preloadImageUrls(urlsToPreload, 'normal');
-        }, preloadDelay);
-    }, [currentIndex, listProfilesData, photoIndexByProfileId, preloadImageUrls, startupSettled]);
+        const uniqueUrls = Array.from(new Set(urlsToPreload)).filter(Boolean) as string[];
+        if (uniqueUrls.length > 0) {
+            const preloadSources = uniqueUrls.map(url => ({
+                uri: url,
+                priority: FastImage.priority.normal,
+            }));
+            FastImage.preload(preloadSources);
+        }
+    }, [listProfilesData, currentIndex]);
+
+    // Background prefetching buffer checking effect
+    useEffect(() => {
+        const currentLength = listProfilesData.length;
+        const remaining = currentLength - currentIndex;
+
+        if (currentLength !== prevLengthRef.current) {
+            if (isPrefetchingRef.current && currentLength === prevLengthRef.current) {
+                noMoreProfilesRef.current = true;
+            }
+            isPrefetchingRef.current = false;
+            prevLengthRef.current = currentLength;
+        }
+
+        if (remaining > 0 && remaining <= 3 && !isPrefetchingRef.current && !noMoreProfilesRef.current) {
+            isPrefetchingRef.current = true;
+            dispatch(listProfiles(true, undefined, undefined, true));
+        }
+    }, [listProfilesData.length, currentIndex, dispatch]);
 
     useEffect(() => {
-        if (!isFocused || !hasLocationPermission || !listProfilesData.length) return;
-        const remainingAfterCurrent = listProfilesData.length - currentIndex - 1;
-        if (remainingAfterCurrent > PROFILE_PREFETCH_THRESHOLD) return;
-
-        const timer = setTimeout(() => {
-            requestProfileBatch({ merge: true });
-        }, 120);
-
-        return () => clearTimeout(timer);
-    }, [currentIndex, hasLocationPermission, isFocused, listProfilesData.length, requestProfileBatch]);
+        if (currentIndex === 0) {
+            noMoreProfilesRef.current = false;
+            isPrefetchingRef.current = false;
+        }
+    }, [currentIndex]);
 
     const socketUrl = useMemo(() => {
         const currentUserId = userData?._id;
@@ -803,12 +661,13 @@ const NewHomeScreen = () => {
             socket.disconnect?.();
         };
     }, [socket]);
+
     useEffect(() => {
         if (!userData?.faceVerified) return;
         if (!isFocused) return;
         if (hasShownProfileCompletionReminderThisSession) return;
 
-        return runAfterInitialInteractions(() => {
+        const timer = setTimeout(() => {
             if (!isFocused) return;
             if (hasShownProfileCompletionReminderThisSession) return;
 
@@ -817,51 +676,32 @@ const NewHomeScreen = () => {
                 hasShownProfileCompletionReminderThisSession = true;
                 setShowProfileCompletionReminder(true);
             }
-        }, 8000);
+        }, 3000);
+
+        return () => clearTimeout(timer);
     }, [isFocused, userData?.profileCompletion]);
 
     useEffect(() => {
         if (!isFocused) return;
         if (hasShownFaceVerificationPromptThisSession) return;
 
-        return runAfterInitialInteractions(() => {
+        const timer = setTimeout(() => {
             if (!isFocused) return;
             if (hasShownFaceVerificationPromptThisSession) return;
 
             const isFaceVerified = userData?.faceVerified === true;
+            console.log(userData?.faceVerified, "userData?.faceVerified");
 
             if (!isFaceVerified) {
                 hasShownFaceVerificationPromptThisSession = true;
                 setFaceVerificationPromptVisible(true);
             }
-        }, 8000);
+        }, 3000);
+
+        return () => clearTimeout(timer);
     }, [isFocused, userData?.faceVerified]);
 
     const hasProfiles = listProfilesData.length > 0;
-    const visibleProfiles = useMemo(() => {
-        if (!hasProfiles) return [];
-        const renderAhead = startupSettled ? PROFILE_RENDER_AHEAD : 1;
-        const renderBehind = startupSettled ? PROFILE_RENDER_BEHIND : 0;
-        const start = Math.max(0, currentIndex - renderBehind);
-        const end = Math.min(listProfilesData.length, currentIndex + renderAhead + 1);
-        return listProfilesData.slice(start, end).map((profile: any, offset: number) => ({
-            profile,
-            index: start + offset,
-        }));
-    }, [currentIndex, hasProfiles, listProfilesData, startupSettled]);
-
-    const currentPreviewProfile = useMemo(() => {
-        const profile = listProfilesData[currentIndex] || {};
-        const profileId = getProfileKey(profile);
-        const gallery = Array.isArray(profile?.gallery) ? profile.gallery : [];
-        const imageIndex = clampImageIndex(
-            photoIndexByProfileId[profileId] ?? profile?.index ?? 0,
-            gallery.length
-        );
-        if (!profileId || (profile?.index ?? 0) === imageIndex) return profile;
-        return { ...profile, index: imageIndex };
-    }, [currentIndex, listProfilesData, photoIndexByProfileId]);
-
     const BOOST_DURATION_MS = 30 * 60 * 1000;
     const boostRemaining = useMemo(() => {
         const n = 4 /* Number(userData?.boostRemaining) */;
@@ -938,10 +778,6 @@ const NewHomeScreen = () => {
     const runDislikeAnimation = useCallback(() => {
         if (isDislikeFxRunningRef.current) return;
         isDislikeFxRunningRef.current = true;
-        isSwipeAnimatingRef.current = true;
-        if (swipeAnimationReleaseTimerRef.current) {
-            clearTimeout(swipeAnimationReleaseTimerRef.current);
-        }
         dislikeOverlayOpacity.value = 0;
         dislikeIconScale.value = 0.7;
 
@@ -960,10 +796,6 @@ const NewHomeScreen = () => {
             dislikeOverlayOpacity.value = withTiming(0, { duration: 90 });
             isDislikeFxRunningRef.current = false;
             dislikeFxTimerRef.current = null;
-            swipeAnimationReleaseTimerRef.current = setTimeout(() => {
-                isSwipeAnimatingRef.current = false;
-                swipeAnimationReleaseTimerRef.current = null;
-            }, TRANSITION_MS + 120);
         }, 240);
     }, [dislikeIconScale, dislikeOverlayOpacity, handleNext]);
 
@@ -977,10 +809,6 @@ const NewHomeScreen = () => {
         }
         if (isLikeFxRunningRef.current) return;
         isLikeFxRunningRef.current = true;
-        isSwipeAnimatingRef.current = true;
-        if (swipeAnimationReleaseTimerRef.current) {
-            clearTimeout(swipeAnimationReleaseTimerRef.current);
-        }
         likeOverlayOpacity.value = 0;
         likeIconScale.value = 0.7;
 
@@ -999,20 +827,11 @@ const NewHomeScreen = () => {
             likeOverlayOpacity.value = withTiming(0, { duration: 90 });
             isLikeFxRunningRef.current = false;
             likeFxTimerRef.current = null;
-            swipeAnimationReleaseTimerRef.current = setTimeout(() => {
-                isSwipeAnimatingRef.current = false;
-                swipeAnimationReleaseTimerRef.current = null;
-            }, TRANSITION_MS + 120);
         }, 240);
     }, [handleLikeWithoutSlide, itemtwo, likeIconScale, likeOverlayOpacity, remainingSwipes, userData?.subscription?.perks?.unlimitedLikes]);
 
     useEffect(() => {
         return () => {
-            prefetchBatchTimersRef.current.forEach(clearTimeout);
-            prefetchBatchTimersRef.current = [];
-            if (swipeAnimationReleaseTimerRef.current) {
-                clearTimeout(swipeAnimationReleaseTimerRef.current);
-            }
             if (dislikeFxTimerRef.current) {
                 clearTimeout(dislikeFxTimerRef.current);
             }
@@ -1102,7 +921,7 @@ const NewHomeScreen = () => {
 
     const refreshLocationPermission = useCallback(async () => {
         let granted = await isLocationPermissionGranted();
-
+        
         if (!granted) {
             const status = await check(getLocationPermissionType());
             if (status === RESULTS.DENIED) {
@@ -1125,41 +944,35 @@ const NewHomeScreen = () => {
         setHasLocationPermission(granted);
         if (granted) {
             fetchCurrentLocationForSocket();
-            requestProfileBatch({
-                merge: profilesRef.current.length > 0,
-                refreshUser: true,
-                force: profilesRef.current.length === 0,
-            });
+            // Avoid reloading the feed on resume/app-active if profiles are already loaded.
+            if (listProfilesLengthRef.current === 0) {
+                dispatch(listProfiles(true));
+                dispatch(getProfile(true));
+            } else {
+                dispatch(getProfile(true));
+            }
         } else {
             setCurrentLocation({ lat: '', long: '' });
         }
-    }, [fetchCurrentLocationForSocket, isLocationPermissionGranted, getLocationPermissionType, requestProfileBatch]);
+    }, [dispatch, fetchCurrentLocationForSocket, isLocationPermissionGranted, getLocationPermissionType]);
 
     useEffect(() => {
         if (!isFocused) return;
         hasAutoRequestedLocationOnFocusRef.current = false;
         let mounted = true;
-        let cancelDeferredRefresh: (() => void) | null = null;
 
         const syncLocationPermission = async () => {
             const granted = await isLocationPermissionGranted();
             if (!mounted) return;
             setHasLocationPermission(granted);
             if (granted) {
-                const hasCachedProfiles = profilesRef.current.length > 0;
-                const refresh = () => {
-                    fetchCurrentLocationForSocket();
-                    requestProfileBatch({
-                        merge: hasCachedProfiles,
-                        refreshUser: true,
-                        force: !hasCachedProfiles,
-                    });
-                };
-
-                if (hasCachedProfiles) {
-                    cancelDeferredRefresh = runAfterInitialInteractions(refresh, 1200);
+                // Avoid resetting and reloading the feed on focus if profiles are already loaded.
+                if (listProfilesLengthRef.current === 0) {
+                    dispatch(listProfiles(true));
+                    dispatch(getProfile(true));
                 } else {
-                    refresh();
+                    fetchCurrentLocationForSocket();
+                    dispatch(getProfile(true));
                 }
                 hasAutoRequestedLocationOnFocusRef.current = true;
                 return;
@@ -1180,21 +993,9 @@ const NewHomeScreen = () => {
 
                     if (status === RESULTS.GRANTED) {
                         setHasLocationPermission(true);
-                        const hasCachedProfiles = profilesRef.current.length > 0;
-                        const refresh = () => {
-                            fetchCurrentLocationForSocket();
-                            requestProfileBatch({
-                                merge: hasCachedProfiles,
-                                refreshUser: true,
-                                force: !hasCachedProfiles,
-                            });
-                        };
-
-                        if (hasCachedProfiles) {
-                            cancelDeferredRefresh = runAfterInitialInteractions(refresh, 1200);
-                        } else {
-                            refresh();
-                        }
+                        fetchCurrentLocationForSocket();
+                        dispatch(listProfiles(true));
+                        dispatch(getProfile(true));
                     } else {
                         setHasLocationPermission(false);
                         setCurrentLocation({ lat: '', long: '' });
@@ -1211,9 +1012,8 @@ const NewHomeScreen = () => {
         syncLocationPermission();
         return () => {
             mounted = false;
-            cancelDeferredRefresh?.();
         };
-    }, [fetchCurrentLocationForSocket, getLocationPermissionType, isFocused, isLocationPermissionGranted, requestProfileBatch]);
+    }, [dispatch, fetchCurrentLocationForSocket, getLocationPermissionType, isFocused, isLocationPermissionGranted]);
 
     useEffect(() => {
         // When user goes to Settings and returns, re-check permission.
@@ -1240,11 +1040,8 @@ const NewHomeScreen = () => {
                 setLocationPromptVisible(false);
                 setHasLocationPermission(true);
                 fetchCurrentLocationForSocket();
-                requestProfileBatch({
-                    merge: profilesRef.current.length > 0,
-                    refreshUser: true,
-                    force: profilesRef.current.length === 0,
-                });
+                dispatch(listProfiles(true));
+                dispatch(getProfile(true));
                 return;
             }
 
@@ -1266,7 +1063,7 @@ const NewHomeScreen = () => {
             isRequestingLocationPermissionRef.current = false;
             setIsRequestingLocationPermission(false);
         }
-    }, [fetchCurrentLocationForSocket, getLocationPermissionType, requestProfileBatch]);
+    }, [dispatch, fetchCurrentLocationForSocket, getLocationPermissionType]);
 
     useEffect(() => {
         if (!isFocused) return;
@@ -1290,11 +1087,10 @@ const NewHomeScreen = () => {
             }, 10000);
         };
 
-        const cancelPromptCheck = runAfterInitialInteractions(scheduleLocationPromptIfNeeded, 3000);
+        scheduleLocationPromptIfNeeded();
 
         return () => {
             isMounted = false;
-            cancelPromptCheck();
             if (locationPromptTimerRef.current) {
                 clearTimeout(locationPromptTimerRef.current);
                 locationPromptTimerRef.current = null;
@@ -1324,10 +1120,18 @@ const NewHomeScreen = () => {
         await messaging().requestPermission();
     }
     useEffect(() => {
-        return runAfterInitialInteractions(() => {
+        const timer = setTimeout(() => {
             requestAndroidNotificationPermission()
-        }, 8000);
+        }, 3000);
+        return () => clearTimeout(timer);
     }, [])
+
+
+
+
+
+    // ProfileCard is now extracted outside NewHomeScreen for optimal rendering and layout performance.
+
     const FaceLiveness = (NativeModules as any)?.FaceLiveness as
         | { startLiveness?: (sessionId: string) => Promise<FaceLivenessResult> }
         | undefined;
@@ -1393,7 +1197,7 @@ const NewHomeScreen = () => {
                 }
 
                 const requestedStatus = await request(permissionType);
-                if (requestedStatus === RESULTS.GRANTED)return true;
+                if (requestedStatus === RESULTS.GRANTED) return true;
 
                 Alert.alert(
                     "Camera permission denied",
@@ -1519,30 +1323,25 @@ const NewHomeScreen = () => {
                                 </AppText>
                             </TouchableOpacityView>
                         </View>
-                    ) : hasProfiles ? (
+                    ) : hasProfiles && !isInitialLoading ? (
                         <View style={styles.carouselLayer}>
-                            {visibleProfiles.map(({ profile, index }: { profile: any; index: number }) => {
-                                const profileId = getProfileKey(profile, index);
-                                const gallery = Array.isArray(profile?.gallery) ? profile.gallery : [];
-                                const imageIndex = clampImageIndex(
-                                    photoIndexByProfileId[profileId] ?? profile?.index ?? 0,
-                                    gallery.length
-                                );
-                                return (
+                            {listProfilesData
+                                .map((profile: any, idx: number) => ({ profile, idx }))
+                                .slice(currentIndex, currentIndex + 3)
+                                .map(({ profile, idx }: any) => (
                                     <ProfileCard
-                                        key={profile?._id ?? `profile-${index}`}
+                                        key={profile?._id ?? `profile-${idx}`}
                                         profile={profile}
-                                        index={index}
-                                        imageIndex={imageIndex}
+                                        index={idx}
                                         activeIndex={activeIndex}
                                         onImageTap={handleTap}
-                                        onOpenPreview={handleOpenPreview}
-                                        onDislikePress={runDislikeAnimation}
+                                        onOpenPreview={(p) => {
+                                            setModalVisible(true);
+                                        }}
                                         onLikePress={runLikeAnimation}
-                                        renderThumbnails={index >= currentIndex && index <= currentIndex + 1}
+                                        onDislikePress={runDislikeAnimation}
                                     />
-                                );
-                            })}
+                                ))}
                         </View>
                     ) : (
                         <>
@@ -1602,20 +1401,17 @@ const NewHomeScreen = () => {
                 statusBarTranslucent
                 onRequestClose={() => setModalVisible(false)}
             >
-                {modalVisible ? (
-                    <PreviewDetails
-                        data={currentPreviewProfile}
-                        setModalVisible={setModalVisible}
-                        setSwipeRight={setSwipeRightProxy}
-                        setSwipeLeft={setSwipeLeftProxy}
-                        setSwipeUp={setSwipeUpProxy}
-                        modalVisible={modalVisible}
-                        setProfileData={() => { }}
-                        onProfileImageIndexChange={updateProfileImageIndex}
-                        setSuperLikeVisible={setSuperLikeVisibleProxy}
-                        canSuperLike={canSuperLike}
-                    />
-                ) : null}
+                <PreviewDetails
+                    data={listProfilesData[currentIndex] || {}}
+                    setModalVisible={setModalVisible}
+                    setSwipeRight={setSwipeRightProxy}
+                    setSwipeLeft={setSwipeLeftProxy}
+                    setSwipeUp={setSwipeUpProxy}
+                    modalVisible={modalVisible}
+                    setProfileData={() => { }}
+                    setSuperLikeVisible={setSuperLikeVisibleProxy}
+                    canSuperLike={canSuperLike}
+                />
             </Modal>
 
             <Animated.View pointerEvents="none" style={[styles.dislikeFxOverlay, dislikeOverlayStyle]}>
@@ -1636,22 +1432,20 @@ const NewHomeScreen = () => {
                 statusBarTranslucent
                 visible={matchVisible}
                 onRequestClose={() => setMatchVisible(false)}>
-                {matchVisible ? <MatchScreen setMatchVisible={setMatchVisible} matchData={matchData} /> : null}
+                <MatchScreen setMatchVisible={setMatchVisible} matchData={matchData} />
             </Modal>
 
-            {boostModalVisible ? (
-                <BoostModal
-                    visible={boostModalVisible}
-                    onClose={() => setBoostModalVisible(false)}
-                    boostsAvailable={boostRemaining}
-                    durationMinutes={30}
-                    isRunning={boostTimer.isRunning}
-                    remainingFraction={boostTimer.remainingFraction}
-                    remainingLabel={boostTimer.remainingLabel}
-                    onStart={handleActivateBoost}
-                    isActivating={isBoostActivating}
-                />
-            ) : null}
+            <BoostModal
+                visible={boostModalVisible}
+                onClose={() => setBoostModalVisible(false)}
+                boostsAvailable={boostRemaining}
+                durationMinutes={30}
+                isRunning={boostTimer.isRunning}
+                remainingFraction={boostTimer.remainingFraction}
+                remainingLabel={boostTimer.remainingLabel}
+                onStart={handleActivateBoost}
+                isActivating={isBoostActivating}
+            />
 
             {/* <Modal
                 animationType="fade"
@@ -1696,7 +1490,7 @@ const NewHomeScreen = () => {
                 visible={faceVerificationPromptVisible}
                 onRequestClose={handleCloseFaceVerificationPrompt}
             >
-                {faceVerificationPromptVisible ? <View style={styles.centeredView}>
+                <View style={styles.centeredView}>
                     <View style={styles.locationPromptContainer}>
                         <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
                             Verify Your Identity
@@ -1721,7 +1515,7 @@ const NewHomeScreen = () => {
                             </AppText>
                         </TouchableOpacityView>
                     </View>
-                </View> : null}
+                </View>
             </Modal>
             <Modal
                 animationType="fade"
@@ -1729,7 +1523,7 @@ const NewHomeScreen = () => {
                 visible={faceVerificationPromptSuccessVisible}
                 onRequestClose={handleCloseFaceVerificationSuccessPrompt}
             >
-                {faceVerificationPromptSuccessVisible ? <View style={styles.centeredView}>
+                <View style={styles.centeredView}>
                     <View style={styles.locationPromptContainer}>
                         <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
                             Verification Successful
@@ -1746,7 +1540,7 @@ const NewHomeScreen = () => {
                             </AppText>
                         </TouchableOpacityView>
                     </View>
-                </View> : null}
+                </View>
             </Modal>
             <Modal
                 animationType="fade"
@@ -1754,7 +1548,7 @@ const NewHomeScreen = () => {
                 visible={faceVerificationPromptFailedVisible}
                 onRequestClose={handleCloseFaceVerificationFailedPrompt}
             >
-                {faceVerificationPromptFailedVisible ? <View style={styles.centeredView}>
+                <View style={styles.centeredView}>
                     <View style={styles.locationPromptContainer}>
                         <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
                             Verification Failed
@@ -1779,7 +1573,7 @@ const NewHomeScreen = () => {
                             </AppText>
                         </TouchableOpacityView>
                     </View>
-                </View> : null}
+                </View>
             </Modal>
 
             <Modal
@@ -1788,7 +1582,7 @@ const NewHomeScreen = () => {
                 visible={showProfileCompletionReminder}
                 statusBarTranslucent
                 onRequestClose={() => setShowProfileCompletionReminder(false)}>
-                {showProfileCompletionReminder ? <View style={styles.centeredView}>
+                <View style={styles.centeredView}>
                     <View style={styles.confirmContainer}>
                         <FastImage source={completeProfileBanner} resizeMode="stretch" style={styles.bdyBack} />
                         <AppText style={{ textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK}>
@@ -1809,7 +1603,7 @@ const NewHomeScreen = () => {
                             No, skip now
                         </AppText>
                     </View>
-                </View> : null}
+                </View>
             </Modal>
 
 
@@ -1914,7 +1708,7 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp5,
         backgroundColor: '#FFFFFF33',
         width: metrics.hp8,
-        marginTop: -metrics.hp2
+        marginTop:-metrics.hp2
     },
     activeBackground: {
         height: metrics.hp1_2,
@@ -2086,3 +1880,4 @@ const styles = StyleSheet.create({
         width: metrics.hp15,
     },
 });
+

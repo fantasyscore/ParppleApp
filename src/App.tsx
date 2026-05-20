@@ -141,75 +141,75 @@ const App = () => {
     return unsubscribe;
   }, []);
 
-  useEffect(() => {
-    const applyCaptureProtection = async () => {
-      try {
-        await CaptureProtection.prevent({
-          screenshot: true,
-          record: false,
-          appSwitcher: true,
-        });
-      } catch (error) {
-        console.warn("[App] Failed to apply capture protection:", error);
-      }
-    };
+  // useEffect(() => {
+  //   const applyCaptureProtection = async () => {
+  //     try {
+  //       await CaptureProtection.prevent({
+  //         screenshot: true,
+  //         record: false,
+  //         appSwitcher: true,
+  //       });
+  //     } catch (error) {
+  //       console.warn("[App] Failed to apply capture protection:", error);
+  //     }
+  //   };
 
-    void applyCaptureProtection();
+  //   void applyCaptureProtection();
 
-    const subscription = AppState.addEventListener("change", (nextState) => {
-      if (nextState === "active") {
-        void applyCaptureProtection();
-      }
-    });
+  //   const subscription = AppState.addEventListener("change", (nextState) => {
+  //     if (nextState === "active") {
+  //       void applyCaptureProtection();
+  //     }
+  //   });
 
-    return () => {
-      subscription.remove();
-      // Restore defaults for development reload/unmount.
-      CaptureProtection.allow().catch(() => null);
-    };
-  }, []);
+  //   return () => {
+  //     subscription.remove();
+  //     // Restore defaults for development reload/unmount.
+  //     CaptureProtection.allow().catch(() => null);
+  //   };
+  // }, []);
 
-  useEffect(() => {
-    let isMounted = true;
+  // useEffect(() => {
+  //   let isMounted = true;
 
-    const syncRecordingState = async () => {
-      try {
-        const isRecording = await CaptureProtection.isScreenRecording();
-        if (isMounted) {
-          setIsScreenRecordingBlocked(Boolean(isRecording));
-        }
-      } catch (error) {
-        console.warn("[App] Failed to check recording state:", error);
-      }
-    };
+  //   const syncRecordingState = async () => {
+  //     try {
+  //       const isRecording = await CaptureProtection.isScreenRecording();
+  //       if (isMounted) {
+  //         setIsScreenRecordingBlocked(Boolean(isRecording));
+  //       }
+  //     } catch (error) {
+  //       console.warn("[App] Failed to check recording state:", error);
+  //     }
+  //   };
 
-    void syncRecordingState();
+  //   void syncRecordingState();
 
-    const eventSubscription = CaptureProtection.addListener((eventType) => {
-      if (!isMounted) return;
-      if (eventType === CaptureEventType.RECORDING) {
-        setIsScreenRecordingBlocked(true);
-        return;
-      }
-      if (eventType === CaptureEventType.END_RECORDING) {
-        setIsScreenRecordingBlocked(false);
-      }
-    });
+  //   const eventSubscription = CaptureProtection.addListener((eventType) => {
+  //     if (!isMounted) return;
+  //     if (eventType === CaptureEventType.RECORDING) {
+  //       setIsScreenRecordingBlocked(true);
+  //       return;
+  //     }
+  //     if (eventType === CaptureEventType.END_RECORDING) {
+  //       setIsScreenRecordingBlocked(false);
+  //     }
+  //   });
 
-    const appStateSubscription = AppState.addEventListener("change", (nextState) => {
-      if (nextState === "active") {
-        void syncRecordingState();
-      }
-    });
+  //   const appStateSubscription = AppState.addEventListener("change", (nextState) => {
+  //     if (nextState === "active") {
+  //       void syncRecordingState();
+  //     }
+  //   });
 
-    return () => {
-      isMounted = false;
-      appStateSubscription.remove();
-      if (eventSubscription) {
-        CaptureProtection.removeListener(eventSubscription);
-      }
-    };
-  }, []);
+  //   return () => {
+  //     isMounted = false;
+  //     appStateSubscription.remove();
+  //     if (eventSubscription) {
+  //       CaptureProtection.removeListener(eventSubscription);
+  //     }
+  //   };
+  // }, []);
 
   return (
     <SafeAreaProvider>

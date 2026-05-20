@@ -648,12 +648,6 @@ export const ganderDATA_DATING = [
         title: "Beyond Binary",
         sendTitle: "nonbinary",
     },
-    {
-        id: "4",
-        title: "Everyone",
-        sendTitle: "everyone",
-
-    },
 ];
 export const childrenDATA = [
     {

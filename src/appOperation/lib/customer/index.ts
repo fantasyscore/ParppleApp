@@ -75,7 +75,6 @@ export default (appOperation: AppOperation) => ({
     appOperation.post(`app/userAction/blockById`, data, CUSTOMER_TYPE),
   uplaodPhotoAPI: (data: any) =>
     appOperation.post(`asset/upload`, data, CUSTOMER_TYPE),
-  // Alternative: If API requires POST instead of GET
-  // loadChatMessagesAPI: (data: any) =>
-  //   appOperation.post(`chat/conversation`, data, CUSTOMER_TYPE),
+  deletePhotoAPI: (data: { imageId: string }) =>
+    appOperation.post(`asset/delete`, data, CUSTOMER_TYPE),
 });

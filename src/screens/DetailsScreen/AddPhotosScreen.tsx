@@ -14,7 +14,7 @@ import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import GoButton from "../../common/GoButton";
 import { toastAlert } from "../../actions/UploadImageActions";
 import { useDispatch, useSelector } from "react-redux";
-import { addProfile, discoverProfile, getNewMatches, getProfile, uploadImagesPhotoAPI } from "../../actions/authActions";
+import { addProfile, deletePhotoAPI, discoverProfile, getNewMatches, getProfile, uploadImagesPhotoAPI } from "../../actions/authActions";
 import { Image as ImageCompressor } from "react-native-compressor";
 import LinearGradient from "react-native-linear-gradient";
 import { check, request, PERMISSIONS, RESULTS, openSettings } from "react-native-permissions";
@@ -92,8 +92,8 @@ const AddPhotoScreen = () => {
   const datalistnew = new Array(1).fill(null).map((_, index) => ({ id: String(index) }));
   const [photos, setPhotos] = useState(
     Array(6)
-      .fill({ id: "", image: "", loading: false })
-      .map((_, i) => ({ id: String(i + 1), image: "", loading: false }))
+      .fill({ id: "", image: "", imageId: "", loading: false })
+      .map((_, i) => ({ id: String(i + 1), image: "", imageId: "", loading: false }))
   );
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
@@ -112,11 +112,25 @@ const AddPhotoScreen = () => {
       return;
     }
 
+    const isAnyLoading = photos.some((p) => p.loading);
+    if (isAnyLoading) {
+      toastAlert.showToastError("Please wait for the current action to finish.");
+      return;
+    }
+
     try {
       const permissionResult = await requestGalleryPermission();
       console.log("[AddPhotosScreen] pickMultipleImages permission result:", permissionResult);
 
       if (!permissionResult.granted) {
+        return;
+      }
+
+      const currentCount = photos.filter((p) => p.image !== "" && p.image !== "Unsupported").length;
+      const remainingSlots = 6 - currentCount;
+
+      if (remainingSlots <= 0) {
+        toastAlert.showToastError("You can upload a maximum of 6 photos only.");
         return;
       }
 
@@ -132,7 +146,7 @@ const AddPhotoScreen = () => {
       launchImageLibrary(
         {
           mediaType: "photo",
-          selectionLimit: 6,
+          selectionLimit: remainingSlots,
           quality: 0.8,
           ...(Platform.OS === 'ios' && { presentationStyle: 'pageSheet' })
         },
@@ -154,7 +168,7 @@ const AddPhotoScreen = () => {
             return;
           }
 
-          const assets = res.assets.slice(0, 6);
+          const assets = res.assets.slice(0, remainingSlots);
           console.log(`[AddPhotosScreen] Selected ${assets.length} image(s) to upload.`);
 
           // Set loading state
@@ -172,7 +186,7 @@ const AddPhotoScreen = () => {
 
           // Process uploads asynchronously after state update
           try {
-            const uploadedUrls: string[] = [];
+            const uploadedUrls: { url: string; imageId: string }[] = [];
 
             for (const asset of assets) {
               try {
@@ -195,31 +209,35 @@ const AddPhotoScreen = () => {
 
                 if (response?.statusCode === 200 && response?.data) {
                   const imageUrl = typeof response.data === 'string' ? response.data : (response.data.url || response.data.image || response.data.fileUrl || "");
-                  uploadedUrls.push(imageUrl || "Unsupported");
-                  if (response?.data?.success === false) {
-                    setResponseMessage(response?.data?.message)
+                  const imageId = response.data?._id || response.data?.id || "";
+                  uploadedUrls.push({ url: imageUrl || "Unsupported", imageId });
+                  if (response?.data?.success === false || imageUrl === "Unsupported") {
+                    setResponseMessage(response?.data?.message || response?.message || "Unsupported image format or size.");
                   }
                 } else {
-                  uploadedUrls.push("Unsupported");
+                  uploadedUrls.push({ url: "Unsupported", imageId: "" });
+                  setResponseMessage(response?.message || response?.data?.message || "Unsupported image format or size.");
                 }
               } catch (err) {
                 console.error("[AddPhotosScreen] Compression or upload failed:", err);
-                uploadedUrls.push("Unsupported");
+                uploadedUrls.push({ url: "Unsupported", imageId: "" });
+                setResponseMessage("Compression or upload failed. Please try a different image.");
               }
             }
 
             // Update photos with uploaded URLs
             setPhotos((prev) => {
-              const updated = [...prev];
               let uploadIndex = 0;
-              for (let i = 0; i < updated.length && uploadIndex < uploadedUrls.length; i++) {
-                if (updated[i].loading) {
-                  updated[i].loading = false;
-                  if (uploadedUrls[uploadIndex]) updated[i].image = uploadedUrls[uploadIndex];
+              const finalPhotos = prev.map((p) => {
+                if (p.loading && p.image === "" && uploadIndex < uploadedUrls.length) {
+                  const newImage = uploadedUrls[uploadIndex].url;
+                  const newId = uploadedUrls[uploadIndex].imageId;
                   uploadIndex++;
+                  return { ...p, loading: false, image: newImage, imageId: newId };
                 }
-              }
-              return updated;
+                return p;
+              });
+              return finalPhotos;
             });
           } catch (err) {
             console.error("[AddPhotosScreen] Upload processing failed:", err);
@@ -237,6 +255,12 @@ const AddPhotoScreen = () => {
     // Prevent multiple simultaneous picker launches
     if (isPickerOpenRef.current) {
       console.log("[AddPhotosScreen] pickSingleImage: picker is already open or transitioning. Request ignored.");
+      return;
+    }
+
+    const isAnyLoading = photos.some((p) => p.loading);
+    if (isAnyLoading) {
+      toastAlert.showToastError("Please wait for the current uploading to finish.");
       return;
     }
 
@@ -313,14 +337,21 @@ const AddPhotoScreen = () => {
               updated[index].loading = false;
               if (response?.statusCode === 200 && response?.data) {
                 const imageUrl = typeof response.data === 'string' ? response.data : (response.data.url || response.data.image || response.data.fileUrl || "");
+                const imageId = response.data?._id || response.data?.id || "";
                 updated[index].image = imageUrl || "Unsupported";
+                updated[index].imageId = imageId;
+                if (response?.data?.success === false || imageUrl === "Unsupported") {
+                  setResponseMessage(response?.data?.message || response?.message || "Unsupported image format or size.");
+                }
               } else {
                 updated[index].image = "Unsupported";
+                setResponseMessage(response?.message || response?.data?.message || "Unsupported image format or size.");
               }
               return updated;
             });
           } catch (err) {
             console.error("[AddPhotosScreen] Single upload failed:", err);
+            setResponseMessage("An error occurred during upload. Please try a different image.");
             setPhotos((prev) => {
               const updated = [...prev];
               updated[index].loading = false;
@@ -337,35 +368,148 @@ const AddPhotoScreen = () => {
   };
 
 
+  const deleteImage = async (item: any, index: number) => {
+    if (item.loading) return; // Prevent duplicate requests
+
+    // If it's just "Unsupported" local state, just clear it immediately
+    if (item.image === "Unsupported") {
+      setPhotos((prev) => {
+        const remainingSlots = prev.filter((_, i) => i !== index);
+        return [...remainingSlots, { image: "", imageId: "", loading: false }]
+          .map((item, idx) => {
+            const img = item.image || "";
+            return {
+              id: String(idx + 1),
+              image: img,
+              imageId: item.imageId || "",
+              loading: item.loading || false,
+            };
+          });
+      });
+      return;
+    }
+
+    const imageId = item.imageId;
+
+    if (!imageId) {
+      // Fallback: clear and shift left locally
+      setPhotos((prev) => {
+        const remainingSlots = prev.filter((_, i) => i !== index);
+        return [...remainingSlots, { image: "", imageId: "", loading: false }]
+          .map((item, idx) => {
+            const img = item.image || "";
+            return {
+              id: String(idx + 1),
+              image: img,
+              imageId: item.imageId || "",
+              loading: item.loading || false,
+            };
+          });
+      });
+      return;
+    }
+
+    // 1. Show loading state on the deleting slot
+    setPhotos((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], loading: true };
+      return updated;
+    });
+
+    try {
+      // 2. Call the delete image API
+      const res = await dispatch(deletePhotoAPI({ imageId }) as any);
+
+      if (res?.statusCode === 200 || res?.success || res?.code === 200) {
+        // 3. Delete was successful. We now remove the image from the local list
+        // and shift subsequent images to the left to maintain order/priority.
+        setPhotos((prev) => {
+          const remainingSlots = prev.filter((_, i) => i !== index);
+          return [...remainingSlots, { image: "", imageId: "", loading: false }]
+            .map((item, idx) => {
+              const img = item.image || "";
+              return {
+                id: String(idx + 1),
+                image: img,
+                imageId: item.imageId || "",
+                loading: item.loading || false,
+              };
+            });
+        });
+      } else {
+        // Handle failure: reset loading
+        setPhotos((prev) => {
+          const updated = [...prev];
+          updated[index] = { ...updated[index], loading: false };
+          return updated;
+        });
+        toastAlert.showToastError(res?.message || "Failed to delete image");
+      }
+    } catch (err: any) {
+      console.error("[AddPhotosScreen] Delete API error:", err);
+      // Handle failure: reset loading
+      setPhotos((prev) => {
+        const updated = [...prev];
+        updated[index] = { ...updated[index], loading: false };
+        return updated;
+      });
+      toastAlert.showToastError(err?.message || "An error occurred while deleting the image");
+    }
+  };
+
   const uploadedCount = photos.filter((p) => p.image !== "" && p.image !== "Unsupported").length;
   const minRequired = 2;
   const remaining = Math.max(0, minRequired - uploadedCount);
 
   const renderItem = ({ item, index }: { item: any; index: number }) => (
-    <TouchableOpacityView
-      onPress={() => (item.image ? pickSingleImage(index) : pickMultipleImages())}
-      onLongPress={() => onLongPressImage(item.image)} // 👈 added
-      style={styles.boxContainer}
-      disabled={item.loading}
-    >
-      {item.loading ? (
-        <View style={styles.loaderContainer}>
-          <AppText color={LIGHT_BLACK} weight={INTER_BOLD}>
-            Uploading...
-          </AppText>
-        </View>
-      ) : item.image === "Unsupported" ? (
-        <View style={styles.loaderContainer}>
-          <AppText color={RED} weight={INTER_BOLD}>
-            Unsupported
-          </AppText>
-        </View>
-      ) : item.image ? (
-        <FastImage source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
-      ) : (
-        <FastImage source={uploadIcon} resizeMode="contain" style={styles.icon} />
+    <View style={styles.itemWrapper}>
+      <TouchableOpacityView
+        onPress={() => {
+          if (!item.image || item.image === "Unsupported") {
+            pickMultipleImages();
+          }
+        }}
+        onLongPress={() => onLongPressImage(item.image)}
+        style={[styles.boxContainer, { width: "100%", height: "100%", marginBottom: 0 }]}
+        disabled={item.loading}
+      >
+        {item.image && item.image !== "Unsupported" ? (
+          <View style={{ width: "100%", height: "100%" }}>
+            <FastImage source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
+            {item.loading && (
+              <View style={[StyleSheet.absoluteFillObject, { backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" }]}>
+                <AppText color={colors.white} weight={INTER_BOLD} type={TWELVE}>
+                  Deleting...
+                </AppText>
+              </View>
+            )}
+          </View>
+        ) : item.loading ? (
+          <View style={styles.loaderContainer}>
+            <AppText color={LIGHT_BLACK} weight={INTER_BOLD}>
+              Uploading...
+            </AppText>
+          </View>
+        ) : item.image === "Unsupported" ? (
+          <View style={styles.loaderContainer}>
+            <AppText color={RED} weight={INTER_BOLD}>
+              Unsupported
+            </AppText>
+          </View>
+        ) : (
+          <FastImage source={uploadIcon} resizeMode="contain" style={styles.icon} />
+        )}
+      </TouchableOpacityView>
+
+      {item.image && !item.loading && (
+        <TouchableOpacityView
+          onPress={() => deleteImage(item, index)}
+          style={styles.deleteButtonContainer}
+        >
+          <AppText color={colors.white} weight={INTER_BOLD} style={styles.deleteButtonText}>×</AppText>
+        </TouchableOpacityView>
       )}
-    </TouchableOpacityView>
+    </View>
   );
 
 
@@ -481,12 +625,16 @@ const styles = StyleSheet.create({
     marginTop: metrics.hp3,
     flex: 1,
   },
-  boxContainer: {
+  itemWrapper: {
     height: metrics.hp12,
     width: "30%",
+    position: "relative",
+    marginBottom: metrics.hp1,
+  },
+  boxContainer: {
+    height: metrics.hp12,
     borderWidth: metrics.hp0_1,
     borderColor: colors.opecity,
-    marginBottom: metrics.hp1,
     borderRadius: metrics.hp1_5,
     borderStyle: "dashed",
     alignItems: "center",
@@ -530,6 +678,27 @@ const styles = StyleSheet.create({
   },
   modalCloseArea: {
     ...StyleSheet.absoluteFillObject,
+  },
+  deleteButtonContainer: {
+    position: "absolute",
+    top: metrics.hp0_5,
+    right: metrics.hp0_5,
+    width: metrics.hp2,
+    height: metrics.hp2,
+    backgroundColor: "red",
+    borderRadius: metrics.hp2_5 / 2,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10,
+    elevation: 5,
+  },
+  deleteButtonText: {
+    color: "white",
+    fontSize: metrics.hp1_8,
+    lineHeight: metrics.hp1_8,
+    textAlign: "center",
+    fontWeight:"600",
+    marginTop:metrics.hp0_1,
   },
 
 });

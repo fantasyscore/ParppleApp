@@ -21,7 +21,7 @@ import { AppText, BLACK, fontSize, INTER_BOLD, THIRTEEN, WHITE } from "../../com
 
 const { width, height } = Dimensions.get("window");
 const COLLAPSED_IMAGE_HEIGHT = height * 0.78;
-const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setSwipeLeft, setProfileData, discover, setSuperLikeVisible, canSuperLike }: any) => {
+const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setSwipeLeft, setProfileData, discover, setSuperLikeVisible, canSuperLike, onProfileImageIndexChange }: any) => {
     const dispatch = useDispatch();
     const cardWidthRef = useRef(0);
     const listProfilesData = useSelector((state: any) => state.auth.listProfiles);
@@ -60,6 +60,30 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
             const updatedObject = { ...profile, index: newIndex };
             setProfileData(updatedObject);
         } else {
+            if (onProfileImageIndexChange) {
+                let newIndex = profile.index || 0;
+                if (x > cardWidthRef.current / 2) {
+                    newIndex = newIndex < totalImages - 1 ? newIndex + 1 : newIndex;
+                } else {
+                    newIndex = newIndex > 0 ? newIndex - 1 : newIndex;
+                }
+
+                if (newIndex !== profile.index && profile.gallery && profile.gallery[newIndex]?.url) {
+                    const preloadList: any[] = [{ uri: profile.gallery[newIndex].url, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable }];
+
+                    if (newIndex > 0 && profile.gallery[newIndex - 1]?.url) {
+                        preloadList.push({ uri: profile.gallery[newIndex - 1].url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable });
+                    }
+                    if (newIndex < totalImages - 1 && profile.gallery[newIndex + 1]?.url) {
+                        preloadList.push({ uri: profile.gallery[newIndex + 1].url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable });
+                    }
+                    FastImage.preload(preloadList);
+                }
+
+                onProfileImageIndexChange(profile, newIndex);
+                return;
+            }
+
             const updatedProfiles = listProfilesData.map((p: any) => {
                 if (p._id === profile._id) {
                     let newIndex = p.index || 0;
@@ -102,11 +126,14 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                 currentIndex < gallery.length - 1 ? gallery[currentIndex + 1]?.url : null,
             ].filter(Boolean);
 
-            imagesToPreload.forEach((url: string) => {
-                if (url) {
-                    FastImage.preload([{ uri: url, priority: FastImage.priority.normal }]);
-                }
-            });
+            const preloadSources = imagesToPreload.map((url: string) => ({
+                uri: url,
+                priority: FastImage.priority.normal,
+                cache: FastImage.cacheControl.immutable,
+            }));
+            if (preloadSources.length > 0) {
+                FastImage.preload(preloadSources);
+            }
         }
     }, [data]);
 const inUnderFunction = () =>{

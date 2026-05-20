@@ -93,7 +93,7 @@ export const listProfiles: any = (navigate: any, skip?: number, limit?: number, 
     // Prevent accidental rapid duplicate calls from multiple screens mounting.
     // (e.g. AuthLoading + Home focus effect)
     // Note: we only guard "in flight", not "already cached".
-    if ((listProfiles as any)._inFlight) return;
+    if ((listProfiles as any)._inFlight) return { skipped: true };
     (listProfiles as any)._inFlight = true;
     try {
         const payload: any = {};
@@ -102,9 +102,10 @@ export const listProfiles: any = (navigate: any, skip?: number, limit?: number, 
         
         const response: any = await appOperation.customer.datingProfileAPI(payload);
         if (response?.statusCode == 200) {
-            const dataWithIndex = response?.data.map((item: any, idx: number) => ({
+            const responseData = Array.isArray(response?.data) ? response.data : [];
+            const dataWithIndex = responseData.map((item: any) => ({
                 ...item,
-                index: 0,
+                index: Number.isFinite(Number(item?.index)) ? Number(item.index) : 0,
             }));
             
             if (merge && getState) {
@@ -113,17 +114,26 @@ export const listProfiles: any = (navigate: any, skip?: number, limit?: number, 
                 const existingProfiles = state?.auth?.listProfiles || [];
                 const existingIds = new Set(existingProfiles.map((p: any) => p._id));
                 const newProfiles = dataWithIndex.filter((item: any) => !existingIds.has(item._id));
+                if (newProfiles.length === 0) {
+                    !navigate && NavigationService.reset(NAVIGATION_BOTTOMTAB_SCREEN)
+                    return { data: dataWithIndex, newProfiles, mergedProfiles: existingProfiles };
+                }
                 const mergedProfiles = [...existingProfiles, ...newProfiles];
                 dispatch(setListProfiles(mergedProfiles));
+                !navigate && NavigationService.reset(NAVIGATION_BOTTOMTAB_SCREEN)
+                return { data: dataWithIndex, newProfiles, mergedProfiles };
             } else {
                 // Fresh fetch - replace all profiles
                 dispatch(setListProfiles(dataWithIndex));
+                !navigate && NavigationService.reset(NAVIGATION_BOTTOMTAB_SCREEN)
+                return { data: dataWithIndex, newProfiles: dataWithIndex, mergedProfiles: dataWithIndex };
             }
-            !navigate && NavigationService.reset(NAVIGATION_BOTTOMTAB_SCREEN)
         }
+        return { data: [], newProfiles: [], mergedProfiles: [] };
     } catch (error: any) {
         NavigationService.navigate(NAVIGATION_WELCOME_SCREEN);
         toastAlert.showToastError(error);
+        return { data: [], newProfiles: [], mergedProfiles: [], error };
     } finally {
         (listProfiles as any)._inFlight = false;
     }
@@ -479,6 +489,16 @@ export const uploadImagesPhotoAPI: any = (data: any, params: any) => async (disp
         if (response?.statusCode == 200) {
             console.log(response,"responseresponseresponseresponse")
         }
+        return response;
+    } catch (error: any) {
+        throw error;
+    }
+};
+
+export const deletePhotoAPI: any = (data: { imageId: string }) => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.deletePhotoAPI(data);
+        console.log(response, "deletePhotoAPI response");
         return response;
     } catch (error: any) {
         throw error;

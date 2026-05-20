@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, TextInput, View, Platform } from "react-native";
+import { StyleSheet, TextInput, View, Platform, Keyboard, Animated } from "react-native";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import HeaderCommon from "../../common/HeaderCommon";
 import metrics from "../../assets/Metrics";
@@ -36,18 +36,41 @@ const LoginScreen = () => {
     const [countryCode, setCountryCode] = useState("+91");
     const [fcmtoken, setfcmToken] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [foucs, setFoucs] = useState(false)
+    const [foucs, setFoucs] = useState(false);
+    const [keyboardOffset] = useState(() => new Animated.Value(0));
+
+    useEffect(() => {
+        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+        const showSubscription = Keyboard.addListener(showEvent, (e) => {
+            Animated.timing(keyboardOffset, {
+                toValue: Platform.OS === 'ios' ? e.endCoordinates.height : 0,
+                duration: e.duration || 250,
+                useNativeDriver: false,
+            }).start();
+        });
+
+        const hideSubscription = Keyboard.addListener(hideEvent, (e) => {
+            Animated.timing(keyboardOffset, {
+                toValue: 0,
+                duration: e.duration || 250,
+                useNativeDriver: false,
+            }).start();
+        });
+
+        return () => {
+            showSubscription.remove();
+            hideSubscription.remove();
+        };
+    }, [keyboardOffset]);
+
 
     useEffect(() => {
         let unsubscribeTokenRefresh: (() => void) | undefined;
 
         const initFCM = async () => {
             try {
-                const authStatus = await messaging().requestPermission();
-                const enabled =
-                    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-                    authStatus === messaging.AuthorizationStatus.PROVISIONAL;
-                if (!enabled) return;
                 if (Platform.OS === "ios") {
                     await messaging().registerDeviceForRemoteMessages();
                 }
@@ -180,20 +203,22 @@ const LoginScreen = () => {
                         <GoButton colortrue={firstNmae} onPress={() => onSubmit()} />
                     </View>
                 </LinearGradient> */}
-                <LinearGradient
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 0, y: 1 }}
-                    style={{ height: metrics.hp19 }}
-                    colors={["#ffffff50", colors.white, colors.white]}
-                >
-                    <View style={{ marginTop: metrics.hp9 }}>
-                        <GoButton
-                            colortrue={phoneNumber.length === 10 && !isLoading}
-                            onPress={loginButton}
-                            disabled={isLoading}
-                        />
-                    </View>
-                </LinearGradient>
+                <Animated.View style={{ marginBottom: keyboardOffset }}>
+                    <LinearGradient
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 0, y: 1 }}
+                        style={{ height: metrics.hp19 }}
+                        colors={["#ffffff50", colors.white, colors.white]}
+                    >
+                        <View style={{ marginTop: metrics.hp9 }}>
+                            <GoButton
+                                colortrue={phoneNumber.length === 10 && !isLoading}
+                                onPress={loginButton}
+                                disabled={isLoading}
+                            />
+                        </View>
+                    </LinearGradient>
+                </Animated.View>
 
                 <CountryPicker
                     show={show}
