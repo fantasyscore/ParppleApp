@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { ActivityIndicator, Alert, Animated, ImageBackground, Modal, Platform, StyleSheet, View } from "react-native";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import NavigationService from "../../navigation/NavigationService";
-import { goldCard, goldForSuperLIke, logoBlue, orBottomIcon, premiumIcon, superLikeHeader, upgradPlan } from "../../helper/ImageAssets";
+import { goldCard, goldForSuperLIke, logoBlue, orBottomIcon, premiumIcon, superLikeHeader } from "../../helper/ImageAssets";
 import LinearGradient from "react-native-linear-gradient";
 import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
@@ -12,13 +12,14 @@ import { colors } from "../../theme/colors";
 import * as RNIap from 'react-native-iap';
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 import { useDispatch } from "react-redux";
-import { getProfile, objectSendAPI, subscriptionVerifyAPI, verifyconsumableitemsAPI } from "../../actions/authActions";
+import { deleteAccountAPI, getProfile, iosPucrchesAPIIs, verifyconsumableitemsAPI } from "../../actions/authActions";
 
-// One-time Product SKUs
+// Product IDs must match exactly what you created in App Store Connect (iOS) / Play Console (Android).
+// react-native-iap v12 (iOS branch): use getProducts({ skus }). v14 (Android) uses fetchProducts.
 const PRODUCT_SKUS = Platform.select({
-    android: [ '10_super_likes', '3_super_likes','1_super_like'],
+    android: ['10_super_likes', '3_super_likes', '1_super_like'],
     ios: ['10_super_likes', '3_super_likes', '1_super_like'],
-}) || [];
+}) ?? ['10_super_likes', '3_super_likes', '1_super_like'];
 
 // Helper to extract numeric price for calculations
 const extractPriceNumber = (priceStr: string): { amount: number; currency: string } => {
@@ -33,6 +34,7 @@ const SuperLikePurchese = () => {
     const [selectedPlanIndex, setSelectedPlanIndex] = useState(0);
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [retryCount, setRetryCount] = useState(0);
     const [processing, setProcessing] = useState<string | null>(null);
     const lastVerifiedKeyRef = useRef<string | null>(null);
     const isVerifyingRef = useRef(false);
@@ -62,42 +64,34 @@ const SuperLikePurchese = () => {
                 setLoading(true);
                 await RNIap.initConnection();
 
-                // Fetch ONE-TIME products (consumables)
-                const availableProducts = await RNIap.fetchProducts({
-                    skus: PRODUCT_SKUS,
-                    type: 'in-app'
-                });
+                // iOS (v12): getProducts({ skus }) for in-app consumables. v14 has fetchProducts({ skus, type: 'in-app' }).
+                let rawProducts: any[] = [];
+                if (Platform.OS === 'ios') {
+                    rawProducts = await RNIap.getProducts({ skus: PRODUCT_SKUS });
+                } else if (typeof (RNIap as any).fetchProducts === 'function') {
+                    rawProducts = await (RNIap as any).fetchProducts({ skus: PRODUCT_SKUS, type: 'in-app' });
+                } else {
+                    rawProducts = await RNIap.getProducts({ skus: PRODUCT_SKUS });
+                }
+                const availableProducts = Array.isArray(rawProducts) ? rawProducts : [];
 
-                if (availableProducts && availableProducts.length > 0) {
-                    // First pass: calculate all products with per-item pricing
+                if (__DEV__ && availableProducts.length === 0) {
+                    console.warn('[Super Like IAP] No products returned. Check: 1) Product IDs in app match App Store Connect exactly, 2) Paid Apps agreement signed, 3) Bank/tax set up, 4) Products Ready to Submit, 5) Same Apple ID sandbox, 6) Bundle ID matches.');
+                }
+
+                if (availableProducts.length > 0) {
                     const productsWithPricing = availableProducts.map((prod: any) => {
-                        const productId = (prod.productId || prod.id || '').toString();
-                        const likeCountStr = productId.match(/\d+/)?.[0] || '1';
-                        const n = parseInt(likeCountStr);
-
-                        const fullPriceStr = prod.localizedPrice || prod.displayPrice || '₹0';
-                        const priceInfo = extractPriceNumber(fullPriceStr);
+                        const productId = (prod.productId ?? prod.id ?? '').toString();
+                        const likeCountStr = productId.match(/\d+/)?.[0] ?? '1';
+                        const n = parseInt(likeCountStr, 10);
+                        const fullPriceStr = prod.localizedPrice ?? prod.displayPrice ?? prod.price ?? '₹0';
+                        const priceInfo = extractPriceNumber(String(fullPriceStr));
                         const total = priceInfo.amount;
-
-                        // Rule: Compute exact per-item value, then floor to 2 decimal places for items 1 to (n-1)
                         const perItemFixed = Math.floor((total / n) * 100) / 100;
-
-                        // Rule: Assign any remaining amount to the final item
-                        const lastItemAmount = Number((total - (perItemFixed * (n - 1))).toFixed(2));
-
-                        // Proof check
-                        const proofSum = Number(((perItemFixed * (n - 1)) + lastItemAmount).toFixed(2));
-
-                        console.log(`[Super Like IAP Proof Check]`);
-                        console.log(`- Selected pack: ${n} Super Likes`);
-                        console.log(`- Total price: ${total}`);
-                        console.log(`- Breakdown: ${n > 1 ? `${perItemFixed} x ${n - 1} + ${lastItemAmount} (final)` : `${total} x 1`}`);
-                        console.log(`- Proof sum: ${proofSum} (Matches: ${proofSum === total})`);
-
                         const perItemPriceStr = `${priceInfo.currency}${perItemFixed.toFixed(2)}`;
-
                         return {
                             ...prod,
+                            productId: prod.productId ?? prod.id,
                             likeCount: n,
                             displayPrice: fullPriceStr,
                             perItemPrice: perItemPriceStr,
@@ -107,42 +101,30 @@ const SuperLikePurchese = () => {
                         };
                     });
 
-                    // Find base price (single unit pack)
                     const singleUnitPack = productsWithPricing.find((p: any) => p.likeCount === 1);
-                    const baseUnitPrice = singleUnitPack?.perItemPriceAmount || 0;
+                    const baseUnitPrice = singleUnitPack?.perItemPriceAmount ?? 0;
 
-                    // Second pass: calculate discounts
                     const formattedProducts = productsWithPricing.map((prod: any) => {
                         const n = prod.likeCount;
-                        let discount = "";
+                        let discount = '';
                         let discountPercent = 0;
-
                         if (n > 1 && baseUnitPrice > 0) {
-                            // Calculate discount: (baseUnitPrice - perUnitPackPrice) / baseUnitPrice * 100
                             const perUnitSavings = baseUnitPrice - prod.perItemPriceAmount;
                             discountPercent = Number(((perUnitSavings / baseUnitPrice) * 100).toFixed(2));
                             const roundedDiscount = Math.round(discountPercent);
-
-                            // UI Rules: Show discount badge if ≥ 10%
-                            if (roundedDiscount >= 10) {
-                                discount = `Save ${roundedDiscount}%`;
-                            }
+                            if (roundedDiscount >= 10) discount = `Save ${roundedDiscount}%`;
                         }
-
-                        return {
-                            ...prod,
-                            discount,
-                            discountPercent,
-                        };
+                        return { ...prod, discount, discountPercent };
                     });
 
-                    // Sort descending by like count
                     formattedProducts.sort((a: any, b: any) => b.likeCount - a.likeCount);
-
                     setProducts(formattedProducts);
                 }
             } catch (err) {
                 console.warn('IAP Initialization Error:', err);
+                if (__DEV__ && Platform.OS === 'ios') {
+                    console.warn('[Super Like IAP] iOS: ensure you use getProducts (v12). Product IDs must match App Store Connect exactly.');
+                }
             } finally {
                 setLoading(false);
             }
@@ -150,7 +132,7 @@ const SuperLikePurchese = () => {
 
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
             try {
-             
+
                 const key = (purchase?.transactionId || purchase?.orderId || purchase?.purchaseToken || purchase?.productId || '').toString();
                 if (isVerifyingRef.current) return;
                 if (key && lastVerifiedKeyRef.current === key) return;
@@ -167,13 +149,20 @@ const SuperLikePurchese = () => {
 
                 // Same verification API pattern as subscriptions
                 const data = {
-                    productId: purchase.productId, 
+                    productId: purchase.productId,
                     purchaseToken: purchase.purchaseToken,
                     platform: Platform.OS === 'ios' ? 'ios' : 'android',
                     orderId: purchase.id,
                 };
-
-                const response: any = await dispatch(verifyconsumableitemsAPI(data));
+                const newdata = {
+                    productId :purchase?.productId,
+                    transactionReceipt:purchase?.transactionReceipt,
+                    transactionId:purchase?.transactionId
+                }
+                
+                const response: any = await dispatch(iosPucrchesAPIIs(newdata))
+                console.log(response,"responseTworesponseTworesponseTworesponseTworesponseTworesponseTwo")
+                // const response: any = await dispatch(verifyconsumableitemsAPI(data));
                 const isOk = response?.statusCode === 200
                 if (!isOk) {
                     throw new Error(response?.message || response?.data?.message || 'Super Like verification failed');
@@ -207,29 +196,43 @@ const SuperLikePurchese = () => {
             if (purchaseErrorSubscription) purchaseErrorSubscription.remove();
             RNIap.endConnection();
         };
-    }, []);
+    }, [retryCount]);
 
+    // iOS (v12): requestPurchase({ sku }). Android (v14): requestPurchase({ request: { android: { skus } }, type: 'in-app' }).
     const handlePurchase = async () => {
         if (processing) return;
         const selectedProduct = products[selectedPlanIndex];
         if (!selectedProduct) return;
 
-        const productId = (selectedProduct as any).productId || (selectedProduct as any).id;
+        const productId = (selectedProduct as any).productId ?? (selectedProduct as any).id;
+        if (!productId) return;
 
         try {
-            setProcessing(productId);
-            const platformRequest: any = Platform.OS === 'android'
-                ? { android: { skus: [productId] } }
-                : { ios: { sku: productId } };
-
-            await RNIap.requestPurchase({
-                request: platformRequest,
-                type: 'in-app',
-            });
+            setProcessing(String(productId));
+            if (Platform.OS === 'ios') {
+                await RNIap.requestPurchase({
+                    sku: productId,
+                    andDangerouslyFinishTransactionAutomaticallyIOS: false,
+                });
+            } else if (typeof (RNIap as any).fetchProducts === 'function') {
+                await (RNIap as any).requestPurchase({
+                    request: { android: { skus: [productId] } },
+                    type: 'in-app',
+                });
+            } else {
+                await RNIap.requestPurchase({ skus: [productId] });
+            }
         } catch (err: any) {
             setProcessing(null);
-            console.warn('Purchase Error:', err);
+            if (!err?.message?.toLowerCase?.().includes('cancel')) {
+                console.warn('Purchase Error:', err);
+            }
         }
+    };
+
+    const retryLoadProducts = () => {
+        setLoading(true);
+        setRetryCount((c) => c + 1);
     };
 
     if (loading) {
@@ -245,7 +248,31 @@ const SuperLikePurchese = () => {
             </AppSafeAreaView>
         );
     }
-    const subscriptionItem = { id: '1', icon: goldCard, title: 'Gold' }
+
+    const subscriptionItem = { id: '1', icon: goldCard, title: 'Gold' };
+
+    // No products loaded — common on iOS if App Store Connect not fully set up. Show retry and hint.
+    if (products.length === 0) {
+        return (
+            <AppSafeAreaView style={{ backgroundColor: "#F5F7FA" }}>
+                <ImageBackground source={superLikeHeader} resizeMode="cover" style={styles.headerContainer}>
+                    <TouchableOpacityView onPress={() => NavigationService.goBack()} style={styles.closeButton} />
+                </ImageBackground>
+                <View style={styles.PremiumText}>
+                    <FastImage source={premiumIcon} resizeMode="contain" style={styles.pencilIcon} />
+                    <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>{"  "}Choose your Super Like</AppText>
+                </View>
+                <View style={[styles.loadingContainer, { paddingHorizontal: metrics.hp2 }]}>
+                    <AppText type={TWELVE} weight={INTER_MEDIUM} color={LIGHT_BLACK} style={{ textAlign: 'center' }}>
+                        Products could not be loaded. Check App Store Connect: Product IDs must match exactly (10_super_likes, 3_super_likes, 1_super_like), Paid Apps agreement signed, and products Ready to Submit.
+                    </AppText>
+                    <TouchableOpacityView onPress={retryLoadProducts} style={[styles.buttonContiner, { marginTop: metrics.hp2 }]}>
+                        <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={FORTEEN}>Retry</AppText>
+                    </TouchableOpacityView>
+                </View>
+            </AppSafeAreaView>
+        );
+    }
 
     return (
         <AppSafeAreaView style={{ backgroundColor: "#F5F7FA" }}>
@@ -464,12 +491,12 @@ const styles = StyleSheet.create({
         top: -metrics.hp0_6
     },
     imageiContainer: {
-        shadowColor: colors.black,
-        shadowOffset: { width: 0, height: metrics.hp1_2 },
-        shadowOpacity: 0.22,
-        shadowRadius: metrics.hp1,
+        // shadowColor: colors.black,
+        // shadowOffset: { width: 0, height: metrics.hp1_2 },
+        // shadowOpacity: 0.22,
+        // shadowRadius: metrics.hp1,
         elevation: 8,
-        height: metrics.hp10, width: "100%", marginTop: metrics.hp3, marginBottom:metrics.hp4,
+        height: metrics.hp10, width: "100%", marginTop: metrics.hp3, marginBottom: metrics.hp4,
     },
     payBackdrop: {
         flex: 1,

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { FlatList, ImageBackground, StyleSheet, View } from "react-native";
+import { FlatList, ImageBackground, Platform, StyleSheet, View } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
 import metrics from "../../assets/Metrics";
 import { colors } from "../../theme/colors";
@@ -66,6 +66,7 @@ const ChatsScreen = () => {
     const userData = useSelector((state: any) => state.auth.userData);
     const dispatch = useDispatch();
     const [profileData, setProfileData] = useState();
+    const [modalVisible, setModalVisible] = useState(false);
     useEffect(() => {
         dispatch(getNewMatches())
         dispatch(getRecentMatches())
@@ -207,7 +208,7 @@ const ChatsScreen = () => {
             >
                 <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
                     <ImageBackground
-                        blurRadius={item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM" ? metrics.hp7 : 0}
+                        blurRadius={item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM" ? metrics.hp3 : 0}
                         source={isBot ? AppIcon : { uri: item?.profilePicture?.url }}
                         resizeMode="cover"
                         style={styles.newMatchProfile}
@@ -229,7 +230,7 @@ const ChatsScreen = () => {
                                 <AppText style={{ textTransform: "capitalize" }} type={SIXTEEN} weight={INTER_BOLD} color={LIGHT_BLACK}>
                                     {item.name}{"  "}
                                 </AppText>
-                                <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />
+                                {item?.faceVerified == true ?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />:<></>}
                             </View>
                         }
                         {item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM" ?
@@ -415,11 +416,11 @@ const ChatsScreen = () => {
 
     return (
         <AppSafeAreaView>
-            <PeopleHeader profile={true} filter={true} />
+            <PeopleHeader profile={true} filter={true} setModalVisible={setModalVisible}/>
             <View style={styles.singlelIne} />
             {newMatches?.length ? (
-                <View style={{ paddingHorizontal: metrics.hp2 }}>
-                    <SearchContainer onChangeText={setSearch} value={search} placeholder={"Search matches"} style={{ height: metrics.hp7 }} />
+                <View style={{ paddingHorizontal: metrics.hp2, marginTop:Platform.OS === "ios" ? metrics.hp0_7: 0 }}>
+                    <SearchContainer onChangeText={setSearch} value={search} placeholder={"Search matches"} style={{ height: metrics.hp7, marginTop:Platform.OS === "ios" ? metrics.hp0_7: 0 }} />
                 </View>
             ) : (
                 <View style={{ paddingHorizontal: metrics.hp2 }}>
@@ -433,7 +434,7 @@ const ChatsScreen = () => {
                     keyExtractor={(item: any) => item.matchId || item.userId || 'bot'}
                     ListEmptyComponent={query ? noSearchFound : null}
                     ListHeaderComponent={ListHeaderComponent}
-                    ListFooterComponent={ListFooterComponent}
+                    // ListFooterComponent={ListFooterComponent}
                     contentContainerStyle={{ paddingBottom: metrics.hp5 }}
                     showsVerticalScrollIndicator={false}
                 />

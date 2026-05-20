@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus, Platform } from 'react-native';
 import { Bubble, GiftedChat, Time } from 'react-native-gifted-chat';
 import { blackIcon, blockModalImage, check, checks, emojiIcon, noccce, profileImage, rightBlack, sendButton, unmatchModalImage } from '../../helper/ImageAssets';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
@@ -937,6 +937,7 @@ const TakingScreen = () => {
                         emitTypingStatus(false);
                     }}
                     placeholder="Type a message..."
+                    placeholderTextColor={colors.black}
                     multiline
                 />
             </View>
@@ -970,16 +971,16 @@ const TakingScreen = () => {
 
             <View style={styles.tabContainer}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <TouchableOpacityView onPress={() => setTabSelect('Chat')} style={styles.inTabContainer}>
+                    <TouchableOpacityView onPress={() => setTabSelect('Chat')} style={[styles.inTabContainer,{ height:metrics.hp4}]}>
                         <AppText type={TWELVE} weight={INTER_BOLD} color={tabSelect === 'Chat' ? PURPLE : OPECITY_DARK}>Chat</AppText>
-                        <View style={[styles.selectLine, { backgroundColor: tabSelect === 'Chat' ? colors.purple : colors.transparent }]} />
+                        <View style={[styles.selectLine, { backgroundColor: tabSelect === 'Chat' ? colors.purple : colors.transparent,  marginTop:metrics.hp0_5, marginBottom:-metrics.hp1_1  }]} />
                     </TouchableOpacityView>
                     <AppText type={SIXTEEN} style={{ color: "#C3B7D0" }}>
                         /
                     </AppText>
-                    <TouchableOpacityView onPress={() => setTabSelect('Profile')} style={styles.inTabContainer}>
+                    <TouchableOpacityView onPress={() => setTabSelect('Profile')} style={[styles.inTabContainer,{ height:metrics.hp4}]}>
                         <AppText type={TWELVE} weight={INTER_BOLD} color={tabSelect === 'Profile' ? PURPLE : OPECITY_DARK}>Profile</AppText>
-                        <View style={[styles.selectLine, { backgroundColor: tabSelect === 'Profile' ? colors.purple : colors.transparent }]} />
+                        <View style={[styles.selectLine, { backgroundColor: tabSelect === 'Profile' ? colors.purple : colors.transparent,marginTop:metrics.hp0_5, marginBottom:-metrics.hp1_1 }]} />
                     </TouchableOpacityView>
                 </View>
             </View>
@@ -1108,11 +1109,11 @@ export default TakingScreen;
 
 const styles = StyleSheet.create({
     tabContainer: { backgroundColor: colors.white, height: metrics.hp5, justifyContent: 'flex-end' },
-    selectLine: { height: metrics.hp0_3, width: metrics.hp11, borderTopRightRadius: metrics.hp1, borderTopLeftRadius: metrics.hp1 },
+    selectLine: { height: metrics.hp0_3, width: "80%", borderTopRightRadius: metrics.hp1, borderTopLeftRadius: metrics.hp1, },
     inTabContainer: { alignItems: 'center', justifyContent: 'center', flex: 1 },
     containerChat: { flex: 1, backgroundColor: '#F5F7FA' },
     inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: metrics.hp2, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e0e0e0', paddingVertical: metrics.hp2 },
-    textInput: { minHeight: metrics.hp4, maxHeight: metrics.hp8, fontSize: fontSize(13), width: "83%", fontFamily: interMedium, marginLeft: metrics.hp1 },
+    textInput: { minHeight: metrics.hp4, maxHeight: metrics.hp8, fontSize: fontSize(13), width: "83%", fontFamily: interMedium, marginLeft: metrics.hp1, marginTop:Platform.OS === "ios"? metrics.hp1:0 },
     sendButton: { backgroundColor: '#6F13F2', borderRadius: metrics.hp50, marginLeft: 6, justifyContent: 'center', alignItems: 'center', height: metrics.hp5_5, width: metrics.hp5_5 },
     inputContainerType: { borderWidth: metrics.hp0_1, borderColor: colors.nanoOpecity, borderRadius: metrics.hp5, paddingHorizontal: metrics.hp1, alignItems: 'center', justifyContent: 'space-between', flexDirection: 'row', paddingVertical: metrics.hp0_5 },
     emojiIcon: { height: metrics.hp3, width: metrics.hp3 },

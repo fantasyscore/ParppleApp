@@ -15,7 +15,7 @@ const OneTimeProductHeader = ({ title }: any) => {
             <View style={styles.innerContainer}>
                 <FastImage source={title? shareRedIcon: flasIcon} resizeMode="contain" style={styles.flasIcon} />
                 <AppText type={EIGHTEEN} weight={SCHEHERAZADE_SEMI_BOLD} color={BLACK}>
-                    {"  "}{title ? title : " Profile Boost"}
+                    {"  "}{title ? title : " Spotlight"}
                 </AppText>
             </View>
             <FastImage source={closeIcon} tintColor={colors.black} resizeMode="contain" style={[styles.closeIcon, { opacity: 0 }]} />

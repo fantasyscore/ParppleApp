@@ -73,16 +73,18 @@ import SubscriptionAllScreen from "../screens/ProfileScreens/SubscriptionAllScre
 import AllMatchesScreen from "../screens/ChatScreens/AllMatchesScreen";
 import BotChatScreen from "../screens/ChatScreens/BotChatScreen";
 import Loader from "../common/Lodaer";
+import NewHomeScreen from "../screens/HomeScreens/NewHomeScreen";
+import FaceLivenessTestScreen from "../screens/HomeScreens/FaceLivenessTestScreen";
 
 const Navigator = () => {
-  const Stack = createStackNavigator();
-  const BottomTab = createBottomTabNavigator();
+  const Stack:any = createStackNavigator();
+  const BottomTab:any = createBottomTabNavigator();
   const BottomMainTab = () => {
     return (
       <BottomTab.Navigator initialRouteName={routes.NAVIGATION_PEOPLE_SCREEN}
         backBehavior="initialRoute"
         tabBar={(props: BottomTabBarProps) => <CustomTabBar {...props} />}>
-        <BottomTab.Screen name={routes.NAVIGATION_PEOPLE_SCREEN} component={PeopleScreen} options={{ headerShown: false }} />
+        <BottomTab.Screen name={routes.NAVIGATION_PEOPLE_SCREEN} component={NewHomeScreen} options={{ headerShown: false }} />
         <BottomTab.Screen name={routes.NAVIGATION_DISCOVER_SCREEN} component={DiscoverScreen} options={{ headerShown: false }} />
         <BottomTab.Screen name={routes.NAVIGATION_CHATS_SCREEN} component={ChatsScreen} options={{ headerShown: false }} />
         <BottomTab.Screen name={routes.NAVIGATION_LIKES_YOU_SCREEN} component={LikesYouScreen} options={{ headerShown: false }} />
@@ -91,10 +93,13 @@ const Navigator = () => {
     )
   }
   const MyAuthLoadingStack = () => (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      initialRouteName={routes.NAVIGATION_AUTH_LOADING_STACK}
+      screenOptions={{ headerShown: false }}>
       {/* <Stack.Screen name={routes.NAVIGATION_IN_APP_PURCHASE_SCREEN} component={InAppPurchaseScreen} /> */}
       {/* <Stack.Screen name={routes.NAVIGATION_LOCATION_SCREEN} component={LocationScreen} /> */}
 
+      {/* <Stack.Screen name={routes.NAVIGATION_FACE_LIVENESS_TEST_SCREEN} component={FaceLivenessTestScreen} /> */}
       <Stack.Screen name={routes.NAVIGATION_AUTH_LOADING_STACK} component={AuthLoding} />
       <Stack.Screen name={routes.NAVIGATION_WELCOME_SCREEN} component={WelcomeScreen} />
       <Stack.Screen name={routes.NAVIGATION_LOGIN_SCREEN} component={LoginScreen} />

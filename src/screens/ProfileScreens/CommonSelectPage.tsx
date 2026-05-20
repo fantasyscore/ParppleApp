@@ -43,7 +43,6 @@ const CommonSelectPage = ({ route }: any) => {
             NavigationService.goBack()
         }
     };
-    console.log(selectPronoun,"selectselectselect");
     
     return (
         <AppSafeAreaView>

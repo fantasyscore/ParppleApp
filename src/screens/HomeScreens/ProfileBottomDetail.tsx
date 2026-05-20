@@ -10,11 +10,13 @@ import { datapersonal } from "../../common/UiltData";
 import { datingIntentionsFilter } from "../../helper/utility";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { useDispatch } from "react-redux";
-import { userBlockAPI } from "../../actions/authActions";
+import { blockByIdAPIUser, reportUserAPI, userBlockAPI } from "../../actions/authActions";
 import { Screen } from "../../theme/dimens";
+import NavigationService from "../../navigation/NavigationService";
+import { NAVIGATION_REPORT_SCREEN } from "../../navigation/routes";
 
 
-const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share,setModalVisibleHome,setSwipeLeft }: any) => {
+const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share, setModalVisibleHome, setSwipeLeft, scrollViewRef, inUnderFunction }: any) => {
     const dispatch = useDispatch();
     const [modalVisible, setModalVisible] = useState(false);
 
@@ -29,18 +31,42 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share,se
     const smoke = attributesRemove?.find((item: any) => item.type === "smoke");
     const drink = attributesRemove?.find((item: any) => item.type === "drink");
     const pets = attributesRemove?.find((item: any) => item.type === "pets");
-    const blockUser = () => {
-        const data = {
-            matchId: visibleCards?._id
-        }
-        dispatch(userBlockAPI(data));
-        setModalVisible(false);
-        setModalVisibleHome(false);
-        setSwipeLeft(true);
+    // const blockUser = () => {
+    //     setModalVisible(false);
+    //     const data = {
+    //         blockedId: visibleCards?._id
+    //         // matchId: visibleCards?._id,
+    //         // blockedId:visibleCards?._id
+    //     }
+    //     dispatch(blockByIdAPIUser(data));
+    //     // scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    //     // setSwipeLeft?.(true);
 
+    //     inUnderFunction()
+    //     // setModalVisibleHome(false);
+    //     // setSwipeLeft(true);
+
+    // };
+
+    const blockUser = async () => {
+        if (!visibleCards?._id) return;
+        setModalVisible(false);
+        const data = {
+            blockedId: visibleCards._id,
+        };
+        try {
+            await dispatch(blockByIdAPIUser(data)).unwrap?.(); // if using redux toolkit
+            inUnderFunction();
+        } catch (error) {
+            console.log("Block failed", error);
+        }
     };
-   
-    
+    const reportUser = async () => {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+        setModalVisibleHome(false)
+        NavigationService.navigate(NAVIGATION_REPORT_SCREEN, { reportedUserId: visibleCards?._id });
+    }
+
     return (
         <View>
             <View style={styles.longContainer}>
@@ -188,7 +214,7 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share,se
                             <AppText style={{ marginTop: metrics.hp0_5, marginRight: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
                                 {smoke?.displayLabel}
                             </AppText>
-                        </View> :<></>
+                        </View> : <></>
                     }
                     {drink ?
                         <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
@@ -202,7 +228,7 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share,se
                             <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
                                 {drink?.displayLabel}
                             </AppText>
-                        </View> :<></>
+                        </View> : <></>
                     }
                     {workout ?
                         <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
@@ -216,7 +242,7 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share,se
                             <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
                                 {workout?.displayLabel}
                             </AppText>
-                        </View> :<></>
+                        </View> : <></>
                     }
                     {pets ?
                         <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
@@ -230,10 +256,10 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share,se
                             <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
                                 {pets?.displayLabel}
                             </AppText>
-                        </View> :<></>
+                        </View> : <></>
                     }
                 </View>
-            ):<></>}
+            ) : <></>}
             {attributes?.length ?
                 <View style={styles.bioContinaer}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -252,7 +278,7 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share,se
                             </View>
                         ))}
                     </View>
-                </View> :<></>
+                </View> : <></>
             }
             {!share ?
                 <>
@@ -263,46 +289,46 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share,se
                             Share {discover ? visibleCards?.firstName : visibleCards?.name} Profile
                         </AppText>
                     </View> */}
-                    <TouchableOpacityView onPress={()=>setModalVisible(true)} style={styles.shareDetailsContaier}>
+                    <TouchableOpacityView onPress={() => setModalVisible(true)} style={styles.shareDetailsContaier}>
                         <FastImage source={blackIcon} resizeMode="contain" style={styles.shareIcon} />
                         <AppText color={BLACK} weight={INTER_BOLD} type={TWELVE}>
                             {"  "}
                             Block {discover ? visibleCards?.firstName : visibleCards?.name} Profile
                         </AppText>
                     </TouchableOpacityView>
-                    <View style={styles.shareDetailsContaier}>
+                    {/* <TouchableOpacityView onPress={reportUser} style={styles.shareDetailsContaier}>
                         <FastImage source={reportIcon} resizeMode="contain" style={styles.shareIcon} />
                         <AppText color={RED} weight={INTER_BOLD} type={TWELVE}>
                             {"  "}
                             Report
                         </AppText>
-                    </View>
-                </> :<></>
+                    </TouchableOpacityView> */}
+                </> : <></>
             }
-             <Modal
+            <Modal
                 animationType="fade"
                 transparent={true}
                 visible={modalVisible}
                 onRequestClose={() => setModalVisible(false)}>
-                    <View style={styles.centeredView}>
-                        <View style={[styles.confirmContainer, { height: metrics.hp42, }]}>
-                            <FastImage source={blockModalImage} resizeMode="stretch" style={[styles.bdyBack, { height: metrics.hp18 }]} />
-                            <AppText style={{ textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK}>
-                                Block {visibleCards?.name}?
+                <View style={styles.centeredView}>
+                    <View style={[styles.confirmContainer, { height: metrics.hp42, }]}>
+                        <FastImage source={blockModalImage} resizeMode="stretch" style={[styles.bdyBack, { height: metrics.hp18 }]} />
+                        <AppText style={{ textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK}>
+                            Block {visibleCards?.name}?
+                        </AppText>
+                        <AppText style={{ marginTop: -metrics.hp2, textAlign: "center" }} type={TWELVE} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                            You won’t be able to undo this. You sure{'\n'} to continue?
+                        </AppText>
+                        <TouchableOpacityView onPress={() => blockUser()} style={[styles.ediButton, { backgroundColor: colors.purple, marginTop: metrics.hp2 }]}>
+                            <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
+                                Yes, Block
                             </AppText>
-                            <AppText style={{ marginTop: -metrics.hp2, textAlign: "center" }} type={TWELVE} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                                You won’t be able to undo this. You sure{'\n'} to continue?
-                            </AppText>
-                            <TouchableOpacityView onPress={() => blockUser()} style={[styles.ediButton, { backgroundColor: colors.purple, marginTop: metrics.hp2 }]}>
-                                <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
-                                    Yes, Block
-                                </AppText>
-                            </TouchableOpacityView>
-                            <AppText onPress={() => setModalVisible(false)} weight={INTER_SEMI_BOLD} type={TWELVE} style={{ textAlign: "center", marginTop: metrics.hp2 }} color={LIGHT_BLACK}>
-                                No, cancel
-                            </AppText>
-                        </View>
+                        </TouchableOpacityView>
+                        <AppText onPress={() => setModalVisible(false)} weight={INTER_SEMI_BOLD} type={TWELVE} style={{ textAlign: "center", marginTop: metrics.hp2 }} color={LIGHT_BLACK}>
+                            No, cancel
+                        </AppText>
                     </View>
+                </View>
             </Modal>
         </View>
     )

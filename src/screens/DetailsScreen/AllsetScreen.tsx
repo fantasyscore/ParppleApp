@@ -12,7 +12,7 @@ import { discoverProfile, listProfiles } from "../../actions/authActions";
 const AllsetScreen = () => {
     const dispatch = useDispatch();
     const onSubmit = () =>{
-        dispatch(listProfiles())
+    dispatch(listProfiles())
         dispatch(discoverProfile())
     }
     return (
@@ -35,9 +35,9 @@ const styles = StyleSheet.create({
     },
     goHome:{
         height:metrics.hp5,
-        width:metrics.hp20,
+        width:metrics.hp25,
         position:"absolute",
         alignSelf:"center",
-        bottom:metrics.hp5_5
+        bottom:metrics.hp11,
     }
 })

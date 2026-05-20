@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, Animated, Modal } from 'react-native';
+import { View, StyleSheet, Animated, Modal, Platform } from 'react-native';
 import { AppText, INTER_SEMI_BOLD, INTER_MEDIUM, TWELVE, FORTEEN, EIGHTEEN, FORTY, BLACK, WHITE } from './AppText';
 import { colors } from '../theme/colors';
 import metrics from '../assets/Metrics';
@@ -9,35 +9,61 @@ import { TouchableOpacityView } from './TouchableOpacityView';
 const InternetConnectionBanner: React.FC = () => {
     const [isConnected, setIsConnected] = useState<boolean | null>(true);
     const [showModal, setShowModal] = useState(false);
+    const [hasCheckedOnce, setHasCheckedOnce] = useState(false);
     const scale = useRef(new Animated.Value(0.96)).current;
     const opacity = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
-        // Subscribe to network state updates
         const unsubscribe = NetInfo.addEventListener(state => {
-            const connected = state.isConnected && state.isInternetReachable;
+          // 🚫 Ignore iOS initial null state
+          if (Platform.OS === 'ios' && state.isInternetReachable === null) {
+            return;
+          }
+      
+          const connected = state.isConnected && state.isInternetReachable;
+      
+          // First valid check
+          if (!hasCheckedOnce) {
+            setHasCheckedOnce(true);
             setIsConnected(connected);
-            
-            if (!connected) {
-                setShowModal(true);
-            } else {
-                setShowModal(false);
-            }
+            if (!connected) setShowModal(true);
+            return;
+          }
+      
+          setIsConnected(connected);
+          setShowModal(!connected);
         });
-
-        // Check initial network state
-        NetInfo.fetch().then(state => {
+      
+        let timeout: NodeJS.Timeout | null = null;
+      
+        // ⏱ Delay ONLY on iOS
+        if (Platform.OS === 'ios') {
+          timeout = setTimeout(() => {
+            NetInfo.fetch().then(state => {
+              if (state.isInternetReachable === null) return;
+      
+              const connected = state.isConnected && state.isInternetReachable;
+              setHasCheckedOnce(true);
+              setIsConnected(connected);
+              if (!connected) setShowModal(true);
+            });
+          }, 1200);
+        } else {
+          // ⚡ Android – immediate check
+          NetInfo.fetch().then(state => {
             const connected = state.isConnected && state.isInternetReachable;
+            setHasCheckedOnce(true);
             setIsConnected(connected);
-            if (!connected) {
-                setShowModal(true);
-            }
-        });
-
+            if (!connected) setShowModal(true);
+          });
+        }
+      
         return () => {
-            unsubscribe();
+          unsubscribe();
+          if (timeout) clearTimeout(timeout);
         };
-    }, []);
+      }, [hasCheckedOnce]);
+      
 
     useEffect(() => {
         if (!showModal) return;

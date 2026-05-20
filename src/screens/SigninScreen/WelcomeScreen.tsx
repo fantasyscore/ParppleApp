@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { ImageBackground, Platform, StyleSheet, View } from "react-native";
-import { applogo, callIcon, googleIcon, welcomeVideo } from "../../helper/ImageAssets";
+import { Linking, Platform, StyleSheet, View } from "react-native";
+import { Appleicon, applogo, callIcon, googleIcon, welcomeVideo } from "../../helper/ImageAssets";
 import { Screen } from "../../theme/dimens";
-import Video from "react-native-video";
 import FastImage from "react-native-fast-image";
 import metrics from "../../assets/Metrics";
 import { colors } from "../../theme/colors";
-import { AppText, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_REGULAR, SIXTEEN, WHITE } from "../../common/AppText";
+import { AppText, FORTEEN, INTER_BOLD, INTER_REGULAR, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_LOGIN_SCREEN, NAVIGATION_PROCCED_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_LOGIN_SCREEN } from "../../navigation/routes";
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { GoogleAuthProvider, getAuth, signInWithCredential } from '@react-native-firebase/auth';
 import { useDispatch } from "react-redux";
@@ -19,17 +18,26 @@ import { userLogin } from "../../actions/authActions";
 import messaging from "@react-native-firebase/messaging";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FCM_TOKEN_KEY } from "../../helper/Constants";
+// Sign in with Apple (iOS only) – import is safe on Android; button and handler are gated by Platform.OS
+import { appleAuth, AppleButton } from "@invertase/react-native-apple-authentication";
 
 const WelcomeScreen = () => {
     const dispatch = useDispatch();
     useEffect(() => {
-        GoogleSignin.configure({
-            // 232327857977-khkva7h6sip8cmb1vqae5elvi9j8otnj.apps.googleusercontent.com
-            
-            webClientId: '316625885811-s7ak9u8n13up5egaqa3l07hdi7i8sau1.apps.googleusercontent.com',
-            offlineAccess: true,
-            forceCodeForRefreshToken: true,
-        });
+        if (Platform.OS === "ios") {
+            GoogleSignin.configure({
+                // iosClientId: '232327857977-t4r5hu6rp0v0b3uihgprba5911vaiqqs.apps.googleusercontent.com',
+                webClientId: '316625885811-s7ak9u8n13up5egaqa3l07hdi7i8sau1.apps.googleusercontent.com',
+                offlineAccess: true,
+                forceCodeForRefreshToken: true,
+            });
+        } else {
+            GoogleSignin.configure({
+                webClientId: '316625885811-s7ak9u8n13up5egaqa3l07hdi7i8sau1.apps.googleusercontent.com',
+                offlineAccess: true,
+                forceCodeForRefreshToken: true,
+            });
+        }
     }, []);
     const [fcmtoken, setfcmToken] = useState("");
 
@@ -38,11 +46,6 @@ const WelcomeScreen = () => {
 
         const initFCM = async () => {
             try {
-                const authStatus = await messaging().requestPermission();
-                const enabled =
-                    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-                    authStatus === messaging.AuthorizationStatus.PROVISIONAL;
-                if (!enabled) return;
                 if (Platform.OS === "ios") {
                     await messaging().registerDeviceForRemoteMessages();
                 }
@@ -95,7 +98,8 @@ const WelcomeScreen = () => {
             let data = {
                 phoneNumber: null,
                 googleToken: idToken,
-                fcmtoken: fcmtoken
+                fcmtoken: fcmtoken,
+                iosToken: null
             };
             dispatch(userLogin(data, true))
             return signInWithCredential(getAuth(), googleCredential);
@@ -107,7 +111,42 @@ const WelcomeScreen = () => {
             console.log(error);
         }
     };
-    
+
+    /**
+     * Sign in with Apple (iOS only).
+     * Requests FULL_NAME and EMAIL (order matters per Apple docs); identityToken is sent to backend.
+     * Handles user cancel and errors without breaking the app.
+     */
+    const onAppleButtonPress = async () => {
+        if (Platform.OS !== "ios") return;
+        try {
+            const appleAuthRequestResponse = await appleAuth.performRequest({
+                requestedOperation: appleAuth.Operation.LOGIN,
+                requestedScopes: [appleAuth.Scope.FULL_NAME, appleAuth.Scope.EMAIL],
+            });
+            console.log(appleAuthRequestResponse, "appleAuthRequestResponse");
+
+
+            const { identityToken, fullName, email, user: appleUserIdentifier } = appleAuthRequestResponse;
+            if (!identityToken) {
+                console.warn("[Apple Sign-In] No identity token received");
+                return;
+            }
+            let data = {
+                phoneNumber: null,
+                googleToken: null,
+                iosToken: identityToken,
+                fcmtoken: fcmtoken
+            };
+            dispatch(userLogin(data, true));
+            dispatch(setEmailAuth(appleAuthRequestResponse))
+        } catch (error: any) {
+            // User cancelled or closed the Apple sign-in sheet (code 1001 / ERR_REQUEST_CANCELED)
+            if (error?.code === "ERR_REQUEST_CANCELED" || error?.code === 1001 || error?.code === "1001") return;
+            console.warn("[Apple Sign-In] Error:", error?.message ?? error);
+        }
+    };
+
     return (
         <AppSafeAreaView>
             <FastImage style={styles.welCom}
@@ -122,6 +161,14 @@ const WelcomeScreen = () => {
                         {"          "}Continue with Phone Number
                     </AppText>
                 </TouchableOpacityView>
+                <TouchableOpacityView onPress={onAppleButtonPress} style={[styles.phoneContainer, { marginTop: metrics.hp2 }]}>
+                    <View style={styles.callIconContainer}>
+                        <FastImage source={Appleicon} resizeMode="contain" style={[styles.callIcon, { height: metrics.hp3, width: metrics.hp3 }]} />
+                    </View>
+                    <AppText weight={INTER_BOLD} type={FORTEEN}>
+                        {"                  "}Continue with Apple
+                    </AppText>
+                </TouchableOpacityView>
                 <TouchableOpacityView onPress={onGoogleButtonPress} style={[styles.phoneContainer, { marginTop: metrics.hp2 }]}>
                     <View style={styles.callIconContainer}>
                         <FastImage source={googleIcon} resizeMode="contain" style={styles.googleIcon} />
@@ -130,9 +177,20 @@ const WelcomeScreen = () => {
                         {"                  "}Continue with Google
                     </AppText>
                 </TouchableOpacityView>
+                {/* Sign in with Apple: iOS only; follows Apple's design guidelines via official AppleButton */}
+                {/* {Platform.OS === "ios" && (
+                    <View style={styles.appleButtonWrapper}>
+                        <AppleButton
+                            buttonStyle={AppleButton.Style.WHITE}
+                            buttonType={AppleButton.Type.SIGN_IN}
+                            style={styles.appleButton}
+                            onPress={onAppleButtonPress}
+                        />
+                    </View>
+                )} */}
                 <AppText type={INTER_REGULAR} style={{ textAlign: "center", marginTop: metrics.hp3 }} color={WHITE}>
-                    By tapping Create Account or Sign In, you agree to our <AppText color={WHITE} type={INTER_REGULAR} style={{ textDecorationLine: "underline" }}>Terms &{'\n'} Services.</AppText> Learn how we process your data in our{'\n'}
-                    <AppText color={WHITE} type={INTER_REGULAR} style={{ textDecorationLine: "underline" }}>Privacy Policy</AppText> and <AppText color={WHITE} type={INTER_REGULAR} style={{ textDecorationLine: "underline" }}>Cookies Policy.</AppText>
+                    By tapping Create Account or Sign In, you agree to our <AppText onPress={() => Linking.openURL("https://parpple.com/terms_conditions")} color={WHITE} type={INTER_REGULAR} style={{ textDecorationLine: "underline" }}>Terms &{'\n'} Services.</AppText> Learn how we process your data in our{'\n'}
+                    <AppText onPress={() => Linking.openURL("https://parpple.com/privacy_policy")} color={WHITE} type={INTER_REGULAR} style={{ textDecorationLine: "underline" }}>Privacy Policy</AppText> and <AppText onPress={() => Linking.openURL("https://parpple.com/")} color={WHITE} type={INTER_REGULAR} style={{ textDecorationLine: "underline" }}>Cookies Policy.</AppText>
                 </AppText>
             </View>
         </AppSafeAreaView>
@@ -144,7 +202,6 @@ const styles = StyleSheet.create({
         height: Screen.Height,
         width: Screen.Width,
         position: "absolute",
-
     },
     logo: {
         height: metrics.hp7,
@@ -157,7 +214,7 @@ const styles = StyleSheet.create({
         height: metrics.hp30,
         width: Screen.Width,
         position: "absolute",
-        bottom: 0,
+        bottom: metrics.hp5,
         paddingHorizontal: metrics.hp2,
         paddingVertical: metrics.hp3
     },
@@ -190,7 +247,18 @@ const styles = StyleSheet.create({
     googleIcon: {
         height: metrics.hp4,
         width: metrics.hp4
-    }
+    },
+    // Sign in with Apple: wrapper for spacing; button uses Apple's official styling
+    appleButtonWrapper: {
+        marginTop: metrics.hp2,
+        width: "100%",
+        height: metrics.hp6,
+    },
+    appleButton: {
+        width: "100%",
+        height: metrics.hp6,
+        borderRadius: metrics.hp3,
+    },
 })
 
 

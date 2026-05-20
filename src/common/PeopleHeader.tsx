@@ -9,7 +9,7 @@ import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_FILTER_SCREEN, NAVIGATION_SETTING_SCREEN } from "../navigation/routes";
 import { colors } from "../theme/colors";
 
-const PeopleHeader = ({ userName, profile, bottomDetailsOpacity, topTextOpacityRevers, filter, name, age, showBooster, boostIcon, boostTimerText, onBoostPress }: any) => {
+const PeopleHeader = ({ userName, profile, bottomDetailsOpacity, topTextOpacityRevers, filter, name, age, showBooster, boostIcon, boostTimerText, onBoostPress, setModalVisible }: any) => {
 
 
     return (
@@ -46,12 +46,12 @@ const PeopleHeader = ({ userName, profile, bottomDetailsOpacity, topTextOpacityR
                     ) : (
                         <></>
                     )}
-                    <TouchableOpacityView onPress={() => profile ? NavigationService.navigate(NAVIGATION_SETTING_SCREEN) : NavigationService.navigate(NAVIGATION_FILTER_SCREEN)}>
+                    <TouchableOpacityView style={{height:metrics.hp4, width:metrics.hp4, alignItems:"center", justifyContent:"center"}} onPress={() => profile ? NavigationService.navigate(NAVIGATION_SETTING_SCREEN) :`${setModalVisible(false), NavigationService.navigate(NAVIGATION_FILTER_SCREEN)}`}>
                         <FastImage source={profile ? settingIcon : filterIcon} resizeMode="contain" style={styles.filterIcon} />
                     </TouchableOpacityView>
                 </View>}
             {filter &&
-                <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_FILTER_SCREEN)}>
+                <TouchableOpacityView style={{height:metrics.hp4, width:metrics.hp4, alignItems:"center", justifyContent:"center"}} onPress={() => {setModalVisible(false),NavigationService.navigate(NAVIGATION_FILTER_SCREEN)}}>
                     <FastImage source={filterIcon} resizeMode="contain" style={styles.filterIcon} />
                 </TouchableOpacityView>}
         </View>
@@ -72,8 +72,8 @@ const styles = StyleSheet.create({
         width: metrics.hp10,
     },
     filterIcon: {
-        height: metrics.hp2_5,
-        width: metrics.hp2_5
+        height: metrics.hp3,
+        width: metrics.hp3
     },
     timerPill: {
         marginLeft: metrics.hp1,

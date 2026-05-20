@@ -13,13 +13,13 @@ import * as RNIap from 'react-native-iap';
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 import { useDispatch } from "react-redux";
-import { getProfile, subscriptionVerifyAPI, verifyconsumableitemsAPI } from "../../actions/authActions";
+import { getProfile, iosPucrchesAPIIs, subscriptionVerifyAPI, verifyconsumableitemsAPI } from "../../actions/authActions";
 
 // One-time Product SKUs
 const PRODUCT_SKUS = Platform.select({
     android: ['10_crush_notes', '3_crush_notes', '1_crush_note'],
     ios: ['10_crush_notes', '3_crush_notes', '1_crush_note'],
-}) || [];
+}) ?? ['10_crush_notes', '3_crush_notes', '1_crush_note'];
 
 // Helper to extract numeric price for calculations
 const extractPriceNumber = (priceStr: string): { amount: number; currency: string } => {
@@ -63,13 +63,18 @@ const CrushNotePurchase = () => {
                 setLoading(true);
                 await RNIap.initConnection();
 
-                // Fetch ONE-TIME products (consumables)
-                const availableProducts = await RNIap.fetchProducts({
-                    skus: PRODUCT_SKUS,
-                    type: 'in-app'
-                });
+                // iOS (v12): getProducts({ skus }) for in-app consumables. v14 has fetchProducts({ skus, type: 'in-app' }).
+                let rawProducts: any[] = [];
+                if (Platform.OS === 'ios') {
+                    rawProducts = await RNIap.getProducts({ skus: PRODUCT_SKUS });
+                } else if (typeof (RNIap as any).fetchProducts === 'function') {
+                    rawProducts = await (RNIap as any).fetchProducts({ skus: PRODUCT_SKUS, type: 'in-app' });
+                } else {
+                    rawProducts = await RNIap.getProducts({ skus: PRODUCT_SKUS });
+                }
+                const availableProducts = Array.isArray(rawProducts) ? rawProducts : [];
 
-                if (availableProducts && availableProducts.length > 0) {
+                if (availableProducts.length > 0) {
                     // First pass: calculate all products with per-item pricing
                     const productsWithPricing = availableProducts.map((prod: any) => {
                         const productId = (prod.productId || prod.id || '').toString();
@@ -170,8 +175,13 @@ const CrushNotePurchase = () => {
                     platform: Platform.OS === 'ios' ? 'ios' : 'android',
                     orderId: purchase.id,
                 };
-
-                const response: any = await dispatch(verifyconsumableitemsAPI(data));
+                const newdata = {
+                    productId :purchase?.productId,
+                    transactionReceipt:purchase?.transactionReceipt,
+                    transactionId:purchase?.transactionId
+                }
+                const response: any = await dispatch(iosPucrchesAPIIs(newdata))
+                // const response: any = await dispatch(verifyconsumableitemsAPI(data));
                 const isOk = response?.statusCode === 200
 
                 if (!isOk) {
@@ -214,20 +224,30 @@ const CrushNotePurchase = () => {
         if (!selectedProduct) return;
 
         const productId = (selectedProduct as any).productId || (selectedProduct as any).id;
+        if (!productId) return;
 
         try {
-            setProcessing(productId);
-            const platformRequest: any = Platform.OS === 'android'
-                ? { android: { skus: [productId] } }
-                : { ios: { sku: productId } };
+            setProcessing(String(productId));
 
-            await RNIap.requestPurchase({
-                request: platformRequest,
-                type: 'in-app',
-            });
+            // iOS (v12): requestPurchase({ sku }). Android (v14): requestPurchase({ request: { android: { skus } }, type: 'in-app' }).
+            if (Platform.OS === 'ios') {
+                await RNIap.requestPurchase({
+                    sku: productId,
+                    andDangerouslyFinishTransactionAutomaticallyIOS: false,
+                });
+            } else if (typeof (RNIap as any).fetchProducts === 'function') {
+                await (RNIap as any).requestPurchase({
+                    request: { android: { skus: [productId] } },
+                    type: 'in-app',
+                });
+            } else {
+                await RNIap.requestPurchase({ skus: [productId] });
+            }
         } catch (err: any) {
             setProcessing(null);
-            console.warn('Purchase Error:', err);
+            if (!err?.message?.toLowerCase?.().includes('cancel')) {
+                console.warn('Purchase Error:', err);
+            }
         }
     };
 
@@ -487,11 +507,11 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     imageiContainer: {
-        shadowColor: colors.black,
-        shadowOffset: { width: 0, height: metrics.hp1_2 },
-        shadowOpacity: 0.22,
-        shadowRadius: metrics.hp1,
-        elevation: 8,
+        // shadowColor: colors.black,
+        // shadowOffset: { width: 0, height: metrics.hp1_2 },
+        // shadowOpacity: 0.22,
+        // shadowRadius: metrics.hp1,
+        // elevation: 8,
         height: metrics.hp10, width: "100%", marginTop: metrics.hp3, marginBottom:metrics.hp4,
     },
     payBackdrop: {

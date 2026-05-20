@@ -8,8 +8,10 @@ import FastImage from "react-native-fast-image";
 import { blueTikeIcon, closeIcon, closeIconBigClear } from "../helper/ImageAssets";
 import { TouchableOpacityView } from "./TouchableOpacityView";
 import { CrushNotesSimpleRing } from "./CrushNotesSimpleRing";
+import { useSelector } from "react-redux";
 
 const CrushNotesHeader = ({ name, age, setModalVisible, remainingCount }: any) => {
+    const userData = useSelector((state: any) => state.auth.userData);
     return (
         <View style={styles.container}>
             <TouchableOpacityView onPress={()=>setModalVisible(false)} style={{ flexDirection: "row", alignItems: "center" }}>
@@ -18,7 +20,7 @@ const CrushNotesHeader = ({ name, age, setModalVisible, remainingCount }: any) =
                     <AppText style={{textTransform:"capitalize"}} type={EIGHTEEN} weight={INTER_BOLD}>{"   "}{name},</AppText>
                     <AppText type={EIGHTEEN} weight={INTER_MEDIUM}> {age}{"  "}</AppText>
                 </Animated.View>
-                <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />
+                {userData?.faceVerified == true ?<FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />:<></>}
             </TouchableOpacityView>
             <Animated.View style={{ opacity: bottomDetailsOpacity }}>
                 <CrushNotesSimpleRing

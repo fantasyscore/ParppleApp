@@ -14,19 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "316625885811-6ag6oeca03njk8ev99dmgcg3fhdgoh3s.apps.googleusercontent.com",
+          "client_id": "316625885811-8m45qnfciech7j233134fi6nl5vknm8o.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.app.parpple",
-            "certificate_hash": "4c32e5e63723dac0475424da6551833a9c6389e2"
-          }
-        },
-        {
-          "client_id": "316625885811-ep8vvj6esj0vhmh37v1lqooa001h9kuo.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.app.parpple",
-            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+            "certificate_hash": "9a0e20a0db094f91bf7a68aad0165a21f25a9c6e"
           }
         },
         {
@@ -45,6 +37,14 @@
             {
               "client_id": "316625885811-s7ak9u8n13up5egaqa3l07hdi7i8sau1.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "316625885811-8kcqbhsjv3e4efe4fadnpodi02lkk8th.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.parpple.dating",
+                "app_store_id": "6757844657"
+              }
             }
           ]
         }

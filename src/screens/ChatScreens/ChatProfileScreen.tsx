@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Dimensions, ImageBackground, StyleSheet, View } from "react-native";
+import { Dimensions, ImageBackground, Platform, StyleSheet, View } from "react-native";
 import { AppText, BLACK, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, TWELVE, TWENTY, WHITE } from "../../common/AppText";
 import FastImage from "react-native-fast-image";
 import { accountcircleIcon, bioqutes, blueTikeIcon, bussnisIcon, drikingIcon, lifeStyleIcon, locationCIon, moonIcon, oneIconDating, personHeartIcon, petsIcon, pronounIcon, schoolIcon, searchIcon, smookingIcon, straightenIcon, upArrowIcon, workoutIcon } from "../../helper/ImageAssets";
@@ -31,7 +31,11 @@ const ChatProfileScreen = ({ always }: any) => {
     // UI-thread animation progress (0 = expanded, 1 = collapsed)
     const progress = useSharedValue(0);
     const isMountedRef = useRef(true);
-    const scrollViewRef = useRef<Animated.ScrollView>(null);
+    const scrollViewRef = useRef<any>(null);
+    
+    // Ensure currentPhotoIndex is within bounds
+    const gallery = otherUserProfile?.gallery || [];
+    const safePhotoIndex = gallery.length > 0 ? Math.min(currentPhotoIndex, gallery.length - 1) : 0;
 
     useEffect(() => {
         return () => {
@@ -85,22 +89,21 @@ const ChatProfileScreen = ({ always }: any) => {
 
     const updownAction = () => {
         const goingToCollapse = !updown;
-       
+        
         // ✅ RESET SCROLL ONLY ON JS THREAD
         if (!goingToCollapse && scrollViewRef.current) {
-          scrollViewRef.current.scrollTo({ y: 0, animated: false });
+            scrollViewRef.current.scrollTo({ y: 0, animated: false });
         }
-       
+        
         progress.value = withTiming(
-          goingToCollapse ? 1 : 0,
-          { duration: 260, easing: Easing.out(Easing.cubic) }
+            goingToCollapse ? 1 : 0,
+            { duration: 260, easing: Easing.out(Easing.cubic) }
         );
-       
+        
         // ✅ Update state on JS thread
-        const safeSetUpdown = (v: boolean) => {
-            if (isMountedRef.current) setupdown(v);
-        };
-        safeSetUpdown(goingToCollapse);
+        if (isMountedRef.current) {
+            setupdown(goingToCollapse);
+        }
     };
 
     const preloadAroundIndex = (gallery: any[] | undefined, idx: number) => {
@@ -125,60 +128,71 @@ const ChatProfileScreen = ({ always }: any) => {
 
     // Preload current image + neighbors whenever index/gallery changes
     useEffect(() => {
-        preloadAroundIndex(otherUserProfile?.gallery, currentPhotoIndex);
-    }, [currentPhotoIndex, otherUserProfile?.gallery]);
+        preloadAroundIndex(otherUserProfile?.gallery, safePhotoIndex);
+    }, [safePhotoIndex, otherUserProfile?.gallery]);
+    
+    // Reset photo index if gallery changes and current index is out of bounds
+    useEffect(() => {
+        if (gallery.length > 0 && currentPhotoIndex >= gallery.length) {
+            setCurrentPhotoIndex(0);
+        }
+    }, [gallery.length, currentPhotoIndex]);
 
     const nextPhoto = () => {
         if (galleryLength > 0) {
             let newIndex;
-            if (currentPhotoIndex < galleryLength - 1) {
-                newIndex = currentPhotoIndex + 1;
+            if (safePhotoIndex < galleryLength - 1) {
+                newIndex = safePhotoIndex + 1;
             } else {
                 newIndex = 0;
             }
 
             // Preload images before changing index
-            if (otherUserProfile?.gallery && otherUserProfile.gallery[newIndex]?.url) {
-                const targetImageUrl = otherUserProfile.gallery[newIndex].url;
-                FastImage.preload([{ uri: targetImageUrl, priority: FastImage.priority.high }]);
+            if (gallery && gallery[newIndex]?.url) {
+                const targetImageUrl = gallery[newIndex].url;
+                FastImage.preload([{ uri: String(targetImageUrl), priority: FastImage.priority.high }]);
 
                 // Preload adjacent images
-                if (newIndex > 0 && otherUserProfile.gallery[newIndex - 1]?.url) {
-                    FastImage.preload([{ uri: otherUserProfile.gallery[newIndex - 1].url, priority: FastImage.priority.normal }]);
+                if (newIndex > 0 && gallery[newIndex - 1]?.url) {
+                    FastImage.preload([{ uri: String(gallery[newIndex - 1].url), priority: FastImage.priority.normal }]);
                 }
-                if (newIndex < galleryLength - 1 && otherUserProfile.gallery[newIndex + 1]?.url) {
-                    FastImage.preload([{ uri: otherUserProfile.gallery[newIndex + 1].url, priority: FastImage.priority.normal }]);
+                if (newIndex < galleryLength - 1 && gallery[newIndex + 1]?.url) {
+                    FastImage.preload([{ uri: String(gallery[newIndex + 1].url), priority: FastImage.priority.normal }]);
                 }
             }
 
-            setCurrentPhotoIndex(newIndex);
+            if (newIndex >= 0 && newIndex < galleryLength) {
+                setCurrentPhotoIndex(newIndex);
+            }
         }
     };
 
     const prevPhoto = () => {
         if (galleryLength > 0) {
             let newIndex;
-            if (currentPhotoIndex > 0) {
-                newIndex = currentPhotoIndex - 1;
+            if (safePhotoIndex > 0) {
+                newIndex = safePhotoIndex - 1;
             } else {
                 newIndex = galleryLength - 1;
             }
 
             // Preload images before changing index
-            if (otherUserProfile?.gallery && otherUserProfile.gallery[newIndex]?.url) {
-                const targetImageUrl = otherUserProfile.gallery[newIndex].url;
-                FastImage.preload([{ uri: targetImageUrl, priority: FastImage.priority.high }]);
+            if (gallery && gallery[newIndex]?.url) {
+                const targetImageUrl = gallery[newIndex].url;
+                FastImage.preload([{ uri: String(targetImageUrl), priority: FastImage.priority.high }]);
 
                 // Preload adjacent images
-                if (newIndex > 0 && otherUserProfile.gallery[newIndex - 1]?.url) {
-                    FastImage.preload([{ uri: otherUserProfile.gallery[newIndex - 1].url, priority: FastImage.priority.normal }]);
+                if (newIndex > 0 && gallery[newIndex - 1]?.url) {
+                    FastImage.preload([{ uri: String(gallery[newIndex - 1].url), priority: FastImage.priority.normal }]);
                 }
-                if (newIndex < galleryLength - 1 && otherUserProfile.gallery[newIndex + 1]?.url) {
-                    FastImage.preload([{ uri: otherUserProfile.gallery[newIndex + 1].url, priority: FastImage.priority.normal }]);
+                if (newIndex < galleryLength - 1 && gallery[newIndex + 1]?.url) {
+                    FastImage.preload([{ uri: String(gallery[newIndex + 1].url), priority: FastImage.priority.normal }]);
                 }
             }
 
-            setCurrentPhotoIndex(newIndex);
+            if (newIndex >= 0 && newIndex < galleryLength) {
+                setCurrentPhotoIndex(newIndex);
+            }
         }
     };
 
@@ -191,7 +205,7 @@ const ChatProfileScreen = ({ always }: any) => {
                     { flexDirection: "row", justifyContent: "space-between" },
                 ]}>
                 {Array.from({ length: galleryLength }).map((_, i) => {
-                    const isFilled = i <= currentPhotoIndex;
+                    const isFilled = i <= safePhotoIndex;
                     return (
                         <View
                             key={i}
@@ -217,13 +231,11 @@ const ChatProfileScreen = ({ always }: any) => {
         );
     };
     return (
-        <View style={{ flex: 1 }}>
-            {/* {!updown && <Animated.View style={{ opacity: 0 }}>{renderProgressLine(false)}</Animated.View>} */}
             <Animated.ScrollView
                 ref={scrollViewRef}
                 style={[
                     styles.scrollContainer,
-                    {
+                    Platform.OS === "ios" ? { opacity: 1 } : {
                         opacity: 1,
                         pointerEvents: updown ? 'auto' : 'none',
                     },
@@ -233,7 +245,7 @@ const ChatProfileScreen = ({ always }: any) => {
                 scrollEnabled={updown}>
                 <Animated.View style={[styles.mainContainer, mainContainerAnimatedStyle]}>
                     <ImageBackground
-                        source={{ uri: otherUserProfile?.gallery?.[currentPhotoIndex]?.url || otherUserProfile?.gallery?.[0]?.url }}
+                        source={{ uri: gallery?.[safePhotoIndex]?.url || gallery?.[0]?.url || "" }}
                         style={styles.imageBackground}
                         imageStyle={{ borderRadius: 20 }}>
                         <View >{renderProgressLine(true)}</View>
@@ -241,12 +253,12 @@ const ChatProfileScreen = ({ always }: any) => {
                         <Animated.View style={bottomDetailsAnimatedStyle}>
                             <LinearGradient start={{ x: 1, y: 1 }}
                                 end={{ x: 1, y: 0 }} colors={["#000000", "#00000099", "#00000000"]} style={styles.bottomDetails}>
-                                <View style={{ marginTop: metrics.hp8 }}>
+                                <View style={{ marginTop: metrics.hp8, paddingHorizontal: Platform.OS === "ios" ? metrics.hp2 : metrics.hp0 }}>
                                     <View style={{ flexDirection: "row", alignItems: "center" }}>
                                         <AppText style={{ textTransform: "capitalize" }} type={TWENTY} color={WHITE} weight={INTER_BOLD}>
-                                            {otherUserProfile?.firstName || ''}, {otherUserProfile?.age || ''}{" "}
+                                            {String(otherUserProfile?.firstName || "")}, {String(otherUserProfile?.age || "")}{" "}
                                         </AppText>
-                                        {otherUserProfile?.isVerified && (
+                                        {otherUserProfile?.faceVerified && (
                                             <FastImage
                                                 source={blueTikeIcon}
                                                 resizeMode="contain"
@@ -264,7 +276,7 @@ const ChatProfileScreen = ({ always }: any) => {
                                             />
                                             <AppText type={ELEVEN} color={WHITE} weight={INTER_MEDIUM}>
                                                 {" "}
-                                                {otherUserProfile?.work}
+                                                {String(otherUserProfile?.work || "")}
                                             </AppText>
                                         </View>
                                     )}
@@ -281,7 +293,7 @@ const ChatProfileScreen = ({ always }: any) => {
                                         />
                                         <AppText color={WHITE} weight={INTER_MEDIUM} type={ELEVEN}>
                                             {"  "}
-                                            {otherUserProfile?.zodiaSign}
+                                            {String(otherUserProfile?.zodiaSign || "")}
                                         </AppText>
                                     </View>
                                 )}
@@ -295,7 +307,7 @@ const ChatProfileScreen = ({ always }: any) => {
                                         />
                                         <AppText color={WHITE} weight={INTER_MEDIUM} type={ELEVEN}>
                                             {"  "}
-                                            {smoke?.displayLabel || 'Smoker'}
+                                            {String(smoke?.displayLabel || "")}
                                         </AppText>
                                     </View>
                                 )}
@@ -309,7 +321,7 @@ const ChatProfileScreen = ({ always }: any) => {
                                         />
                                         <AppText color={WHITE} weight={INTER_MEDIUM} type={ELEVEN}>
                                             {"  "}
-                                            {otherUserProfile?.city}
+                                            {String(otherUserProfile?.city || "")}
                                         </AppText>
                                     </View>
                                 )}
@@ -352,7 +364,7 @@ const ChatProfileScreen = ({ always }: any) => {
                             <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1, marginLeft: metrics.hp3 }}>
                                 <FastImage source={oneIconDating} resizeMode="contain" style={styles.searchIcon} />
                                 <AppText type={FORTEEN} weight={INTER_BOLD} color={BLACK}>
-                                    {"   "}{datingIntentionsFilter(otherUserProfile?.relationshipPreference) || 'Not specified'}
+                                    {"   "}{String(datingIntentionsFilter(otherUserProfile?.relationshipPreference) || "")}
                                 </AppText>
                             </View>
                         </View>
@@ -366,7 +378,7 @@ const ChatProfileScreen = ({ always }: any) => {
                                 </AppText>
                             </View>
                             <AppText style={{ paddingVertical: metrics.hp1, }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={OPECITY_DARK}>
-                                {otherUserProfile?.bio}
+                                {String(otherUserProfile?.bio || "")}
                             </AppText>
                         </View>
                     )}
@@ -388,7 +400,7 @@ const ChatProfileScreen = ({ always }: any) => {
                                         </AppText>
                                     </View>
                                     <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                        {otherUserProfile?.education}
+                                        {String(otherUserProfile?.education || "")}
                                     </AppText>
                                 </View>
                             )}
@@ -401,7 +413,7 @@ const ChatProfileScreen = ({ always }: any) => {
                                         </AppText>
                                     </View>
                                     <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                        {otherUserProfile?.jobTitle}
+                                        {String(otherUserProfile?.jobTitle || "")}
                                     </AppText>
                                 </View>
                             )}
@@ -414,7 +426,7 @@ const ChatProfileScreen = ({ always }: any) => {
                                         </AppText>
                                     </View>
                                     <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                        {otherUserProfile?.homeTown}
+                                        {String(otherUserProfile?.homeTown || "")}
                                     </AppText>
                                 </View>
                             )}
@@ -438,9 +450,9 @@ const ChatProfileScreen = ({ always }: any) => {
                                         </AppText>
                                     </View>
                                     <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", marginTop: metrics.hp0_5 }}>
-                                        {otherUserProfile?.pronouns?.map((value: any, index: any) => (
+                                        {otherUserProfile?.pronouns && Array.isArray(otherUserProfile.pronouns) && otherUserProfile.pronouns.map((value: any, index: any) => (
                                             <AppText key={index} style={{ marginRight: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                                {value}
+                                                {String(value || "")}
                                             </AppText>
                                         ))}
                                     </View>
@@ -455,7 +467,7 @@ const ChatProfileScreen = ({ always }: any) => {
                                         </AppText>
                                     </View>
                                     <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                        {otherUserProfile?.height}
+                                        {String(otherUserProfile?.height || "")}
                                     </AppText>
                                 </View>
                             )}
@@ -468,7 +480,7 @@ const ChatProfileScreen = ({ always }: any) => {
                                         </AppText>
                                     </View>
                                     <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                        {otherUserProfile?.zodiaSign}
+                                        {String(otherUserProfile?.zodiaSign || "")}
                                     </AppText>
                                 </View>
                             )}
@@ -492,7 +504,7 @@ const ChatProfileScreen = ({ always }: any) => {
                                         </AppText>
                                     </View>
                                     <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                        {smoke?.displayLabel}
+                                        {String(smoke?.displayLabel || "")}
                                     </AppText>
                                 </View>
                             )}
@@ -505,7 +517,7 @@ const ChatProfileScreen = ({ always }: any) => {
                                         </AppText>
                                     </View>
                                     <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                        {drink?.displayLabel}
+                                        {String(drink?.displayLabel || "")}
                                     </AppText>
                                 </View>
                             )}
@@ -518,7 +530,7 @@ const ChatProfileScreen = ({ always }: any) => {
                                         </AppText>
                                     </View>
                                     <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                        {workout?.displayLabel}
+                                        {String(workout?.displayLabel || "")}
                                     </AppText>
                                 </View>
                             )}
@@ -531,7 +543,7 @@ const ChatProfileScreen = ({ always }: any) => {
                                         </AppText>
                                     </View>
                                     <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                        {pets?.displayLabel}
+                                        {String(pets?.displayLabel || "")}
                                     </AppText>
                                 </View>
                             )}
@@ -547,11 +559,11 @@ const ChatProfileScreen = ({ always }: any) => {
                                 </AppText>
                             </View>
                             <View style={styles.wrapContainerTwo}>
-                                {attributes?.map((item: any, index: any) => {
+                                {attributes && Array.isArray(attributes) && attributes.map((item: any, index: any) => {
                                     return (
-                                        <View key={item._id || index} style={styles.containerSelect}>
+                                        <View key={item?._id || index} style={styles.containerSelect}>
                                             <AppText type={TWELVE} weight={INTER_MEDIUM}>
-                                                {item?.displayLabel}
+                                                {String(item?.displayLabel || "")}
                                             </AppText>
                                         </View>
                                     )
@@ -561,7 +573,6 @@ const ChatProfileScreen = ({ always }: any) => {
                     )}
                 </Animated.View>
             </Animated.ScrollView>
-        </View>
     )
 };
 export default ChatProfileScreen;
@@ -598,10 +609,10 @@ const styles = StyleSheet.create({
     },
     bottomDetails: {
         position: "absolute",
-        bottom: -metrics.hp2,
+        bottom: Platform.OS === "ios" ? metrics.hp0 : -metrics.hp2,
         width: "100%",
         height: metrics.hp25,
-        paddingHorizontal: metrics.hp2,
+        paddingHorizontal: Platform.OS === "ios" ? 0 : metrics.hp2,
         borderBottomLeftRadius: metrics.hp2,
         borderBottomRightRadius: metrics.hp2,
     },

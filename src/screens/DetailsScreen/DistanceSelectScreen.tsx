@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { ImageBackground, StyleSheet, View } from "react-native";
+import React, { useState, useEffect } from "react";
+import { ImageBackground, Platform, StyleSheet, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import LinearGradient from "react-native-linear-gradient";
 import metrics from "../../assets/Metrics";
@@ -40,17 +41,25 @@ const max = 201
 const DispatchSelectScreen = () => {
 
     const dispatch = useDispatch();
+    const navigation = useNavigation();
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
-    const [range, setRange] = useState([1]);
+    const [range, setRange] = useState([70]);
     const [toggleGlobel, setToggleGlobel] = useState(true);
     const sliderValue = range[0];
+
+    // Prevent iOS edge-swipe back from stealing touches when dragging the slider from the left.
+    useEffect(() => {
+        if (Platform.OS === "ios") {
+            navigation.setOptions({ gestureEnabled: false });
+        }
+    }, [navigation]);
 
     const onSubmit = () => {
         const data = {
             ...addProfileData,
             preferredDistanceKm: sliderValue,
             bio: "Please tell me about your self",
-            globalSearch: true /* toggleGlobel */,
+            globalSearch: true,
             fieldVisibility: { ...addProfileData?.fieldVisibility }
         };
 

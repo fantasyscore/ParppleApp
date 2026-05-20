@@ -11,7 +11,7 @@ import { useSelector } from "react-redux";
 
 const ChatHeader = ({ onPress, setTabSelect }: any) => {
     const matchChatUserDetails = useSelector((state: any) => state.auth.matchChatUserDetails);
-
+    const userData = useSelector((state: any) => state.auth.userData);
     return (
         <View style={styles.container}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -24,7 +24,7 @@ const ChatHeader = ({ onPress, setTabSelect }: any) => {
                         <View style={{flexDirection:"row", alignItems:"center"}}>
                         <AppText type={TWELVE} weight={INTER_BOLD}>{"  "}{matchChatUserDetails?.name},
                         </AppText>
-                        <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />
+                        {userData?.faceVerified == true ?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />:<></>}
                         </View>
                         {matchChatUserDetails?.online&&
                         <AppText type={TEN} style={{ color: "green" }} weight={INTER_SEMI_BOLD}>

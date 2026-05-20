@@ -88,22 +88,22 @@ const CrushNotesSender = ({ data, setModalVisible, setSwipeRight, setSwipeUp, se
             NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN);
             return;
         }
-        
+
         const datasend = {
             receiverId: data?._id,
             message: inputText
         };
-        
+
         try {
             const response = await dispatch(sendCrushNotesAPI(datasend));
-            
+
             if (response?.statusCode === 200) {
                 if (canSwipeRight && !canSwipeRight()) return;
                 // First set swipeRight to true (this will trigger the swipe animation and like action when modal closes)
                 if (setSwipeRight) {
                     setSwipeRight(true);
                 }
-                
+
                 // Close modal - the HomeScreen's useEffect will handle the swipe animation and like action
                 if (setModalVisible) {
                     setModalVisible(false);
@@ -117,7 +117,7 @@ const CrushNotesSender = ({ data, setModalVisible, setSwipeRight, setSwipeUp, se
     }
     return (
         <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            behavior={Platform.OS === "ios" ? undefined : undefined}
             style={styles.container}
             keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
         >
@@ -191,10 +191,11 @@ const CrushNotesSender = ({ data, setModalVisible, setSwipeRight, setSwipeUp, se
                             onChangeText={setInputText}
                             placeholder="Type a message..."
                             multiline
+                            placeholderTextColor={colors.black}
                         />
                     </View>
                     <TouchableOpacityView
-                    onPress={sendCrushNote}
+                        onPress={sendCrushNote}
                         style={styles.sendButton}>
                         <FastImage source={sendButton} resizeMode='contain' style={{ height: metrics.hp3, width: metrics.hp3 }} />
                     </TouchableOpacityView>
@@ -240,6 +241,6 @@ const styles = StyleSheet.create({
     },
     inputContainer: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center', paddingHorizontal: metrics.hp2, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e0e0e0', paddingVertical: metrics.hp2 },
     inputContainerType: { borderWidth: metrics.hp0_1, borderColor: colors.nanoOpecity, borderRadius: metrics.hp5, paddingHorizontal: metrics.hp1, alignItems: 'center', justifyContent: 'space-between', flexDirection: 'row', paddingVertical: metrics.hp0_5 },
-    textInput: { minHeight: metrics.hp4, maxHeight: metrics.hp8, fontSize: fontSize(13), width: "83%", fontFamily: interMedium, marginLeft: metrics.hp1 },
+    textInput: { minHeight: metrics.hp4, maxHeight: metrics.hp8, fontSize: fontSize(13), width: "83%", fontFamily: interMedium, marginLeft: metrics.hp1, marginTop: Platform.OS === "ios" ? metrics.hp1 : 0 },
     sendButton: { backgroundColor: '#6F13F2', borderRadius: metrics.hp50, marginLeft: 6, justifyContent: 'center', alignItems: 'center', height: metrics.hp5_5, width: metrics.hp5_5 },
 })

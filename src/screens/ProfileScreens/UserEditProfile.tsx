@@ -6,6 +6,7 @@ import {
     View,
     Dimensions,
     ScrollView,
+    Platform,
 } from "react-native";
 import HeaderCommon from "../../common/HeaderCommon";
 import metrics from "../../assets/Metrics";
@@ -77,11 +78,16 @@ const UserEditProfile = (props: any) => {
     const from = props?.route?.params?.from ?? "";
     const otherUserProfile = useSelector((state: any) => state.auth.otherUserProfile);
     const matchChatUserDetails = useSelector((state: any) => state.auth.matchChatUserDetails);
+    const userData = useSelector((state: any) => state.auth.userData);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [updown, setupdown] = useState(false);
     const attributes = otherUserProfile?.attributes?.filter(
         (item: any) => !["smoke", "drink", "workout", "pets"].includes(item?.type)
-    );
+    ) || [];
+
+    // Ensure currentPhotoIndex is within bounds
+    const gallery = otherUserProfile?.gallery || [];
+    const safePhotoIndex = gallery.length > 0 ? Math.min(currentPhotoIndex, gallery.length - 1) : 0;
     const FULL_IMAGE_HEIGHT = from == "Chat" ? height * 0.80 : height * 0.85; // Adjust this value as needed
     const COLLAPSED_IMAGE_HEIGHT = height * 0.6; // Adjust this value as needed
     const workout = otherUserProfile?.attributes?.find((item: any) => item.type === "workout");
@@ -91,7 +97,7 @@ const UserEditProfile = (props: any) => {
     // UI-thread driven animation (smoother than RN Animated for layout-heavy transitions)
     const progress = useSharedValue(0); // 0 = expanded, 1 = collapsed
     const cardWidthRef = useRef(0);
-    const scrollViewRef = useRef<Animated.ScrollView>(null);
+    const scrollViewRef = useRef<any>(null);
 
     const preloadAroundIndex = (gallery: any[] | undefined, idx: number) => {
         try {
@@ -180,17 +186,16 @@ const UserEditProfile = (props: any) => {
     const handleTap = (evt: any) => {
         if (!evt?.nativeEvent?.locationX || !cardWidthRef.current) return;
         const x = evt.nativeEvent.locationX;
-        const gallery = otherUserProfile?.gallery || [];
         const total = Array.isArray(gallery) ? gallery.length : 0;
         if (total <= 0) return;
 
-        let nextIndex = currentPhotoIndex;
+        let nextIndex = safePhotoIndex;
         if (x > cardWidthRef.current / 2) {
-            nextIndex = currentPhotoIndex < total - 1 ? currentPhotoIndex + 1 : currentPhotoIndex;
+            nextIndex = safePhotoIndex < total - 1 ? safePhotoIndex + 1 : safePhotoIndex;
         } else {
-            nextIndex = currentPhotoIndex > 0 ? currentPhotoIndex - 1 : currentPhotoIndex;
+            nextIndex = safePhotoIndex > 0 ? safePhotoIndex - 1 : safePhotoIndex;
         }
-        if (nextIndex === currentPhotoIndex) return;
+        if (nextIndex === safePhotoIndex || nextIndex < 0 || nextIndex >= total) return;
 
         // Preload target + neighbors before switching (reduces white flash)
         preloadAroundIndex(gallery, nextIndex);
@@ -199,8 +204,15 @@ const UserEditProfile = (props: any) => {
 
     // Preload current image + neighbors whenever index/gallery changes
     useEffect(() => {
-        preloadAroundIndex(otherUserProfile?.gallery, currentPhotoIndex);
-    }, [otherUserProfile?.gallery, currentPhotoIndex]);
+        preloadAroundIndex(otherUserProfile?.gallery, safePhotoIndex);
+    }, [otherUserProfile?.gallery, safePhotoIndex]);
+
+    // Reset photo index if gallery changes and current index is out of bounds
+    useEffect(() => {
+        if (gallery.length > 0 && currentPhotoIndex >= gallery.length) {
+            setCurrentPhotoIndex(0);
+        }
+    }, [gallery.length, currentPhotoIndex]);
 
     const renderProgressLine = (white: any) => {
         return (
@@ -209,8 +221,8 @@ const UserEditProfile = (props: any) => {
                     styles.progressContainer,
                     { flexDirection: "row", justifyContent: "space-between" },
                 ]}>
-                {Array.from({ length: otherUserProfile?.gallery?.length }).map((_, i) => {
-                    const isFilled = i <= currentPhotoIndex;
+                {Array.from({ length: gallery?.length || 0 }).map((_, i) => {
+                    const isFilled = i <= safePhotoIndex;
                     return (
                         <View
                             key={i}
@@ -255,7 +267,7 @@ const UserEditProfile = (props: any) => {
     }
     return (
         <AppSafeAreaView>
-            <HeaderCommon title={otherCome ? otherUserProfile?.firstName : "Profile"} age={otherUserProfile?.age} edit={otherCome ? false : true} editOnPress={() => profileComing ? NavigationService.navigate(NAVIGATION_EDIT_PROFILE_SCREEN) : NavigationService.goBack()} />
+            <HeaderCommon title={otherCome ? String(otherUserProfile?.firstName || "") : "Profile"} age={otherUserProfile?.age ? String(otherUserProfile.age) : undefined} edit={otherCome ? false : true} editOnPress={() => profileComing ? NavigationService.navigate(NAVIGATION_EDIT_PROFILE_SCREEN) : NavigationService.goBack()} />
             <View style={styles.singleLine} />
             {from == "Chat" ?
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-evenly", marginTop: metrics.hp2 }}>
@@ -275,7 +287,7 @@ const UserEditProfile = (props: any) => {
                 ref={scrollViewRef}
                 style={[
                     styles.scrollContainer,
-                    {
+                    Platform.OS === "ios" ? { opacity: 1 } : {
                         opacity: 1,
                         pointerEvents: updown ? 'auto' : 'none',
                     },
@@ -291,10 +303,9 @@ const UserEditProfile = (props: any) => {
                         }} style={{ flex: 1 }}>
                         {/* Preload-like warm cache (same idea as PreviewDetails): keep prev/next images cached to avoid white flash */}
                         {(() => {
-                            const gallery = otherUserProfile?.gallery || [];
-                            const current = gallery?.[currentPhotoIndex];
-                            const prev = currentPhotoIndex > 0 ? gallery?.[currentPhotoIndex - 1] : null;
-                            const next = currentPhotoIndex < gallery.length - 1 ? gallery?.[currentPhotoIndex + 1] : null;
+                            const current = gallery?.[safePhotoIndex];
+                            const prev = safePhotoIndex > 0 ? gallery?.[safePhotoIndex - 1] : null;
+                            const next = safePhotoIndex < gallery.length - 1 ? gallery?.[safePhotoIndex + 1] : null;
                             return (
                                 <>
                                     {prev?.url ? (
@@ -322,7 +333,7 @@ const UserEditProfile = (props: any) => {
                             );
                         })()}
                         <ImageBackground
-                            source={{ uri: otherUserProfile?.gallery[currentPhotoIndex]?.url }}
+                            source={{ uri: gallery?.[safePhotoIndex]?.url || "" }}
                             style={styles.imageBackground}
                             imageStyle={{ borderRadius: 20 }}>
                             {/*         {updown && */} <Animated.View /* style={topTextAnimatedStyle} */>{renderProgressLine(true)}</Animated.View>
@@ -333,13 +344,10 @@ const UserEditProfile = (props: any) => {
                                     <View style={{ marginLeft: metrics.hp2, marginTop: metrics.hp10 }}>
                                         <View style={{ flexDirection: "row", alignItems: "center" }}>
                                             <AppText style={{ textTransform: "capitalize" }} type={TWENTY} color={WHITE} weight={INTER_BOLD}>
-                                                {otherUserProfile?.firstName}, {otherUserProfile?.age}{" "}
+                                                {String(otherUserProfile?.firstName || "")}, {String(otherUserProfile?.age || "")}{" "}
                                             </AppText>
-                                            <FastImage
-                                                source={blueTikeIcon}
-                                                resizeMode="contain"
-                                                style={styles.blueTikIcon}
-                                            />
+                                            {userData?.faceVerified == true ?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} />:<></>}
+                                          
                                         </View>
                                         {otherUserProfile?.work &&
                                             <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -351,7 +359,7 @@ const UserEditProfile = (props: any) => {
                                                 />
                                                 <AppText type={ELEVEN} color={WHITE} weight={INTER_MEDIUM}>
                                                     {" "}
-                                                    {otherUserProfile?.work}
+                                                    {String(otherUserProfile?.work || "")}
                                                 </AppText>
                                             </View>
                                         }
@@ -367,7 +375,7 @@ const UserEditProfile = (props: any) => {
                                         />
                                         <AppText color={WHITE} weight={INTER_MEDIUM} type={ELEVEN}>
                                             {"  "}
-                                            {otherUserProfile?.city}
+                                            {String(otherUserProfile?.city || "")}
                                         </AppText>
                                     </View>
                                 </View>
@@ -403,7 +411,7 @@ const UserEditProfile = (props: any) => {
                         <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1, marginLeft: metrics.hp3 }}>
                             <FastImage source={oneIconDating} resizeMode="contain" style={styles.searchIcon} />
                             <AppText type={FORTEEN} weight={INTER_BOLD} color={BLACK}>
-                                {"   "}{datingIntentionsFilter(otherUserProfile?.relationshipPreference)}
+                                {"   "}{String(datingIntentionsFilter(otherUserProfile?.relationshipPreference) || "")}
                             </AppText>
                         </View>
                     </View>
@@ -415,7 +423,7 @@ const UserEditProfile = (props: any) => {
                             </AppText>
                         </View>
                         <AppText style={{ paddingVertical: metrics.hp1, }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={OPECITY_DARK}>
-                            {otherUserProfile?.bio}
+                            {String(otherUserProfile?.bio || "")}
                         </AppText>
                     </View>
                     <View style={styles.bioContinaer}>
@@ -435,7 +443,7 @@ const UserEditProfile = (props: any) => {
                                     </AppText>
                                 </View>
                                 <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                    {otherUserProfile?.education}
+                                    {String(otherUserProfile?.education || "")}
                                 </AppText>
                             </View>
                         }
@@ -449,7 +457,7 @@ const UserEditProfile = (props: any) => {
                                     </AppText>
                                 </View>
                                 <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                    {otherUserProfile?.jobTitle}
+                                    {String(otherUserProfile?.jobTitle || "")}
                                 </AppText>
                             </View>}
                         <View style={[styles.insideContainer, { marginTop: metrics.hp0_5 }]}>
@@ -461,7 +469,7 @@ const UserEditProfile = (props: any) => {
                                 </AppText>
                             </View>
                             <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                {otherUserProfile?.homeTown}
+                                {String(otherUserProfile?.homeTown || "")}
                             </AppText>
                         </View>
                     </View>
@@ -472,7 +480,7 @@ const UserEditProfile = (props: any) => {
                                 {"  "} About me
                             </AppText>
                         </View>
-                        {otherUserProfile?.pronouns?.length !== 0 &&
+                        {otherUserProfile?.pronouns && Array.isArray(otherUserProfile.pronouns) && otherUserProfile.pronouns.length > 0 &&
                             <View style={[styles.insideContainer, { marginTop: metrics.hp1 }]}>
                                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                                     <FastImage tintColor={colors.darkOpecity} source={pronounIcon} resizeMode="contain" style={styles.bioIcon} />
@@ -482,9 +490,9 @@ const UserEditProfile = (props: any) => {
                                     </AppText>
                                 </View>
                                 <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
-                                    {otherUserProfile?.pronouns?.map((value: any, index: any) =>
+                                    {otherUserProfile.pronouns.map((value: any, index: any) =>
                                         <AppText key={index} style={{ marginTop: metrics.hp1, marginRight: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                            {value}
+                                            {String(value || "")}
                                         </AppText>
                                     )}
                                 </View>
@@ -499,7 +507,7 @@ const UserEditProfile = (props: any) => {
                                 </AppText>
                             </View>
                             <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                {otherUserProfile?.height}
+                                {String(otherUserProfile?.height || "")}
                             </AppText>
                         </View>
                         {otherUserProfile?.zodiaSign !== "" &&
@@ -512,7 +520,7 @@ const UserEditProfile = (props: any) => {
                                     </AppText>
                                 </View>
                                 <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                    {otherUserProfile?.zodiaSign}
+                                    {String(otherUserProfile?.zodiaSign || "")}
                                 </AppText>
                             </View>}
                     </View>
@@ -534,7 +542,7 @@ const UserEditProfile = (props: any) => {
                                 </View>
                                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                                     <AppText style={{ marginTop: metrics.hp0_5, marginRight: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                        {smoke?.displayLabel}
+                                        {String(smoke?.displayLabel || "")}
                                     </AppText>
                                 </View>
                             </View>
@@ -549,7 +557,7 @@ const UserEditProfile = (props: any) => {
                                     </AppText>
                                 </View>
                                 <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                    {drink?.displayLabel}
+                                    {String(drink?.displayLabel || "")}
                                 </AppText>
                             </View>
                         }
@@ -563,7 +571,7 @@ const UserEditProfile = (props: any) => {
                                     </AppText>
                                 </View>
                                 <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                    {workout?.displayLabel}
+                                    {String(workout?.displayLabel || "")}
                                 </AppText>
                             </View>
                         }
@@ -577,7 +585,7 @@ const UserEditProfile = (props: any) => {
                                     </AppText>
                                 </View>
                                 <AppText style={{ marginTop: metrics.hp0_5 }} type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                    {pets?.displayLabel}
+                                    {String(pets?.displayLabel || "")}
                                 </AppText>
                             </View>
                         }
@@ -593,10 +601,10 @@ const UserEditProfile = (props: any) => {
                                 </AppText>
                             </View>
                             <View style={styles.wrapContainerTwo}>
-                                {attributes?.map((item: any, idx: number) => (
-                                    <View key={item._id} style={styles.containerSelect}>
+                                {attributes && Array.isArray(attributes) && attributes.map((item: any, idx: number) => (
+                                    <View key={item?._id || idx} style={styles.containerSelect}>
                                         <AppText type={TWELVE} weight={INTER_MEDIUM}>
-                                            {item?.displayLabel}
+                                            {String(item?.displayLabel || "")}
                                         </AppText>
                                     </View>
                                 ))}

@@ -6,7 +6,7 @@ import { colors } from "../../theme/colors";
 import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
 import Toast from "react-native-toast-message";
-import { applogo, deleteIcon, leftFair, lineGreen, logoBlue, logOutIcon, rightFair } from "../../helper/ImageAssets";
+import { applogo, deleteIcon, goldCard, leftFair, lineGreen, logoBlue, logOutIcon, rightFair } from "../../helper/ImageAssets";
 import { AppText, BLACK, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, OPECITY_DARK, RED, SCHEHERAZADE_BOLD, TEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
 import HeadLineContiner from "../../common/HeadLineContiner";
 import EditButtonCommon from "../../common/EditButtonCommon";
@@ -14,7 +14,7 @@ import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { useDispatch, useSelector } from "react-redux";
 import { deleteAccountAPI, userLogout } from "../../actions/authActions";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_SUBSCRIPTION_ALL_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_SUBSCRIPTION_ALL_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 import { disconnectAllSockets } from "../../common/Socket";
 import { version as appVersion } from "../../../package.json";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -114,12 +114,16 @@ const SettingScreen = () => {
             setIsProcessing(false);
         }
     }, [confirmAction, dispatch]);
+    const onSubcription = () => {
+        let itemtwo = { id: "2", icon: goldCard, title: "Gold" };
 
+        NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming:  itemtwo })
+    }
     return (
         <AppSafeAreaView>
             <HeaderCommon title={"Settings"} />
             <ScrollView contentContainerStyle={{ paddingBottom: metrics.hp10 }} showsVerticalScrollIndicator={false}>
-                <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_ALL_SCREEN)} style={styles.containerHead}>
+                <TouchableOpacityView onPress={onSubcription} style={styles.containerHead}>
                     <View style={styles.upgradeContainer}>
                         <FastImage source={lineGreen} resizeMode="contain" style={styles.lineContainer} />
                         <View style={{ marginTop: -metrics.hp1 }}>
@@ -210,13 +214,13 @@ const SettingScreen = () => {
                     <EditButtonCommon
                         setting={true}
                         title={"Block List"} />*/}
-                    <View style={styles.singleLine} />
+                    {/* <View style={styles.singleLine} />
                     <HeadLineContiner
                         headLines={"Subscription"} setting={true} />
                     <EditButtonCommon
                         onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_ALL_SCREEN)}
                         setting={true}
-                        title={"Subscribe to Parpple"} />
+                        title={"Subscribe to Parpple"} /> */}
                     {/* <EditButtonCommon
                         setting={true}
                         title={"Restore Subscription"} /> */}

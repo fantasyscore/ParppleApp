@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, TextInput, View, Platform } from "react-native";
+import { StyleSheet, TextInput, View, Platform, Keyboard, Animated } from "react-native";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import HeaderCommon from "../../common/HeaderCommon";
 import metrics from "../../assets/Metrics";
@@ -36,6 +36,35 @@ const LoginScreen = () => {
     const [countryCode, setCountryCode] = useState("+91");
     const [fcmtoken, setfcmToken] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [foucs, setFoucs] = useState(false);
+    const [keyboardOffset] = useState(() => new Animated.Value(0));
+
+    useEffect(() => {
+        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+        const showSubscription = Keyboard.addListener(showEvent, (e) => {
+            Animated.timing(keyboardOffset, {
+                toValue: Platform.OS === 'ios' ? e.endCoordinates.height : 0,
+                duration: e.duration || 250,
+                useNativeDriver: false,
+            }).start();
+        });
+
+        const hideSubscription = Keyboard.addListener(hideEvent, (e) => {
+            Animated.timing(keyboardOffset, {
+                toValue: 0,
+                duration: e.duration || 250,
+                useNativeDriver: false,
+            }).start();
+        });
+
+        return () => {
+            showSubscription.remove();
+            hideSubscription.remove();
+        };
+    }, [keyboardOffset]);
+
 
     const onPhoneChange = (text: string) => {
         const digitsOnly = text.replace(/\D/g, "").slice(0, 10);
@@ -47,11 +76,6 @@ const LoginScreen = () => {
 
         const initFCM = async () => {
             try {
-                const authStatus = await messaging().requestPermission();
-                const enabled =
-                    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-                    authStatus === messaging.AuthorizationStatus.PROVISIONAL;
-                if (!enabled) return;
                 if (Platform.OS === "ios") {
                     await messaging().registerDeviceForRemoteMessages();
                 }
@@ -95,11 +119,9 @@ const LoginScreen = () => {
                 fcmtoken: fcmtoken
                 // googleToken: signInResult?.data?.idToken
             };
-            console.log(data, "datadatadatadata");
-
             setIsLoading(true);
             try {
-                await dispatch(sendOtpApi(data)); /* dispatch(userLogin(data, true)); */
+                await  /* dispatch(sendOtpApi(data)); */ dispatch(userLogin(data, true));
             } catch (error) {
                 // Error is already handled in the action
             } finally {
@@ -118,11 +140,12 @@ const LoginScreen = () => {
     return (
         <AppSafeAreaView>
             <KeyboardAwareScrollView
-                showsVerticalScrollIndicator={false}
-                enableOnAndroid
+                enableOnAndroid={true}
+                scrollEnabled={false}
+                extraScrollHeight={Platform.OS === "ios" ? metrics.hp15 : metrics.hp15}
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ flexGrow: 1 }}
-            >
+                showsVerticalScrollIndicator={false}>
                 <HeaderCommon />
 
                 <View style={styles.container}>
@@ -138,17 +161,18 @@ const LoginScreen = () => {
 
                     <View style={styles.inputFlow}>
                         <TouchableOpacityView
-                            onPress={() => setShow(true)}
+                            onPress={()=>console.log("helloo") /* () => setShow(true) */}
                             style={styles.countryInput}
                         >
                             <AppText type={TWENTY} weight={INTER_BOLD}>
-                                IN {countryCode}
+                                {"   "}IN {countryCode}{"    "}
                             </AppText>
-                            <FastImage
+                            {/* <FastImage
                                 source={dropDownIcon}
                                 resizeMode="contain"
                                 style={styles.dropDownIcon}
-                            />
+                                tintColor={colors.white}
+                            /> */}
                         </TouchableOpacityView>
 
                         <View style={styles.countryInputTwo}>
@@ -167,6 +191,14 @@ const LoginScreen = () => {
                                 onChangeText={onPhoneChange}
                                 selectionColor={colors.black}
                                 style={styles.input}
+                                onFocus={() => {
+                                    setFoucs(true);
+                                    console.log("Input Open:", true);
+                                  }}
+                                  onBlur={() => {
+                                    setFoucs(false);
+                                    console.log("Input Open:", false);
+                                  }}
                             />
                         </View>
                     </View>
@@ -179,31 +211,36 @@ const LoginScreen = () => {
                         We’ll send you a verification code on your mobile number.
                     </AppText>
                 </View>
-
-                <LinearGradient
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 0, y: 1 }}
-                    style={{ height: metrics.hp19 }}
-                    colors={["#ffffff50", colors.white, colors.white]}
-                >
+                {/* <LinearGradient start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }} style={{ height: metrics.hp19 }} colors={["#ffffff50", colors.white, colors.white]}>
                     <View style={{ marginTop: metrics.hp9 }}>
-                        <GoButton
-                            colortrue={phoneNumber.length === 10 && !isLoading}
-                            onPress={loginButton}
-                            disabled={isLoading}
-                        />
+                        <GoButton colortrue={firstNmae} onPress={() => onSubmit()} />
                     </View>
-                </LinearGradient>
+                </LinearGradient> */}
+                <Animated.View style={{ marginBottom: keyboardOffset }}>
+                    <LinearGradient
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 0, y: 1 }}
+                        style={{ height: metrics.hp19 }}
+                        colors={["#ffffff50", colors.white, colors.white]}
+                    >
+                        <View style={{ marginTop: metrics.hp9 }}>
+                            <GoButton
+                                colortrue={phoneNumber.length === 10 && !isLoading}
+                                onPress={loginButton}
+                                disabled={isLoading}
+                            />
+                        </View>
+                    </LinearGradient>
+                </Animated.View>
 
                 <CountryPicker
                     show={show}
                     lang="en"
                     onBackdropPress={() => setShow(false)}
-                    style={{
-                        modal: {
-                            flex: 0.8
-                        }
-                    }}
+                    style={{modal:{
+                        flex: 0.8
+                    }}}
                     pickerButtonOnPress={(item: any) => {
                         setCountryCode(item.dial_code);
                         setShow(false);
@@ -227,12 +264,11 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         borderBottomWidth: 1,
-        paddingVertical: Platform.OS === "ios" ? metrics.hp0_8 : metrics.hp0,
+        paddingVertical: Platform.OS === "ios" ?  metrics.hp0_8 : metrics.hp0,
     },
     countryInputTwo: {
         borderBottomWidth: 1,
-        paddingVertical: Platform.OS === "ios" ? metrics.hp1 : metrics.hp0,
-        height: metrics.hp4
+        paddingVertical: Platform.OS ==="ios" ? metrics.hp1 : metrics.hp0,
     },
     dropDownIcon: {
         height: metrics.hp3,
@@ -249,10 +285,6 @@ const styles = StyleSheet.create({
         width: Screen.Width / 1.6,
         fontSize: fontSize(18),
         fontFamily: INTER_BOLD,
-        fontWeight: Platform.OS === "ios" ? "400" : "700",
-        marginTop: -metrics.hp1_3,
-        height: metrics.hp6,
-        color: colors.black,
-        backgroundColor: "transparent",
+        fontWeight:Platform.OS === "ios" ? "400": "700",
     },
 });

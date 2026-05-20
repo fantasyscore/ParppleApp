@@ -57,7 +57,7 @@ export const scale = SCREEN_WIDTH / 320;
 export function fontSize(size: number) {
   const newSize = size * scale
   if (Platform.OS === 'ios') {
-    return Math.round(PixelRatio.roundToNearestPixel(newSize))
+    return Math.round(PixelRatio.roundToNearestPixel(newSize)) - 2
   } else {
     return Math.round(PixelRatio.roundToNearestPixel(newSize)) - 2
   }

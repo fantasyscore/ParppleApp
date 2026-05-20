@@ -1,18 +1,22 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { ActivityIndicator, Alert, Animated, ImageBackground, Modal, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, Animated, Dimensions, ImageBackground, Modal, NativeModules, Platform, ScrollView, StyleSheet, View } from "react-native";
 import { goldHeader, infinityICon, logoBlue, platinumHeader, premiumIcon, silverHeader, stylesRightArrow } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import NavigationService from "../../navigation/NavigationService";
 import FastImage from "react-native-fast-image";
-import { AppText, BLACK, EIGHT, ELEVEN, FORTEEN, INTER_BOLD, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, TEN, TWELVE, WHITE } from "../../common/AppText";
+import { AppText, BLACK, EIGHT, ELEVEN, FORTEEN, INTER_BOLD, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, SCHEHERAZADE_BOLD, TEN, TWELVE, TWENTY_TWO, WHITE } from "../../common/AppText";
 import { SilverPurchasedis, GoldPurchasedis, PlatinumPurchasedis } from "../../common/UiltData";
 import { colors } from "../../theme/colors";
 import * as RNIap from 'react-native-iap';
 import { useDispatch, useSelector } from "react-redux";
 import { getProfile, subscriptionVerifyAPI } from "../../actions/authActions";
 import LinearGradient from "react-native-linear-gradient";
+import { appOperation } from "../../appOperation";
+import { useCallback } from "react";
+import { useMemo } from "react";
+import { check, openSettings, PERMISSIONS, request, RESULTS } from "react-native-permissions";
 // '20_fortesting silver_week', 'silver_month', 'silver_6month',
 
 // All Subscription SKUs
@@ -27,7 +31,11 @@ const ALL_SUBSCRIPTION_SKUS = Platform.select({
         'gold_week', 'gold_month', 'gold_6month',
         'platinum_week', 'platinum_month', 'platinum_6month'
     ],
-}) || [];
+}) ?? [
+        'silver_week', 'silver_month', 'silver_6month',
+        'gold_week', 'gold_month', 'gold_6month',
+        'platinum_week', 'platinum_month', 'platinum_6month'
+    ];
 
 // Helper to extract tier from productId
 const getTierFromProductId = (productId: string) => {
@@ -36,7 +44,12 @@ const getTierFromProductId = (productId: string) => {
     if (productId.toLowerCase().includes('platinum')) return 'Platinum';
     return 'Silver';
 };
-
+type FaceLivenessResult =
+    | { status?: string; message?: string }
+    | string
+    | null
+    | undefined;
+const { width, height } = Dimensions.get('window');
 // Helper to extract subscription period and order
 const extractSubscriptionPeriod = (subscription: any): { planOf: string; ofPu: string; periodOrder: number; weeksCount: number } => {
     const productId = (subscription.id || subscription.productId || subscription.productIdentifier || '').toString();
@@ -136,6 +149,7 @@ const SubscriptionScreen = ({ route }: any) => {
     const [allProducts, setAllProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState<string | null>(null);
+    const [faceVerificationPromptVisible, setFaceVerificationPromptVisible] = useState(false);
     const userData = useSelector((state: any) => state.auth.userData);
     const dispatch = useDispatch();
 
@@ -174,11 +188,26 @@ const SubscriptionScreen = ({ route }: any) => {
                 setLoading(true);
                 await RNIap.initConnection();
 
-                // Fetch ALL products at once
-                const availableProducts = await RNIap.fetchProducts({
-                    skus: ALL_SUBSCRIPTION_SKUS,
-                    type: 'subs'
-                });
+                // iOS (v12): getSubscriptions({ skus }) for subscriptions. v14 has fetchProducts({ skus, type: 'subs' }).
+                let rawProducts: any[] = [];
+                if (Platform.OS === 'ios') {
+                    if ((RNIap as any).getSubscriptions) {
+                        rawProducts = await (RNIap as any).getSubscriptions({ skus: ALL_SUBSCRIPTION_SKUS });
+                    } else {
+                        rawProducts = await RNIap.getProducts({ skus: ALL_SUBSCRIPTION_SKUS });
+                    }
+                } else if (typeof (RNIap as any).fetchProducts === 'function') {
+                    rawProducts = await (RNIap as any).fetchProducts({
+                        skus: ALL_SUBSCRIPTION_SKUS,
+                        type: 'subs',
+                    });
+                } else if ((RNIap as any).getSubscriptions) {
+                    rawProducts = await (RNIap as any).getSubscriptions({ skus: ALL_SUBSCRIPTION_SKUS });
+                } else {
+                    rawProducts = await RNIap.getProducts({ skus: ALL_SUBSCRIPTION_SKUS });
+                }
+
+                const availableProducts = Array.isArray(rawProducts) ? rawProducts : [];
 
                 if (availableProducts && availableProducts.length > 0) {
                     // First pass: calculate all products with weekly pricing
@@ -287,8 +316,12 @@ const SubscriptionScreen = ({ route }: any) => {
                     purchaseToken: purchase.purchaseToken,
                     platform: Platform.OS === 'ios' ? 'ios' : 'android',
                 };
-
-                const response: any = await dispatch(subscriptionVerifyAPI(data));
+                const newdata = {
+                    productId: purchase.productId,
+                    purchaseToken: purchase.transactionReceipt,
+                    platform: 'ios',
+                }
+                const response: any = await dispatch(subscriptionVerifyAPI(newdata));
                 const isOk =
                     response?.statusCode === 200
 
@@ -332,22 +365,187 @@ const SubscriptionScreen = ({ route }: any) => {
         .filter(p => p.tier === selectedTier)
         .sort((a, b) => a.periodOrder - b.periodOrder);
 
-    const handlePurchase = async () => {
-        if (processing) return;
-        const selectedPlan = currentTierPlans[selectedPlanIndex];
-        if (!selectedPlan?.rawSubscription) return;
+        const FaceLiveness = (NativeModules as any)?.FaceLiveness as
+        | { startLiveness?: (sessionId: string) => Promise<FaceLivenessResult> }
+        | undefined;
+
+    const moduleAvailable = useMemo(() => {
+        return Boolean(FaceLiveness && typeof FaceLiveness.startLiveness === 'function');
+    }, [FaceLiveness]);
+
+    const [resultText, setResultText] = useState<string>('');
+    const [faceVerificationPromptFailedVisible, setFaceVerificationPromptFailedVisible] = useState(false);
+    const [faceVerificationPromptSuccessVisible, setFaceVerificationPromptSuccessVisible] = useState(false);
+    const handleCloseFaceVerificationSuccessPrompt = useCallback(() => {
+        setFaceVerificationPromptSuccessVisible(false);
+    }, []);
+    const handleCloseFaceVerificationFailedPrompt = useCallback(() => {
+        setFaceVerificationPromptFailedVisible(false);
+    }, []);
+
+    const getCameraPermissionType = useCallback(() => {
+        return Platform.OS === "ios" ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA;
+    }, []);
+
+    const ensureCameraPermission = useCallback(async (): Promise<boolean> => {
+        try {
+            const permissionType = getCameraPermissionType();
+            const currentStatus = await check(permissionType);
+
+            if (currentStatus === RESULTS.GRANTED) return true;
+
+            if (currentStatus === RESULTS.BLOCKED) {
+                Alert.alert(
+                    "Camera permission required",
+                    "Camera permission is disabled. Please enable it from Settings to continue face verification.",
+                    [
+                        { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
+                        { text: "Cancel", style: "cancel" },
+                    ]
+                );
+                return false;
+            }
+
+            const requestedStatus = await request(permissionType);
+            if (requestedStatus === RESULTS.GRANTED) return true;
+
+            Alert.alert(
+                "Camera permission denied",
+                "Face verification requires camera access. You can enable it from Settings.",
+                [
+                    { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
+                    { text: "Cancel", style: "cancel" },
+                ]
+            );
+            return false;
+        } catch (error) {
+            console.warn("Camera permission check failed:", error);
+            Alert.alert("Permission error", "Unable to check camera permission. Please try again.");
+            return false;
+        }
+    }, [getCameraPermissionType]);
+
+    const start = async () => {
+        if (!moduleAvailable) {
+            const msg =
+                'FaceLiveness native module not found. Make sure you rebuilt the app (not just Metro reload).';
+            console.warn('[FaceLivenessTest] ' + msg);
+            setResultText(msg);
+            return;
+        }
+
+        // setLoading(true);
+        setResultText('');
 
         try {
-            setProcessing(selectedPlan.id);
-            const platformRequest: any = Platform.OS === 'android'
-                ? { android: { skus: [selectedPlan.id] } }
-                : { ios: { sku: selectedPlan.id } };
+            const isCameraAllowed = await ensureCameraPermission();
+            if (!isCameraAllowed) {
+                return;
+            }
 
-            await RNIap.requestPurchase({ request: platformRequest, type: 'subs' });
-        } catch (err: any) {
-            setProcessing(null);
+            console.log('[FaceLivenessTest] Requesting session from /faceId/liveliness');
+            const sessionResp = await (appOperation.customer as any).createFaceLivenessSessionAPI();
+            const sessionId = sessionResp?.data
+            console.log(sessionId, "sessionResp");
+
+            if (!sessionId) {
+                throw new Error('Session API did not return a valid sessionId');
+            }
+
+            console.log('[FaceLivenessTest] Starting native liveness with sessionId:', sessionId);
+            if (!FaceLiveness || typeof FaceLiveness.startLiveness !== 'function') {
+                throw new Error('FaceLiveness native module is not available on this device.');
+            }
+            const res = await FaceLiveness.startLiveness(sessionId);
+            console.log('[FaceLivenessTest] Native result:', res);
+
+            // Normalize a few common shapes.
+            if (res && typeof res === 'object') {
+                const status = (res as any).status;
+                if (status === 'success') {
+                    setFaceVerificationPromptVisible(false);
+                    console.log('[FaceLivenessTest] Verifying session via faceId/verifySessionResult');
+                    const verifyResp = await (appOperation.customer as any).verifyFaceLivenessSessionAPI({
+                        sessionId,
+                    });
+                    if (verifyResp?.success) {
+                        if (verifyResp?.data?.confidence >= 90) {
+                            dispatch(getProfile(true))
+                            setFaceVerificationPromptSuccessVisible(true)
+                        } else if (verifyResp?.data?.confidence >= 80) {
+                            dispatch(getProfile(true))
+                            setFaceVerificationPromptSuccessVisible(true)
+                        } else {
+                            setFaceVerificationPromptFailedVisible(true);
+                        }
+                    }
+                } else if (status === 'cancelled') {
+                    Alert.alert((res as any).message ? `Cancelled: ${(res as any).message}` : 'Cancelled')
+                } else {
+                    Alert.alert(`Result: ${JSON.stringify(res)}`)
+                }
+            } else {
+                Alert.alert(res ? `Result: ${String(res)}` : 'Liveness Success')
+            }
+        } catch (e: any) {
+            const msg = e?.message ?? String(e);
+            console.error('[FaceLivenessTest] Error:', e);
+            setFaceVerificationPromptVisible(false);
+            setFaceVerificationPromptFailedVisible(true);
+        } finally {
+            // setLoading(false);
         }
     };
+
+    const handlePurchase = async () => {
+        if (userData?.faceVerified === false) {
+            setFaceVerificationPromptVisible(true)
+        } else {
+            if (processing) return;
+            const selectedPlan = currentTierPlans[selectedPlanIndex];
+            if (!selectedPlan?.rawSubscription) return;
+
+            const productId = selectedPlan.id;
+            if (!productId) return;
+
+            try {
+                setProcessing(productId);
+
+                // iOS (v12): requestSubscription({ sku }). Android (v14): requestPurchase({ request: { android: { skus } }, type: 'subs' }).
+                if (Platform.OS === 'ios') {
+                    if ((RNIap as any).requestSubscription) {
+                        await (RNIap as any).requestSubscription({
+                            sku: productId,
+                            andDangerouslyFinishTransactionAutomaticallyIOS: false,
+                        });
+                    } else {
+                        await RNIap.requestPurchase({
+                            sku: productId,
+                            andDangerouslyFinishTransactionAutomaticallyIOS: false,
+                        });
+                    }
+                } else if (typeof (RNIap as any).fetchProducts === 'function') {
+                    await (RNIap as any).requestPurchase({
+                        request: { android: { skus: [productId] } },
+                        type: 'subs',
+                    });
+                } else if ((RNIap as any).requestSubscription) {
+                    await (RNIap as any).requestSubscription(productId);
+                } else {
+                    await RNIap.requestPurchase({ skus: [productId] });
+                }
+            } catch (err: any) {
+                setProcessing(null);
+                if (!err?.message?.toLowerCase?.().includes('cancel')) {
+                    console.warn('Subscription Purchase Error:', err);
+                }
+            }
+        }
+    };
+    
+    const handleCloseFaceVerificationPrompt = useCallback(() => {
+        setFaceVerificationPromptVisible(false);
+    }, []);
 
     if (loading) {
         return (
@@ -361,7 +559,8 @@ const SubscriptionScreen = ({ route }: any) => {
                 </View>
             </AppSafeAreaView>
         );
-    }
+    };
+    
 
     return (
         <AppSafeAreaView>
@@ -372,7 +571,7 @@ const SubscriptionScreen = ({ route }: any) => {
             <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1, backgroundColor: "#F5F7FA" }}>
                 <View style={styles.PremiumText}>
                     <FastImage source={premiumIcon} resizeMode="contain" style={styles.pencilIcon} />
-                    <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>{"  "}Choose {selectedTier} Plan</AppText>
+                    <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>{"  "}Choose {selectedTier === "Platinum" ? "Flame" : selectedTier === "Gold" ? "Spark" : selectedTier} Plan</AppText>
                 </View>
 
                 {currentTierPlans.length > 0 ? (
@@ -416,7 +615,7 @@ const SubscriptionScreen = ({ route }: any) => {
 
                         <View style={styles.PremiumText}>
                             <FastImage source={infinityICon} resizeMode="contain" style={styles.pencilIcon} />
-                            <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>{"  "}Included with {selectedTier}</AppText>
+                            <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>{"  "}Included with {selectedTier === "Platinum" ? "Flame" : selectedTier === "Gold" ? "Spark" : selectedTier}</AppText>
                         </View>
                         <View style={{ marginTop: metrics.hp2, paddingHorizontal: metrics.hp2, paddingBottom: metrics.hp10 }}>
                             {(() => {
@@ -573,6 +772,101 @@ const SubscriptionScreen = ({ route }: any) => {
                     )}
                 </TouchableOpacityView>
             </View>
+
+            <Modal
+                animationType="fade"
+                transparent
+                visible={faceVerificationPromptVisible}
+                onRequestClose={handleCloseFaceVerificationPrompt}
+            >
+                <View style={styles.centeredView}>
+                    <View style={styles.locationPromptContainer}>
+                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
+                        Verify Your Identity
+                        </AppText>
+                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ textAlign: "center", marginTop: metrics.hp0 }}>
+                        Complete a quick face verification to secure your account. This process takes only a few seconds.
+                        </AppText>
+                        <TouchableOpacityView
+                            onPress={start}
+                            style={[styles.locationPromptButton, { backgroundColor: colors.purple, borderColor: colors.purple, marginTop: metrics.hp3 }]}
+                        >
+                            <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
+                            Start Verification
+                            </AppText>
+                        </TouchableOpacityView>
+                        <TouchableOpacityView
+                            onPress={handleCloseFaceVerificationPrompt}
+                            style={[styles.locationPromptButton, { backgroundColor: colors.transparent, borderColor: colors.transparent,marginTop:metrics.hp1 }]}
+                        >
+                            <AppText color={LIGHT_BLACK} weight={INTER_BOLD} type={FORTEEN}>
+                            Skip for Now
+                            </AppText>
+                        </TouchableOpacityView>
+                    </View>
+                </View>
+            </Modal>
+            <Modal
+                animationType="fade"
+                transparent
+                visible={faceVerificationPromptSuccessVisible}
+                onRequestClose={handleCloseFaceVerificationSuccessPrompt}
+            >
+                <View style={styles.centeredView}>
+                    <View style={styles.locationPromptContainer}>
+                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
+                        Verification Successful
+                        </AppText>
+                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ textAlign: "center", marginTop: metrics.hp0_5 }}>
+                        Your face verification has been completed successfully. Your account is now fully verified.
+                        </AppText>
+                        <TouchableOpacityView
+                            onPress={handleCloseFaceVerificationSuccessPrompt}
+                            style={[styles.locationPromptButton, { backgroundColor: colors.purple, borderColor: colors.purple, marginTop: metrics.hp3 }]}
+                        >
+                            <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
+                            Continue
+                            </AppText>
+                        </TouchableOpacityView>
+                    </View>
+                </View>
+            </Modal>
+            <Modal
+                animationType="fade"
+                transparent
+                visible={faceVerificationPromptFailedVisible}
+                onRequestClose={handleCloseFaceVerificationFailedPrompt}
+            >
+                <View style={styles.centeredView}>
+                    <View style={styles.locationPromptContainer}>
+                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
+                        Verification Failed
+                        </AppText>
+                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ textAlign: "center", marginTop: metrics.hp0_5 }}>
+                        We were unable to verify your identity. Please try again in a well-lit environment and ensure your face is clearly visible.
+                        </AppText>
+                        <TouchableOpacityView
+                            onPress={start}
+                            style={[styles.locationPromptButton, { backgroundColor: colors.purple, borderColor: colors.purple, marginTop: metrics.hp3 }]}
+                        >
+                            <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
+                            Try Again
+                            </AppText>
+                        </TouchableOpacityView>
+                        <TouchableOpacityView
+                            onPress={handleCloseFaceVerificationFailedPrompt}
+                            style={[styles.locationPromptButton, { backgroundColor: colors.transparent, borderColor: colors.transparent, marginTop:metrics.hp15_5 }]}
+                        >
+                            <AppText color={LIGHT_BLACK} weight={INTER_BOLD} type={FORTEEN}>
+                            Cancel
+                            </AppText>
+                        </TouchableOpacityView>
+                    </View>
+                </View>
+            </Modal>
+
+
+
         </AppSafeAreaView>
     );
 };
@@ -675,5 +969,28 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp4,
         alignItems: "center",
         justifyContent: "center",
+    },
+    centeredView: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: colors.transparentBlack,
+        paddingHorizontal: metrics.hp2
+    },
+    locationPromptContainer: {
+        backgroundColor: colors.white,
+        width: width / 1.15,
+        borderRadius: metrics.hp2,
+        paddingHorizontal: metrics.hp2,
+        paddingVertical: metrics.hp3,
+    },
+    locationPromptButton: {
+        height: metrics.hp5,
+        borderWidth: 1,
+        borderColor: colors.darkBorder,
+        borderRadius: metrics.hp4,
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: metrics.hp1_5,
     },
 });

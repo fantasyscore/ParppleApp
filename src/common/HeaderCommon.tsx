@@ -1,11 +1,11 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import FastImage from "react-native-fast-image";
 import { backIcon, pencilIcon, previewIcon } from "../helper/ImageAssets";
 import metrics from "../assets/Metrics";
 import { TouchableOpacityView } from "./TouchableOpacityView";
 import NavigationService from "../navigation/NavigationService";
-import { AppText, EIGHTEEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, OPECITY_DARK, TEN } from "./AppText";
+import { AppText, EIGHTEEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, OPECITY_DARK, SIXTEEN, TEN } from "./AppText";
 import { colors } from "../theme/colors";
 
 const HeaderCommon = ({ onSkip, skip, title, preview, edit, PreviewOnpress, editOnPress,age }: any) => {
@@ -20,8 +20,8 @@ const HeaderCommon = ({ onSkip, skip, title, preview, edit, PreviewOnpress, edit
                                 {"     "}{title}
                             </AppText> :
                             <View style={{flexDirection:"row", alignItems:"center"}}>
-                            <AppText style={{marginTop:-metrics.hp0_5, textTransform:"capitalize"}} type={EIGHTEEN} weight={INTER_BOLD}>{"     "}{title},</AppText>
-                            <AppText  type={EIGHTEEN} weight={INTER_MEDIUM}> {age}</AppText>
+                            <AppText style={{ textTransform:"capitalize"}} type={FORTEEN} weight={INTER_BOLD}>{"     "}{title},</AppText>
+                            <AppText  type={SIXTEEN} weight={INTER_MEDIUM}> {age}</AppText>
                             </View>
                         }
                     </>
@@ -30,7 +30,7 @@ const HeaderCommon = ({ onSkip, skip, title, preview, edit, PreviewOnpress, edit
             </TouchableOpacityView>
             {skip &&
                 <TouchableOpacityView onPress={onSkip}>
-                    <AppText style={{ marginTop: metrics.hp5 }} weight={INTER_MEDIUM} color={OPECITY_DARK} type={FORTEEN}>
+                    <AppText style={{ marginTop: Platform.OS ==="ios" ? metrics.hp6: metrics.hp5 }} weight={INTER_MEDIUM} color={OPECITY_DARK} type={FORTEEN}>
                         Skip
                     </AppText>
                 </TouchableOpacityView>
@@ -43,7 +43,7 @@ const HeaderCommon = ({ onSkip, skip, title, preview, edit, PreviewOnpress, edit
                     </AppText>
                 </TouchableOpacityView>
             }
-            {edit &&
+            {edit && !preview &&
                 <TouchableOpacityView onPress={editOnPress} style={styles.containerEdit}>
                     <FastImage source={pencilIcon} resizeMode="contain" style={styles.previewIcon} />
                     <AppText type={TEN} weight={INTER_SEMI_BOLD} color={OPECITY_DARK}>
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
         width: metrics.hp1_6
     },
     containerPreview: {
-        marginTop: metrics.hp5,
+        marginTop:  Platform.OS ==="ios" ? metrics.hp6: metrics.hp5,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp4
     },
     containerEdit: {
-        marginTop: metrics.hp5,
+        marginTop: Platform.OS ==="ios" ? metrics.hp6: metrics.hp5,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",

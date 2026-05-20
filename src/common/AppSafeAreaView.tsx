@@ -22,8 +22,8 @@ const AppSafeAreaView = ({
     }, [])
   )
   return Platform.OS === "ios" ? (
-    <View style={[{ flex: 1 }, style]}>
-      <SafeAreaView
+    <View style={[{ flex: 1, backgroundColor: color ? color : colors.white }, style]}>
+      {/* <SafeAreaView
         style={{
           flex: 0,
           backgroundColor: statusColor ? statusColor : colors.white,
@@ -35,7 +35,12 @@ const AppSafeAreaView = ({
           flex: 1,
         }}>
         {children}
-      </SafeAreaView>
+      </SafeAreaView> */}
+        <StatusBar
+        backgroundColor={'black'}
+        barStyle="dark-content"
+      />
+         {children}
     </View>
   ) : (
     <View style={[{ flex: 1, backgroundColor: color ? color : colors.white }, style]}>
