@@ -18,8 +18,9 @@ import com.amplifyframework.ui.liveness.ui.FaceLivenessDetector
 import com.amazonaws.auth.CognitoCachingCredentialsProvider
 import com.amazonaws.regions.Regions
 import java.util.Date
+import aws.smithy.kotlin.runtime.time.toSdkInstant
 import java.util.concurrent.Executors
-import java.util.function.Consumer
+import com.amplifyframework.core.Consumer
 
 class FaceLivenessActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -86,7 +87,7 @@ class FaceLivenessActivity : ComponentActivity() {
             setResult(
               Activity.RESULT_CANCELED,
               Intent()
-                .putExtra(EXTRA_ERROR_MESSAGE, error.localizedMessage ?: "Face liveness failed")
+                .putExtra(EXTRA_ERROR_MESSAGE, error.message ?: "Face liveness failed")
             )
             finish()
           }
@@ -125,15 +126,15 @@ class FaceLivenessActivity : ComponentActivity() {
             sessionCreds.awsAccessKeyId,
             sessionCreds.awsSecretKey,
             sessionCreds.sessionToken,
-            expiration
+            java.time.Instant.ofEpochMilli(expiration.time).toSdkInstant()
           )
           onSuccess.accept(amplifyCreds)
         } catch (t: Throwable) {
           onError.accept(
             AuthException(
               "Failed to obtain AWS credentials",
-              t,
-              "Ensure Cognito Identity Pool is configured and network is available."
+              "Ensure Cognito Identity Pool is configured and network is available.",
+              t
             )
           )
         }

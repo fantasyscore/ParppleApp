@@ -136,16 +136,145 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
             }
         }
     }, [data]);
-const inUnderFunction = () =>{
-    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-    setSwipeLeft?.(true);
-}
+    const inUnderFunction = () => {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+        setSwipeLeft?.(true);
+    }
     return (
         <AppSafeAreaView>
+            <View style={{ height: metrics.hp12, position: "absolute", top: 0, zIndex: 1, width: "100%", overflow: Platform.OS === "ios" ? "visible" : "hidden" }}>
+                {Platform.OS === "ios" ?
+                    <>
+                        <BlurView
+                            style={StyleSheet.absoluteFillObject}
+                            blurType="light"
+                            blurAmount={1}
+                        />
+                        <View
+                            style={{
+                                ...StyleSheet.absoluteFillObject,
+                                borderWidth: 1,
+                                borderColor: 'rgba(255,255,255,0.25)',
+                            }}
+                        />
+                    </> :
+                    <>
+                        <View style={{ height: metrics.hp12, backgroundColor: "rgba(255,255,255,0.50)" }}>
+                        </View>
+                        <View
+                            style={{
+                                ...StyleSheet.absoluteFillObject,
+                                borderWidth: 1,
+                                borderColor: 'rgba(255,255,255,0.25)',
+                            }}
+                        />
+                    </>
+                }
+                <TouchableOpacityView onPress={() => setModalVisible(false)} style={{
+                    position: "absolute", top: metrics.hp6_8,
+                    left: metrics.hp2
+                }}>
+                    <View style={{ height: metrics.hp4, width: metrics.hp4, alignItems: "center", justifyContent: "center", backgroundColor: "#F7F7F790", borderWidth: metrics.hp0_1, borderColor: "#EDEDED", borderRadius: metrics.hp50 }}>
+                        <FastImage source={backIcon} resizeMode="contain" style={styles.backIcon} />
+                    </View>
+                </TouchableOpacityView>
+                <View
+                    pointerEvents="none"
+                    style={{
+                        height: metrics.hp4, borderWidth: 0.1, borderColor: colors.white, flexDirection: "row", alignItems: "center", borderRadius: metrics.hp6, justifyContent: "space-between",
+                        position: "absolute", top: metrics.hp7,
+                        overflow: "hidden",
+                        alignSelf: "center",
+                        paddingHorizontal: metrics.hp0_4
+                    }}>
+                    <BlurView
+                        style={StyleSheet.absoluteFillObject}
+                        blurType="light"
+                        blurAmount={1}
+                    />
+                    <View
+                        style={{
+                            ...StyleSheet.absoluteFillObject,
+                            borderWidth: 1,
+                            borderColor: 'rgba(255,255,255,0.25)',
+                        }}
+                    />
+                    {data?.gallery?.map((item: any, thumbIdx: number) => {
+                        const isLast = thumbIdx === data?.gallery.length - 1;
+                        return (
+                            <React.Fragment key={item?.url ?? thumbIdx}>
+                                <FastImage
+                                    source={{ uri: item.url }}
+                                    resizeMode="cover"
+                                    style={{ height: metrics.hp3, width: metrics.hp3, borderRadius: metrics.hp50, borderWidth: thumbIdx === (data?.index ?? 0) ? metrics.hp0_1 : 0, borderColor: colors.white }}
+                                />
+                                {!isLast ? <AppText> </AppText> : null}
+                            </React.Fragment>
+                        );
+                    })}
+                </View>
+            </View>
+            {/* <View style={{ height: metrics.hp12, position: "absolute", top: 0, zIndex:1, width: "100%", overflow: Platform.OS === "ios" ? "visible" : "hidden" }}>
+                <BlurView
+                    style={StyleSheet.absoluteFillObject}
+                    blurType="light"
+                    blurAmount={1}
+                />
+                <View
+                    style={{
+                        ...StyleSheet.absoluteFillObject,
+                        borderWidth: 1,
+                        borderColor: 'rgba(255,255,255,0.25)',
+                    }}
+                />
+                <TouchableOpacityView onPress={() => setModalVisible(false)} style={{
+                    position: "absolute", top: metrics.hp6_8,
+                    left: metrics.hp2
+                }}>
+                    <View style={{ height: metrics.hp4, width: metrics.hp4, alignItems: "center", justifyContent: "center", backgroundColor: "#F7F7F71A", borderWidth: metrics.hp0_1, borderColor: "#EDEDED1A", borderRadius: metrics.hp50 }}>
+                        <FastImage source={backIcon} resizeMode="contain" style={styles.backIcon} />
+                    </View>
+                </TouchableOpacityView>
+                <View
+                    pointerEvents="none"
+                    style={{
+                        height: metrics.hp4, borderWidth: 0.1, borderColor: colors.white, flexDirection: "row", alignItems: "center", borderRadius: metrics.hp6, justifyContent: "space-between",
+                        position: "absolute", top: metrics.hp7,
+                        overflow: "hidden",
+                        alignSelf: "center",
+                        paddingHorizontal: metrics.hp0_4
+                    }}>
+                    <BlurView
+                        style={StyleSheet.absoluteFillObject}
+                        blurType="light"
+                        blurAmount={1}
+                    />
+                    <View
+                        style={{
+                            ...StyleSheet.absoluteFillObject,
+                            borderWidth: 1,
+                            borderColor: 'rgba(255,255,255,0.25)',
+                        }}
+                    />
+                    {data?.gallery?.map((item: any, thumbIdx: number) => {
+                        const isLast = thumbIdx === data?.gallery.length - 1;
+                        return (
+                            <React.Fragment key={item?.url ?? thumbIdx}>
+                                <FastImage
+                                    source={{ uri: item.url }}
+                                    resizeMode="cover"
+                                    style={{ height: metrics.hp3, width: metrics.hp3, borderRadius: metrics.hp50, borderWidth: thumbIdx === (data?.index ?? 0) ? metrics.hp0_1 : 0, borderColor: colors.white }}
+                                />
+                                {!isLast ? <AppText> </AppText> : null}
+                            </React.Fragment>
+                        );
+                    })}
+                </View>
+            </View> */}
             <ScrollView
                 ref={scrollViewRef}
                 style={styles.container}
-                contentContainerStyle={{ paddingBottom: metrics.hp20, flexGrow: 1 }}
+                contentContainerStyle={{ paddingBottom: metrics.hp20 }}
                 showsVerticalScrollIndicator={false}>
 
                 <TouchableOpacityView
@@ -197,7 +326,7 @@ const inUnderFunction = () =>{
                             />
                         </TouchableOpacityView> */}
                         <LinearGradient start={{ x: 1, y: 1 }}
-                            end={{ x: 1, y: 0 }} colors={Platform.OS === "ios" ? ["#ffffff", "#ffffff70", "#ffffff40", "#ffffff00"] : ["#000000", "#00000099", "#00000000"]}
+                            end={{ x: 1, y: 0 }} colors={Platform.OS === "ios" ? ["#ffffff", "#ffffff70", "#ffffff40", "#ffffff00"] : ["#ffffff", "#ffffff70", "#ffffff40", "#ffffff00"]}
                             style={{ height: metrics.hp10, width: "100%", position: "absolute", bottom: 0, alignItems: "center", justifyContent: "center" }}>
                         </LinearGradient>
                     </ImageBackground>
@@ -207,7 +336,7 @@ const inUnderFunction = () =>{
                         <AppText style={{ fontWeight: "700", fontSize: fontSize(28) }} color={BLACK} weight={INTER_BOLD}>
                             {data?.name ? data?.name : data?.firstName ? data?.firstName : 'Unknown'}, {data?.age ?? '--'}
                         </AppText>
-                        {userData?.faceVerified == true ?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />:<></>}
+                        {userData?.faceVerified == true ? <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} /> : <></>}
                         {/* <FastImage source={blueTikeIcon} style={styles.blueTickIcon} resizeMode="contain" /> */}
                     </View>
 
@@ -294,63 +423,7 @@ const inUnderFunction = () =>{
                     style={{ height: metrics.hp3, width: metrics.hp3 }}
                 />
             </TouchableOpacityView>
-            <View style={{ height: metrics.hp12, position: "absolute", top: 0, width: "100%", overflow: "visible" }}>
-                <BlurView
-                    style={StyleSheet.absoluteFillObject}
-                    blurType="light"
-                    blurAmount={1}
-                />
-                <View
-                    style={{
-                        ...StyleSheet.absoluteFillObject,
-                        borderWidth: 1,
-                        borderColor: 'rgba(255,255,255,0.25)',
-                    }}
-                />
-                <TouchableOpacityView onPress={() => setModalVisible(false)} style={{
-                    position: "absolute", top: metrics.hp6_8,
-                    left: metrics.hp2
-                }}>
-                    <View style={{ height: metrics.hp4, width: metrics.hp4, alignItems: "center", justifyContent: "center", backgroundColor: "#F7F7F71A", borderWidth: metrics.hp0_1, borderColor: "#EDEDED1A", borderRadius: metrics.hp50 }}>
-                        <FastImage source={backIcon} resizeMode="contain" style={styles.backIcon} />
-                    </View>
-                </TouchableOpacityView>
-                <View
-                    pointerEvents="none"
-                    style={{
-                        height: metrics.hp4, borderWidth: 0.1, borderColor: colors.white, flexDirection: "row", alignItems: "center", borderRadius: metrics.hp6, justifyContent: "space-between",
-                        position: "absolute", top: metrics.hp7,
-                        overflow: "hidden",
-                        alignSelf: "center",
-                        paddingHorizontal: metrics.hp0_4
-                    }}>
-                    <BlurView
-                        style={StyleSheet.absoluteFillObject}
-                        blurType="light"
-                        blurAmount={1}
-                    />
-                    <View
-                        style={{
-                            ...StyleSheet.absoluteFillObject,
-                            borderWidth: 1,
-                            borderColor: 'rgba(255,255,255,0.25)',
-                        }}
-                    />
-                    {data?.gallery?.map((item: any, thumbIdx: number) => {
-                        const isLast = thumbIdx === data?.gallery.length - 1;
-                        return (
-                            <React.Fragment key={item?.url ?? thumbIdx}>
-                                <FastImage
-                                    source={{ uri: item.url }}
-                                    resizeMode="cover"
-                                    style={{ height: metrics.hp3, width: metrics.hp3, borderRadius: metrics.hp50, borderWidth: thumbIdx === (data?.index ?? 0) ? metrics.hp0_1 : 0, borderColor: colors.white }}
-                                />
-                                {!isLast ? <AppText> </AppText> : null}
-                            </React.Fragment>
-                        );
-                    })}
-                </View>
-            </View>
+
             {/* <View style={styles.likeUnLikeCOntainer}>
                 <View style={[styles.flasContaier, { opacity: 0 }]}>
                     <FastImage source={flashIcon} resizeMode="contain" style={styles.flasIcon} />

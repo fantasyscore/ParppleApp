@@ -36,11 +36,11 @@ const AppSafeAreaView = ({
         }}>
         {children}
       </SafeAreaView> */}
-        <StatusBar
+      <StatusBar
         backgroundColor={'black'}
         barStyle="dark-content"
       />
-         {children}
+      {children}
     </View>
   ) : (
     <View style={[{ flex: 1, backgroundColor: color ? color : colors.white }, style]}>

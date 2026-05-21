@@ -18,7 +18,8 @@ buildscript {
 
     dependencies {
         classpath("com.facebook.react:react-native-gradle-plugin")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.21")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0")
+        classpath("org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.1.0")
         classpath("com.google.gms:google-services:4.4.4")
         classpath("com.android.tools.build:gradle:8.3.2")
     }
@@ -32,6 +33,14 @@ allprojects {
     configurations.all {
         resolutionStrategy {
             force "com.google.android.gms:play-services-location:21.0.1"
+            // Force a single OkHttp version to prevent runtime NoClassDefFoundError
+            // caused by okhttp3.internal.Util being removed in newer OkHttp versions
+            force "com.squareup.okhttp3:okhttp:4.12.0"
+            force "com.squareup.okhttp3:okhttp-urlconnection:4.12.0"
+            force "com.squareup.okhttp3:logging-interceptor:4.12.0"
+            // Pin Billing Client to 6.x — react-native-iap calls the no-arg
+            // enablePendingPurchases() which was removed in Billing Client 7.0+
+            force "com.android.billingclient:billing:6.2.1"
         }
     }
 }

@@ -21,6 +21,12 @@
       android:theme="@style/AppTheme"
       android:usesCleartextTraffic="true"
       android:supportsRtl="true">
+       <meta-data
+        android:name="com.parpple.AWS_REKOGNITION_REGION"
+        android:value="ap-south-1" />
+         <meta-data
+        android:name="com.parpple.AWS_COGNITO_IDENTITY_POOL_ID"
+        android:value="ap-south-1:419a295b-5bb7-4a2b-83df-5216b0f7bd83" />
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyDHYHRJXGEJr_IQ2Fbw10BSwNoekfu7UPk"/>
@@ -41,7 +47,7 @@
       </activity>
 
       <activity
-        android:name=".faceliveness.FaceLivenessActivity"
+        android:name="com.parpple.faceliveness.FaceLivenessActivity"
         android:exported="false"
         android:screenOrientation="portrait"
         android:theme="@style/Theme.AppCompat.DayNight.NoActionBar" />

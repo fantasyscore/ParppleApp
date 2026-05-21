@@ -963,6 +963,6 @@ const styles = StyleSheet.create({
         color: colors.white,
         textAlign: "center",
         fontWeight:"600",
-        marginTop: Platform.OS === 'ios' ? metrics.hp0_1 : -metrics.hp0_1,
+        marginTop: Platform.OS === 'ios' ? metrics.hp0_1 : -metrics.hp0_2,
     },
 })

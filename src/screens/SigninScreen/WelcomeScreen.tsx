@@ -84,8 +84,8 @@ const WelcomeScreen = () => {
             } catch { }
 
             const signInResult: any = await GoogleSignin.signIn({ prompt: 'select_account' } as any);
-            console.log(signInResult,"signInResultsignInResultsignInResult");
-            
+            console.log(signInResult, "signInResultsignInResultsignInResult");
+
             let idToken = signInResult.data?.idToken;
             if (!idToken) {
                 idToken = signInResult.idToken;
@@ -161,14 +161,15 @@ const WelcomeScreen = () => {
                         {"          "}Continue with Phone Number
                     </AppText>
                 </TouchableOpacityView>
-                <TouchableOpacityView onPress={onAppleButtonPress} style={[styles.phoneContainer, { marginTop: metrics.hp2 }]}>
-                    <View style={styles.callIconContainer}>
-                        <FastImage source={Appleicon} resizeMode="contain" style={[styles.callIcon, { height: metrics.hp3, width: metrics.hp3 }]} />
-                    </View>
-                    <AppText weight={INTER_BOLD} type={FORTEEN}>
-                        {"                  "}Continue with Apple
-                    </AppText>
-                </TouchableOpacityView>
+                {Platform.OS === "ios" ?
+                    <TouchableOpacityView onPress={onAppleButtonPress} style={[styles.phoneContainer, { marginTop: metrics.hp2 }]}>
+                        <View style={styles.callIconContainer}>
+                            <FastImage source={Appleicon} resizeMode="contain" style={[styles.callIcon, { height: metrics.hp3, width: metrics.hp3 }]} />
+                        </View>
+                        <AppText weight={INTER_BOLD} type={FORTEEN}>
+                            {"                  "}Continue with Apple
+                        </AppText>
+                    </TouchableOpacityView> : <></>}
                 <TouchableOpacityView onPress={onGoogleButtonPress} style={[styles.phoneContainer, { marginTop: metrics.hp2 }]}>
                     <View style={styles.callIconContainer}>
                         <FastImage source={googleIcon} resizeMode="contain" style={styles.googleIcon} />
@@ -214,7 +215,7 @@ const styles = StyleSheet.create({
         height: metrics.hp30,
         width: Screen.Width,
         position: "absolute",
-        bottom: metrics.hp5,
+        bottom: Platform.OS === "ios" ? metrics.hp5 : metrics.hp0,
         paddingHorizontal: metrics.hp2,
         paddingVertical: metrics.hp3
     },

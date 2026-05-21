@@ -32,7 +32,7 @@ export interface AppSafeAreaViewProps {
   children?: any;
   style?: StyleProp<ViewStyle> | undefined;
   statusColor?: string;
-  color?:any;
+  color?: any;
 }
 
 export interface BProps extends TouchableOpacityProps {
@@ -96,7 +96,7 @@ export interface CountryInputProps extends TextInputProps {
   showHidePress?: ((event: GestureResponderEvent) => void) | undefined;
   errorText?: string;
   visible?: boolean;
-  onSelectCountry?:any;
+  onSelectCountry?: any;
   isPhoneNotValid?: any;
 }
 

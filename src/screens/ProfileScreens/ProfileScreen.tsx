@@ -130,7 +130,7 @@ const ProfileScreen = () => {
                         </View>
                     </TouchableOpacityView>
                     <View>
-                        <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent:"center" }}>
                             <AppText style={{ marginTop: metrics.hp2, textTransform: "capitalize", fontWeight: "700" }} type={EIGHTEEN} weight={INTER_BOLD}>{"    "}{userData?.firstName},<AppText type={EIGHTEEN} weight={INTER_MEDIUM}> {userData?.age}{"  "}</AppText>
                             </AppText>
                             {userData?.faceVerified == true ? <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} /> : <></>}

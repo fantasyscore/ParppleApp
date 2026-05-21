@@ -161,7 +161,7 @@ const LoginScreen = () => {
 
                     <View style={styles.inputFlow}>
                         <TouchableOpacityView
-                            onPress={()=>console.log("helloo") /* () => setShow(true) */}
+                            onPress={() => console.log("helloo") /* () => setShow(true) */}
                             style={styles.countryInput}
                         >
                             <AppText type={TWENTY} weight={INTER_BOLD}>
@@ -194,11 +194,11 @@ const LoginScreen = () => {
                                 onFocus={() => {
                                     setFoucs(true);
                                     console.log("Input Open:", true);
-                                  }}
-                                  onBlur={() => {
+                                }}
+                                onBlur={() => {
                                     setFoucs(false);
                                     console.log("Input Open:", false);
-                                  }}
+                                }}
                             />
                         </View>
                     </View>
@@ -238,9 +238,11 @@ const LoginScreen = () => {
                     show={show}
                     lang="en"
                     onBackdropPress={() => setShow(false)}
-                    style={{modal:{
-                        flex: 0.8
-                    }}}
+                    style={{
+                        modal: {
+                            flex: 0.8
+                        }
+                    }}
                     pickerButtonOnPress={(item: any) => {
                         setCountryCode(item.dial_code);
                         setShow(false);
@@ -264,11 +266,11 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         borderBottomWidth: 1,
-        paddingVertical: Platform.OS === "ios" ?  metrics.hp0_8 : metrics.hp0,
+        paddingVertical: Platform.OS === "ios" ? metrics.hp0_8 : metrics.hp0_8,
     },
     countryInputTwo: {
-        borderBottomWidth: 1,
-        paddingVertical: Platform.OS ==="ios" ? metrics.hp1 : metrics.hp0,
+        borderBottomWidth:1,
+        paddingVertical: Platform.OS === "ios" ? metrics.hp1 : metrics.hp0,
     },
     dropDownIcon: {
         height: metrics.hp3,
@@ -285,6 +287,6 @@ const styles = StyleSheet.create({
         width: Screen.Width / 1.6,
         fontSize: fontSize(18),
         fontFamily: INTER_BOLD,
-        fontWeight:Platform.OS === "ios" ? "400": "700",
+        fontWeight: Platform.OS === "ios" ? "400" : "700",
     },
 });

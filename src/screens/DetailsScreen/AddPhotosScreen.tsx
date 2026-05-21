@@ -698,7 +698,7 @@ const styles = StyleSheet.create({
     lineHeight: metrics.hp1_8,
     textAlign: "center",
     fontWeight:"600",
-    marginTop:metrics.hp0_1,
+    marginTop: Platform.OS ==="ios" ?  metrics.hp0_1 :-metrics.hp0_2,
   },
 
 });
