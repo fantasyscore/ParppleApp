@@ -1092,7 +1092,7 @@ const NewHomeScreen = () => {
                 setCurrentLocation({ lat: '', long: '' });
             },
             {
-                enableHighAccuracy: true,
+                enableHighAccuracy: false,
                 timeout: 20000,
                 maximumAge: 10000,
                 forceRequestLocation: true,

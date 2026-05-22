@@ -122,7 +122,7 @@ const LocationScreen = () => {
           // Alert.alert("Error", "Unable to get location. Please try again.");
         },
         {
-          enableHighAccuracy: true,
+          enableHighAccuracy: false,
           timeout: 20000,
           maximumAge: 10000,
           forceRequestLocation: true,

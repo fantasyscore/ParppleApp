@@ -221,7 +221,9 @@ const App = () => {
   );
 };
 
-export default codePush(App);
+// export default codePush(App);
+export default App;
+
 const styles = StyleSheet.create({
   secureContainer: {
     // flex: 1,

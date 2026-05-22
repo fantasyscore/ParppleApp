@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { FlatList, ImageBackground, Modal, Platform, StyleSheet, View } from "react-native";
 import FastImage from "react-native-fast-image";
@@ -101,9 +101,10 @@ const LikesYouScreen = () => {
     //     };
     //     dispatch(getOtherProfile(data, false, setProfileData, true));
     // }
+    const subscriptionItem = useMemo(() => ({ id: '2', icon: goldCard, title: 'Gold' }), []);
     const viewProfile = (item: any) => {
         if (item?.see == false ? true : false) {
-            NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: item })
+            NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem })
         } else {
             let data = {
                 "userId": item?.userId
