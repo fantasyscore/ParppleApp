@@ -117,7 +117,7 @@ const SettingScreen = () => {
     const onSubcription = () => {
         let itemtwo = { id: "2", icon: goldCard, title: "Gold" };
 
-        NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming:  itemtwo })
+        NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: itemtwo })
     }
     return (
         <AppSafeAreaView>
@@ -402,7 +402,7 @@ const SettingScreen = () => {
                             Parpple
                         </AppText> */}
                         <AppText
-                            style={{  textAlign: "center" }}
+                            style={{ textAlign: "center" }}
                             type={TWELVE}
                             weight={INTER_MEDIUM}
                             color={OPECITY_DARK}
@@ -415,7 +415,7 @@ const SettingScreen = () => {
                                 setDeleteSuccessVisible(false);
                                 handleLogoutConfirmed();
                             }}
-                            style={[styles.modalBtn, styles.modalBtnPrimary, { alignSelf: "center", marginTop: metrics.hp2, width:metrics.hp15 }]}
+                            style={[styles.modalBtn, styles.modalBtnPrimary, { alignSelf: "center", marginTop: metrics.hp2, width: metrics.hp15 }]}
                         >
                             <AppText type={TWELVE} weight={SCHEHERAZADE_BOLD} color={WHITE}>
                                 OK

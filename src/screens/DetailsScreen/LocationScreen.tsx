@@ -51,6 +51,7 @@ const LocationScreen = () => {
       const result = await request(permission);
       if (result === RESULTS.GRANTED) {
         setPermissionAllow(true);
+        onSubmit()
       } else {
         setPermissionAllow(false);
         skipButton();
@@ -71,7 +72,7 @@ const LocationScreen = () => {
       Geolocation.getCurrentPosition(
         async (position: GeoPosition) => {
           const { latitude, longitude } = position.coords;
-          
+
           setRegion((prev) => ({
             ...prev,
             latitude,
@@ -81,11 +82,11 @@ const LocationScreen = () => {
           const response = await fetch(
             `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`
           );
-          console.log(response,"responseresponseresponse");
-          console.log(latitude,longitude,"longitude");
-          
+          console.log(response, "responseresponseresponse");
+          console.log(latitude, longitude, "longitude");
+
           const data = await response.json();
-          console.log(data,"datadatadatadatadata");
+          console.log(data, "datadatadatadatadata");
 
           if (data.results && data.results.length > 0) {
             const addressComponents = data.results[0].address_components;
@@ -106,7 +107,7 @@ const LocationScreen = () => {
             const dataToSave = {
               ...addProfileData,
               coordinates: { long: longitude, lat: latitude },
-              city:city,
+              city: city,
               state: state,
               country: country,
               pronouns: [],
@@ -162,7 +163,7 @@ const LocationScreen = () => {
   };
   const handleMapPress = async (e: MapPressEvent) => {
     const { latitude, longitude } = e.nativeEvent.coordinate;
-    
+
     setMarkerCoords((prev) => ({
       ...prev,
       latitude,
@@ -192,24 +193,24 @@ const LocationScreen = () => {
       const dataToSave = {
         ...addProfileData,
         coordinates: { long: longitude, lat: latitude },
-        city:city,
+        city: city,
         state: state,
         country: country,
         pronouns: [],
       };
-      console.log(dataToSave,"dataToSave");
-      
+      console.log(dataToSave, "dataToSave");
+
       dispatch(setAddProfile(dataToSave));
       console.log("📍 Location data:", dataToSave);
     } else {
       // Alert.alert("Error", "Unable to fetch address. Try again later.");
     }
   };
-  const skipButton = () =>{
+  const skipButton = () => {
     const dataToSave = {
       ...addProfileData,
       coordinates: { long: "", lat: "" },
-      city:"",
+      city: "",
       state: "",
       country: "",
       pronouns: [],
@@ -236,7 +237,7 @@ const LocationScreen = () => {
               could match with your profile.
             </AppText>
           </View>
-          {permissionAllow ? (
+          {/* {permissionAllow ? (
             <>
               <MapView
                 style={styles.map}
@@ -259,29 +260,34 @@ const LocationScreen = () => {
                 </View>
               </LinearGradient>
             </>
-          ) : (
+          ) : ( */}
             <View style={{ paddingHorizontal: metrics.hp2 }}>
               <FastImage
                 source={mapIcon}
                 resizeMode="contain"
                 style={styles.mapIcon}
               />
-              <TouchableOpacityView
-                onPress={requestLocationPermission}
-                style={[styles.allowButton,{    borderColor: colors.transparent, backgroundColor:colors.purple}]}>
-                <AppText type={FORTEEN} color={WHITE} weight={INTER_SEMI_BOLD}>
-                  Continue
+              <View style={{ marginBottom: metrics.hp0, marginTop: metrics.hp20 }}>
+                <AppText style={{ marginBottom: -metrics.hp4, textAlign: "center" }} type={TWELVE} weight={INTER_SEMI_BOLD}>
+                  Want to find more people around you? Allow access to your location
                 </AppText>
-              </TouchableOpacityView>
-              <TouchableOpacityView
+                <TouchableOpacityView
+                  onPress={requestLocationPermission}
+                  style={[styles.allowButton, { borderColor: colors.transparent, backgroundColor: colors.purple, width: "100%", }]}>
+                  <AppText type={FORTEEN} color={WHITE} weight={INTER_SEMI_BOLD}>
+                    Continue
+                  </AppText>
+                </TouchableOpacityView>
+              </View>
+              {/* <TouchableOpacityView
                 onPress={skipButton}
-                style={[styles.allowButton,{    marginTop: metrics.hp1,}]}>
+                style={[styles.allowButton, { marginTop: metrics.hp1, }]}>
                 <AppText type={FORTEEN} weight={INTER_SEMI_BOLD}>
                   Skip
                 </AppText>
-              </TouchableOpacityView>
+              </TouchableOpacityView> */}
             </View>
-          )}
+          {/* )} */}
 
         </View>
       </View>

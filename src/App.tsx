@@ -4,8 +4,9 @@ import { Provider } from "react-redux";
 import { onAppStart } from "./helper/app";
 import Navigator from "./navigation/Navigator";
 import store from "./store/store";
-import { StatusBar, Text, View, AppState, AppStateStatus, StyleSheet } from "react-native";
+import { StatusBar, Text, View, AppState, AppStateStatus, StyleSheet, Platform } from "react-native";
 import SplashScreen from "react-native-splash-screen";
+import { InAppUpdate } from "./native/inAppUpdate";
 import ToastMessage from "./common/ToastMessage";
 import codePush from "@revopush/react-native-code-push";
 import { recoverPurchasesOnStartup } from "./services/purchaseRecoveryService";
@@ -36,6 +37,17 @@ const App = () => {
   useEffect(() => {
     console.log('[App] Initializing app...');
     onAppStart(store);
+
+    if (Platform.OS === 'android') {
+      InAppUpdate.checkForUpdate()
+        .then((result) => {
+          console.log('[InAppUpdate] Startup update check complete. Status:', result.status);
+        })
+        .catch((error) => {
+          console.error('[InAppUpdate] Startup update check failed:', error);
+        });
+    }
+
     setTimeout(() => {
       try {
         // Avoid rare cold-start crashes if the native module isn't ready

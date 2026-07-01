@@ -113,6 +113,10 @@ dependencies {
     implementation "com.amazonaws:aws-android-sdk-cognitoidentityprovider:2.77.0"
     implementation "com.amazonaws:aws-android-sdk-core:2.77.0"
 
+    // Google Play In-App Updates
+    implementation("com.google.android.play:app-update:2.1.0")
+    implementation("com.google.android.play:app-update-ktx:2.1.0")
+
     if (react.hasProperty("hermesEnabled") && hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {

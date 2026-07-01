@@ -365,7 +365,7 @@ const SubscriptionScreen = ({ route }: any) => {
         .filter(p => p.tier === selectedTier)
         .sort((a, b) => a.periodOrder - b.periodOrder);
 
-        const FaceLiveness = (NativeModules as any)?.FaceLiveness as
+    const FaceLiveness = (NativeModules as any)?.FaceLiveness as
         | { startLiveness?: (sessionId: string) => Promise<FaceLivenessResult> }
         | undefined;
 
@@ -542,7 +542,7 @@ const SubscriptionScreen = ({ route }: any) => {
             }
         }
     };
-    
+
     const handleCloseFaceVerificationPrompt = useCallback(() => {
         setFaceVerificationPromptVisible(false);
     }, []);
@@ -560,7 +560,7 @@ const SubscriptionScreen = ({ route }: any) => {
             </AppSafeAreaView>
         );
     };
-    
+
 
     return (
         <AppSafeAreaView>
@@ -782,25 +782,25 @@ const SubscriptionScreen = ({ route }: any) => {
                 <View style={styles.centeredView}>
                     <View style={styles.locationPromptContainer}>
                         <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
-                        Verify Your Identity
+                            Verify Your Identity
                         </AppText>
                         <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ textAlign: "center", marginTop: metrics.hp0 }}>
-                        Complete a quick face verification to secure your account. This process takes only a few seconds.
+                            Complete a quick face verification to secure your account. This process takes only a few seconds.
                         </AppText>
                         <TouchableOpacityView
                             onPress={start}
                             style={[styles.locationPromptButton, { backgroundColor: colors.purple, borderColor: colors.purple, marginTop: metrics.hp3 }]}
                         >
                             <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
-                            Start Verification
+                                Start Verification
                             </AppText>
                         </TouchableOpacityView>
                         <TouchableOpacityView
                             onPress={handleCloseFaceVerificationPrompt}
-                            style={[styles.locationPromptButton, { backgroundColor: colors.transparent, borderColor: colors.transparent,marginTop:metrics.hp1 }]}
+                            style={[styles.locationPromptButton, { backgroundColor: colors.transparent, borderColor: colors.transparent, marginTop: metrics.hp1 }]}
                         >
                             <AppText color={LIGHT_BLACK} weight={INTER_BOLD} type={FORTEEN}>
-                            Skip for Now
+                                Skip for Now
                             </AppText>
                         </TouchableOpacityView>
                     </View>
@@ -815,17 +815,17 @@ const SubscriptionScreen = ({ route }: any) => {
                 <View style={styles.centeredView}>
                     <View style={styles.locationPromptContainer}>
                         <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
-                        Verification Successful
+                            Verification Successful
                         </AppText>
                         <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ textAlign: "center", marginTop: metrics.hp0_5 }}>
-                        Your face verification has been completed successfully. Your account is now fully verified.
+                            Your face verification has been completed successfully. Your account is now fully verified.
                         </AppText>
                         <TouchableOpacityView
                             onPress={handleCloseFaceVerificationSuccessPrompt}
                             style={[styles.locationPromptButton, { backgroundColor: colors.purple, borderColor: colors.purple, marginTop: metrics.hp3 }]}
                         >
                             <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
-                            Continue
+                                Continue
                             </AppText>
                         </TouchableOpacityView>
                     </View>
@@ -840,25 +840,25 @@ const SubscriptionScreen = ({ route }: any) => {
                 <View style={styles.centeredView}>
                     <View style={styles.locationPromptContainer}>
                         <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
-                        Verification Failed
+                            Verification Failed
                         </AppText>
                         <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ textAlign: "center", marginTop: metrics.hp0_5 }}>
-                        We were unable to verify your identity. Please try again in a well-lit environment and ensure your face is clearly visible.
+                            We were unable to verify your identity. Please try again in a well-lit environment and ensure your face is clearly visible.
                         </AppText>
                         <TouchableOpacityView
                             onPress={start}
                             style={[styles.locationPromptButton, { backgroundColor: colors.purple, borderColor: colors.purple, marginTop: metrics.hp3 }]}
                         >
                             <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
-                            Try Again
+                                Try Again
                             </AppText>
                         </TouchableOpacityView>
                         <TouchableOpacityView
                             onPress={handleCloseFaceVerificationFailedPrompt}
-                            style={[styles.locationPromptButton, { backgroundColor: colors.transparent, borderColor: colors.transparent, marginTop:metrics.hp15_5 }]}
+                            style={[styles.locationPromptButton, { backgroundColor: colors.transparent, borderColor: colors.transparent, marginTop: metrics.hp15_5 }]}
                         >
                             <AppText color={LIGHT_BLACK} weight={INTER_BOLD} type={FORTEEN}>
-                            Cancel
+                                Cancel
                             </AppText>
                         </TouchableOpacityView>
                     </View>
