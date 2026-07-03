@@ -78,7 +78,7 @@ const LocationScreen = () => {
             latitude,
             longitude,
           }));
-          const apiKey = "AIzaSyAuzRbXX8dWA2n4QGD0ja-609e1wXMkHjI";
+          const apiKey = "AIzaSyDDr0qEfkj9wFNlqy2So1S1AX02UEvvN_o";
           const response = await fetch(
             `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`
           );
@@ -169,7 +169,7 @@ const LocationScreen = () => {
       latitude,
       longitude,
     }));
-    const apiKey = "AIzaSyDHYHRJXGEJr_IQ2Fbw10BSwNoekfu7UPk";
+    const apiKey = "AIzaSyDDr0qEfkj9wFNlqy2So1S1AX02UEvvN_o";
     const response = await fetch(
       `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`
     );
