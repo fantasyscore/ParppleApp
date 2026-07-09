@@ -38,6 +38,25 @@ export const authSlice = createSlice({
     setAddProfile: (state, { payload }: PayloadAction<any>) => {
       state.addProfileData = payload;
     },
+    updateAddProfileLocation: (state, { payload }: PayloadAction<any>) => {
+      if (state.addProfileData) {
+        state.addProfileData = {
+          ...state.addProfileData,
+          coordinates: payload.coordinates,
+          city: payload.city,
+          state: payload.state,
+          country: payload.country,
+        };
+      } else {
+        state.addProfileData = {
+          coordinates: payload.coordinates,
+          city: payload.city,
+          state: payload.state,
+          country: payload.country,
+          pronouns: [],
+        };
+      }
+    },
     setListProfiles: (state, { payload }: PayloadAction<any>) => {
       state.listProfiles = payload;
     },
@@ -96,6 +115,7 @@ export const {
   setLoading,
   setBottomRemove,
   setAddProfile,
+  updateAddProfileLocation,
   setListProfiles,
   setLikeByOther,
   setLikeYou,

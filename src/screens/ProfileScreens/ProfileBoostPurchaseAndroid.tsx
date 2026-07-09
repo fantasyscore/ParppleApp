@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { ActivityIndicator, Alert, Animated, Dimensions, FlatList, ImageBackground, Linking, Modal, NativeModules, Platform, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, Animated, FlatList, ImageBackground, Modal, Platform, StyleSheet, View } from "react-native";
 import OneTimeProductHeader from "../../common/OneTimeProductHeader";
 import { flasIcon, goldCard, logoBlue, orBottomIcon, premiumIcon, superlIkeBackGround, upgradPlan } from "../../helper/ImageAssets";
 import LinearGradient from "react-native-linear-gradient";
@@ -12,18 +12,14 @@ import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import * as RNIap from 'react-native-iap';
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
-import { useDispatch, useSelector } from "react-redux";
-import { getProfile, iosPucrchesAPIIs, subscriptionVerifyAPI, verifyconsumableitemsAPI } from "../../actions/authActions";
-import { useMemo } from "react";
-import { appOperation } from "../../appOperation";
-import { useCallback } from "react";
-import { check, openSettings, PERMISSIONS, request, RESULTS } from "react-native-permissions";
+import { useDispatch } from "react-redux";
+import { getProfile, subscriptionVerifyAPI, verifyconsumableitemsAPI } from "../../actions/authActions";
 
 // One-time Product SKUs
 const PRODUCT_SKUS = Platform.select({
     android: ['10_boost', '3_boost', '1_boost'],
     ios: ['10_boost', '3_boost', '1_boost'],
-}) ?? ['10_boost', '3_boost', '1_boost'];
+}) || [];
 
 // Helper to extract numeric price for calculations
 const extractPriceNumber = (priceStr: string): { amount: number; currency: string } => {
@@ -33,16 +29,8 @@ const extractPriceNumber = (priceStr: string): { amount: number; currency: strin
     return { amount, currency };
 };
 
-type FaceLivenessResult =
-    | { status?: string; message?: string }
-    | string
-    | null
-    | undefined;
-const { width, height } = Dimensions.get('window');
-
-const ProfileBoostPurchase = () => {
+const ProfileBoostPurchaseAndroid = () => {
     const dispatch = useDispatch();
-    const userData = useSelector((state: any) => state.auth.userData);
     const [select, setSelect] = useState(0);
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -76,29 +64,29 @@ const ProfileBoostPurchase = () => {
                 setLoading(true);
                 await RNIap.initConnection();
 
-                const rawProducts = await RNIap.getProducts({ skus: PRODUCT_SKUS });
-                const availableProducts = Array.isArray(rawProducts) ? rawProducts : [];
+                // Fetch products using getProducts for v12.3.0
+                const availableProducts = await RNIap.getProducts({ skus: PRODUCT_SKUS });
 
-                if (availableProducts.length > 0) {
+                if (availableProducts && availableProducts.length > 0) {
                     // First pass: calculate all products with per-boost pricing
                     const productsWithPricing = availableProducts.map((prod: any) => {
                         const productId = (prod.productId || prod.id || '').toString();
                         const boostCountStr = productId.match(/\d+/)?.[0] || '1';
                         const n = parseInt(boostCountStr);
-
+                        
                         const fullPriceStr = prod.localizedPrice || prod.displayPrice || '₹0';
                         const priceInfo = extractPriceNumber(fullPriceStr);
                         const total = priceInfo.amount;
 
                         // Rule: Calculate exact per-boost value, then floor to 2 decimal places for boosts 1 to (n-1)
                         const perBoostFixed = Math.floor((total / n) * 100) / 100;
-
+                        
                         // Rule: Assign any remaining amount to the final boost
                         const lastBoostAmount = Number((total - (perBoostFixed * (n - 1))).toFixed(2));
-
+                        
                         // Proof check
                         const proofSum = Number(((perBoostFixed * (n - 1)) + lastBoostAmount).toFixed(2));
-
+                        
                         // Debug log for Proof
                         console.log(`[Boost IAP Proof Check]`);
                         console.log(`- Selected pack: ${n} Boosts`);
@@ -157,6 +145,7 @@ const ProfileBoostPurchase = () => {
 
                     // Sort descending by boost count
                     formattedProducts.sort((a: any, b: any) => b.boostCount - a.boostCount);
+
                     setProducts(formattedProducts);
                 }
             } catch (err) {
@@ -192,17 +181,10 @@ const ProfileBoostPurchase = () => {
                     purchaseToken: purchase.purchaseToken,
                     platform: Platform.OS === 'ios' ? 'ios' : 'android',
                     orderId: purchase.id,
-                    transactionReceipt: purchase?.transactionReceipt,
-                    transactionId: purchase?.transactionId
                 };
-                const newdata = {
-                    productId: purchase?.productId,
-                    transactionReceipt: purchase?.transactionReceipt,
-                    transactionId: purchase?.transactionId
-                }
-            
-                const response: any = Platform.OS === "ios"? await dispatch(iosPucrchesAPIIs(newdata)):await dispatch(verifyconsumableitemsAPI(data));
-                const isOk = response?.statusCode === 200
+
+                const response: any = await dispatch(verifyconsumableitemsAPI(data));
+                const isOk = response?.statusCode === 200;
                 if (!isOk) {
                     throw new Error(response?.message || response?.data?.message || 'Boost verification failed');
                 }
@@ -216,7 +198,7 @@ const ProfileBoostPurchase = () => {
                 } catch (finishErr) {
                     console.warn('[Boost] Client finishTransaction failed (possibly already consumed by server):', finishErr);
                 }
-                dispatch(getProfile(true))
+                dispatch(getProfile(true));
             } catch (err) {
                 console.error('[Boost] Purchase handler error:', err);
                 if (isInitiated) {
@@ -246,176 +228,22 @@ const ProfileBoostPurchase = () => {
         };
     }, []);
 
-
-
-    const FaceLiveness = (NativeModules as any)?.FaceLiveness as
-        | { startLiveness?: (sessionId: string) => Promise<FaceLivenessResult> }
-        | undefined;
-
-    const moduleAvailable = useMemo(() => {
-        return Boolean(FaceLiveness && typeof FaceLiveness.startLiveness === 'function');
-    }, [FaceLiveness]);
-
-    const [resultText, setResultText] = useState<string>('');
-    const [faceVerificationPromptFailedVisible, setFaceVerificationPromptFailedVisible] = useState(false);
-    const [faceVerificationPromptSuccessVisible, setFaceVerificationPromptSuccessVisible] = useState(false);
-    const [faceVerificationPromptVisible, setFaceVerificationPromptVisible] = useState(false);
-    const handleCloseFaceVerificationSuccessPrompt = useCallback(() => {
-        setFaceVerificationPromptSuccessVisible(false);
-    }, []);
-    const handleCloseFaceVerificationFailedPrompt = useCallback(() => {
-        setFaceVerificationPromptFailedVisible(false);
-    }, []);
-    const handleCloseFaceVerificationPrompt = useCallback(() => {
-        setFaceVerificationPromptVisible(false);
-    }, []);
-
-    const getCameraPermissionType = useCallback(() => {
-        return Platform.OS === "ios" ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA;
-    }, []);
-
-    const ensureCameraPermission = useCallback(async (): Promise<boolean> => {
-        try {
-            const permissionType = getCameraPermissionType();
-            const currentStatus = await check(permissionType);
-
-            if (currentStatus === RESULTS.GRANTED) return true;
-
-            if (currentStatus === RESULTS.BLOCKED) {
-                Alert.alert(
-                    "Camera permission required",
-                    "Camera permission is disabled. Please enable it from Settings to continue face verification.",
-                    [
-                        { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
-                        { text: "Cancel", style: "cancel" },
-                    ]
-                );
-                return false;
-            }
-
-            const requestedStatus = await request(permissionType);
-            if (requestedStatus === RESULTS.GRANTED) return true;
-
-            Alert.alert(
-                "Camera permission denied",
-                "Face verification requires camera access. You can enable it from Settings.",
-                [
-                    { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
-                    { text: "Cancel", style: "cancel" },
-                ]
-            );
-            return false;
-        } catch (error) {
-            console.warn("Camera permission check failed:", error);
-            Alert.alert("Permission error", "Unable to check camera permission. Please try again.");
-            return false;
-        }
-    }, [getCameraPermissionType]);
-
-    const start = async () => {
-        if (!moduleAvailable) {
-            const msg =
-                'FaceLiveness native module not found. Make sure you rebuilt the app (not just Metro reload).';
-            console.warn('[FaceLivenessTest] ' + msg);
-            setResultText(msg);
-            return;
-        }
-
-        // setLoading(true);
-        setResultText('');
-
-        try {
-            const isCameraAllowed = await ensureCameraPermission();
-            if (!isCameraAllowed) {
-                return;
-            }
-
-            console.log('[FaceLivenessTest] Requesting session from /faceId/liveliness');
-            const sessionResp = await (appOperation.customer as any).createFaceLivenessSessionAPI();
-            const sessionId = sessionResp?.data
-            console.log(sessionId, "sessionResp");
-
-            if (!sessionId) {
-                throw new Error('Session API did not return a valid sessionId');
-            }
-
-            console.log('[FaceLivenessTest] Starting native liveness with sessionId:', sessionId);
-            if (!FaceLiveness || typeof FaceLiveness.startLiveness !== 'function') {
-                throw new Error('FaceLiveness native module is not available on this device.');
-            }
-            const res = await FaceLiveness.startLiveness(sessionId);
-            console.log('[FaceLivenessTest] Native result:', res);
-
-            // Normalize a few common shapes.
-            if (res && typeof res === 'object') {
-                const status = (res as any).status;
-                if (status === 'success') {
-                    setFaceVerificationPromptVisible(false);
-                    console.log('[FaceLivenessTest] Verifying session via faceId/verifySessionResult');
-                    const verifyResp = await (appOperation.customer as any).verifyFaceLivenessSessionAPI({
-                        sessionId,
-                    });
-                    if (verifyResp?.success) {
-                        if (verifyResp?.data?.confidence >= 90) {
-                            dispatch(getProfile(true))
-                            setFaceVerificationPromptSuccessVisible(true)
-                        } else if (verifyResp?.data?.confidence >= 80) {
-                            dispatch(getProfile(true))
-                            setFaceVerificationPromptSuccessVisible(true)
-                        } else {
-                            setFaceVerificationPromptFailedVisible(true);
-                        }
-                    }
-                } else if (status === 'cancelled') {
-                    Alert.alert((res as any).message ? `Cancelled: ${(res as any).message}` : 'Cancelled')
-                } else {
-                    Alert.alert(`Result: ${JSON.stringify(res)}`)
-                }
-            } else {
-                Alert.alert(res ? `Result: ${String(res)}` : 'Liveness Success')
-            }
-        } catch (e: any) {
-            const msg = e?.message ?? String(e);
-            console.error('[FaceLivenessTest] Error:', e);
-            setFaceVerificationPromptVisible(false);
-            setFaceVerificationPromptFailedVisible(true);
-        } finally {
-            // setLoading(false);
-        }
-    };
-
-
-
     const handlePurchase = async () => {
-        if (Platform.OS ==="ios"&& userData?.faceVerified === false) {
-            setFaceVerificationPromptVisible(true)
-        } else {
-            if (processing) return;
-            const selectedProduct = products[select];
-            if (!selectedProduct) return;
+        if (processing) return;
+        const selectedProduct = products[select];
+        if (!selectedProduct) return;
 
-            const productId = (selectedProduct as any).productId || (selectedProduct as any).id;
-            if (!productId) return;
+        const productId = (selectedProduct as any).productId || (selectedProduct as any).id;
 
-            try {
-                setProcessing(String(productId));
-                purchaseInitiatedRef.current = true;
-
-                if (Platform.OS === 'ios') {
-                    await RNIap.requestPurchase({
-                        sku: productId,
-                        andDangerouslyFinishTransactionAutomaticallyIOS: false,
-                    });
-                } else {
-                    await RNIap.requestPurchase({ skus: [productId] });
-                }
-            } catch (err: any) {
-                setProcessing(null);
-                purchaseInitiatedRef.current = false;
-                if (!err?.message?.toLowerCase?.().includes('cancel')) {
-                    console.warn('Purchase Error:', err);
-                }
-            }
+        try {
+            setProcessing(productId);
+            purchaseInitiatedRef.current = true;
+            
+            await RNIap.requestPurchase({ skus: [productId] });
+        } catch (err: any) {
+            setProcessing(null);
+            purchaseInitiatedRef.current = false;
+            console.warn('Purchase Error:', err);
         }
     };
 
@@ -423,7 +251,7 @@ const ProfileBoostPurchase = () => {
         const isSelected = select === index;
         return (
             <TouchableOpacityView activeOpacity={0.8} onPress={() => setSelect(index)} style={[styles.conatiner, { backgroundColor: isSelected ? colors.purple : colors.white }]}>
-
+             
                 <View>
                     {item.label ? (
                         <View style={{ flexDirection: "row", alignItems: "center", borderBottomWidth: metrics.hp0_1, borderColor: isSelected ? colors.white : colors.black, paddingBottom: metrics.hp0_2, marginBottom: metrics.hp0_5 }}>
@@ -435,33 +263,25 @@ const ProfileBoostPurchase = () => {
                     ) : null}
                     <AppText color={isSelected ? WHITE : BLACK} type={SIXTEEN} weight={INTER_EXTRA_BOLD}>
                         {item.boostCount}<AppText color={isSelected ? WHITE : BLACK} type={FORTEEN} weight={INTER_BOLD}>
-                            {"  "}{Platform.OS === "ios" ? `${item.boostCount > 1 ? "Spotlights" : "Spotlight"}` : `${item.boostCount > 1 ? "Boosts" : "Boost"}`}
+                            {"  "}Boost
                         </AppText>
                     </AppText>
                 </View>
-                <View style={{ alignItems: "flex-end", marginTop: -metrics.hp0_1 }}>
-                    {item.discount ? (
-                        <View style={styles.discountContainer}>
-                            <AppText type={EIGHT} weight={INTER_SEMI_BOLD} color={WHITE}>
-                                {item.discount}
-                            </AppText>
-                        </View>
-                    ) : null}
-                    <AppText style={{ marginTop: metrics.hp1 }} type={THIRTEEN} color={isSelected ? WHITE : BLACK} weight={INTER_MEDIUM}>
-                        {item.perBoostPrice}/ea
-                    </AppText>
+                <View style={{alignItems:"flex-end", marginTop:-metrics.hp0_1}}>
+                {item.discount ? (
+                    <View style={styles.discountContainer}>
+                        <AppText type={EIGHT} weight={INTER_SEMI_BOLD} color={WHITE}>
+                            {item.discount}
+                        </AppText>
+                    </View>
+                ) : null}
+                <AppText style={{marginTop:metrics.hp1}} type={THIRTEEN} color={isSelected ? WHITE : BLACK} weight={INTER_MEDIUM}>
+                    {item.perBoostPrice}/ea
+                </AppText>
                 </View>
             </TouchableOpacityView>
         )
-    };
-
-
-
-
-
-
-
-
+    }
 
     if (loading) {
         return (
@@ -492,27 +312,23 @@ const ProfileBoostPurchase = () => {
                 </View>
                 <View style={styles.PremiumText}>
                     <FastImage source={premiumIcon} resizeMode="contain" style={styles.pencilIcon} />
-                    <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>{"  "}Choose your {Platform.OS === "ios" ? "spotlight" : "boost"}</AppText>
+                    <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>{"  "}Choose your boost</AppText>
                 </View>
-                <FlatList
+                <FlatList 
                     data={products}
                     keyExtractor={(item: any) => (item.productId || item.id).toString()}
                     showsVerticalScrollIndicator={false}
                     renderItem={renderItem}
-                    contentContainerStyle={{ paddingHorizontal: metrics.hp2, marginTop: metrics.hp2 }}
+                    contentContainerStyle={{ paddingHorizontal: metrics.hp2, marginTop: metrics.hp2 }} 
                 />
-                {/* {Platform.OS === "android" ?
-                    <>
-                        <FastImage source={orBottomIcon} resizeMode="contain" style={{ height: metrics.hp2_4, width: "100%", marginTop: metrics.hp4 }} />
-                        <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem })}>
-                            <FastImage source={upgradPlan} resizeMode="contain" style={styles.imageiContainer} />
-                        </TouchableOpacityView>
-                    </> : <></>} */}
+                   <FastImage source={orBottomIcon} resizeMode="contain" style={{ height: metrics.hp2_4, width: "100%", marginTop: metrics.hp4 }} />
+            <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem })}>
+                <FastImage source={upgradPlan} resizeMode="contain" style={styles.imageiContainer} />
+            </TouchableOpacityView>
                 <View style={styles.bottomcontainer}>
                     <AppText weight={INTER_REGULAR} type={TEN}>
                         By tapping Upgrade, your payment will be charged... Manage your subscription anytime in settings and you agree to our
-                        <AppText onPress={()=>Linking.openURL("https://parpple.com/terms_conditions")} style={{ textDecorationLine: "underline" }} weight={INTER_SEMI_BOLD} type={TEN}> Terms & Conditions</AppText>
-                        <AppText onPress={()=>Linking.openURL("https://parpple.com/privacy_policy")} style={{ textDecorationLine: "underline" }} weight={INTER_SEMI_BOLD} type={TEN}> Privacy Policy</AppText>
+                        <AppText style={{ textDecorationLine: "underline" }} weight={INTER_SEMI_BOLD} type={TEN}> Terms</AppText>
                     </AppText>
                     <TouchableOpacityView
                         onPress={handlePurchase}
@@ -523,7 +339,7 @@ const ProfileBoostPurchase = () => {
                             <ActivityIndicator size="small" color={colors.white} />
                         ) : (
                             <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={FORTEEN}>
-                                Get {products[select]?.boostCount || ''} {Platform.OS === "ios" ? `${products[select]?.boostCount > 1 ? "Spotlights" : "Spotlight"}` : `${products[select]?.boostCount > 1 ? "Boosts" : "Boost"}`} for {products[select]?.displayPrice || ''}
+                                Get {products[select]?.boostCount || ''} Boosts for {products[select]?.displayPrice || ''}
                             </AppText>
                         )}
                     </TouchableOpacityView>
@@ -633,108 +449,14 @@ const ProfileBoostPurchase = () => {
                     </Animated.View>
                 </View>
             </Modal>
-
-            <Modal
-                animationType="fade"
-                transparent
-                visible={faceVerificationPromptVisible}
-                onRequestClose={handleCloseFaceVerificationPrompt}
-            >
-                <View style={styles.centeredView}>
-                    <View style={styles.locationPromptContainer}>
-                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
-                            Verify Your Identity
-                        </AppText>
-                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ textAlign: "center", marginTop: metrics.hp0 }}>
-                            Complete a quick face verification to secure your account. This process takes only a few seconds.
-                        </AppText>
-                        <TouchableOpacityView
-                            onPress={start}
-                            style={[styles.locationPromptButton, { backgroundColor: colors.purple, borderColor: colors.purple, marginTop: metrics.hp3 }]}
-                        >
-                            <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
-                                Start Verification
-                            </AppText>
-                        </TouchableOpacityView>
-                        <TouchableOpacityView
-                            onPress={handleCloseFaceVerificationPrompt}
-                            style={[styles.locationPromptButton, { backgroundColor: colors.transparent, borderColor: colors.transparent, marginTop: metrics.hp1 }]}
-                        >
-                            <AppText color={LIGHT_BLACK} weight={INTER_BOLD} type={FORTEEN}>
-                                Skip for Now
-                            </AppText>
-                        </TouchableOpacityView>
-                    </View>
-                </View>
-            </Modal>
-            <Modal
-                animationType="fade"
-                transparent
-                visible={faceVerificationPromptSuccessVisible}
-                onRequestClose={handleCloseFaceVerificationSuccessPrompt}
-            >
-                <View style={styles.centeredView}>
-                    <View style={styles.locationPromptContainer}>
-                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
-                            Verification Successful
-                        </AppText>
-                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ textAlign: "center", marginTop: metrics.hp0_5 }}>
-                            Your face verification has been completed successfully. Your account is now fully verified.
-                        </AppText>
-                        <TouchableOpacityView
-                            onPress={handleCloseFaceVerificationSuccessPrompt}
-                            style={[styles.locationPromptButton, { backgroundColor: colors.purple, borderColor: colors.purple, marginTop: metrics.hp3 }]}
-                        >
-                            <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
-                                Continue
-                            </AppText>
-                        </TouchableOpacityView>
-                    </View>
-                </View>
-            </Modal>
-            <Modal
-                animationType="fade"
-                transparent
-                visible={faceVerificationPromptFailedVisible}
-                onRequestClose={handleCloseFaceVerificationFailedPrompt}
-            >
-                <View style={styles.centeredView}>
-                    <View style={styles.locationPromptContainer}>
-                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
-                            Verification Failed
-                        </AppText>
-                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ textAlign: "center", marginTop: metrics.hp0_5 }}>
-                            We were unable to verify your identity. Please try again in a well-lit environment and ensure your face is clearly visible.
-                        </AppText>
-                        <TouchableOpacityView
-                            onPress={start}
-                            style={[styles.locationPromptButton, { backgroundColor: colors.purple, borderColor: colors.purple, marginTop: metrics.hp3 }]}
-                        >
-                            <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
-                                Try Again
-                            </AppText>
-                        </TouchableOpacityView>
-                        <TouchableOpacityView
-                            onPress={handleCloseFaceVerificationFailedPrompt}
-                            style={[styles.locationPromptButton, { backgroundColor: colors.transparent, borderColor: colors.transparent, marginTop: metrics.hp15_5 }]}
-                        >
-                            <AppText color={LIGHT_BLACK} weight={INTER_BOLD} type={FORTEEN}>
-                                Cancel
-                            </AppText>
-                        </TouchableOpacityView>
-                    </View>
-                </View>
-            </Modal>
-
-
         </AppSafeAreaView>
     )
 };
 
-export default ProfileBoostPurchase;
+export default ProfileBoostPurchaseAndroid;
 
 const styles = StyleSheet.create({
-    PremiumText: { flexDirection: "row", alignItems: "center", marginTop: metrics.hp4, paddingHorizontal: metrics.hp2, },
+    PremiumText: { flexDirection: "row", alignItems: "center", marginTop: metrics.hp4, paddingHorizontal: metrics.hp2,  },
     pencilIcon: { height: metrics.hp2, width: metrics.hp2 },
     conatiner: {
         height: metrics.hp8,
@@ -785,13 +507,12 @@ const styles = StyleSheet.create({
         // right: metrics.hp2,
     },
     imageiContainer: {
-        // shadowColor: colors.black,
-        // shadowOffset: { width: 0, height: metrics.hp1_2 },
-        // shadowOpacity: 0.22,
-        // shadowRadius: metrics.hp1,
-        // elevation: 8,
-        height: metrics.hp10, width: "100%",
-        marginTop: metrics.hp3, marginBottom: metrics.hp4,
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: metrics.hp1_2 },
+        shadowOpacity: 0.22,
+        shadowRadius: metrics.hp1,
+        elevation: 8,
+        height: metrics.hp10, width: "100%", marginTop: metrics.hp3, marginBottom:metrics.hp4,
     },
     payBackdrop: {
         flex: 1,
@@ -863,28 +584,5 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp4,
         alignItems: "center",
         justifyContent: "center",
-    },
-    centeredView: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: colors.transparentBlack,
-        paddingHorizontal: metrics.hp2
-    },
-    locationPromptContainer: {
-        backgroundColor: colors.white,
-        width: width / 1.15,
-        borderRadius: metrics.hp2,
-        paddingHorizontal: metrics.hp2,
-        paddingVertical: metrics.hp3,
-    },
-    locationPromptButton: {
-        height: metrics.hp5,
-        borderWidth: 1,
-        borderColor: colors.darkBorder,
-        borderRadius: metrics.hp4,
-        alignItems: "center",
-        justifyContent: "center",
-        marginTop: metrics.hp1_5,
     },
 });

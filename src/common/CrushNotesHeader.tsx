@@ -1,5 +1,5 @@
 import React from "react";
-import { Animated, StyleSheet, View } from "react-native";
+import { Animated, Platform, StyleSheet, View } from "react-native";
 import metrics from "../assets/Metrics";
 import { colors } from "../theme/colors";
 import { bottomDetailsOpacity } from "./PanResponder";
@@ -20,7 +20,7 @@ const CrushNotesHeader = ({ name, age, setModalVisible, remainingCount }: any) =
                     <AppText style={{textTransform:"capitalize"}} type={EIGHTEEN} weight={INTER_BOLD}>{"   "}{name},</AppText>
                     <AppText type={EIGHTEEN} weight={INTER_MEDIUM}> {age}{"  "}</AppText>
                 </Animated.View>
-                {userData?.faceVerified == true ?<FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />:<></>}
+                {userData?.faceVerified == true && Platform.OS ==="ios" ?<FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />:<FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />}
             </TouchableOpacityView>
             <Animated.View style={{ opacity: bottomDetailsOpacity }}>
                 <CrushNotesSimpleRing

@@ -55,8 +55,13 @@ const ProfileBottomDetails = ({ topTextOpacity, visibleCards, discover, share, s
             blockedId: visibleCards._id,
         };
         try {
-            await dispatch(blockByIdAPIUser(data)).unwrap?.(); // if using redux toolkit
-            inUnderFunction();
+            await dispatch(blockByIdAPIUser(data));
+            if (inUnderFunction) {
+                inUnderFunction();
+            } else {
+                setModalVisibleHome?.(false);
+                setSwipeLeft?.(true);
+            }
         } catch (error) {
             console.log("Block failed", error);
         }

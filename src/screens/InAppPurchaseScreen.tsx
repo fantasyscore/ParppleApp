@@ -73,10 +73,8 @@ const InAppPurchaseScreen = () => {
         // 2. Fetch subscriptions from the store
         if (subscriptionSkus && subscriptionSkus.length > 0) {
           try {
-            // For react-native-iap v14, use fetchProducts with type: 'subs'
-            const availableSubscriptions = await RNIap.fetchProducts({ 
-              skus: subscriptionSkus,
-              type: 'subs'
+            const availableSubscriptions = await RNIap.getSubscriptions({ 
+              skus: subscriptionSkus
             });
             console.log(availableSubscriptions,"availableSubscriptions");
             
@@ -92,10 +90,8 @@ const InAppPurchaseScreen = () => {
         // 3. Fetch products (consumables/non-consumables) from the store
         if (productSkus && productSkus.length > 0) {
           try {
-            // For react-native-iap v14, use fetchProducts with type: 'in-app'
-            const availableProducts = await RNIap.fetchProducts({ 
-              skus: productSkus,
-              type: 'in-app'
+            const availableProducts = await RNIap.getProducts({ 
+              skus: productSkus
             });
             if (availableProducts) {
               setProducts(Array.isArray(availableProducts) ? availableProducts : []);
@@ -228,19 +224,25 @@ const InAppPurchaseScreen = () => {
         throw new Error('Subscription ID is missing or invalid');
       }
       
-      // For react-native-iap v14, use requestPurchase with type: 'subs'
-      // The library implementation checks for 'android' and 'ios' keys (not 'google'/'apple')
-      const platformRequest: any = Platform.OS === 'android' 
-        ? { android: { skus: [actualSubscriptionId] } }
-        : { ios: { sku: actualSubscriptionId } };
-      
-      console.log('Platform request:', JSON.stringify(platformRequest, null, 2));
-      console.log('Request purchase params:', { request: platformRequest, type: 'subs' });
-      
-      await RNIap.requestPurchase({
-        request: platformRequest,
-        type: 'subs',
-      });
+      if (Platform.OS === 'ios') {
+        await RNIap.requestSubscription({
+          sku: actualSubscriptionId,
+          andDangerouslyFinishTransactionAutomaticallyIOS: false,
+        });
+      } else {
+        const offerToken = subscription.subscriptionOfferDetails?.[0]?.offerToken;
+        if (!offerToken) {
+          throw new Error('No subscription offer token found for this product');
+        }
+        await RNIap.requestSubscription({
+          subscriptionOffers: [
+            {
+              sku: actualSubscriptionId,
+              offerToken: offerToken,
+            }
+          ]
+        });
+      }
     } catch (err: any) {
       console.warn('Request Subscription Error:', err);
       setProcessing(null);
@@ -283,19 +285,14 @@ const InAppPurchaseScreen = () => {
         throw new Error('Product ID is missing or invalid');
       }
       
-      // For react-native-iap v14, use requestPurchase with platform-specific structure
-      // The library implementation checks for 'android' and 'ios' keys (not 'google'/'apple')
-      const platformRequest: any = Platform.OS === 'android'
-        ? { android: { skus: [actualProductId] } }
-        : { ios: { sku: actualProductId } };
-      
-      console.log('Platform request:', JSON.stringify(platformRequest, null, 2));
-      console.log('Request purchase params:', { request: platformRequest, type: 'in-app' });
-      
-      await RNIap.requestPurchase({
-        request: platformRequest,
-        type: 'in-app',
-      });
+      if (Platform.OS === 'ios') {
+        await RNIap.requestPurchase({
+          sku: actualProductId,
+          andDangerouslyFinishTransactionAutomaticallyIOS: false,
+        });
+      } else {
+        await RNIap.requestPurchase({ skus: [actualProductId] });
+      }
     } catch (err: any) {
       console.warn('Request Purchase Error:', err);
       setProcessing(null);

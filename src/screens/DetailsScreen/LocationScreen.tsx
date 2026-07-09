@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { Platform, StyleSheet, View } from "react-native";
 import DubleTextLine from "../../common/DubleTextLine";
@@ -14,7 +14,7 @@ import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import MapView, { MapPressEvent, Marker } from "react-native-maps";
 import Geolocation, { GeoPosition } from "react-native-geolocation-service";
 import { useDispatch, useSelector } from "react-redux";
-import { setAddProfile } from "../../slices/loginServices/authSlice";
+import { setAddProfile, updateAddProfileLocation } from "../../slices/loginServices/authSlice";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_GANDER_SCREEN } from "../../navigation/routes";
 import { Screen } from "../../theme/dimens";
@@ -39,19 +39,31 @@ const LocationScreen = () => {
     longitudeDelta: region?.longitudeDelta,
   });
   const [permissionAllow, setPermissionAllow] = useState(false);
-  const [addressName, setAddressName] = useState("")
+  const [addressName, setAddressName] = useState("");
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const requestLocationPermission = async () => {
     try {
       let permission;
       if (Platform.OS === "ios") {
         permission = PERMISSIONS.IOS.LOCATION_WHEN_IN_USE;
       } else {
-        permission = PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION;
+        permission = PERMISSIONS.ANDROID.ACCESS_COARSE_LOCATION;
       }
       const result = await request(permission);
       if (result === RESULTS.GRANTED) {
         setPermissionAllow(true);
-        onSubmit()
+        // Start background location fetch
+        getCurrentLocation(true);
+        // Navigate instantly to the next screen without waiting/blocking
+        NavigationService.navigate(NAVIGATION_GANDER_SCREEN);
       } else {
         setPermissionAllow(false);
         skipButton();
@@ -60,71 +72,75 @@ const LocationScreen = () => {
       console.warn("Permission error:", error);
     }
   };
+
   useEffect(() => {
     if (permissionAllow) {
       getCurrentLocation();
     }
   }, [permissionAllow]);
-  const getCurrentLocation = async () => {
+
+  const getCurrentLocation = async (hasPermissionOverride = false) => {
     try {
-      if (!permissionAllow) return;
+      const hasPermission = hasPermissionOverride || permissionAllow;
+      if (!hasPermission) return;
 
       Geolocation.getCurrentPosition(
         async (position: GeoPosition) => {
           const { latitude, longitude } = position.coords;
 
-          setRegion((prev) => ({
-            ...prev,
-            latitude,
-            longitude,
-          }));
+          if (isMountedRef.current) {
+            setRegion((prev) => ({
+              ...prev,
+              latitude,
+              longitude,
+            }));
+          }
           const apiKey = "AIzaSyAuzRbXX8dWA2n4QGD0ja-609e1wXMkHjI";
-          const response = await fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`
-          );
-          console.log(response, "responseresponseresponse");
-          console.log(latitude, longitude, "longitude");
+          try {
+            const response = await fetch(
+              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`
+            );
+            const data = await response.json();
 
-          const data = await response.json();
-          console.log(data, "datadatadatadatadata");
+            if (data.results && data.results.length > 0) {
+              const addressComponents = data.results[0].address_components;
+              const getComponent = (type: string) => {
+                const comp = addressComponents.find((c: any) =>
+                  c.types.includes(type)
+                );
+                return comp ? comp.long_name : "";
+              };
+              const city =
+                getComponent("locality")?.trim().toLowerCase() ||
+                getComponent("administrative_area_level_2")?.trim().toLowerCase() ||
+                "";
+              const state = getComponent("administrative_area_level_1")?.trim().toLowerCase() || "";
+              const country = getComponent("country")?.trim().toLowerCase() || "";
+              const formattedAddress = data.results[0].formatted_address?.trim().toLowerCase();
 
-          if (data.results && data.results.length > 0) {
-            const addressComponents = data.results[0].address_components;
-            const getComponent = (type: string) => {
-              const comp = addressComponents.find((c: any) =>
-                c.types.includes(type)
-              );
-              return comp ? comp.long_name : "";
-            };
-            const city =
-              getComponent("locality")?.trim().toLowerCase() ||
-              getComponent("administrative_area_level_2")?.trim().toLowerCase() ||
-              "";
-            const state = getComponent("administrative_area_level_1")?.trim().toLowerCase() || "";
-            const country = getComponent("country")?.trim().toLowerCase() || "";
-            const formattedAddress = data.results[0].formatted_address?.trim().toLowerCase();
-            setAddressName(formattedAddress);
-            const dataToSave = {
-              ...addProfileData,
-              coordinates: { long: longitude, lat: latitude },
-              city: city,
-              state: state,
-              country: country,
-              pronouns: [],
-            };
-            dispatch(setAddProfile(dataToSave));
-            console.log("📍 Location data:", dataToSave);
-          } else {
-            // Alert.alert("Error", "Unable to fetch address. Try again later.");
+              if (isMountedRef.current) {
+                setAddressName(formattedAddress);
+              }
+
+              // Only update the location fields of addProfileData to avoid overwriting newer input on later screens
+              dispatch(updateAddProfileLocation({
+                coordinates: { long: longitude, lat: latitude },
+                city: city,
+                state: state,
+                country: country,
+              }));
+              console.log("📍 Location data updated:", { long: longitude, lat: latitude, city, state, country });
+            }
+          } catch (geocodeErr) {
+            console.warn("Geocoding fetch error:", geocodeErr);
           }
         },
         (error) => {
           console.warn("Location error:", error);
-          // Alert.alert("Error", "Unable to get location. Please try again.");
         },
         {
           enableHighAccuracy: false,
-          timeout: 20000,
+          timeout: 10000, // Reduced from 20000 to resolve faster/fail sooner in background
           maximumAge: 10000,
           forceRequestLocation: true,
         }
@@ -139,7 +155,7 @@ const LocationScreen = () => {
       if (Platform.OS === "ios") {
         permission = PERMISSIONS.IOS.LOCATION_WHEN_IN_USE;
       } else {
-        permission = PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION;
+        permission = PERMISSIONS.ANDROID.ACCESS_COARSE_LOCATION;
       }
       const result = await check(permission);
       if (result === RESULTS.GRANTED) {
@@ -261,32 +277,32 @@ const LocationScreen = () => {
               </LinearGradient>
             </>
           ) : ( */}
-            <View style={{ paddingHorizontal: metrics.hp2 }}>
-              <FastImage
-                source={mapIcon}
-                resizeMode="contain"
-                style={styles.mapIcon}
-              />
-              <View style={{ marginBottom: metrics.hp0, marginTop: metrics.hp20 }}>
-                <AppText style={{ marginBottom: -metrics.hp4, textAlign: "center" }} type={TWELVE} weight={INTER_SEMI_BOLD}>
-                  Want to find more people around you? Allow access to your location
+          <View style={{ paddingHorizontal: metrics.hp2 }}>
+            <FastImage
+              source={mapIcon}
+              resizeMode="contain"
+              style={styles.mapIcon}
+            />
+            <View style={{ marginBottom: metrics.hp0, marginTop: metrics.hp20 }}>
+              <AppText style={{ marginBottom: -metrics.hp4, textAlign: "center" }} type={TWELVE} weight={INTER_SEMI_BOLD}>
+                Want to find more people around you? Allow access to your location
+              </AppText>
+              <TouchableOpacityView
+                onPress={requestLocationPermission}
+                style={[styles.allowButton, { borderColor: colors.transparent, backgroundColor: colors.purple, width: "100%", }]}>
+                <AppText type={FORTEEN} color={WHITE} weight={INTER_SEMI_BOLD}>
+                  Continue
                 </AppText>
-                <TouchableOpacityView
-                  onPress={requestLocationPermission}
-                  style={[styles.allowButton, { borderColor: colors.transparent, backgroundColor: colors.purple, width: "100%", }]}>
-                  <AppText type={FORTEEN} color={WHITE} weight={INTER_SEMI_BOLD}>
-                    Continue
-                  </AppText>
-                </TouchableOpacityView>
-              </View>
-              {/* <TouchableOpacityView
+              </TouchableOpacityView>
+            </View>
+            {/* <TouchableOpacityView
                 onPress={skipButton}
                 style={[styles.allowButton, { marginTop: metrics.hp1, }]}>
                 <AppText type={FORTEEN} weight={INTER_SEMI_BOLD}>
                   Skip
                 </AppText>
               </TouchableOpacityView> */}
-            </View>
+          </View>
           {/* )} */}
 
         </View>

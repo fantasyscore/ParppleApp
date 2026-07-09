@@ -8,7 +8,7 @@ import NavigationService from "../navigation/NavigationService";
 import { AppText, EIGHTEEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, OPECITY_DARK, SIXTEEN, TEN } from "./AppText";
 import { colors } from "../theme/colors";
 
-const HeaderCommon = ({ onSkip, skip, title, preview, edit, PreviewOnpress, editOnPress,age }: any) => {
+const HeaderCommon = ({ onSkip, skip, title, preview, edit, PreviewOnpress, editOnPress, age }: any) => {
     return (
         <View style={{ paddingHorizontal: metrics.hp2, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
             <TouchableOpacityView style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp6 }} onPress={() => NavigationService.goBack()}>
@@ -19,9 +19,9 @@ const HeaderCommon = ({ onSkip, skip, title, preview, edit, PreviewOnpress, edit
                             <AppText type={FORTEEN} weight={INTER_SEMI_BOLD}>
                                 {"     "}{title}
                             </AppText> :
-                            <View style={{flexDirection:"row", alignItems:"center"}}>
-                            <AppText style={{ textTransform:"capitalize"}} type={FORTEEN} weight={INTER_BOLD}>{"     "}{title},</AppText>
-                            <AppText  type={SIXTEEN} weight={INTER_MEDIUM}> {age}</AppText>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <AppText style={{ textTransform: "capitalize" }} type={FORTEEN} weight={INTER_BOLD}>{"     "}{title},</AppText>
+                                <AppText type={SIXTEEN} weight={INTER_MEDIUM}> {age}</AppText>
                             </View>
                         }
                     </>
@@ -30,7 +30,7 @@ const HeaderCommon = ({ onSkip, skip, title, preview, edit, PreviewOnpress, edit
             </TouchableOpacityView>
             {skip &&
                 <TouchableOpacityView onPress={onSkip}>
-                    <AppText style={{ marginTop: Platform.OS ==="ios" ? metrics.hp6: metrics.hp5 }} weight={INTER_MEDIUM} color={OPECITY_DARK} type={FORTEEN}>
+                    <AppText style={{ marginTop: Platform.OS === "ios" ? metrics.hp6 : metrics.hp5 }} weight={INTER_MEDIUM} color={OPECITY_DARK} type={FORTEEN}>
                         Skip
                     </AppText>
                 </TouchableOpacityView>
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
         width: metrics.hp1_6
     },
     containerPreview: {
-        marginTop:  Platform.OS ==="ios" ? metrics.hp6: metrics.hp5,
+        marginTop: Platform.OS === "ios" ? metrics.hp6 : metrics.hp5,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp4
     },
     containerEdit: {
-        marginTop: Platform.OS ==="ios" ? metrics.hp6: metrics.hp5,
+        marginTop: Platform.OS === "ios" ? metrics.hp6 : metrics.hp5,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
@@ -84,6 +84,6 @@ const styles = StyleSheet.create({
         borderWidth: metrics.hp0_1,
         borderColor: colors.nanoOpecity,
         borderRadius: metrics.hp4,
-        
+
     }
 })

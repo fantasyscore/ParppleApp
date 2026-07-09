@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Dimensions, Image, ImageBackground, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Dimensions, Image, ImageBackground, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
 import FastImage from "react-native-fast-image";
 import metrics from "../../assets/Metrics";
 import { colors } from "../../theme/colors";
-import { backIcon, blueTikeIcon, bussinessIcon, CloseBlueIcon, disLikeNewIcon, flashIcon, heartGreen, heartRed, likeNewICon, locationCIon, shareRedIcon, superlikeiconwhite, upArrowIcon } from "../../helper/ImageAssets";
+import { CloseBlueIcon, flashIcon, heartGreen, heartRed, shareRedIcon, superlikeiconwhite, upArrowIcon } from "../../helper/ImageAssets";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import NavigationService from "../../navigation/NavigationService";
 import { Screen } from "../../theme/dimens";
@@ -16,12 +16,10 @@ import LinearGradient from "react-native-linear-gradient";
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from "react-native-svg";
 import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from "../../navigation/routes";
 import CrushNotesSender from "./CrushNotesSender";
-import { BlurView } from "@react-native-community/blur";
-import { AppText, BLACK, fontSize, INTER_BOLD, THIRTEEN, WHITE } from "../../common/AppText";
 
 const { width, height } = Dimensions.get("window");
-const COLLAPSED_IMAGE_HEIGHT = height * 0.78;
-const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setSwipeLeft, setProfileData, discover, setSuperLikeVisible, canSuperLike, onProfileImageIndexChange }: any) => {
+const COLLAPSED_IMAGE_HEIGHT = height * 0.67;
+const PreviewDetailsAndroid = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setSwipeLeft, setProfileData, discover, setSuperLikeVisible, canSuperLike, canSwipeRight }: any) => {
     const dispatch = useDispatch();
     const cardWidthRef = useRef(0);
     const listProfilesData = useSelector((state: any) => state.auth.listProfiles);
@@ -43,12 +41,12 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
             } else {
                 newIndex = newIndex > 0 ? newIndex - 1 : newIndex;
             }
-
+            
             // Preload images when index changes
             if (newIndex !== profile.index && profile.gallery && profile.gallery[newIndex]?.url) {
                 const targetImageUrl = profile.gallery[newIndex].url;
                 FastImage.preload([{ uri: targetImageUrl, priority: FastImage.priority.high }]);
-
+                
                 if (newIndex > 0 && profile.gallery[newIndex - 1]?.url) {
                     FastImage.preload([{ uri: profile.gallery[newIndex - 1].url, priority: FastImage.priority.normal }]);
                 }
@@ -56,34 +54,10 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                     FastImage.preload([{ uri: profile.gallery[newIndex + 1].url, priority: FastImage.priority.normal }]);
                 }
             }
-
+            
             const updatedObject = { ...profile, index: newIndex };
             setProfileData(updatedObject);
         } else {
-            if (onProfileImageIndexChange) {
-                let newIndex = profile.index || 0;
-                if (x > cardWidthRef.current / 2) {
-                    newIndex = newIndex < totalImages - 1 ? newIndex + 1 : newIndex;
-                } else {
-                    newIndex = newIndex > 0 ? newIndex - 1 : newIndex;
-                }
-
-                if (newIndex !== profile.index && profile.gallery && profile.gallery[newIndex]?.url) {
-                    const preloadList: any[] = [{ uri: profile.gallery[newIndex].url, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable }];
-
-                    if (newIndex > 0 && profile.gallery[newIndex - 1]?.url) {
-                        preloadList.push({ uri: profile.gallery[newIndex - 1].url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable });
-                    }
-                    if (newIndex < totalImages - 1 && profile.gallery[newIndex + 1]?.url) {
-                        preloadList.push({ uri: profile.gallery[newIndex + 1].url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable });
-                    }
-                    FastImage.preload(preloadList);
-                }
-
-                onProfileImageIndexChange(profile, newIndex);
-                return;
-            }
-
             const updatedProfiles = listProfilesData.map((p: any) => {
                 if (p._id === profile._id) {
                     let newIndex = p.index || 0;
@@ -92,12 +66,12 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                     } else {
                         newIndex = newIndex > 0 ? newIndex - 1 : newIndex;
                     }
-
+                    
                     // Preload images when index changes
                     if (newIndex !== p.index && p.gallery && p.gallery[newIndex]?.url) {
                         const targetImageUrl = p.gallery[newIndex].url;
                         FastImage.preload([{ uri: targetImageUrl, priority: FastImage.priority.high }]);
-
+                        
                         if (newIndex > 0 && p.gallery[newIndex - 1]?.url) {
                             FastImage.preload([{ uri: p.gallery[newIndex - 1].url, priority: FastImage.priority.normal }]);
                         }
@@ -105,7 +79,7 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                             FastImage.preload([{ uri: p.gallery[newIndex + 1].url, priority: FastImage.priority.normal }]);
                         }
                     }
-
+                    
                     return { ...p, index: newIndex };
                 }
                 return p;
@@ -115,166 +89,33 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
     };
     const scrollViewRef: any = useRef(null);
 
+    // Preload images when component mounts or data changes
     useEffect(() => {
         if (data?.gallery && data.gallery.length > 0) {
             const currentIndex = data.index || 0;
             const gallery = data.gallery;
-
+            
             const imagesToPreload = [
                 gallery[currentIndex]?.url,
                 currentIndex > 0 ? gallery[currentIndex - 1]?.url : null,
                 currentIndex < gallery.length - 1 ? gallery[currentIndex + 1]?.url : null,
             ].filter(Boolean);
-
-            const preloadSources = imagesToPreload.map((url: string) => ({
-                uri: url,
-                priority: FastImage.priority.normal,
-                cache: FastImage.cacheControl.immutable,
-            }));
-            if (preloadSources.length > 0) {
-                FastImage.preload(preloadSources);
-            }
+            
+            imagesToPreload.forEach((url: string) => {
+                if (url) {
+                    FastImage.preload([{ uri: url, priority: FastImage.priority.normal }]);
+                }
+            });
         }
     }, [data]);
-    const inUnderFunction = () => {
-        scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-        setSwipeLeft?.(true);
-    }
+
     return (
         <AppSafeAreaView>
-            <View style={{ height: metrics.hp12, position: "absolute", top: 0, zIndex: 1, width: "100%", overflow: Platform.OS === "ios" ? "visible" : "hidden" }}>
-                {Platform.OS === "ios" ?
-                    <>
-                        <BlurView
-                            style={StyleSheet.absoluteFillObject}
-                            blurType="light"
-                            blurAmount={1}
-                        />
-                        <View
-                            style={{
-                                ...StyleSheet.absoluteFillObject,
-                                borderWidth: 1,
-                                borderColor: 'rgba(255,255,255,0.25)',
-                            }}
-                        />
-                    </> :
-                    <>
-                        <View style={{ height: metrics.hp12, backgroundColor: "rgba(255,255,255,0.50)" }}>
-                        </View>
-                        <View
-                            style={{
-                                ...StyleSheet.absoluteFillObject,
-                                borderWidth: 1,
-                                borderColor: 'rgba(255,255,255,0.25)',
-                            }}
-                        />
-                    </>
-                }
-                <TouchableOpacityView onPress={() => setModalVisible(false)} style={{
-                    position: "absolute", top: metrics.hp6_8,
-                    left: metrics.hp2
-                }}>
-                    <View style={{ height: metrics.hp4, width: metrics.hp4, alignItems: "center", justifyContent: "center", backgroundColor: "#F7F7F790", borderWidth: metrics.hp0_1, borderColor: "#EDEDED", borderRadius: metrics.hp50 }}>
-                        <FastImage source={backIcon} resizeMode="contain" style={styles.backIcon} />
-                    </View>
-                </TouchableOpacityView>
-                <View
-                    pointerEvents="none"
-                    style={{
-                        height: metrics.hp4, borderWidth: 0.1, borderColor: colors.white, flexDirection: "row", alignItems: "center", borderRadius: metrics.hp6, justifyContent: "space-between",
-                        position: "absolute", top: metrics.hp7,
-                        overflow: "hidden",
-                        alignSelf: "center",
-                        paddingHorizontal: metrics.hp0_4
-                    }}>
-                    <BlurView
-                        style={StyleSheet.absoluteFillObject}
-                        blurType="light"
-                        blurAmount={1}
-                    />
-                    <View
-                        style={{
-                            ...StyleSheet.absoluteFillObject,
-                            borderWidth: 1,
-                            borderColor: 'rgba(255,255,255,0.25)',
-                        }}
-                    />
-                    {data?.gallery?.map((item: any, thumbIdx: number) => {
-                        const isLast = thumbIdx === data?.gallery.length - 1;
-                        return (
-                            <React.Fragment key={item?.url ?? thumbIdx}>
-                                <FastImage
-                                    source={{ uri: item.url }}
-                                    resizeMode="cover"
-                                    style={{ height: metrics.hp3, width: metrics.hp3, borderRadius: metrics.hp50, borderWidth: thumbIdx === (data?.index ?? 0) ? metrics.hp0_1 : 0, borderColor: colors.white }}
-                                />
-                                {!isLast ? <AppText> </AppText> : null}
-                            </React.Fragment>
-                        );
-                    })}
-                </View>
-            </View>
-            {/* <View style={{ height: metrics.hp12, position: "absolute", top: 0, zIndex:1, width: "100%", overflow: Platform.OS === "ios" ? "visible" : "hidden" }}>
-                <BlurView
-                    style={StyleSheet.absoluteFillObject}
-                    blurType="light"
-                    blurAmount={1}
-                />
-                <View
-                    style={{
-                        ...StyleSheet.absoluteFillObject,
-                        borderWidth: 1,
-                        borderColor: 'rgba(255,255,255,0.25)',
-                    }}
-                />
-                <TouchableOpacityView onPress={() => setModalVisible(false)} style={{
-                    position: "absolute", top: metrics.hp6_8,
-                    left: metrics.hp2
-                }}>
-                    <View style={{ height: metrics.hp4, width: metrics.hp4, alignItems: "center", justifyContent: "center", backgroundColor: "#F7F7F71A", borderWidth: metrics.hp0_1, borderColor: "#EDEDED1A", borderRadius: metrics.hp50 }}>
-                        <FastImage source={backIcon} resizeMode="contain" style={styles.backIcon} />
-                    </View>
-                </TouchableOpacityView>
-                <View
-                    pointerEvents="none"
-                    style={{
-                        height: metrics.hp4, borderWidth: 0.1, borderColor: colors.white, flexDirection: "row", alignItems: "center", borderRadius: metrics.hp6, justifyContent: "space-between",
-                        position: "absolute", top: metrics.hp7,
-                        overflow: "hidden",
-                        alignSelf: "center",
-                        paddingHorizontal: metrics.hp0_4
-                    }}>
-                    <BlurView
-                        style={StyleSheet.absoluteFillObject}
-                        blurType="light"
-                        blurAmount={1}
-                    />
-                    <View
-                        style={{
-                            ...StyleSheet.absoluteFillObject,
-                            borderWidth: 1,
-                            borderColor: 'rgba(255,255,255,0.25)',
-                        }}
-                    />
-                    {data?.gallery?.map((item: any, thumbIdx: number) => {
-                        const isLast = thumbIdx === data?.gallery.length - 1;
-                        return (
-                            <React.Fragment key={item?.url ?? thumbIdx}>
-                                <FastImage
-                                    source={{ uri: item.url }}
-                                    resizeMode="cover"
-                                    style={{ height: metrics.hp3, width: metrics.hp3, borderRadius: metrics.hp50, borderWidth: thumbIdx === (data?.index ?? 0) ? metrics.hp0_1 : 0, borderColor: colors.white }}
-                                />
-                                {!isLast ? <AppText> </AppText> : null}
-                            </React.Fragment>
-                        );
-                    })}
-                </View>
-            </View> */}
+            <PeopleHeader profile={false} userName={true} name={discover ? data?.firstName : data?.name} age={data?.age} setModalVisible={setModalVisible}/>
             <ScrollView
                 ref={scrollViewRef}
                 style={styles.container}
-                contentContainerStyle={{ paddingBottom: metrics.hp20 }}
+                contentContainerStyle={{ paddingBottom: metrics.hp20, flexGrow: 1 }}
                 showsVerticalScrollIndicator={false}>
 
                 <TouchableOpacityView
@@ -286,11 +127,11 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                         if (layout?.width) cardWidthRef.current = layout.width;
                     }}>
                     <ImageBackground
+                        imageStyle={{ borderRadius: metrics.hp2 }}
                         source={{ uri: data?.gallery?.[data?.index]?.url }}
                         style={[styles.image, { height: COLLAPSED_IMAGE_HEIGHT }]}
                         resizeMode="cover">
-
-                        {/* <View style={styles.paginationContainer}>
+                        <View style={styles.paginationContainer}>
                             {data?.gallery?.map((_: any, i: number) => (
                                 <View
                                     key={i}
@@ -304,12 +145,11 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                                     ]}
                                 />
                             ))}
-                        </View> */}
-                        {/* <TouchableOpacityView
+                        </View>
+                        <TouchableOpacityView
                             style={styles.flasContaierTwo}
                             onPress={() => {
                                 if ((crushNotesRemaining ?? 0) <= 0) {
-                                    setModalVisible(false)
                                     NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN);
                                     return;
                                 }
@@ -317,115 +157,19 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                             }}
                         >
                             <FastImage source={shareRedIcon} resizeMode="contain" style={styles.flasIcon} />
-                        </TouchableOpacityView> */}
-                        {/* <TouchableOpacityView style={styles.upArrowContainer} onPress={() => { setModalVisible(false), setSwipeUp(false) }}>
+                        </TouchableOpacityView>
+                        <TouchableOpacityView style={styles.upArrowContainer} onPress={() => {setModalVisible(false),setSwipeUp(false)}}>
                             <FastImage
                                 source={upArrowIcon}
                                 resizeMode="contain"
                                 style={styles.uparrowIcon}
                             />
-                        </TouchableOpacityView> */}
-                        <LinearGradient start={{ x: 1, y: 1 }}
-                            end={{ x: 1, y: 0 }} colors={Platform.OS === "ios" ? ["#ffffff", "#ffffff70", "#ffffff40", "#ffffff00"] : ["#ffffff", "#ffffff70", "#ffffff40", "#ffffff00"]}
-                            style={{ height: metrics.hp10, width: "100%", position: "absolute", bottom: 0, alignItems: "center", justifyContent: "center" }}>
-                        </LinearGradient>
+                        </TouchableOpacityView>
                     </ImageBackground>
                 </TouchableOpacityView>
-                <View style={{ alignItems: "center", justifyContent: "center", marginTop: metrics.hp0_5 }}>
-                    <View style={styles.nameRow}>
-                        <AppText style={{ fontWeight: "700", fontSize: fontSize(28) }} color={BLACK} weight={INTER_BOLD}>
-                            {data?.name ? data?.name : data?.firstName ? data?.firstName : 'Unknown'}, {data?.age ?? '--'}
-                        </AppText>
-                        {userData?.faceVerified == true && Platform.OS ==="ios" ? <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} /> : 
-                        <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />}
-                        {/* <FastImage source={blueTikeIcon} style={styles.blueTickIcon} resizeMode="contain" /> */}
-                    </View>
-
-                    <View style={[styles.metaRow, { marginTop: metrics.hp0_5 }]}>
-                        <FastImage source={locationCIon} tintColor={colors.black} style={styles.metaIcon} resizeMode="contain" />
-                        <AppText type={THIRTEEN} color={BLACK} weight={INTER_BOLD}>
-                            {'  '}
-                            {data?.distanceInKm ? `${data.distanceInKm} Km away` : 'Nearby'}
-                        </AppText>
-                    </View>
-
-                    {!!data?.work ? (
-                        <View style={[styles.metaRow, { marginTop: metrics.hp1 }]}>
-                            <FastImage source={bussinessIcon} tintColor={colors.black} style={styles.metaIcon} resizeMode="contain" />
-                            <AppText type={THIRTEEN} color={BLACK} weight={INTER_BOLD}>
-                                {'  '}
-                                {data?.work}
-                            </AppText>
-                        </View>
-                    ) : null}
-                </View>
-                <TouchableOpacityView
-                    onPress={() => {
-                        scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-                        setSwipeLeft?.(true);
-                    }}
-                    style={{
-                        height: metrics.hp7,
-                        width: metrics.hp7,
-                        borderRadius: metrics.hp50,
-                        backgroundColor: colors.white,
-                        marginLeft: metrics.hp2,
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 5 },
-                        shadowOpacity: 0.25,
-                        shadowRadius: 10,
-
-                        // 🤖 Android Shadow
-                        elevation: 8,
-
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginBottom: metrics.hp2
-                    }}>
-                    <FastImage
-                        source={disLikeNewIcon}
-                        resizeMode="contain"
-                        tintColor={colors.black}
-                        style={{ height: metrics.hp3, width: metrics.hp3 }}
-                    />
-                </TouchableOpacityView>
-
-                <ProfileBottomDetails scrollViewRef={scrollViewRef} visibleCards={data} discover={discover} setModalVisibleHome={setModalVisible} inUnderFunction={inUnderFunction} setSwipeLeft={setSwipeLeft} />
+                <ProfileBottomDetails visibleCards={data} discover={discover} setModalVisibleHome={setModalVisible} setSwipeLeft={setSwipeLeft}/>
             </ScrollView>
-            <TouchableOpacityView
-                onPress={() => {
-                    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-                    setSwipeRight?.(true);
-                }}
-                style={{
-                    height: metrics.hp7,
-                    width: metrics.hp7,
-                    borderRadius: metrics.hp50,
-                    backgroundColor: colors.white,
-                    marginLeft: metrics.hp2,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 5 },
-                    shadowOpacity: 0.25,
-                    shadowRadius: 10,
-
-                    // 🤖 Android Shadow
-                    elevation: 8,
-
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: "absolute",
-                    right: metrics.hp2,
-                    bottom: metrics.hp4
-                }}>
-                <FastImage
-                    source={likeNewICon}
-                    resizeMode="contain"
-                    tintColor={colors.black}
-                    style={{ height: metrics.hp3, width: metrics.hp3 }}
-                />
-            </TouchableOpacityView>
-
-            {/* <View style={styles.likeUnLikeCOntainer}>
+            <View style={styles.likeUnLikeCOntainer}>
                 <View style={[styles.flasContaier, { opacity: 0 }]}>
                     <FastImage source={flashIcon} resizeMode="contain" style={styles.flasIcon} />
                 </View>
@@ -448,7 +192,7 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                                         colors={["#6F13F2", "#400B8C"]}
                                         start={{ x: 0.5, y: 0 }}
                                         end={{ x: 0.5, y: 1 }}
-                                        style={[StyleSheet.absoluteFill,{borderRadius:Platform.OS === "ios" ? metrics.hp50 : metrics.hp0}]}
+                                        style={StyleSheet.absoluteFill}
                                     />
                                 )}
                                 {pressed && (
@@ -481,7 +225,6 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                         onPress={() => {
                             // If user has 0 superlikes -> go to purchase
                             if (canSuperLike && !canSuperLike()) {
-                                setModalVisible(false)
                                 NavigationService.navigate(NAVIGATION_SUPERLIKE_PURCHESE_SCREEN);
                             return;
                         }
@@ -498,7 +241,7 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                                         colors={["#FF1A00", "#991000"]}
                                         start={{ x: 0.5, y: 0 }}
                                         end={{ x: 0.5, y: 1 }}
-                                        style={[StyleSheet.absoluteFill,{borderRadius:Platform.OS === "ios" ? metrics.hp50 : metrics.hp0}]}
+                                        style={StyleSheet.absoluteFill}
                                     />
                                 )}
                                 {pressed && (
@@ -538,7 +281,7 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                                         colors={["#CCF63D", "#779024"]}
                                         start={{ x: 0.5, y: 0 }}
                                         end={{ x: 0.5, y: 1 }}
-                                        style={[StyleSheet.absoluteFill,{borderRadius:Platform.OS === "ios" ? metrics.hp50 : metrics.hp0}]}
+                                        style={StyleSheet.absoluteFill}
                                     />
                                 )}
                                 {pressed && (
@@ -569,10 +312,10 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                 <View style={[styles.flasContaier, { opacity: 0 }]}>
                     <FastImage source={shareRedIcon} resizeMode="contain" style={styles.flasIcon} />
                 </View>
-            </View> */}
+            </View>
 
             {/* Crush Notes: send directly from PreviewDetails (Home + Discover) */}
-            {/* <Modal
+            <Modal
                 animationType="slide"
                 visible={crushNotesVisible}
                 statusBarTranslucent
@@ -590,35 +333,12 @@ const PreviewDetails = ({ data, setModalVisible, setSwipeRight, setSwipeUp, setS
                     canSuperLike={canSuperLike}
                     canSwipeRight={canSwipeRight}
                 />
-            </Modal> */}
+            </Modal>
         </AppSafeAreaView>
     )
 };
-export default PreviewDetails;
+export default PreviewDetailsAndroid;
 const styles = StyleSheet.create({
-    nameRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: metrics.hp0_5,
-    },
-    metaRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: metrics.hp0_2,
-    },
-    metaIcon: {
-        height: metrics.hp2,
-        width: metrics.hp2,
-    },
-    backIcon: {
-        height: metrics.hp2_5,
-        width: metrics.hp2_5,
-    },
-    blueTickIcon: {
-        height: metrics.hp3,
-        width: metrics.hp3,
-        marginLeft: metrics.hp0_4,
-    },
     paginationContainer: {
         position: 'absolute',
         top: metrics.hp1,
@@ -638,12 +358,12 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp10
     },
     container: {
-        // paddingHorizontal: metrics.hp1,
-        // paddingVertical: metrics.hp2,
+        paddingHorizontal: metrics.hp1,
+        paddingVertical: metrics.hp2,
         // flexGrow: 1
     },
     image: {
-        // borderRadius: metrics.hp2,
+        borderRadius: metrics.hp2,
         width: "100%",
     },
     flasIcon: {
@@ -702,7 +422,7 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp50,
         alignItems: "center",
         justifyContent: "center",
-        overflow: Platform.OS === "ios" ? "visible" : "hidden",
+        overflow: "hidden",
         shadowColor: "#000",
         shadowOpacity: 0.2,
         shadowOffset: { width: 0, height: 5 },
@@ -720,7 +440,7 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp50,
         alignItems: "center",
         justifyContent: "center",
-        overflow: Platform.OS === "ios" ? "visible" : "hidden",
+        overflow: "hidden",
         shadowColor: "#000",
         shadowOpacity: 0.2,
         shadowOffset: { width: 0, height: 5 },

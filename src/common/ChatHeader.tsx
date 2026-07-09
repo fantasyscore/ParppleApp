@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import metrics from "../assets/Metrics";
 import FastImage from "react-native-fast-image";
 import { backIcon, blueTikeIcon, profileImage, threeIconDating, treeDotIcon } from "../helper/ImageAssets";
@@ -24,7 +24,9 @@ const ChatHeader = ({ onPress, setTabSelect }: any) => {
                         <View style={{flexDirection:"row", alignItems:"center"}}>
                         <AppText type={TWELVE} weight={INTER_BOLD}>{"  "}{matchChatUserDetails?.name},
                         </AppText>
-                        {userData?.faceVerified == true ?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />:<></>}
+                        {userData?.faceVerified == true && Platform.OS ==="ios" ?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />:
+                        <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />
+                        }
                         </View>
                         {matchChatUserDetails?.online&&
                         <AppText type={TEN} style={{ color: "green" }} weight={INTER_SEMI_BOLD}>

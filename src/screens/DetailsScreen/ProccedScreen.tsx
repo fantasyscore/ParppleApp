@@ -7,6 +7,7 @@ import PurpuleButton from "../../common/PurpuleButton";
 import FastImage from "react-native-fast-image";
 import { basicDetailsBackground, doc } from "../../helper/ImageAssets";
 import NavigationService from "../../navigation/NavigationService";
+import SafeGifImage from "../../common/SafeGifImage";
 import { NAVIGATION_ADD_PHOTOS_SCREEN, NAVIGATION_EMAIL_SCREEN, NAVIGATION_NAME_SCREEN, NAVIGATION_RELATION_SCREEN } from "../../navigation/routes";
 
 const ProccedScreen = ({ route }: any) => {
@@ -24,7 +25,7 @@ const ProccedScreen = ({ route }: any) => {
     return (
         <AppSafeAreaView>
             <ImageBackground source={basicDetailsBackground} resizeMode="cover" style={styles.container}>
-                <FastImage source={doc} resizeMode="contain" style={{ height: metrics.hp17, width: metrics.hp17, marginTop: comming ? metrics.hp10 : metrics.hp0 }} />
+                <SafeGifImage source={doc} resizeMode="contain" style={{ height: metrics.hp17, width: metrics.hp17, marginTop: comming ? metrics.hp10 : metrics.hp0 }} />
                 {comming == "languages" &&
                     <View>
                         <AppText style={{ fontSize: fontSize(32), textAlign: "center" }} weight={SCHEHERAZADE_BOLD}>

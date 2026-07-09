@@ -75,20 +75,23 @@ import BotChatScreen from "../screens/ChatScreens/BotChatScreen";
 import Loader from "../common/Lodaer";
 import NewHomeScreen from "../screens/HomeScreens/NewHomeScreen";
 import FaceLivenessTestScreen from "../screens/HomeScreens/FaceLivenessTestScreen";
+import { Platform } from "react-native";
+import ProfileScreenAndroid from "../screens/ProfileScreens/ProfileScreenAndroid";
+import CustomTabBarAndroid from "../common/CustomTabBarAndroid";
 
 const Navigator = () => {
-  const Stack:any = createStackNavigator();
-  const BottomTab:any = createBottomTabNavigator();
+  const Stack: any = createStackNavigator();
+  const BottomTab: any = createBottomTabNavigator();
   const BottomMainTab = () => {
     return (
       <BottomTab.Navigator initialRouteName={routes.NAVIGATION_PEOPLE_SCREEN}
         backBehavior="initialRoute"
-        tabBar={(props: BottomTabBarProps) => <CustomTabBar {...props} />}>
-        <BottomTab.Screen name={routes.NAVIGATION_PEOPLE_SCREEN} component={NewHomeScreen} options={{ headerShown: false }} />
+        tabBar={(props: BottomTabBarProps) =>Platform.OS === "ios" ?  <CustomTabBar {...props} />: <CustomTabBarAndroid {...props}/>}>
+        <BottomTab.Screen name={routes.NAVIGATION_PEOPLE_SCREEN} component={Platform.OS === "ios" ? NewHomeScreen : PeopleScreen} options={{ headerShown: false }} />
         <BottomTab.Screen name={routes.NAVIGATION_DISCOVER_SCREEN} component={DiscoverScreen} options={{ headerShown: false }} />
         <BottomTab.Screen name={routes.NAVIGATION_CHATS_SCREEN} component={ChatsScreen} options={{ headerShown: false }} />
         <BottomTab.Screen name={routes.NAVIGATION_LIKES_YOU_SCREEN} component={LikesYouScreen} options={{ headerShown: false }} />
-        <BottomTab.Screen name={routes.NAVIGATION_PROFILE_SCREEN} component={ProfileScreen} options={{ headerShown: false }} />
+        <BottomTab.Screen name={routes.NAVIGATION_PROFILE_SCREEN} component={Platform.OS === "ios" ? ProfileScreen : ProfileScreenAndroid} options={{ headerShown: false }} />
       </BottomTab.Navigator>
     )
   }
@@ -136,7 +139,7 @@ const Navigator = () => {
       <Stack.Screen name={routes.NAVIGATION_ADD_PHOTOS_SCREEN} component={AddPhotoScreen} />
       <Stack.Screen name={routes.NAVIGATION_ALL_SET_SCREEN} component={AllsetScreen} />
       <Stack.Screen name={routes.NAVIGATION_BOTTOMTAB_SCREEN} component={BottomMainTab} />
-      <Stack.Screen name={routes.NAVIGATION_PREVIEW_DETAILS_SCREEN} component={PreviewDetails} options={{ presentation: 'modal', cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS}}/>
+      <Stack.Screen name={routes.NAVIGATION_PREVIEW_DETAILS_SCREEN} component={PreviewDetails} options={{ presentation: 'modal', cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS }} />
       <Stack.Screen name={routes.NAVIGATION_PEOPLE_SCREEN} component={PeopleScreen} />
       <Stack.Screen name={routes.NAVIGATION_FILTER_SCREEN} component={FilterScreen} />
       <Stack.Screen name={routes.NAVIGATION_COMMONSELECT_PAGE_SCREEN} component={CommonSelectPage} />
@@ -160,7 +163,7 @@ const Navigator = () => {
       <Stack.Screen name={routes.NAVIGATION_CRUSH_NOTE_SENDER_SCREEN} component={CrushNotePurchase} />
 
 
-      </Stack.Navigator>
+    </Stack.Navigator>
   );
 
   const RootStackScreen = () => (

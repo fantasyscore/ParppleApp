@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
+import { FlatList, Platform, StyleSheet, View } from "react-native";
 import FastImage from "react-native-fast-image";
 import { useDispatch, useSelector } from "react-redux";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
@@ -74,7 +74,9 @@ const AllMatchesScreen = () => {
                 </AppText>
               )}
               
-              {userData?.faceVerified == true ?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />:<></>}
+              {userData?.faceVerified == true && Platform.OS ==="ios"?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />:
+               <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />
+              }
             </View>
             <AppText type={TWELVE} numberOfLines={1} weight={INTER_REGULAR} color={OPECITY_DARK}>
               Write your first message

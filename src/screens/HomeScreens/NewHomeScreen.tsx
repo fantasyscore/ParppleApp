@@ -48,6 +48,7 @@ import { BlurView } from '@react-native-community/blur';
 import { appOperation } from '../../appOperation';
 import PulsingCircle from '../../common/PulsingCircle';
 import PreviewDetails from './PreviewDetails';
+import SafeGifImage from '../../common/SafeGifImage';
 import { viewProfileICon } from '../../helper/ImageAssets';
 import { NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from '../../navigation/routes';
 import MatchScreen from './MatchScreen';
@@ -318,7 +319,7 @@ const ProfileCard = memo(function ProfileCard({
                             }
                         }}
                     >
-                        <FastImage source={swipeUpIcon} resizeMode='contain' style={{ height: metrics.hp17, width: metrics.hp17, marginLeft: -metrics.hp0_5 }} />
+                        <SafeGifImage source={swipeUpIcon} resizeMode='contain' style={{ height: metrics.hp17, width: metrics.hp17, marginLeft: -metrics.hp0_5 }} />
                     </TouchableOpacityView>
 
                     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "95%", position: "absolute", bottom: metrics.hp1 }}>
@@ -449,6 +450,7 @@ const NewHomeScreen = () => {
     const likeIconScale = useSharedValue(0.7);
     const itemtwo = useMemo(() => ({ id: "2", icon: goldCard, title: "Gold" }), []);
     const locationPromptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
 
     useEffect(() => {
         profilesRef.current = Array.isArray(listProfilesData) ? listProfilesData : [];
@@ -832,7 +834,7 @@ const NewHomeScreen = () => {
 
             if (!isFaceVerified) {
                 hasShownFaceVerificationPromptThisSession = true;
-                setFaceVerificationPromptVisible(true);
+                setFaceVerificationPromptVisible(Platform.OS === "ios" ? true : false);
             }
         }, 8000);
     }, [isFocused, userData?.faceVerified]);
@@ -1103,7 +1105,7 @@ const NewHomeScreen = () => {
     const refreshLocationPermission = useCallback(async () => {
         let granted = await isLocationPermissionGranted();
 
-        if (!granted) {
+        if (!granted && Platform.OS !== "ios") {
             const status = await check(getLocationPermissionType());
             if (status === RESULTS.DENIED) {
                 if (!isRequestingLocationPermissionRef.current) {
@@ -1132,6 +1134,13 @@ const NewHomeScreen = () => {
             });
         } else {
             setCurrentLocation({ lat: '', long: '' });
+            if (Platform.OS === "ios") {
+                requestProfileBatch({
+                    merge: profilesRef.current.length > 0,
+                    refreshUser: true,
+                    force: profilesRef.current.length === 0,
+                });
+            }
         }
     }, [fetchCurrentLocationForSocket, isLocationPermissionGranted, getLocationPermissionType, requestProfileBatch]);
 
@@ -1165,47 +1174,20 @@ const NewHomeScreen = () => {
                 return;
             }
 
-            // iOS "Allow Once" expires on next app open; re-trigger native prompt automatically.
-            if (
-                Platform.OS === "ios" &&
-                !hasAutoRequestedLocationOnFocusRef.current &&
-                !isRequestingLocationPermissionRef.current
-            ) {
-                hasAutoRequestedLocationOnFocusRef.current = true;
-                isRequestingLocationPermissionRef.current = true;
-                setIsRequestingLocationPermission(true);
-                try {
-                    const status = await request(getLocationPermissionType());
-                    if (!mounted) return;
-
-                    if (status === RESULTS.GRANTED) {
-                        setHasLocationPermission(true);
-                        const hasCachedProfiles = profilesRef.current.length > 0;
-                        const refresh = () => {
-                            fetchCurrentLocationForSocket();
-                            requestProfileBatch({
-                                merge: hasCachedProfiles,
-                                refreshUser: true,
-                                force: !hasCachedProfiles,
-                            });
-                        };
-
-                        if (hasCachedProfiles) {
-                            cancelDeferredRefresh = runAfterInitialInteractions(refresh, 1200);
-                        } else {
-                            refresh();
-                        }
-                    } else {
-                        setHasLocationPermission(false);
-                        setCurrentLocation({ lat: '', long: '' });
-                    }
-                } catch (error) {
-                    console.warn("Location permission request failed:", error);
-                } finally {
-                    isRequestingLocationPermissionRef.current = false;
-                    setIsRequestingLocationPermission(false);
-                }
+            // On iOS, if permission is not granted, we do NOT automatically request it on mount/focus anymore.
+            // Just set hasLocationPermission to false and load profiles with empty coordinates.
+            if (Platform.OS === "ios") {
+                setHasLocationPermission(false);
+                setCurrentLocation({ lat: '', long: '' });
+                const hasCachedProfiles = profilesRef.current.length > 0;
+                requestProfileBatch({
+                    merge: hasCachedProfiles,
+                    refreshUser: true,
+                    force: !hasCachedProfiles,
+                });
+                return;
             }
+
         };
 
         syncLocationPermission();
@@ -1602,20 +1584,18 @@ const NewHomeScreen = () => {
                 statusBarTranslucent
                 onRequestClose={() => setModalVisible(false)}
             >
-                {modalVisible ? (
-                    <PreviewDetails
-                        data={currentPreviewProfile}
-                        setModalVisible={setModalVisible}
-                        setSwipeRight={setSwipeRightProxy}
-                        setSwipeLeft={setSwipeLeftProxy}
-                        setSwipeUp={setSwipeUpProxy}
-                        modalVisible={modalVisible}
-                        setProfileData={() => { }}
-                        onProfileImageIndexChange={updateProfileImageIndex}
-                        setSuperLikeVisible={setSuperLikeVisibleProxy}
-                        canSuperLike={canSuperLike}
-                    />
-                ) : null}
+                <PreviewDetails
+                    data={currentPreviewProfile}
+                    setModalVisible={setModalVisible}
+                    setSwipeRight={setSwipeRightProxy}
+                    setSwipeLeft={setSwipeLeftProxy}
+                    setSwipeUp={setSwipeUpProxy}
+                    modalVisible={modalVisible}
+                    setProfileData={() => { }}
+                    onProfileImageIndexChange={updateProfileImageIndex}
+                    setSuperLikeVisible={setSuperLikeVisibleProxy}
+                    canSuperLike={canSuperLike}
+                />
             </Modal>
 
             <Animated.View pointerEvents="none" style={[styles.dislikeFxOverlay, dislikeOverlayStyle]}>

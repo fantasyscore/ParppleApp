@@ -258,13 +258,19 @@ const ChatProfileScreen = ({ always }: any) => {
                                         <AppText style={{ textTransform: "capitalize" }} type={TWENTY} color={WHITE} weight={INTER_BOLD}>
                                             {String(otherUserProfile?.firstName || "")}, {String(otherUserProfile?.age || "")}{" "}
                                         </AppText>
-                                        {otherUserProfile?.faceVerified && (
+                                        {otherUserProfile?.faceVerified && Platform.OS==="ios" ? (
                                             <FastImage
                                                 source={blueTikeIcon}
                                                 resizeMode="contain"
                                                 style={styles.blueTikIcon}
                                             />
-                                        )}
+                                        ):
+                                        <FastImage
+                                        source={blueTikeIcon}
+                                        resizeMode="contain"
+                                        style={styles.blueTikIcon}
+                                    />
+                                        }
                                     </View>
                                     {otherUserProfile?.work && (
                                         <View style={{ flexDirection: "row", alignItems: "center" }}>

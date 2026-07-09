@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import HeaderCommon from "../../common/HeaderCommon";
 import metrics from "../../assets/Metrics";
 import { AppText, INTER_BOLD, INTER_MEDIUM, OPECITY, PURPLE, THIRTEEN } from "../../common/AppText";
@@ -412,7 +412,7 @@ const FilterScreen = () => {
             <PurpuleButton
                 disabled={tabSelect == "Advance" ? !hasActiveSubscription : false}
                 onPress={tabSelect == "Advance" ? (hasActiveSubscription ? onSubmitAdvance : undefined) : onSubmitBasic}
-                title={tabSelect == "Advance" ? (hasActiveSubscription ? "Apply" : "Unlock with Flame") : "Apply"}
+                title={tabSelect == "Advance" ? (hasActiveSubscription ? "Apply" : Platform.OS ==="ios"? "Unlock with Flame":"Unlock with Premium") : "Apply"}
                 tabSelect={tabSelect}
             />
         </AppSafeAreaView>

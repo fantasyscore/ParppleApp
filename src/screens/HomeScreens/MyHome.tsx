@@ -48,6 +48,7 @@ import { BlurView } from '@react-native-community/blur';
 import { appOperation } from '../../appOperation';
 import PulsingCircle from '../../common/PulsingCircle';
 import PreviewDetails from './PreviewDetails';
+import SafeGifImage from '../../common/SafeGifImage';
 import { viewProfileICon } from '../../helper/ImageAssets';
 import { NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from '../../navigation/routes';
 import MatchScreen from './MatchScreen';
@@ -306,7 +307,7 @@ const ProfileCard = memo(({
                             }
                         }}
                     >
-                        <FastImage source={swipeUpIcon} resizeMode='contain' style={{ height: metrics.hp17, width: metrics.hp17, marginLeft: -metrics.hp0_5 }} />
+                        <SafeGifImage source={swipeUpIcon} resizeMode='contain' style={{ height: metrics.hp17, width: metrics.hp17, marginLeft: -metrics.hp0_5 }} />
                     </TouchableOpacityView>
 
                     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "95%", position: "absolute", bottom: metrics.hp1 }}>
@@ -694,7 +695,7 @@ const NewHomeScreen = () => {
 
             if (!isFaceVerified) {
                 hasShownFaceVerificationPromptThisSession = true;
-                setFaceVerificationPromptVisible(true);
+                setFaceVerificationPromptVisible(Platform.OS === "ios" ? true : false);
             }
         }, 3000);
 
@@ -886,7 +887,7 @@ const NewHomeScreen = () => {
 
     const getLocationPermissionType = useCallback(() => {
         if (Platform.OS === "ios") return PERMISSIONS.IOS.LOCATION_WHEN_IN_USE;
-        return PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION;
+        return PERMISSIONS.ANDROID.ACCESS_COARSE_LOCATION;
     }, []);
 
     const isLocationPermissionGranted = useCallback(async () => {

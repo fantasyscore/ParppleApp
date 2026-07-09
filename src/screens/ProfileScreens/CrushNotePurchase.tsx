@@ -37,6 +37,7 @@ const CrushNotePurchase = () => {
     const [processing, setProcessing] = useState<string | null>(null);
     const lastVerifiedKeyRef = useRef<string | null>(null);
     const isVerifyingRef = useRef(false);
+    const purchaseInitiatedRef = useRef(false);
     const [verifyModalVisible, setVerifyModalVisible] = useState(false);
     const [verifyStage, setVerifyStage] = useState<'verifying' | 'success' | 'error'>('verifying');
     const [verifyError, setVerifyError] = useState<string>('');
@@ -63,15 +64,7 @@ const CrushNotePurchase = () => {
                 setLoading(true);
                 await RNIap.initConnection();
 
-                // iOS (v12): getProducts({ skus }) for in-app consumables. v14 has fetchProducts({ skus, type: 'in-app' }).
-                let rawProducts: any[] = [];
-                if (Platform.OS === 'ios') {
-                    rawProducts = await RNIap.getProducts({ skus: PRODUCT_SKUS });
-                } else if (typeof (RNIap as any).fetchProducts === 'function') {
-                    rawProducts = await (RNIap as any).fetchProducts({ skus: PRODUCT_SKUS, type: 'in-app' });
-                } else {
-                    rawProducts = await RNIap.getProducts({ skus: PRODUCT_SKUS });
-                }
+                const rawProducts = await RNIap.getProducts({ skus: PRODUCT_SKUS });
                 const availableProducts = Array.isArray(rawProducts) ? rawProducts : [];
 
                 if (availableProducts.length > 0) {
@@ -154,6 +147,7 @@ const CrushNotePurchase = () => {
         };
 
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
+            let isInitiated = false;
             try {
                 const key = (purchase?.transactionId || purchase?.orderId || purchase?.purchaseToken || purchase?.productId || '').toString();
                 if (isVerifyingRef.current) return;
@@ -162,40 +156,53 @@ const CrushNotePurchase = () => {
                 isVerifyingRef.current = true;
                 lastVerifiedKeyRef.current = key || null;
 
-                setVerifyModalVisible(true);
-                setVerifyStage('verifying');
-                setVerifyError('');
-                setVerifyResponse(null);
+                isInitiated = purchaseInitiatedRef.current;
+                purchaseInitiatedRef.current = false;
 
-                setProcessing(purchase?.productId || 'verifying');
+                if (isInitiated) {
+                    setVerifyModalVisible(true);
+                    setVerifyStage('verifying');
+                    setVerifyError('');
+                    setVerifyResponse(null);
+                    setProcessing(purchase?.productId || 'verifying');
+                }
 
                 const data = {
                     productId: purchase.productId,
                     purchaseToken: purchase.purchaseToken,
                     platform: Platform.OS === 'ios' ? 'ios' : 'android',
                     orderId: purchase.id,
+                    transactionReceipt: purchase?.transactionReceipt,
+                    transactionId: purchase?.transactionId
                 };
                 const newdata = {
                     productId :purchase?.productId,
                     transactionReceipt:purchase?.transactionReceipt,
                     transactionId:purchase?.transactionId
                 }
-                const response: any = await dispatch(iosPucrchesAPIIs(newdata))
-                // const response: any = await dispatch(verifyconsumableitemsAPI(data));
+                const response: any = Platform.OS === "ios"? await dispatch(iosPucrchesAPIIs(newdata)):await dispatch(verifyconsumableitemsAPI(data));
                 const isOk = response?.statusCode === 200
 
                 if (!isOk) {
                     throw new Error(response?.message || response?.data?.message || 'Crush Note verification failed');
                 }
 
-                setVerifyResponse(response);
-                setVerifyStage('success');
+                if (isInitiated) {
+                    setVerifyResponse(response);
+                    setVerifyStage('success');
+                }
                 dispatch(getProfile(true))
-                await RNIap.finishTransaction({ purchase, isConsumable: true });
+                try {
+                    await RNIap.finishTransaction({ purchase, isConsumable: true });
+                } catch (finishErr) {
+                    console.warn('[Crush Note] Client finishTransaction failed (possibly already consumed by server):', finishErr);
+                }
             } catch (err) {
                 console.error('[Crush Note] Purchase handler error:', err);
-                setVerifyStage('error');
-                setVerifyError((err as any)?.message || 'Something went wrong while verifying your purchase.');
+                if (isInitiated) {
+                    setVerifyStage('error');
+                    setVerifyError((err as any)?.message || 'Something went wrong while verifying your purchase.');
+                }
             } finally {
                 setProcessing(null);
                 isVerifyingRef.current = false;
@@ -204,6 +211,7 @@ const CrushNotePurchase = () => {
 
         purchaseErrorSubscription = RNIap.purchaseErrorListener((error: any) => {
             setProcessing(null);
+            purchaseInitiatedRef.current = false;
             if (!error.message?.toLowerCase().includes('cancel')) {
                 Alert.alert('Error', error.message || 'An error occurred during purchase.');
             }
@@ -228,6 +236,7 @@ const CrushNotePurchase = () => {
 
         try {
             setProcessing(String(productId));
+            purchaseInitiatedRef.current = true;
 
             // iOS (v12): requestPurchase({ sku }). Android (v14): requestPurchase({ request: { android: { skus } }, type: 'in-app' }).
             if (Platform.OS === 'ios') {
@@ -235,16 +244,12 @@ const CrushNotePurchase = () => {
                     sku: productId,
                     andDangerouslyFinishTransactionAutomaticallyIOS: false,
                 });
-            } else if (typeof (RNIap as any).fetchProducts === 'function') {
-                await (RNIap as any).requestPurchase({
-                    request: { android: { skus: [productId] } },
-                    type: 'in-app',
-                });
             } else {
                 await RNIap.requestPurchase({ skus: [productId] });
             }
         } catch (err: any) {
             setProcessing(null);
+            purchaseInitiatedRef.current = false;
             if (!err?.message?.toLowerCase?.().includes('cancel')) {
                 console.warn('Purchase Error:', err);
             }

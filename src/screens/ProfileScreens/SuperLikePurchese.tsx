@@ -1,18 +1,20 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { ActivityIndicator, Alert, Animated, ImageBackground, Modal, Platform, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, Animated, Dimensions, ImageBackground, Linking, Modal, NativeModules, Platform, StyleSheet, View } from "react-native";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import NavigationService from "../../navigation/NavigationService";
 import { goldCard, goldForSuperLIke, logoBlue, orBottomIcon, premiumIcon, superLikeHeader } from "../../helper/ImageAssets";
 import LinearGradient from "react-native-linear-gradient";
 import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
-import { AppText, EIGHT, ELEVEN, FORTEEN, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, TEN, TWELVE, WHITE } from "../../common/AppText";
+import { AppText, EIGHT, ELEVEN, FORTEEN, INTER_BOLD, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, SCHEHERAZADE_BOLD, TEN, TWELVE, TWENTY_TWO, WHITE } from "../../common/AppText";
 import { colors } from "../../theme/colors";
 import * as RNIap from 'react-native-iap';
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { deleteAccountAPI, getProfile, iosPucrchesAPIIs, verifyconsumableitemsAPI } from "../../actions/authActions";
+import { appOperation } from "../../appOperation";
+import { check, openSettings, PERMISSIONS, request, RESULTS } from "react-native-permissions";
 
 // Product IDs must match exactly what you created in App Store Connect (iOS) / Play Console (Android).
 // react-native-iap v12 (iOS branch): use getProducts({ skus }). v14 (Android) uses fetchProducts.
@@ -20,7 +22,6 @@ const PRODUCT_SKUS = Platform.select({
     android: ['10_super_likes', '3_super_likes', '1_super_like'],
     ios: ['10_super_likes', '3_super_likes', '1_super_like'],
 }) ?? ['10_super_likes', '3_super_likes', '1_super_like'];
-
 // Helper to extract numeric price for calculations
 const extractPriceNumber = (priceStr: string): { amount: number; currency: string } => {
     const amountMatch = priceStr.match(/[\d,.]+/);
@@ -28,6 +29,13 @@ const extractPriceNumber = (priceStr: string): { amount: number; currency: strin
     const currency = priceStr.replace(/[\d,.\s]+/g, '') || '₹';
     return { amount, currency };
 };
+const { width, height } = Dimensions.get('window');
+
+type FaceLivenessResult =
+    | { status?: string; message?: string }
+    | string
+    | null
+    | undefined;
 
 const SuperLikePurchese = () => {
     const dispatch = useDispatch();
@@ -38,10 +46,12 @@ const SuperLikePurchese = () => {
     const [processing, setProcessing] = useState<string | null>(null);
     const lastVerifiedKeyRef = useRef<string | null>(null);
     const isVerifyingRef = useRef(false);
+    const purchaseInitiatedRef = useRef(false);
     const [verifyModalVisible, setVerifyModalVisible] = useState(false);
     const [verifyStage, setVerifyStage] = useState<'verifying' | 'success' | 'error'>('verifying');
     const [verifyError, setVerifyError] = useState<string>('');
     const [verifyResponse, setVerifyResponse] = useState<any>(null);
+    const userData = useSelector((state: any) => state.auth.userData);
     const payModalScale = useRef(new Animated.Value(0.96)).current;
     const payModalOpacity = useRef(new Animated.Value(0)).current;
 
@@ -64,15 +74,7 @@ const SuperLikePurchese = () => {
                 setLoading(true);
                 await RNIap.initConnection();
 
-                // iOS (v12): getProducts({ skus }) for in-app consumables. v14 has fetchProducts({ skus, type: 'in-app' }).
-                let rawProducts: any[] = [];
-                if (Platform.OS === 'ios') {
-                    rawProducts = await RNIap.getProducts({ skus: PRODUCT_SKUS });
-                } else if (typeof (RNIap as any).fetchProducts === 'function') {
-                    rawProducts = await (RNIap as any).fetchProducts({ skus: PRODUCT_SKUS, type: 'in-app' });
-                } else {
-                    rawProducts = await RNIap.getProducts({ skus: PRODUCT_SKUS });
-                }
+                const rawProducts = await RNIap.getProducts({ skus: PRODUCT_SKUS });
                 const availableProducts = Array.isArray(rawProducts) ? rawProducts : [];
 
                 if (__DEV__ && availableProducts.length === 0) {
@@ -131,8 +133,8 @@ const SuperLikePurchese = () => {
         };
 
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
+            let isInitiated = false;
             try {
-
                 const key = (purchase?.transactionId || purchase?.orderId || purchase?.purchaseToken || purchase?.productId || '').toString();
                 if (isVerifyingRef.current) return;
                 if (key && lastVerifiedKeyRef.current === key) return;
@@ -140,12 +142,16 @@ const SuperLikePurchese = () => {
                 isVerifyingRef.current = true;
                 lastVerifiedKeyRef.current = key || null;
 
-                setVerifyModalVisible(true);
-                setVerifyStage('verifying');
-                setVerifyError('');
-                setVerifyResponse(null);
+                isInitiated = purchaseInitiatedRef.current;
+                purchaseInitiatedRef.current = false;
 
-                setProcessing(purchase?.productId || 'verifying');
+                if (isInitiated) {
+                    setVerifyModalVisible(true);
+                    setVerifyStage('verifying');
+                    setVerifyError('');
+                    setVerifyResponse(null);
+                    setProcessing(purchase?.productId || 'verifying');
+                }
 
                 // Same verification API pattern as subscriptions
                 const data = {
@@ -153,29 +159,37 @@ const SuperLikePurchese = () => {
                     purchaseToken: purchase.purchaseToken,
                     platform: Platform.OS === 'ios' ? 'ios' : 'android',
                     orderId: purchase.id,
+                    transactionReceipt: purchase?.transactionReceipt,
+                    transactionId: purchase?.transactionId
                 };
                 const newdata = {
-                    productId :purchase?.productId,
-                    transactionReceipt:purchase?.transactionReceipt,
-                    transactionId:purchase?.transactionId
+                    productId: purchase?.productId,
+                    transactionReceipt: purchase?.transactionReceipt,
+                    transactionId: purchase?.transactionId
                 }
-                
-                const response: any = await dispatch(iosPucrchesAPIIs(newdata))
-                console.log(response,"responseTworesponseTworesponseTworesponseTworesponseTworesponseTwo")
-                // const response: any = await dispatch(verifyconsumableitemsAPI(data));
+
+                const response: any = Platform.OS === "ios" ? await dispatch(iosPucrchesAPIIs(newdata)) : await dispatch(verifyconsumableitemsAPI(data));
                 const isOk = response?.statusCode === 200
                 if (!isOk) {
                     throw new Error(response?.message || response?.data?.message || 'Super Like verification failed');
                 }
 
-                setVerifyResponse(response);
-                setVerifyStage('success');
+                if (isInitiated) {
+                    setVerifyResponse(response);
+                    setVerifyStage('success');
+                }
                 dispatch(getProfile(true))
-                await RNIap.finishTransaction({ purchase, isConsumable: true });
+                try {
+                    await RNIap.finishTransaction({ purchase, isConsumable: true });
+                } catch (finishErr) {
+                    console.warn('[Super Like] Client finishTransaction failed (possibly already consumed by server):', finishErr);
+                }
             } catch (err) {
                 console.error('[Super Like] Purchase handler error:', err);
-                setVerifyStage('error');
-                setVerifyError((err as any)?.message || 'Something went wrong while verifying your purchase.');
+                if (isInitiated) {
+                    setVerifyStage('error');
+                    setVerifyError((err as any)?.message || 'Something went wrong while verifying your purchase.');
+                }
             } finally {
                 setProcessing(null);
                 isVerifyingRef.current = false;
@@ -184,6 +198,7 @@ const SuperLikePurchese = () => {
 
         purchaseErrorSubscription = RNIap.purchaseErrorListener((error: any) => {
             setProcessing(null);
+            purchaseInitiatedRef.current = false;
             if (!error.message?.toLowerCase().includes('cancel')) {
                 Alert.alert('Error', error.message || 'An error occurred during purchase.');
             }
@@ -197,35 +212,171 @@ const SuperLikePurchese = () => {
             RNIap.endConnection();
         };
     }, [retryCount]);
+    const FaceLiveness = (NativeModules as any)?.FaceLiveness as
+        | { startLiveness?: (sessionId: string) => Promise<FaceLivenessResult> }
+        | undefined;
+
+    const moduleAvailable = useMemo(() => {
+        return Boolean(FaceLiveness && typeof FaceLiveness.startLiveness === 'function');
+    }, [FaceLiveness]);
+
+    const [resultText, setResultText] = useState<string>('');
+    const [faceVerificationPromptFailedVisible, setFaceVerificationPromptFailedVisible] = useState(false);
+    const [faceVerificationPromptSuccessVisible, setFaceVerificationPromptSuccessVisible] = useState(false);
+    const [faceVerificationPromptVisible, setFaceVerificationPromptVisible] = useState(false);
+    const handleCloseFaceVerificationSuccessPrompt = useCallback(() => {
+        setFaceVerificationPromptSuccessVisible(false);
+    }, []);
+    const handleCloseFaceVerificationFailedPrompt = useCallback(() => {
+        setFaceVerificationPromptFailedVisible(false);
+    }, []);
+    const handleCloseFaceVerificationPrompt = useCallback(() => {
+        setFaceVerificationPromptVisible(false);
+    }, []);
+
+    const getCameraPermissionType = useCallback(() => {
+        return Platform.OS === "ios" ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA;
+    }, []);
+
+    const ensureCameraPermission = useCallback(async (): Promise<boolean> => {
+        try {
+            const permissionType = getCameraPermissionType();
+            const currentStatus = await check(permissionType);
+
+            if (currentStatus === RESULTS.GRANTED) return true;
+
+            if (currentStatus === RESULTS.BLOCKED) {
+                Alert.alert(
+                    "Camera permission required",
+                    "Camera permission is disabled. Please enable it from Settings to continue face verification.",
+                    [
+                        { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
+                        { text: "Cancel", style: "cancel" },
+                    ]
+                );
+                return false;
+            }
+
+            const requestedStatus = await request(permissionType);
+            if (requestedStatus === RESULTS.GRANTED) return true;
+
+            Alert.alert(
+                "Camera permission denied",
+                "Face verification requires camera access. You can enable it from Settings.",
+                [
+                    { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
+                    { text: "Cancel", style: "cancel" },
+                ]
+            );
+            return false;
+        } catch (error) {
+            console.warn("Camera permission check failed:", error);
+            Alert.alert("Permission error", "Unable to check camera permission. Please try again.");
+            return false;
+        }
+    }, [getCameraPermissionType]);
+
+    const start = async () => {
+        if (!moduleAvailable) {
+            const msg =
+                'FaceLiveness native module not found. Make sure you rebuilt the app (not just Metro reload).';
+            console.warn('[FaceLivenessTest] ' + msg);
+            setResultText(msg);
+            return;
+        }
+
+        // setLoading(true);
+        setResultText('');
+
+        try {
+            const isCameraAllowed = await ensureCameraPermission();
+            if (!isCameraAllowed) {
+                return;
+            }
+
+            console.log('[FaceLivenessTest] Requesting session from /faceId/liveliness');
+            const sessionResp = await (appOperation.customer as any).createFaceLivenessSessionAPI();
+            const sessionId = sessionResp?.data
+            console.log(sessionId, "sessionResp");
+
+            if (!sessionId) {
+                throw new Error('Session API did not return a valid sessionId');
+            }
+
+            console.log('[FaceLivenessTest] Starting native liveness with sessionId:', sessionId);
+            if (!FaceLiveness || typeof FaceLiveness.startLiveness !== 'function') {
+                throw new Error('FaceLiveness native module is not available on this device.');
+            }
+            const res = await FaceLiveness.startLiveness(sessionId);
+            console.log('[FaceLivenessTest] Native result:', res);
+
+            // Normalize a few common shapes.
+            if (res && typeof res === 'object') {
+                const status = (res as any).status;
+                if (status === 'success') {
+                    setFaceVerificationPromptVisible(false);
+                    console.log('[FaceLivenessTest] Verifying session via faceId/verifySessionResult');
+                    const verifyResp = await (appOperation.customer as any).verifyFaceLivenessSessionAPI({
+                        sessionId,
+                    });
+                    if (verifyResp?.success) {
+                        if (verifyResp?.data?.confidence >= 90) {
+                            dispatch(getProfile(true))
+                            setFaceVerificationPromptSuccessVisible(true)
+                        } else if (verifyResp?.data?.confidence >= 80) {
+                            dispatch(getProfile(true))
+                            setFaceVerificationPromptSuccessVisible(true)
+                        } else {
+                            setFaceVerificationPromptFailedVisible(true);
+                        }
+                    }
+                } else if (status === 'cancelled') {
+                    Alert.alert((res as any).message ? `Cancelled: ${(res as any).message}` : 'Cancelled')
+                } else {
+                    Alert.alert(`Result: ${JSON.stringify(res)}`)
+                }
+            } else {
+                Alert.alert(res ? `Result: ${String(res)}` : 'Liveness Success')
+            }
+        } catch (e: any) {
+            const msg = e?.message ?? String(e);
+            console.error('[FaceLivenessTest] Error:', e);
+            setFaceVerificationPromptVisible(false);
+            setFaceVerificationPromptFailedVisible(true);
+        } finally {
+            // setLoading(false);
+        }
+    };
 
     // iOS (v12): requestPurchase({ sku }). Android (v14): requestPurchase({ request: { android: { skus } }, type: 'in-app' }).
     const handlePurchase = async () => {
-        if (processing) return;
-        const selectedProduct = products[selectedPlanIndex];
-        if (!selectedProduct) return;
+        if (Platform.OS === "ios" && userData?.faceVerified === false) {
+            setFaceVerificationPromptVisible(true)
+        } else {
+            if (processing) return;
+            const selectedProduct = products[selectedPlanIndex];
+            if (!selectedProduct) return;
 
-        const productId = (selectedProduct as any).productId ?? (selectedProduct as any).id;
-        if (!productId) return;
+            const productId = (selectedProduct as any).productId ?? (selectedProduct as any).id;
+            if (!productId) return;
 
-        try {
-            setProcessing(String(productId));
-            if (Platform.OS === 'ios') {
-                await RNIap.requestPurchase({
-                    sku: productId,
-                    andDangerouslyFinishTransactionAutomaticallyIOS: false,
-                });
-            } else if (typeof (RNIap as any).fetchProducts === 'function') {
-                await (RNIap as any).requestPurchase({
-                    request: { android: { skus: [productId] } },
-                    type: 'in-app',
-                });
-            } else {
-                await RNIap.requestPurchase({ skus: [productId] });
-            }
-        } catch (err: any) {
-            setProcessing(null);
-            if (!err?.message?.toLowerCase?.().includes('cancel')) {
-                console.warn('Purchase Error:', err);
+            try {
+                setProcessing(String(productId));
+                purchaseInitiatedRef.current = true;
+                if (Platform.OS === 'ios') {
+                    await RNIap.requestPurchase({
+                        sku: productId,
+                        andDangerouslyFinishTransactionAutomaticallyIOS: false,
+                    });
+                } else {
+                    await RNIap.requestPurchase({ skus: [productId] });
+                }
+            } catch (err: any) {
+                setProcessing(null);
+                purchaseInitiatedRef.current = false;
+                if (!err?.message?.toLowerCase?.().includes('cancel')) {
+                    console.warn('Purchase Error:', err);
+                }
             }
         }
     };
@@ -325,7 +476,8 @@ const SuperLikePurchese = () => {
             <View style={styles.bottomcontainer}>
                 <AppText weight={INTER_REGULAR} type={TEN}>
                     By tapping Upgrade, your payment will be charged... Manage your subscription anytime in settings and you agree to our
-                    <AppText style={{ textDecorationLine: "underline" }} weight={INTER_SEMI_BOLD} type={TEN}> Terms</AppText>
+                    <AppText onPress={() => Linking.openURL("https://parpple.com/terms_conditions")} style={{ textDecorationLine: "underline" }} weight={INTER_SEMI_BOLD} type={TEN}> Terms & Conditions</AppText>
+                    <AppText onPress={() => Linking.openURL("https://parpple.com/privacy_policy")} style={{ textDecorationLine: "underline" }} weight={INTER_SEMI_BOLD} type={TEN}> Privacy Policy</AppText>
                 </AppText>
                 <TouchableOpacityView
                     onPress={handlePurchase}
@@ -445,6 +597,98 @@ const SuperLikePurchese = () => {
                     </Animated.View>
                 </View>
             </Modal>
+            <Modal
+                animationType="fade"
+                transparent
+                visible={faceVerificationPromptVisible}
+                onRequestClose={handleCloseFaceVerificationPrompt}
+            >
+                <View style={styles.centeredView}>
+                    <View style={styles.locationPromptContainer}>
+                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
+                            Verify Your Identity
+                        </AppText>
+                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ textAlign: "center", marginTop: metrics.hp0 }}>
+                            Complete a quick face verification to secure your account. This process takes only a few seconds.
+                        </AppText>
+                        <TouchableOpacityView
+                            onPress={start}
+                            style={[styles.locationPromptButton, { backgroundColor: colors.purple, borderColor: colors.purple, marginTop: metrics.hp3 }]}
+                        >
+                            <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
+                                Start Verification
+                            </AppText>
+                        </TouchableOpacityView>
+                        <TouchableOpacityView
+                            onPress={handleCloseFaceVerificationPrompt}
+                            style={[styles.locationPromptButton, { backgroundColor: colors.transparent, borderColor: colors.transparent, marginTop: metrics.hp1 }]}
+                        >
+                            <AppText color={LIGHT_BLACK} weight={INTER_BOLD} type={FORTEEN}>
+                                Skip for Now
+                            </AppText>
+                        </TouchableOpacityView>
+                    </View>
+                </View>
+            </Modal>
+            <Modal
+                animationType="fade"
+                transparent
+                visible={faceVerificationPromptSuccessVisible}
+                onRequestClose={handleCloseFaceVerificationSuccessPrompt}
+            >
+                <View style={styles.centeredView}>
+                    <View style={styles.locationPromptContainer}>
+                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
+                            Verification Successful
+                        </AppText>
+                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ textAlign: "center", marginTop: metrics.hp0_5 }}>
+                            Your face verification has been completed successfully. Your account is now fully verified.
+                        </AppText>
+                        <TouchableOpacityView
+                            onPress={handleCloseFaceVerificationSuccessPrompt}
+                            style={[styles.locationPromptButton, { backgroundColor: colors.purple, borderColor: colors.purple, marginTop: metrics.hp3 }]}
+                        >
+                            <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
+                                Continue
+                            </AppText>
+                        </TouchableOpacityView>
+                    </View>
+                </View>
+            </Modal>
+            <Modal
+                animationType="fade"
+                transparent
+                visible={faceVerificationPromptFailedVisible}
+                onRequestClose={handleCloseFaceVerificationFailedPrompt}
+            >
+                <View style={styles.centeredView}>
+                    <View style={styles.locationPromptContainer}>
+                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK} style={{ textAlign: "center" }}>
+                            Verification Failed
+                        </AppText>
+                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ textAlign: "center", marginTop: metrics.hp0_5 }}>
+                            We were unable to verify your identity. Please try again in a well-lit environment and ensure your face is clearly visible.
+                        </AppText>
+                        <TouchableOpacityView
+                            onPress={start}
+                            style={[styles.locationPromptButton, { backgroundColor: colors.purple, borderColor: colors.purple, marginTop: metrics.hp3 }]}
+                        >
+                            <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
+                                Try Again
+                            </AppText>
+                        </TouchableOpacityView>
+                        <TouchableOpacityView
+                            onPress={handleCloseFaceVerificationFailedPrompt}
+                            style={[styles.locationPromptButton, { backgroundColor: colors.transparent, borderColor: colors.transparent, marginTop: metrics.hp15_5 }]}
+                        >
+                            <AppText color={LIGHT_BLACK} weight={INTER_BOLD} type={FORTEEN}>
+                                Cancel
+                            </AppText>
+                        </TouchableOpacityView>
+                    </View>
+                </View>
+            </Modal>
+
         </AppSafeAreaView>
     )
 };
@@ -568,5 +812,28 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp4,
         alignItems: "center",
         justifyContent: "center",
+    },
+    centeredView: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: colors.transparentBlack,
+        paddingHorizontal: metrics.hp2
+    },
+    locationPromptContainer: {
+        backgroundColor: colors.white,
+        width: width / 1.15,
+        borderRadius: metrics.hp2,
+        paddingHorizontal: metrics.hp2,
+        paddingVertical: metrics.hp3,
+    },
+    locationPromptButton: {
+        height: metrics.hp5,
+        borderWidth: 1,
+        borderColor: colors.darkBorder,
+        borderRadius: metrics.hp4,
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: metrics.hp1_5,
     },
 });

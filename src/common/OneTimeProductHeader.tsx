@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import metrics from "../assets/Metrics";
 import FastImage from "react-native-fast-image";
 import { closeIcon, flasIcon, shareRedIcon } from "../helper/ImageAssets";
@@ -15,7 +15,7 @@ const OneTimeProductHeader = ({ title }: any) => {
             <View style={styles.innerContainer}>
                 <FastImage source={title? shareRedIcon: flasIcon} resizeMode="contain" style={styles.flasIcon} />
                 <AppText type={EIGHTEEN} weight={SCHEHERAZADE_SEMI_BOLD} color={BLACK}>
-                    {"  "}{title ? title : " Spotlight"}
+                    {"  "}{title ? title : Platform.OS ==="ios"? " Spotlight":"Profile Boost"}
                 </AppText>
             </View>
             <FastImage source={closeIcon} tintColor={colors.black} resizeMode="contain" style={[styles.closeIcon, { opacity: 0 }]} />

@@ -8,6 +8,7 @@ import {
     FlatList,
     ScrollView,
     Modal,
+    Platform,
 } from "react-native";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import PeopleHeader from "../../common/PeopleHeader";
@@ -337,7 +338,9 @@ const DiscoverScreen = () => {
                                             {`${item.firstName}, ${item.age}`}{" "}
                                         </AppText>
                                      
-                                             {item?.faceVerified == true ?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} />:<></>}
+                                             {item?.faceVerified == true && Platform.OS ==="ios" ?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} />:
+                                             <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} />
+                                             }
                                     </View>
                                 }
 
@@ -458,10 +461,15 @@ const DiscoverScreen = () => {
                                         <AppText type={FORTEEN} style={{ textTransform: "capitalize" }} color={WHITE} weight={INTER_BOLD}>
                                             {`${item.firstName}, ${item.age}`}{" "}
                                         </AppText>
-                                        {item?.faceVerified == true ?  <FastImage source={blueTikeIcon} resizeMode="contain"   style={[styles.blueTikIcon, {
+                                        {item?.faceVerified == true  && Platform.OS ==="ios" ?  <FastImage source={blueTikeIcon} resizeMode="contain"   style={[styles.blueTikIcon, {
                                                 height: metrics.hp2,
                                                 width: metrics.hp2,
-                                            }]} />:<></>}
+                                            }]} />:
+                                            <FastImage source={blueTikeIcon} resizeMode="contain"   style={[styles.blueTikIcon, {
+                                                height: metrics.hp2,
+                                                width: metrics.hp2,
+                                            }]} />
+                                            }
                                     </View>
                                 }
                                 {/* <TouchableOpacityView onPress={() => {

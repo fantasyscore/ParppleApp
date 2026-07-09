@@ -176,7 +176,7 @@ const isFeatureIncluded = (featureTitle: string, tier: string): boolean => {
 // All Subscription SKUs
 const ALL_SUBSCRIPTION_SKUS = Platform.select({
     android: [
-        'silver_week', 'silver_month', 'silver_6month',
+        'silver_weekly', 'silver_month', 'silver_6month',
         'gold_week', 'gold_month', 'gold_6month',
         'platinum_week', 'platinum_month', 'platinum_6month'
     ],
@@ -297,9 +297,8 @@ const SubscriptionAllScreen = () => {
             try {
                 setLoadingPrice(true);
                 await RNIap.initConnection();
-                const availableProducts = await RNIap.fetchProducts({
-                    skus: ALL_SUBSCRIPTION_SKUS,
-                    type: 'subs'
+                const availableProducts = await RNIap.getSubscriptions({
+                    skus: ALL_SUBSCRIPTION_SKUS
                 });
 
                 if (availableProducts && availableProducts.length > 0) {

@@ -4,6 +4,7 @@ import { Linking, Platform, StyleSheet, View } from "react-native";
 import { Appleicon, applogo, callIcon, googleIcon, welcomeVideo } from "../../helper/ImageAssets";
 import { Screen } from "../../theme/dimens";
 import FastImage from "react-native-fast-image";
+import SafeGifImage from "../../common/SafeGifImage";
 import metrics from "../../assets/Metrics";
 import { colors } from "../../theme/colors";
 import { AppText, FORTEEN, INTER_BOLD, INTER_REGULAR, WHITE } from "../../common/AppText";
@@ -149,7 +150,7 @@ const WelcomeScreen = () => {
 
     return (
         <AppSafeAreaView>
-            <FastImage style={styles.welCom}
+            <SafeGifImage style={styles.welCom}
                 resizeMode="cover" source={welcomeVideo} />
             <FastImage source={applogo} resizeMode="contain" style={styles.logo} />
             <View style={styles.bottomContainer}>

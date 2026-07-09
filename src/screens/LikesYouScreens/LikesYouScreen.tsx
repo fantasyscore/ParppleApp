@@ -136,7 +136,15 @@ const LikesYouScreen = () => {
                                     {/* {userData?.faceVerified == true ?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} />:<></>} */}
                                     {item.type === "like" && tabSelect === "Likes" ? <FastImage source={heartGreen} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2, marginTop: metrics.hp0_1 }} /> : <></>}
                                     {item.type === "superLike" && tabSelect === "Likes" ? <FastImage source={heartRed} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2, marginTop: metrics.hp0_1 }} /> : <></>}
-                                    {item?.see === true &&item?.faceVerified == true && <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} />}
+
+                                    {Platform.OS === "android" ?
+                                        <>
+                                            {item?.see === true && <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} />} </> :
+                                        <>
+                                            {item?.see === true && item?.faceVerified == true && <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} />}
+                                        </>
+                                    }
+
                                 </>
                             }
                         </LinearGradient>

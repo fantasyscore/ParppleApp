@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { ActivityIndicator, Alert, Animated, Dimensions, ImageBackground, Modal, NativeModules, Platform, ScrollView, StyleSheet, View } from "react-native";
-import { goldHeader, infinityICon, logoBlue, platinumHeader, premiumIcon, silverHeader, stylesRightArrow } from "../../helper/ImageAssets";
+import { ActivityIndicator, Alert, Animated, Dimensions, ImageBackground, Modal, NativeModules, Platform, ScrollView, StyleSheet, View, Linking } from "react-native";
+import { goldHeader, GoldSubscriptionImage, infinityICon, logoBlue, platinumHeader, PlatiumSubscriptionImage, premiumIcon, silverHeader, stylesRightArrow } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import NavigationService from "../../navigation/NavigationService";
@@ -22,7 +22,7 @@ import { check, openSettings, PERMISSIONS, request, RESULTS } from "react-native
 // All Subscription SKUs
 const ALL_SUBSCRIPTION_SKUS = Platform.select({
     android: [
-        'silver_week', 'silver_month', 'silver_6month',
+        'silver_weekly', 'silver_month', 'silver_6month',
         'gold_week', 'gold_month', 'gold_6month',
         'platinum_week', 'platinum_month', 'platinum_6month'
     ],
@@ -32,7 +32,7 @@ const ALL_SUBSCRIPTION_SKUS = Platform.select({
         'platinum_week', 'platinum_month', 'platinum_6month'
     ],
 }) ?? [
-        'silver_week', 'silver_month', 'silver_6month',
+        'silver_weekly', 'silver_month', 'silver_6month',
         'gold_week', 'gold_month', 'gold_6month',
         'platinum_week', 'platinum_month', 'platinum_6month'
     ];
@@ -159,6 +159,7 @@ const SubscriptionScreen = ({ route }: any) => {
     const [verifyResponse, setVerifyResponse] = useState<any>(null);
     const lastVerifiedKeyRef = useRef<string | null>(null);
     const isVerifyingRef = useRef(false);
+    const purchaseInitiatedRef = useRef(false);
     const payModalScale = useRef(new Animated.Value(0.96)).current;
     const payModalOpacity = useRef(new Animated.Value(0)).current;
 
@@ -174,8 +175,8 @@ const SubscriptionScreen = ({ route }: any) => {
 
     const getHeaderImage = () => {
         if (selectedTier === "Silver") return silverHeader;
-        if (selectedTier === "Gold") return goldHeader;
-        if (selectedTier === "Platinum") return platinumHeader;
+        if (selectedTier === "Gold") return Platform.OS ==="ios"? goldHeader:GoldSubscriptionImage;
+        if (selectedTier === "Platinum") return Platform.OS ==="ios"? platinumHeader : PlatiumSubscriptionImage;
         return silverHeader;
     };
 
@@ -188,26 +189,10 @@ const SubscriptionScreen = ({ route }: any) => {
                 setLoading(true);
                 await RNIap.initConnection();
 
-                // iOS (v12): getSubscriptions({ skus }) for subscriptions. v14 has fetchProducts({ skus, type: 'subs' }).
-                let rawProducts: any[] = [];
-                if (Platform.OS === 'ios') {
-                    if ((RNIap as any).getSubscriptions) {
-                        rawProducts = await (RNIap as any).getSubscriptions({ skus: ALL_SUBSCRIPTION_SKUS });
-                    } else {
-                        rawProducts = await RNIap.getProducts({ skus: ALL_SUBSCRIPTION_SKUS });
-                    }
-                } else if (typeof (RNIap as any).fetchProducts === 'function') {
-                    rawProducts = await (RNIap as any).fetchProducts({
-                        skus: ALL_SUBSCRIPTION_SKUS,
-                        type: 'subs',
-                    });
-                } else if ((RNIap as any).getSubscriptions) {
-                    rawProducts = await (RNIap as any).getSubscriptions({ skus: ALL_SUBSCRIPTION_SKUS });
-                } else {
-                    rawProducts = await RNIap.getProducts({ skus: ALL_SUBSCRIPTION_SKUS });
-                }
-
+                // Fetch subscriptions using getSubscriptions for v12.3.0
+                const rawProducts = await RNIap.getSubscriptions({ skus: ALL_SUBSCRIPTION_SKUS });
                 const availableProducts = Array.isArray(rawProducts) ? rawProducts : [];
+console.log(availableProducts,"availableProducts");
 
                 if (availableProducts && availableProducts.length > 0) {
                     // First pass: calculate all products with weekly pricing
@@ -289,12 +274,13 @@ const SubscriptionScreen = ({ route }: any) => {
                 }
             } catch (err) {
                 console.warn('IAP Initialization Error:', err);
-            } finally {
+            } finally { 
                 setLoading(false);
             }
         };
 
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
+            let isInitiated = false;
             try {
                 const key = (purchase?.transactionId || purchase?.orderId || purchase?.purchaseToken || purchase?.productId || '').toString();
                 if (isVerifyingRef.current) return;
@@ -303,41 +289,53 @@ const SubscriptionScreen = ({ route }: any) => {
                 isVerifyingRef.current = true;
                 lastVerifiedKeyRef.current = key || null;
 
-                setVerifyModalVisible(true);
-                setVerifyStage('verifying');
-                setVerifyError('');
-                setVerifyResponse(null);
+                isInitiated = purchaseInitiatedRef.current;
+                purchaseInitiatedRef.current = false;
 
-                setProcessing(purchase?.productId || 'verifying');
+                if (isInitiated) {
+                    setVerifyModalVisible(true);
+                    setVerifyStage('verifying');
+                    setVerifyError('');
+                    setVerifyResponse(null);
+                    setProcessing(purchase?.productId || 'verifying');
+                }
 
                 // Required payload
                 const data = {
                     productId: purchase.productId,
                     purchaseToken: purchase.purchaseToken,
                     platform: Platform.OS === 'ios' ? 'ios' : 'android',
+                    transactionReceipt: purchase?.transactionReceipt,
                 };
                 const newdata = {
                     productId: purchase.productId,
                     purchaseToken: purchase.transactionReceipt,
-                    platform: 'ios',
+                    platform: Platform.OS === 'ios' ? 'ios' : 'android',
+                    transactionReceipt:purchase?.transactionReceipt
                 }
-                const response: any = await dispatch(subscriptionVerifyAPI(newdata));
-                const isOk =
-                    response?.statusCode === 200
+                const response: any = Platform.OS === "ios"? await dispatch(subscriptionVerifyAPI(newdata)):await dispatch(subscriptionVerifyAPI(data));
+                const isOk = response?.statusCode === 200
 
                 if (!isOk) {
                     throw new Error(response?.message || response?.data?.message || 'Subscription verification failed');
                 }
 
-                setVerifyResponse(response);
-                setVerifyStage('success');
+                if (isInitiated) {
+                    setVerifyResponse(response);
+                    setVerifyStage('success');
+                }
+                try {
+                    await RNIap.finishTransaction({ purchase, isConsumable: false });
+                } catch (finishErr) {
+                    console.warn('[Subscription] Client finishTransaction failed:', finishErr);
+                }
                 dispatch(getProfile(true))
-                // Finish/acknowledge the transaction once verification is successful
-                await RNIap.finishTransaction({ purchase, isConsumable: false });
             } catch (err) {
                 console.error('[Subscription] Purchase handler error:', err);
-                setVerifyStage('error');
-                setVerifyError((err as any)?.message || 'Something went wrong while verifying your subscription.');
+                if (isInitiated) {
+                    setVerifyStage('error');
+                    setVerifyError((err as any)?.message || 'Something went wrong while verifying your subscription.');
+                }
             } finally {
                 setProcessing(null);
                 isVerifyingRef.current = false;
@@ -346,6 +344,7 @@ const SubscriptionScreen = ({ route }: any) => {
 
         purchaseErrorSubscription = RNIap.purchaseErrorListener((error: any) => {
             setProcessing(null);
+            purchaseInitiatedRef.current = false;
             if (!error.message?.toLowerCase().includes('cancel')) {
                 Alert.alert('Error', error.message || 'An error occurred during purchase.');
             }
@@ -497,8 +496,25 @@ const SubscriptionScreen = ({ route }: any) => {
         }
     };
 
+    const handleRestorePurchases = async () => {
+        try {
+            setProcessing("restore");
+            const purchases = await RNIap.getAvailablePurchases();
+            if (purchases && purchases.length > 0) {
+                Alert.alert("Restored", "Your active purchases have been restored successfully.");
+            } else {
+                Alert.alert("Restore", "No active subscriptions were found to restore.");
+            }
+        } catch (err: any) {
+            console.warn("Restore error:", err);
+            Alert.alert("Error", "Failed to restore purchases. Please try again.");
+        } finally {
+            setProcessing(null);
+        }
+    };
+
     const handlePurchase = async () => {
-        if (userData?.faceVerified === false) {
+        if (Platform.OS ==="ios" && userData?.faceVerified === false) {
             setFaceVerificationPromptVisible(true)
         } else {
             if (processing) return;
@@ -510,34 +526,34 @@ const SubscriptionScreen = ({ route }: any) => {
 
             try {
                 setProcessing(productId);
+                purchaseInitiatedRef.current = true;
 
-                // iOS (v12): requestSubscription({ sku }). Android (v14): requestPurchase({ request: { android: { skus } }, type: 'subs' }).
                 if (Platform.OS === 'ios') {
-                    if ((RNIap as any).requestSubscription) {
-                        await (RNIap as any).requestSubscription({
-                            sku: productId,
-                            andDangerouslyFinishTransactionAutomaticallyIOS: false,
-                        });
-                    } else {
-                        await RNIap.requestPurchase({
-                            sku: productId,
-                            andDangerouslyFinishTransactionAutomaticallyIOS: false,
-                        });
-                    }
-                } else if (typeof (RNIap as any).fetchProducts === 'function') {
-                    await (RNIap as any).requestPurchase({
-                        request: { android: { skus: [productId] } },
-                        type: 'subs',
+                    await RNIap.requestSubscription({
+                        sku: productId,
+                        andDangerouslyFinishTransactionAutomaticallyIOS: false,
                     });
-                } else if ((RNIap as any).requestSubscription) {
-                    await (RNIap as any).requestSubscription(productId);
                 } else {
-                    await RNIap.requestPurchase({ skus: [productId] });
+                    const offerToken = selectedPlan.rawSubscription?.subscriptionOfferDetails?.[0]?.offerToken;
+                    if (!offerToken) {
+                        throw new Error('No subscription offer token found for this product');
+                    }
+                    await RNIap.requestSubscription({
+                        subscriptionOffers: [
+                            {
+                                sku: productId,
+                                offerToken: offerToken,
+                            }
+                        ]
+                    });
                 }
             } catch (err: any) {
                 setProcessing(null);
+                purchaseInitiatedRef.current = false;
                 if (!err?.message?.toLowerCase?.().includes('cancel')) {
-                    console.warn('Subscription Purchase Error:', err);
+                    console.log("Error object:", err);
+                    console.log("Stack:", err?.stack);
+                    console.log("JSON:", JSON.stringify(err, null, 2));
                 }
             }
         }
@@ -771,6 +787,26 @@ const SubscriptionScreen = ({ route }: any) => {
                         </AppText>
                     )}
                 </TouchableOpacityView>
+                {Platform.OS === 'ios' && (
+                    <View style={styles.iosLegalContainer}>
+                        <AppText style={styles.iosDisclaimerText} type={TEN}>
+                            A subscription will auto-renew unless auto-renew is turned off at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period. Subscriptions may be managed and auto-renewal may be turned off in your iTunes Account Settings after purchase.
+                        </AppText>
+                        <View style={styles.iosLegalLinksRow}>
+                            <TouchableOpacityView onPress={() => Linking.openURL("https://www.purpple.com/terms")}>
+                                <AppText style={styles.iosLegalLink} type={TEN}>Terms of Use (EULA)</AppText>
+                            </TouchableOpacityView>
+                            <AppText style={styles.iosLegalDivider} type={TEN}>|</AppText>
+                            <TouchableOpacityView onPress={() => Linking.openURL("https://www.purpple.com/privacy")}>
+                                <AppText style={styles.iosLegalLink} type={TEN}>Privacy Policy</AppText>
+                            </TouchableOpacityView>
+                            <AppText style={styles.iosLegalDivider} type={TEN}>|</AppText>
+                            <TouchableOpacityView onPress={handleRestorePurchases}>
+                                <AppText style={styles.iosLegalLink} type={TEN}>Restore Purchases</AppText>
+                            </TouchableOpacityView>
+                        </View>
+                    </View>
+                )}
             </View>
 
             <Modal
@@ -992,5 +1028,33 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         marginTop: metrics.hp1_5,
+    },
+    iosLegalContainer: {
+        marginTop: metrics.hp1_5,
+        alignItems: 'center',
+    },
+    iosDisclaimerText: {
+        textAlign: 'center',
+        color: '#7C7C7C',
+        fontSize: 8,
+        lineHeight: 12,
+        paddingHorizontal: metrics.hp1,
+    },
+    iosLegalLinksRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: metrics.hp1,
+        flexWrap: 'wrap',
+    },
+    iosLegalLink: {
+        color: colors.purple,
+        textDecorationLine: 'underline',
+        fontSize: 10,
+    },
+    iosLegalDivider: {
+        marginHorizontal: metrics.hp0_8,
+        color: '#7C7C7C',
+        fontSize: 10,
     },
 });

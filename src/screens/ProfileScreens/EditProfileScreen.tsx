@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Alert, FlatList, PermissionsAndroid, Platform, ScrollView, StyleSheet, TextInput, View, Modal, Dimensions } from "react-native";
+import { Alert, FlatList, PermissionsAndroid, Platform, ScrollView, StyleSheet, TextInput, View, Modal, Dimensions, Switch } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import HeaderCommon from "../../common/HeaderCommon";
 import metrics from "../../assets/Metrics";
 import { Screen } from "../../theme/dimens";
@@ -111,6 +112,41 @@ const EditProfileScreen = () => {
     const [previewImage, setPreviewImage] = useState("");
     const isPickerOpenRef = useRef(false);
     const [responseMessage, setResponseMessage] = useState("");
+    const [showDistance, setShowDistance] = useState<boolean>(false);
+
+    useEffect(() => {
+        const loadDistancePreference = async () => {
+            try {
+                const storedValue = await AsyncStorage.getItem("show_distance_preference");
+                if (storedValue !== null) {
+                    setShowDistance(storedValue === "true");
+                } else {
+                    setShowDistance(false); // Default value is OFF
+                }
+            } catch (error) {
+                console.warn("Failed to load distance preference:", error);
+            }
+        };
+        loadDistancePreference();
+    }, []);
+
+    const handleDistanceToggleChange = async (value: boolean) => {
+        setShowDistance(value);
+        try {
+            await AsyncStorage.setItem("show_distance_preference", String(value));
+            
+            // FUTURE API INTEGRATION POINT:
+            // When backend API becomes available, replace the AsyncStorage persistence
+            // or extend it with a backend profile update API call.
+            // Example:
+            // await dispatch(updateProfileField({ showDistance: value }));
+
+            toastAlert.showToastError(value ? "Distance visibility enabled" : "Distance hidden successfully");
+        } catch (error) {
+            console.warn("Failed to save distance preference:", error);
+            toastAlert.showToastError("Failed to save preference");
+        }
+    };
 
     const onLongPressImage = (imageUri: string) => {
         if (!imageUri || imageUri === "Unsupported") return;
@@ -823,6 +859,27 @@ const EditProfileScreen = () => {
                     titile={"Add Language"} edit={true} data={userData?.languages}
                     hidden={!userData?.fieldVisibility?.languages && "Hidden"}
                     onPress={() => NavigationService.navigate(NAVIGATION_LANGUAGE_SPEAK_SCREEN, { filter: "Add Language", data: userData?.languages, fieldVisibility: userData?.fieldVisibility })} />
+                
+                <View style={styles.singleLine} />
+                <HeadLineContiner
+                    circle={true}
+                    Icons={locIcon} headLines={"Distance Settings"} />
+                <View style={styles.toggleRow}>
+                    <View style={styles.toggleTextContainer}>
+                        <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                            Show my distance to other users
+                        </AppText>
+                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={colors.opecity} style={{ marginTop: metrics.hp0_5 }}>
+                            When disabled, other users cannot see your distance.
+                        </AppText>
+                    </View>
+                    <Switch
+                        value={showDistance}
+                        onValueChange={handleDistanceToggleChange}
+                        trackColor={{ false: "#D1D1D6", true: colors.purple }}
+                        thumbColor={Platform.OS === "android" ? "#FFFFFF" : undefined}
+                    />
+                </View>
             </ScrollView>
             {previewVisible && (
                 <Modal visible={previewVisible} transparent animationType="fade">
@@ -964,5 +1021,16 @@ const styles = StyleSheet.create({
         textAlign: "center",
         fontWeight:"600",
         marginTop: Platform.OS === 'ios' ? metrics.hp0_1 : -metrics.hp0_2,
+    },
+    toggleRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginTop: metrics.hp2,
+        paddingHorizontal: metrics.hp0_5,
+    },
+    toggleTextContainer: {
+        flex: 1,
+        marginRight: metrics.hp2,
     },
 })
