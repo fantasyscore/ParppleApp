@@ -37,5 +37,45 @@ target 'parpple' do
       config[:reactNativePath],
       :mac_catalyst_enabled => false
     )
+
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        # Fix folly-config.h and coroutine missing issues under use_frameworks! :linkage => :static
+        cplusplus_flags = config.build_settings['OTHER_CPLUSPLUSFLAGS']
+        if cplusplus_flags.is_a?(String)
+          cplusplus_flags = cplusplus_flags.split(' ')
+        elsif cplusplus_flags.nil?
+          cplusplus_flags = ['$(inherited)']
+        end
+        ['-DFOLLY_NO_CONFIG', '-DFOLLY_MOBILE=1', '-DFOLLY_USE_LIBCPP=1', '-DFOLLY_CFG_NO_COROUTINES=1'].each do |flag|
+          cplusplus_flags << flag if !cplusplus_flags.include?(flag)
+        end
+        config.build_settings['OTHER_CPLUSPLUSFLAGS'] = cplusplus_flags
+
+        gcc_defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS']
+        if gcc_defs.is_a?(String)
+          gcc_defs = gcc_defs.split(' ')
+        elsif gcc_defs.nil?
+          gcc_defs = ['$(inherited)']
+        end
+        ['FOLLY_NO_CONFIG=1', 'FOLLY_MOBILE=1', 'FOLLY_USE_LIBCPP=1', 'FOLLY_CFG_NO_COROUTINES=1'].each do |df|
+          gcc_defs << df if !gcc_defs.include?(df)
+        end
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = gcc_defs
+
+        # Ensure Header Search Paths are configured correctly for Nitro/JSI/Folly dependencies
+        paths = config.build_settings['HEADER_SEARCH_PATHS']
+        if paths.is_a?(String)
+          paths = paths.split(' ')
+        elsif paths.nil?
+          paths = ['$(inherited)']
+        end
+        ['$(PODS_ROOT)/Headers/Public/React-jsi', '$(PODS_ROOT)/Headers/Public/React-callinvoker', '$(PODS_ROOT)/RCT-Folly'].each do |path|
+          quoted_path = "\"#{path}\""
+          paths << quoted_path if !paths.include?(quoted_path) && !paths.include?(path)
+        end
+        config.build_settings['HEADER_SEARCH_PATHS'] = paths
+      end
+    end
   end
 end

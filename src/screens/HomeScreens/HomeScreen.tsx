@@ -605,16 +605,19 @@ const PeopleScreen = () => {
 
     useEffect(() => {
         if (!socket) return;
-
         const handleNewMatch = (response: any) => {
             if (!response) return;
             setMatchVisible(true);
-            setMatchData(response?.matchData);
+            setMatchData(response?.matchData ?? []);
         };
-
+        const handleConnect = () => {
+            console.log('✅ Socket connected:', socket.id);
+        };
+        socket.on('connect', handleConnect);
         socket.on('newMatch', handleNewMatch);
 
         return () => {
+            socket.off?.('connect', handleConnect);
             socket.off?.('newMatch', handleNewMatch);
             socket.disconnect?.();
         };

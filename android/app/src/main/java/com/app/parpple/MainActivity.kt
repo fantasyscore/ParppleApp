@@ -20,7 +20,7 @@ class MainActivity : ReactActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     SplashScreen.show(this) // show splash BEFORE super.onCreate
-    super.onCreate(savedInstanceState)
+    super.onCreate(null)
 
     // Make STATUS BAR transparent and allow content to draw behind it
     window.statusBarColor = android.graphics.Color.TRANSPARENT

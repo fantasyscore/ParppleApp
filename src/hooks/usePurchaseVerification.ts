@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Alert } from 'react-native';
-import * as RNIap from 'react-native-iap';
+import * as RNIap from '../utils/iapWrapper';
 import {
   savePendingPurchase,
   clearPendingPurchase,

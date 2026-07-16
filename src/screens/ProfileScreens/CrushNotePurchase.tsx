@@ -9,7 +9,9 @@ import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
 import { colors } from "../../theme/colors";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
-import * as RNIap from 'react-native-iap';
+import * as RNIap from '../../utils/iapWrapper';
+import { trackSuccessfulPurchase, getPurchaseTransactionId } from '../../services/analyticsService';
+import { getAlreadyRecoveredTransactionIds, addRecoveredTransactionIds } from '../../services/purchaseRecoveryService';
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 import { useDispatch } from "react-redux";
@@ -81,10 +83,10 @@ const CrushNotePurchase = () => {
                         // Rule: Compute exact per-item value, then floor to 2 decimal places for items 1 to (n-1)
                         const perItemFixed = Math.floor((total / n) * 100) / 100;
                         const lastItemAmount = Number((total - (perItemFixed * (n - 1))).toFixed(2));
-                        
+
                         // Proof check
                         const proofSum = Number(((perItemFixed * (n - 1)) + lastItemAmount).toFixed(2));
-                        console.log(`[Crush Note IAP Proof Check] - Pack: ${n}, Total: ${total}, Breakdown: ${perItemFixed}x${n-1} + ${lastItemAmount} = ${proofSum}`);
+                        console.log(`[Crush Note IAP Proof Check] - Pack: ${n}, Total: ${total}, Breakdown: ${perItemFixed}x${n - 1} + ${lastItemAmount} = ${proofSum}`);
 
                         const perItemPriceStr = `${priceInfo.currency}${perItemFixed.toFixed(2)}`;
 
@@ -149,7 +151,20 @@ const CrushNotePurchase = () => {
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
             let isInitiated = false;
             try {
-                const key = (purchase?.transactionId || purchase?.orderId || purchase?.purchaseToken || purchase?.productId || '').toString();
+                const key = getPurchaseTransactionId(purchase);
+
+                // Duplicate protection check
+                const alreadyVerified = await getAlreadyRecoveredTransactionIds();
+                if (key && alreadyVerified.has(key)) {
+                    console.log(`[Crush Note] Transaction ${key} already verified. Skipping duplicate.`);
+                    try {
+                        await RNIap.finishTransaction({ purchase, isConsumable: true });
+                    } catch (e) {
+                        console.warn('[Crush Note] Duplicate finishTransaction skipped/failed:', e);
+                    }
+                    return;
+                }
+
                 if (isVerifyingRef.current) return;
                 if (key && lastVerifiedKeyRef.current === key) return;
 
@@ -176,15 +191,21 @@ const CrushNotePurchase = () => {
                     transactionId: purchase?.transactionId
                 };
                 const newdata = {
-                    productId :purchase?.productId,
-                    transactionReceipt:purchase?.transactionReceipt,
-                    transactionId:purchase?.transactionId
+                    productId: purchase?.productId,
+                    transactionReceipt: purchase?.transactionReceipt,
+                    transactionId: purchase?.transactionId
                 }
-                const response: any = Platform.OS === "ios"? await dispatch(iosPucrchesAPIIs(newdata)):await dispatch(verifyconsumableitemsAPI(data));
+                const response: any = Platform.OS === "ios" ? await dispatch(iosPucrchesAPIIs(newdata)) : await dispatch(verifyconsumableitemsAPI(data));
                 const isOk = response?.statusCode === 200
 
                 if (!isOk) {
                     throw new Error(response?.message || response?.data?.message || 'Crush Note verification failed');
+                }
+
+                await trackSuccessfulPurchase(purchase, 'in-app');
+
+                if (key) {
+                    await addRecoveredTransactionIds([key]);
                 }
 
                 if (isInitiated) {
@@ -517,7 +538,7 @@ const styles = StyleSheet.create({
         // shadowOpacity: 0.22,
         // shadowRadius: metrics.hp1,
         // elevation: 8,
-        height: metrics.hp10, width: "100%", marginTop: metrics.hp3, marginBottom:metrics.hp4,
+        height: metrics.hp10, width: "100%", marginTop: metrics.hp3, marginBottom: metrics.hp4,
     },
     payBackdrop: {
         flex: 1,

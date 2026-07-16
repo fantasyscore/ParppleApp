@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Button, Platform, Alert, ActivityIndicator } from 'react-native';
-import * as RNIap from 'react-native-iap';
+import * as RNIap from '../utils/iapWrapper';
 
 // Subscription IDs from Google Play Console / App Store Connect
 // Subscription product ID: coin_100
@@ -33,7 +33,7 @@ const InAppPurchaseScreen = () => {
     const initializeIAP = async () => {
       try {
         setLoading(true);
-        
+
         // Check if running on Android and ensure we're on a physical device
         if (Platform.OS === 'android') {
           // Check if Google Play Services is available (required for IAP)
@@ -49,7 +49,7 @@ const InAppPurchaseScreen = () => {
             console.warn('Could not check Play Services:', e);
           }
         }
-        
+
         // 1. Initialize connection with retry logic
         let retries = 3;
         let connected = false;
@@ -73,11 +73,11 @@ const InAppPurchaseScreen = () => {
         // 2. Fetch subscriptions from the store
         if (subscriptionSkus && subscriptionSkus.length > 0) {
           try {
-            const availableSubscriptions = await RNIap.getSubscriptions({ 
+            const availableSubscriptions = await RNIap.getSubscriptions({
               skus: subscriptionSkus
             });
-            console.log(availableSubscriptions,"availableSubscriptions");
-            
+            console.log(availableSubscriptions, "availableSubscriptions");
+
             if (availableSubscriptions) {
               setSubscriptions(Array.isArray(availableSubscriptions) ? availableSubscriptions : []);
               console.log('Available subscriptions:', availableSubscriptions);
@@ -90,7 +90,7 @@ const InAppPurchaseScreen = () => {
         // 3. Fetch products (consumables/non-consumables) from the store
         if (productSkus && productSkus.length > 0) {
           try {
-            const availableProducts = await RNIap.getProducts({ 
+            const availableProducts = await RNIap.getProducts({
               skus: productSkus
             });
             if (availableProducts) {
@@ -105,7 +105,7 @@ const InAppPurchaseScreen = () => {
       } catch (err: any) {
         console.warn('IAP Initialization Error:', err);
         const errorMessage = err?.message || err?.toString() || 'Unknown error';
-        
+
         // Check if it's a JNI error
         if (errorMessage.includes('JniException') || errorMessage.includes('JNI')) {
           Alert.alert(
@@ -113,8 +113,8 @@ const InAppPurchaseScreen = () => {
             'Please rebuild the app and ensure you are testing on a physical device with Google Play Services installed.',
             [
               { text: 'OK', style: 'default' },
-              { 
-                text: 'Retry', 
+              {
+                text: 'Retry',
                 onPress: () => {
                   // Retry initialization after a delay
                   setTimeout(() => initializeIAP(), 2000);
@@ -208,22 +208,22 @@ const InAppPurchaseScreen = () => {
       const subscription = subscriptions.find(
         (sub: any) => (sub.id || sub.productId || sub.productIdentifier) === subscriptionId
       );
-      
+
       if (!subscription) {
         Alert.alert('Error', 'Subscription not available. Please wait for products to load.');
         return;
       }
 
       setProcessing(subscriptionId);
-      
+
       // Get the actual subscription ID from the subscription object - prioritize 'id' field
       const actualSubscriptionId = subscription.id || subscription.productId || subscription.productIdentifier || subscriptionId;
       console.log('Purchasing subscription ID:', actualSubscriptionId);
-      
+
       if (!actualSubscriptionId || actualSubscriptionId.trim() === '') {
         throw new Error('Subscription ID is missing or invalid');
       }
-      
+
       if (Platform.OS === 'ios') {
         await RNIap.requestSubscription({
           sku: actualSubscriptionId,
@@ -247,7 +247,7 @@ const InAppPurchaseScreen = () => {
       console.warn('Request Subscription Error:', err);
       setProcessing(null);
       const errorMsg = err?.message || err?.toString() || 'Failed to start subscription purchase.';
-      
+
       if (errorMsg.includes('configuration') || errorMsg.includes('missing')) {
         Alert.alert(
           'Configuration Error',
@@ -267,7 +267,7 @@ const InAppPurchaseScreen = () => {
       const product = products.find(
         (prod: any) => (prod.id || prod.productId || prod.productIdentifier) === productId
       );
-      
+
       if (!product) {
         Alert.alert('Error', 'Product not available. Please wait for products to load.');
         return;
@@ -276,15 +276,15 @@ const InAppPurchaseScreen = () => {
       setProcessing(productId);
       console.log('Purchasing product:', product);
       console.log('Product ID passed to function:', productId);
-      
+
       // Get the actual product ID from the product object - prioritize 'id' field
       const actualProductId = product.id || product.productId || product.productIdentifier || productId;
       console.log('Actual product ID to use:', actualProductId);
-      
+
       if (!actualProductId || actualProductId.trim() === '') {
         throw new Error('Product ID is missing or invalid');
       }
-      
+
       if (Platform.OS === 'ios') {
         await RNIap.requestPurchase({
           sku: actualProductId,
@@ -297,7 +297,7 @@ const InAppPurchaseScreen = () => {
       console.warn('Request Purchase Error:', err);
       setProcessing(null);
       const errorMsg = err?.message || err?.toString() || 'Failed to start purchase.';
-      
+
       if (errorMsg.includes('configuration') || errorMsg.includes('missing')) {
         Alert.alert(
           'Configuration Error',

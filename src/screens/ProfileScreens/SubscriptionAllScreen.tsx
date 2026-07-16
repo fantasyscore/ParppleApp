@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
 import FastImage from "react-native-fast-image";
-import * as RNIap from 'react-native-iap';
+import * as RNIap from '../../utils/iapWrapper';
 
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { AppText, BLACK, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, OPECITY_DARK, SCHEHERAZADE_SEMI_BOLD, TEN, TWELVE, TWENTY_TWO, WHITE } from "../../common/AppText";

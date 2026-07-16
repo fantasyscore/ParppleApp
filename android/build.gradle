@@ -1,13 +1,13 @@
 buildscript {
     ext {
-        kotlin_version = "1.9.22"
+        kotlin_version = "2.1.0"
         buildToolsVersion = "35.0.0"
         minSdkVersion = 24
         compileSdkVersion = 35
         targetSdkVersion = 36
         // ndkVersion = "27.1.12297006"
         ndkVersion = "29.0.13113456 rc1"
-        kotlinVersion = "2.0.21"
+        kotlinVersion = "2.1.0"
         // googlePlayServicesVersion = "21.0.1"
     }
 
@@ -38,9 +38,8 @@ allprojects {
             force "com.squareup.okhttp3:okhttp:4.12.0"
             force "com.squareup.okhttp3:okhttp-urlconnection:4.12.0"
             force "com.squareup.okhttp3:logging-interceptor:4.12.0"
-            // Pin Billing Client to 6.x — react-native-iap calls the no-arg
-            //enablePendingPurchases() /* which was removed in Billing Client 7.0+ */
-            force "com.android.billingclient:billing:6.2.1"
+            // Pin Billing Client to 8.x/9.x to comply with Google Play Policy
+            force "com.android.billingclient:billing:8.1.0"
         }
     }
 }
@@ -48,7 +47,7 @@ subprojects { project ->
     afterEvaluate {
         if (project.plugins.hasPlugin("org.jetbrains.kotlin.android") ||
             project.plugins.hasPlugin("kotlin-android")) {
-            project.extensions.extraProperties.set("kotlin_version", "1.9.22")
+            project.extensions.extraProperties.set("kotlin_version", "2.1.0")
         }
     }
 }

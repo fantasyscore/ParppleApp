@@ -32,7 +32,7 @@ const FilterScreen = () => {
         (!subscriptionExpiresAt || new Date(subscriptionExpiresAt).getTime() > Date.now());
     const [tabSelect, setTabSelect] = useState("Basic");
     const [ageRange, setAgeRange] = useState(
-        userData?.preferredAgeRange 
+        userData?.preferredAgeRange
             ? [userData.preferredAgeRange.min, userData.preferredAgeRange.max]
             : [18, 45]
     );
@@ -93,16 +93,16 @@ const FilterScreen = () => {
             "globalSearch": true,
             "languagePrefrence": userData?.languagePrefrence || [],
         };
-        
+
         try {
             const response: any = await appOperation.customer.editFilterAPI(data);
             if (response?.statusCode === 200) {
                 // Dispatch discoverProfile and getNewMatches after successful filter update
-                dispatch(listProfiles())
+                dispatch(listProfiles(true))
                 dispatch(getNewMatches());
                 dispatch(getProfile(true));
                 // Navigate back
-                // NavigationService.goBack();
+                NavigationService.goBack();
             }
         } catch (error) {
             console.log("Error updating filter:", error);
@@ -154,7 +154,7 @@ const FilterScreen = () => {
         try {
             const response: any = await dispatch(sendAdvanceFilter(advancefilter));
             if (response?.statusCode === 200) {
-                dispatch(listProfiles())
+                dispatch(listProfiles(true))
                 dispatch(getNewMatches());
                 NavigationService.goBack();
             }
@@ -245,7 +245,7 @@ const FilterScreen = () => {
         const id = preferredLifestyleIds.find((x) => attrMetaById.get(x)?.groupId === "workout");
         return id ? (attrMetaById.get(id)?.label || "Select") : "Select";
     }, [preferredLifestyleIds, attrMetaById]);
-    
+
 
     return (
         <AppSafeAreaView>
@@ -412,7 +412,7 @@ const FilterScreen = () => {
             <PurpuleButton
                 disabled={tabSelect == "Advance" ? !hasActiveSubscription : false}
                 onPress={tabSelect == "Advance" ? (hasActiveSubscription ? onSubmitAdvance : undefined) : onSubmitBasic}
-                title={tabSelect == "Advance" ? (hasActiveSubscription ? "Apply" : Platform.OS ==="ios"? "Unlock with Flame":"Unlock with Premium") : "Apply"}
+                title={tabSelect == "Advance" ? (hasActiveSubscription ? "Apply" : Platform.OS === "ios" ? "Unlock with Flame" : "Unlock with Premium") : "Apply"}
                 tabSelect={tabSelect}
             />
         </AppSafeAreaView>

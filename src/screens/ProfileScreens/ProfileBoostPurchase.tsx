@@ -9,7 +9,9 @@ import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
 import { colors } from "../../theme/colors";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
-import * as RNIap from 'react-native-iap';
+import * as RNIap from '../../utils/iapWrapper';
+import { trackSuccessfulPurchase, getPurchaseTransactionId } from '../../services/analyticsService';
+import { getAlreadyRecoveredTransactionIds, addRecoveredTransactionIds } from '../../services/purchaseRecoveryService';
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 import { useDispatch, useSelector } from "react-redux";
@@ -169,7 +171,20 @@ const ProfileBoostPurchase = () => {
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
             let isInitiated = false;
             try {
-                const key = (purchase?.transactionId || purchase?.orderId || purchase?.purchaseToken || purchase?.productId || '').toString();
+                const key = getPurchaseTransactionId(purchase);
+
+                // Duplicate protection check
+                const alreadyVerified = await getAlreadyRecoveredTransactionIds();
+                if (key && alreadyVerified.has(key)) {
+                    console.log(`[Boost] Transaction ${key} already verified. Skipping duplicate.`);
+                    try {
+                        await RNIap.finishTransaction({ purchase, isConsumable: true });
+                    } catch (e) {
+                        console.warn('[Boost] Duplicate finishTransaction skipped/failed:', e);
+                    }
+                    return;
+                }
+
                 if (isVerifyingRef.current) return;
                 if (key && lastVerifiedKeyRef.current === key) return;
 
@@ -200,11 +215,17 @@ const ProfileBoostPurchase = () => {
                     transactionReceipt: purchase?.transactionReceipt,
                     transactionId: purchase?.transactionId
                 }
-            
-                const response: any = Platform.OS === "ios"? await dispatch(iosPucrchesAPIIs(newdata)):await dispatch(verifyconsumableitemsAPI(data));
+
+                const response: any = Platform.OS === "ios" ? await dispatch(iosPucrchesAPIIs(newdata)) : await dispatch(verifyconsumableitemsAPI(data));
                 const isOk = response?.statusCode === 200
                 if (!isOk) {
                     throw new Error(response?.message || response?.data?.message || 'Boost verification failed');
+                }
+
+                await trackSuccessfulPurchase(purchase, 'in-app');
+
+                if (key) {
+                    await addRecoveredTransactionIds([key]);
                 }
 
                 if (isInitiated) {
@@ -387,7 +408,7 @@ const ProfileBoostPurchase = () => {
 
 
     const handlePurchase = async () => {
-        if (Platform.OS ==="ios"&& userData?.faceVerified === false) {
+        if (Platform.OS === "ios" && userData?.faceVerified === false) {
             setFaceVerificationPromptVisible(true)
         } else {
             if (processing) return;
@@ -511,8 +532,8 @@ const ProfileBoostPurchase = () => {
                 <View style={styles.bottomcontainer}>
                     <AppText weight={INTER_REGULAR} type={TEN}>
                         By tapping Upgrade, your payment will be charged... Manage your subscription anytime in settings and you agree to our
-                        <AppText onPress={()=>Linking.openURL("https://parpple.com/terms_conditions")} style={{ textDecorationLine: "underline" }} weight={INTER_SEMI_BOLD} type={TEN}> Terms & Conditions</AppText>
-                        <AppText onPress={()=>Linking.openURL("https://parpple.com/privacy_policy")} style={{ textDecorationLine: "underline" }} weight={INTER_SEMI_BOLD} type={TEN}> Privacy Policy</AppText>
+                        <AppText onPress={() => Linking.openURL("https://parpple.com/terms_conditions")} style={{ textDecorationLine: "underline" }} weight={INTER_SEMI_BOLD} type={TEN}> Terms & Conditions</AppText>
+                        <AppText onPress={() => Linking.openURL("https://parpple.com/privacy_policy")} style={{ textDecorationLine: "underline" }} weight={INTER_SEMI_BOLD} type={TEN}> Privacy Policy</AppText>
                     </AppText>
                     <TouchableOpacityView
                         onPress={handlePurchase}

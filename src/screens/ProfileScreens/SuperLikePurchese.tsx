@@ -9,7 +9,9 @@ import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
 import { AppText, EIGHT, ELEVEN, FORTEEN, INTER_BOLD, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, SCHEHERAZADE_BOLD, TEN, TWELVE, TWENTY_TWO, WHITE } from "../../common/AppText";
 import { colors } from "../../theme/colors";
-import * as RNIap from 'react-native-iap';
+import * as RNIap from '../../utils/iapWrapper';
+import { trackSuccessfulPurchase, getPurchaseTransactionId } from '../../services/analyticsService';
+import { getAlreadyRecoveredTransactionIds, addRecoveredTransactionIds } from '../../services/purchaseRecoveryService';
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 import { useDispatch, useSelector } from "react-redux";
 import { deleteAccountAPI, getProfile, iosPucrchesAPIIs, verifyconsumableitemsAPI } from "../../actions/authActions";
@@ -135,7 +137,20 @@ const SuperLikePurchese = () => {
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
             let isInitiated = false;
             try {
-                const key = (purchase?.transactionId || purchase?.orderId || purchase?.purchaseToken || purchase?.productId || '').toString();
+                const key = getPurchaseTransactionId(purchase);
+
+                // Duplicate protection check
+                const alreadyVerified = await getAlreadyRecoveredTransactionIds();
+                if (key && alreadyVerified.has(key)) {
+                    console.log(`[Super Like] Transaction ${key} already verified. Skipping duplicate.`);
+                    try {
+                        await RNIap.finishTransaction({ purchase, isConsumable: true });
+                    } catch (e) {
+                        console.warn('[Super Like] Duplicate finishTransaction skipped/failed:', e);
+                    }
+                    return;
+                }
+
                 if (isVerifyingRef.current) return;
                 if (key && lastVerifiedKeyRef.current === key) return;
 
@@ -172,6 +187,12 @@ const SuperLikePurchese = () => {
                 const isOk = response?.statusCode === 200
                 if (!isOk) {
                     throw new Error(response?.message || response?.data?.message || 'Super Like verification failed');
+                }
+
+                await trackSuccessfulPurchase(purchase, 'in-app');
+
+                if (key) {
+                    await addRecoveredTransactionIds([key]);
                 }
 
                 if (isInitiated) {

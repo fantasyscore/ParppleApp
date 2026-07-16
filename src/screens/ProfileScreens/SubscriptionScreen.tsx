@@ -9,17 +9,21 @@ import FastImage from "react-native-fast-image";
 import { AppText, BLACK, EIGHT, ELEVEN, FORTEEN, INTER_BOLD, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, SCHEHERAZADE_BOLD, TEN, TWELVE, TWENTY_TWO, WHITE } from "../../common/AppText";
 import { SilverPurchasedis, GoldPurchasedis, PlatinumPurchasedis } from "../../common/UiltData";
 import { colors } from "../../theme/colors";
-import * as RNIap from 'react-native-iap';
+import * as RNIap from '../../utils/iapWrapper';
+import { trackSuccessfulPurchase, getPurchaseTransactionId } from '../../services/analyticsService';
+import { getAlreadyRecoveredTransactionIds, addRecoveredTransactionIds } from '../../services/purchaseRecoveryService';
 import { useDispatch, useSelector } from "react-redux";
 import { getProfile, subscriptionVerifyAPI } from "../../actions/authActions";
 import LinearGradient from "react-native-linear-gradient";
 import { appOperation } from "../../appOperation";
 import { useCallback } from "react";
 import { useMemo } from "react";
+import analytics from '@react-native-firebase/analytics';
 import { check, openSettings, PERMISSIONS, request, RESULTS } from "react-native-permissions";
 // '20_fortesting silver_week', 'silver_month', 'silver_6month',
 
 // All Subscription SKUs
+// silver_weekly', 'silver_month', 'silver_6month',
 const ALL_SUBSCRIPTION_SKUS = Platform.select({
     android: [
         'silver_weekly', 'silver_month', 'silver_6month',
@@ -175,8 +179,8 @@ const SubscriptionScreen = ({ route }: any) => {
 
     const getHeaderImage = () => {
         if (selectedTier === "Silver") return silverHeader;
-        if (selectedTier === "Gold") return Platform.OS ==="ios"? goldHeader:GoldSubscriptionImage;
-        if (selectedTier === "Platinum") return Platform.OS ==="ios"? platinumHeader : PlatiumSubscriptionImage;
+        if (selectedTier === "Gold") return Platform.OS === "ios" ? goldHeader : GoldSubscriptionImage;
+        if (selectedTier === "Platinum") return Platform.OS === "ios" ? platinumHeader : PlatiumSubscriptionImage;
         return silverHeader;
     };
 
@@ -192,7 +196,7 @@ const SubscriptionScreen = ({ route }: any) => {
                 // Fetch subscriptions using getSubscriptions for v12.3.0
                 const rawProducts = await RNIap.getSubscriptions({ skus: ALL_SUBSCRIPTION_SKUS });
                 const availableProducts = Array.isArray(rawProducts) ? rawProducts : [];
-console.log(availableProducts,"availableProducts");
+                console.log(availableProducts, "availableProducts");
 
                 if (availableProducts && availableProducts.length > 0) {
                     // First pass: calculate all products with weekly pricing
@@ -274,7 +278,7 @@ console.log(availableProducts,"availableProducts");
                 }
             } catch (err) {
                 console.warn('IAP Initialization Error:', err);
-            } finally { 
+            } finally {
                 setLoading(false);
             }
         };
@@ -282,7 +286,20 @@ console.log(availableProducts,"availableProducts");
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
             let isInitiated = false;
             try {
-                const key = (purchase?.transactionId || purchase?.orderId || purchase?.purchaseToken || purchase?.productId || '').toString();
+                const key = getPurchaseTransactionId(purchase);
+
+                // Duplicate protection check
+                const alreadyVerified = await getAlreadyRecoveredTransactionIds();
+                if (key && alreadyVerified.has(key)) {
+                    console.log(`[Subscription] Transaction ${key} already verified. Skipping duplicate.`);
+                    try {
+                        await RNIap.finishTransaction({ purchase, isConsumable: false });
+                    } catch (e) {
+                        console.warn('[Subscription] Duplicate finishTransaction skipped/failed:', e);
+                    }
+                    return;
+                }
+
                 if (isVerifyingRef.current) return;
                 if (key && lastVerifiedKeyRef.current === key) return;
 
@@ -311,13 +328,33 @@ console.log(availableProducts,"availableProducts");
                     productId: purchase.productId,
                     purchaseToken: purchase.transactionReceipt,
                     platform: Platform.OS === 'ios' ? 'ios' : 'android',
-                    transactionReceipt:purchase?.transactionReceipt
+                    transactionReceipt: purchase?.transactionReceipt
                 }
-                const response: any = Platform.OS === "ios"? await dispatch(subscriptionVerifyAPI(newdata)):await dispatch(subscriptionVerifyAPI(data));
+                const response: any = Platform.OS === "ios" ? await dispatch(subscriptionVerifyAPI(newdata)) : await dispatch(subscriptionVerifyAPI(data));
                 const isOk = response?.statusCode === 200
 
                 if (!isOk) {
                     throw new Error(response?.message || response?.data?.message || 'Subscription verification failed');
+                }
+
+                // await analytics().logPurchase({
+                //     transaction_id: purchase.transactionId,
+                //     currency: 'INR',
+                //     value: 4,
+                //     items: [
+                //       {
+                //         item_id: purchase.productId,
+                //         item_name: purchase.productId,
+                //         price: 4,
+                //         quantity: 1,
+                //       },
+                //     ],
+                //   });
+                // Track successful purchase in Firebase Analytics (after verification, before persisting recovery id)
+                await trackSuccessfulPurchase(purchase, 'subs');
+
+                if (key) {
+                    await addRecoveredTransactionIds([key]);
                 }
 
                 if (isInitiated) {
@@ -346,7 +383,7 @@ console.log(availableProducts,"availableProducts");
             setProcessing(null);
             purchaseInitiatedRef.current = false;
             if (!error.message?.toLowerCase().includes('cancel')) {
-                Alert.alert('Error', error.message || 'An error occurred during purchase.');
+                Alert.alert('Errors', error.message || 'An error occurred during purchase.');
             }
         });
 
@@ -514,7 +551,7 @@ console.log(availableProducts,"availableProducts");
     };
 
     const handlePurchase = async () => {
-        if (Platform.OS ==="ios" && userData?.faceVerified === false) {
+        if (Platform.OS === "ios" && userData?.faceVerified === false) {
             setFaceVerificationPromptVisible(true)
         } else {
             if (processing) return;
@@ -587,7 +624,7 @@ console.log(availableProducts,"availableProducts");
             <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1, backgroundColor: "#F5F7FA" }}>
                 <View style={styles.PremiumText}>
                     <FastImage source={premiumIcon} resizeMode="contain" style={styles.pencilIcon} />
-                    <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>{"  "}Choose {selectedTier === "Platinum" ? "Flame" : selectedTier === "Gold" ? "Spark" : selectedTier} Plan</AppText>
+                    <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>{"  "}Choose {selectedTier === "Platinum" ? "Flame" : selectedTier === "Gold" ? "Spark" : selectedTier} Plans</AppText>
                 </View>
 
                 {currentTierPlans.length > 0 ? (

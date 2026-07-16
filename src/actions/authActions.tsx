@@ -6,6 +6,7 @@ import { NAVIGATION_ALL_SET_SCREEN, NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_CHAT
 import { toastAlert } from "./UploadImageActions";
 import Toast from "react-native-toast-message";
 import { chatHistoryDetails, matchChatDetails, setAttributes, setDiscoverData, setGetProfile, setLikeByOther, setLikeYou, setListProfiles, setNewMatches, setOtherUserProfile, setRecentMatches, setViewByOhter, setViewYou } from "../slices/loginServices/authSlice";
+import { logLogin, logSignUp, setAnalyticsUserId } from "../services/analyticsService";
 
 export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) => {
     try {
@@ -17,6 +18,11 @@ export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) =
             appOperation.setCustomerToken(response?.data?.tokenData?.token);
             await AsyncStorage.setItem(USER_TOKEN_KEY, response?.data?.tokenData?.token);
             if (response?.data?.profileCleared) {
+                const userId = response?.data?.userData?.id || response?.data?.userData?._id || response?.data?.id;
+                if (userId) {
+                    await setAnalyticsUserId(String(userId));
+                }
+                await logLogin(data?.googleToken ? 'google' : data?.iosToken ? 'apple' : 'phone');
                 dispatch(listProfiles());
                 dispatch(getProfile(true));
                 dispatch(discoverProfile())
@@ -53,6 +59,11 @@ export const otpVerifyAPIOne: any = (data: any, gmail: any) => async (dispatch: 
             appOperation.setCustomerToken(response?.data?.token);
             await AsyncStorage.setItem(USER_TOKEN_KEY, response?.data?.token);
             if (response?.data?.profileCleared) {
+                const userId = response?.data?.userData?.id || response?.data?.userData?._id || response?.data?.id;
+                if (userId) {
+                    await setAnalyticsUserId(String(userId));
+                }
+                await logLogin('phone_otp');
                 dispatch(listProfiles());
                 dispatch(getProfile(true));
                 dispatch(discoverProfile())
@@ -72,6 +83,7 @@ export const addProfile: any = (data: any) => async (dispatch: any) => {
         console.log(response,"responseresponseresponse");
         
         if (response?.statusCode == 200) {
+            await logSignUp('profile_complete');
             NavigationService.reset(NAVIGATION_ALL_SET_SCREEN)
             dispatch(listProfiles(true));
         } else {
@@ -214,6 +226,10 @@ export const getProfile: any = (navigate: any, profile: any) => async (dispatch:
         if (response?.statusCode == 200) {
             dispatch(setGetProfile(response?.data));
             dispatch(setOtherUserProfile(response?.data));
+            const userId = response?.data?.id || response?.data?._id || response?.data?.userId;
+            if (userId) {
+                await setAnalyticsUserId(String(userId));
+            }
             !navigate && NavigationService.navigate(NAVIGATION_USER_EDIT_PROFILE_SCREEN, { other: false, profile: profile })
         }
     } catch (error: any) {
@@ -508,5 +524,6 @@ export const deletePhotoAPI: any = (data: { imageId: string }) => async (dispatc
 export const userLogout: any = () => async () => {
     appOperation.setCustomerToken('');
     await AsyncStorage.removeItem(USER_TOKEN_KEY);
+    await setAnalyticsUserId(null);
     NavigationService.reset(NAVIGATION_WELCOME_SCREEN);
 };

@@ -10,6 +10,7 @@ import { InAppUpdate } from "./native/inAppUpdate";
 import ToastMessage from "./common/ToastMessage";
 import codePush from "@revopush/react-native-code-push";
 import { recoverPurchasesOnStartup } from "./services/purchaseRecoveryService";
+import { initializeAnalytics } from "./services/analyticsService";
 import notifee, { AndroidImportance } from "@notifee/react-native"
 import { setupPushListeners, getInitialNotification, registerBackgroundPushHandler } from "./notifications/pushNotifications";
 import NavigationService from "./navigation/NavigationService";
@@ -37,6 +38,7 @@ const App = () => {
   useEffect(() => {
     console.log('[App] Initializing app...');
     onAppStart(store);
+    initializeAnalytics().catch(() => {});
 
     if (Platform.OS === 'android') {
       InAppUpdate.checkForUpdate()
@@ -80,6 +82,9 @@ const App = () => {
       ) {
         console.log('[App] App resuming from background/killed state');
         isInitialMountRef.current = false;
+
+        // Recover any pending/unfinished purchases on app resume
+        recoverPurchasesOnStartup().catch(() => {});
 
         // Ensure navigation is ready before any operations
         // Add a small delay to ensure NavigationContainer is mounted
@@ -139,17 +144,28 @@ const App = () => {
   // }, []);
 
   useEffect(() => {
-    // Handle notification tap when app is opened from killed state
-    getInitialNotification(store).catch(() => { });
-
-    // Setup push listeners for foreground and background notification taps
+    const initNotifications = async () => {
+      try {
+        // Clear all previously displayed notifications
+        await notifee.cancelDisplayedNotifications();
+  
+        // Handle notification tap when app is opened from killed state
+        await getInitialNotification(store);
+      } catch (e) {
+        console.log('[Notification] Init error:', e);
+      }
+    };
+  
+    initNotifications();
+  
+    // Setup push listeners
     const unsubscribe = setupPushListeners({
       onInAppNotification: data => {
         console.log('IN-APP NOTIFICATION:', data);
       },
-      store: store,
+      store,
     });
-
+  
     return unsubscribe;
   }, []);
 

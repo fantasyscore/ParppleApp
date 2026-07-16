@@ -4,6 +4,7 @@ import "react-native-gesture-handler";
 import NavigationService from "./NavigationService";
 import * as routes from "./routes";
 import * as React from "react";
+import { logScreenView } from "../services/analyticsService";
 import { BottomTabBarProps, createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import LoginScreen from "../screens/SigninScreen/LoginScreen";
 import OtpScreen from "../screens/SigninScreen/OtpScreen";
@@ -78,17 +79,19 @@ import FaceLivenessTestScreen from "../screens/HomeScreens/FaceLivenessTestScree
 import { Platform } from "react-native";
 import ProfileScreenAndroid from "../screens/ProfileScreens/ProfileScreenAndroid";
 import CustomTabBarAndroid from "../common/CustomTabBarAndroid";
+import DiscoverScreenAndroid from "../screens/DiscoverScreens/DiscoverScreenAndroid";
 
 const Navigator = () => {
   const Stack: any = createStackNavigator();
   const BottomTab: any = createBottomTabNavigator();
+  const routeNameRef = React.useRef<string | undefined>(undefined);
   const BottomMainTab = () => {
     return (
       <BottomTab.Navigator initialRouteName={routes.NAVIGATION_PEOPLE_SCREEN}
         backBehavior="initialRoute"
-        tabBar={(props: BottomTabBarProps) =>Platform.OS === "ios" ?  <CustomTabBar {...props} />: <CustomTabBarAndroid {...props}/>}>
+        tabBar={(props: BottomTabBarProps) => Platform.OS === "ios" ? <CustomTabBar {...props} /> : <CustomTabBarAndroid {...props} />}>
         <BottomTab.Screen name={routes.NAVIGATION_PEOPLE_SCREEN} component={Platform.OS === "ios" ? NewHomeScreen : PeopleScreen} options={{ headerShown: false }} />
-        <BottomTab.Screen name={routes.NAVIGATION_DISCOVER_SCREEN} component={DiscoverScreen} options={{ headerShown: false }} />
+        <BottomTab.Screen name={routes.NAVIGATION_DISCOVER_SCREEN} component={Platform.OS === "ios" ? DiscoverScreen : DiscoverScreenAndroid} options={{ headerShown: false }} />
         <BottomTab.Screen name={routes.NAVIGATION_CHATS_SCREEN} component={ChatsScreen} options={{ headerShown: false }} />
         <BottomTab.Screen name={routes.NAVIGATION_LIKES_YOU_SCREEN} component={LikesYouScreen} options={{ headerShown: false }} />
         <BottomTab.Screen name={routes.NAVIGATION_PROFILE_SCREEN} component={Platform.OS === "ios" ? ProfileScreen : ProfileScreenAndroid} options={{ headerShown: false }} />
@@ -190,21 +193,30 @@ const Navigator = () => {
         try {
           console.log('[Navigator] Navigation container ready');
           NavigationService.setIsReady(true);
+          const routeName = NavigationService.getCurrentRouteName();
+          routeNameRef.current = routeName;
+          if (routeName) {
+            logScreenView(routeName).catch(() => { });
+          }
         } catch (error) {
           console.error('[Navigator] Error setting navigation ready:', error);
-          // Don't crash - navigation is still ready even if logging fails
           NavigationService.setIsReady(true);
         }
       }}
       onStateChange={() => {
-        // Log navigation state changes for debugging resume issues
-        // This helps track if navigation is working after resume
         try {
           const isReady = NavigationService.isNavigationReady();
           if (!isReady) {
             console.warn('[Navigator] Navigation state changed but not ready');
+            return;
           }
-        } catch (error) {
+
+          const currentRouteName = NavigationService.getCurrentRouteName();
+          if (currentRouteName && routeNameRef.current !== currentRouteName) {
+            logScreenView(currentRouteName).catch(() => { });
+            routeNameRef.current = currentRouteName;
+          }
+        } catch {
           // Ignore errors in logging
         }
       }}

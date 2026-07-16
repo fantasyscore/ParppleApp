@@ -1,7 +1,13 @@
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as RNIap from "react-native-iap";
+import * as RNIap from "../utils/iapWrapper";
 import { appOperation } from "../appOperation";
+import {
+  trackSuccessfulPurchase,
+  getPurchaseTransactionId,
+  hasBeenTracked,
+  flushPendingPurchaseAnalytics,
+} from "./analyticsService";
 
 const RECOVERED_TRANSACTION_IDS_KEY = "@parpple_recovered_transaction_ids";
 const MAX_STORED_TRANSACTION_IDS = 200;
@@ -67,17 +73,19 @@ function formatPurchaseForRecovery(purchase: any): RecoveredPurchase {
 }
 
 /**
- * Get unique transaction key for deduplication (transactionId on iOS, orderId on Android).
+ * Get unique transaction key for deduplication (transactionId on iOS, orderId/purchaseToken on Android).
  */
 function getTransactionKey(purchase: any): string | null {
-  const id = purchase?.transactionId || purchase?.orderId || purchase?.transactionIdentifier;
-  return id ? String(id) : null;
+  const id = getPurchaseTransactionId(purchase);
+  return id || null;
 }
+
+let recoveryInProgress: Promise<boolean> | null = null;
 
 /**
  * Load set of transaction IDs we have already sent to the backend (avoid duplicate receipts).
  */
-async function getAlreadyRecoveredTransactionIds(): Promise<Set<string>> {
+export async function getAlreadyRecoveredTransactionIds(): Promise<Set<string>> {
   try {
     const raw = await AsyncStorage.getItem(RECOVERED_TRANSACTION_IDS_KEY);
     if (!raw) return new Set();
@@ -91,7 +99,7 @@ async function getAlreadyRecoveredTransactionIds(): Promise<Set<string>> {
 /**
  * Persist transaction IDs after successful recovery (trim to max size).
  */
-async function addRecoveredTransactionIds(ids: string[]): Promise<void> {
+export async function addRecoveredTransactionIds(ids: string[]): Promise<void> {
   if (ids.length === 0) return;
   try {
     const existing = await getAlreadyRecoveredTransactionIds();
@@ -192,36 +200,62 @@ async function sendRecoveredPurchasesToBackend(purchases: RecoveredPurchase[]): 
  * from the queue and not re-sent on next launch. Consumables: finish with isConsumable true;
  * subscriptions: finish with isConsumable false.
  */
-async function finishRecoveredTransactionsOnIos(rawPurchases: any[]): Promise<void> {
-  if (Platform.OS !== "ios" || rawPurchases.length === 0) return;
+/**
+ * Finish recovered transactions on both iOS and Android after successful backend recovery
+ * so they are removed from the queue and correctly settled with the store.
+ */
+async function finishRecoveredTransactions(rawPurchases: any[]): Promise<void> {
+  if (rawPurchases.length === 0) return;
   for (const purchase of rawPurchases) {
     try {
       const productId = purchase?.productId || purchase?.productIdentifier || purchase?.id || "";
       const isConsumable = isConsumableProduct(productId);
       await RNIap.finishTransaction({ purchase, isConsumable });
-      console.log("[Purchase Recovery] Finished iOS transaction:", { productId, isConsumable });
+      console.log(`[Purchase Recovery] Finished ${Platform.OS} transaction:`, { productId, isConsumable });
     } catch (e) {
-      console.warn("[Purchase Recovery] Failed to finish iOS transaction:", e);
+      console.warn(`[Purchase Recovery] Failed to finish ${Platform.OS} transaction:`, e);
     }
   }
 }
 
 /**
- * Main recovery function. Called on app startup (see App.tsx).
- * Fetches all previous purchases from the store (getAvailablePurchases), deduplicates
- * by transactionId, sends only new ones to recoverPurchaseAPI, then on iOS finishes
- * transactions so they are not re-sent. Guarantees every successful App Store / Play
- * Store purchase is eventually verified even if the app was closed right after payment.
- *
- * @returns Promise<boolean> - true if recovery was attempted (regardless of success)
+ * Attempt analytics for store purchases that were already sent to the backend but never logged.
  */
-export async function recoverPurchasesOnStartup(): Promise<boolean> {
+async function reconcileMissedAnalytics(rawPurchases: any[]): Promise<void> {
+  for (const purchase of rawPurchases) {
+    const transactionKey = getTransactionKey(purchase);
+    if (!transactionKey) continue;
+
+    const alreadyRecovered = (await getAlreadyRecoveredTransactionIds()).has(transactionKey);
+    if (!alreadyRecovered) continue;
+
+    const alreadyTracked = await hasBeenTracked(transactionKey);
+    if (alreadyTracked) continue;
+
+    const productId = purchase?.productId || purchase?.productIdentifier || purchase?.id || "";
+    const isConsumable = isConsumableProduct(productId);
+    const type = isConsumable ? "in-app" : "subs";
+    try {
+      await trackSuccessfulPurchase(purchase, type);
+    } catch (analyticsErr) {
+      console.warn("[Purchase Recovery] Missed analytics reconciliation failed:", analyticsErr);
+    }
+  }
+}
+
+async function runPurchaseRecovery(): Promise<boolean> {
   try {
-    console.log("[Purchase Recovery] Starting purchase recovery on app startup...", {
+    console.log("[Purchase Recovery] Starting purchase recovery...", {
       platform: Platform.OS,
     });
 
+    await flushPendingPurchaseAnalytics();
+
     const { formatted, raw } = await getAvailablePurchasesFromStore();
+
+    if (formatted.length > 0) {
+      await reconcileMissedAnalytics(raw);
+    }
 
     if (formatted.length === 0) {
       console.log("[Purchase Recovery] No purchases to recover");
@@ -255,8 +289,19 @@ export async function recoverPurchasesOnStartup(): Promise<boolean> {
     const success = await sendRecoveredPurchasesToBackend(toSend);
 
     if (success) {
+      for (const rawPurchase of rawToFinish) {
+        try {
+          const productId = rawPurchase?.productId || rawPurchase?.productIdentifier || rawPurchase?.id || "";
+          const isConsumable = isConsumableProduct(productId);
+          const type = isConsumable ? "in-app" : "subs";
+          await trackSuccessfulPurchase(rawPurchase, type);
+        } catch (analyticsErr) {
+          console.warn("[Purchase Recovery] Analytics tracking failed for recovered purchase:", analyticsErr);
+        }
+      }
+
       await addRecoveredTransactionIds(newTransactionKeys);
-      await finishRecoveredTransactionsOnIos(rawToFinish);
+      await finishRecoveredTransactions(rawToFinish);
       console.log("[Purchase Recovery] Purchase recovery completed successfully");
     } else {
       console.warn("[Purchase Recovery] Purchase recovery completed with errors");
@@ -267,6 +312,18 @@ export async function recoverPurchasesOnStartup(): Promise<boolean> {
     console.error("[Purchase Recovery] Fatal error during purchase recovery:", error?.message || error);
     return true;
   }
+}
+
+export async function recoverPurchasesOnStartup(): Promise<boolean> {
+  if (recoveryInProgress) {
+    return recoveryInProgress;
+  }
+
+  recoveryInProgress = runPurchaseRecovery().finally(() => {
+    recoveryInProgress = null;
+  });
+
+  return recoveryInProgress;
 }
 
 /**

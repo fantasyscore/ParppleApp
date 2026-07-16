@@ -9,7 +9,9 @@ import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
 import { colors } from "../../theme/colors";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
-import * as RNIap from 'react-native-iap';
+import * as RNIap from '../../utils/iapWrapper';
+import { trackSuccessfulPurchase, getPurchaseTransactionId } from '../../services/analyticsService';
+import { getAlreadyRecoveredTransactionIds, addRecoveredTransactionIds } from '../../services/purchaseRecoveryService';
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 import { useDispatch } from "react-redux";
@@ -73,20 +75,20 @@ const ProfileBoostPurchaseAndroid = () => {
                         const productId = (prod.productId || prod.id || '').toString();
                         const boostCountStr = productId.match(/\d+/)?.[0] || '1';
                         const n = parseInt(boostCountStr);
-                        
+
                         const fullPriceStr = prod.localizedPrice || prod.displayPrice || '₹0';
                         const priceInfo = extractPriceNumber(fullPriceStr);
                         const total = priceInfo.amount;
 
                         // Rule: Calculate exact per-boost value, then floor to 2 decimal places for boosts 1 to (n-1)
                         const perBoostFixed = Math.floor((total / n) * 100) / 100;
-                        
+
                         // Rule: Assign any remaining amount to the final boost
                         const lastBoostAmount = Number((total - (perBoostFixed * (n - 1))).toFixed(2));
-                        
+
                         // Proof check
                         const proofSum = Number(((perBoostFixed * (n - 1)) + lastBoostAmount).toFixed(2));
-                        
+
                         // Debug log for Proof
                         console.log(`[Boost IAP Proof Check]`);
                         console.log(`- Selected pack: ${n} Boosts`);
@@ -158,7 +160,20 @@ const ProfileBoostPurchaseAndroid = () => {
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
             let isInitiated = false;
             try {
-                const key = (purchase?.transactionId || purchase?.orderId || purchase?.purchaseToken || purchase?.productId || '').toString();
+                const key = getPurchaseTransactionId(purchase);
+
+                // Duplicate protection check
+                const alreadyVerified = await getAlreadyRecoveredTransactionIds();
+                if (key && alreadyVerified.has(key)) {
+                    console.log(`[Boost Android] Transaction ${key} already verified. Skipping duplicate.`);
+                    try {
+                        await RNIap.finishTransaction({ purchase, isConsumable: true });
+                    } catch (e) {
+                        console.warn('[Boost Android] Duplicate finishTransaction skipped/failed:', e);
+                    }
+                    return;
+                }
+
                 if (isVerifyingRef.current) return;
                 if (key && lastVerifiedKeyRef.current === key) return;
 
@@ -187,6 +202,12 @@ const ProfileBoostPurchaseAndroid = () => {
                 const isOk = response?.statusCode === 200;
                 if (!isOk) {
                     throw new Error(response?.message || response?.data?.message || 'Boost verification failed');
+                }
+
+                await trackSuccessfulPurchase(purchase, 'in-app');
+
+                if (key) {
+                    await addRecoveredTransactionIds([key]);
                 }
 
                 if (isInitiated) {
@@ -238,7 +259,7 @@ const ProfileBoostPurchaseAndroid = () => {
         try {
             setProcessing(productId);
             purchaseInitiatedRef.current = true;
-            
+
             await RNIap.requestPurchase({ skus: [productId] });
         } catch (err: any) {
             setProcessing(null);
@@ -251,7 +272,7 @@ const ProfileBoostPurchaseAndroid = () => {
         const isSelected = select === index;
         return (
             <TouchableOpacityView activeOpacity={0.8} onPress={() => setSelect(index)} style={[styles.conatiner, { backgroundColor: isSelected ? colors.purple : colors.white }]}>
-             
+
                 <View>
                     {item.label ? (
                         <View style={{ flexDirection: "row", alignItems: "center", borderBottomWidth: metrics.hp0_1, borderColor: isSelected ? colors.white : colors.black, paddingBottom: metrics.hp0_2, marginBottom: metrics.hp0_5 }}>
@@ -267,17 +288,17 @@ const ProfileBoostPurchaseAndroid = () => {
                         </AppText>
                     </AppText>
                 </View>
-                <View style={{alignItems:"flex-end", marginTop:-metrics.hp0_1}}>
-                {item.discount ? (
-                    <View style={styles.discountContainer}>
-                        <AppText type={EIGHT} weight={INTER_SEMI_BOLD} color={WHITE}>
-                            {item.discount}
-                        </AppText>
-                    </View>
-                ) : null}
-                <AppText style={{marginTop:metrics.hp1}} type={THIRTEEN} color={isSelected ? WHITE : BLACK} weight={INTER_MEDIUM}>
-                    {item.perBoostPrice}/ea
-                </AppText>
+                <View style={{ alignItems: "flex-end", marginTop: -metrics.hp0_1 }}>
+                    {item.discount ? (
+                        <View style={styles.discountContainer}>
+                            <AppText type={EIGHT} weight={INTER_SEMI_BOLD} color={WHITE}>
+                                {item.discount}
+                            </AppText>
+                        </View>
+                    ) : null}
+                    <AppText style={{ marginTop: metrics.hp1 }} type={THIRTEEN} color={isSelected ? WHITE : BLACK} weight={INTER_MEDIUM}>
+                        {item.perBoostPrice}/ea
+                    </AppText>
                 </View>
             </TouchableOpacityView>
         )
@@ -314,17 +335,17 @@ const ProfileBoostPurchaseAndroid = () => {
                     <FastImage source={premiumIcon} resizeMode="contain" style={styles.pencilIcon} />
                     <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>{"  "}Choose your boost</AppText>
                 </View>
-                <FlatList 
+                <FlatList
                     data={products}
                     keyExtractor={(item: any) => (item.productId || item.id).toString()}
                     showsVerticalScrollIndicator={false}
                     renderItem={renderItem}
-                    contentContainerStyle={{ paddingHorizontal: metrics.hp2, marginTop: metrics.hp2 }} 
+                    contentContainerStyle={{ paddingHorizontal: metrics.hp2, marginTop: metrics.hp2 }}
                 />
-                   <FastImage source={orBottomIcon} resizeMode="contain" style={{ height: metrics.hp2_4, width: "100%", marginTop: metrics.hp4 }} />
-            <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem })}>
-                <FastImage source={upgradPlan} resizeMode="contain" style={styles.imageiContainer} />
-            </TouchableOpacityView>
+                <FastImage source={orBottomIcon} resizeMode="contain" style={{ height: metrics.hp2_4, width: "100%", marginTop: metrics.hp4 }} />
+                <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem })}>
+                    <FastImage source={upgradPlan} resizeMode="contain" style={styles.imageiContainer} />
+                </TouchableOpacityView>
                 <View style={styles.bottomcontainer}>
                     <AppText weight={INTER_REGULAR} type={TEN}>
                         By tapping Upgrade, your payment will be charged... Manage your subscription anytime in settings and you agree to our
@@ -456,7 +477,7 @@ const ProfileBoostPurchaseAndroid = () => {
 export default ProfileBoostPurchaseAndroid;
 
 const styles = StyleSheet.create({
-    PremiumText: { flexDirection: "row", alignItems: "center", marginTop: metrics.hp4, paddingHorizontal: metrics.hp2,  },
+    PremiumText: { flexDirection: "row", alignItems: "center", marginTop: metrics.hp4, paddingHorizontal: metrics.hp2, },
     pencilIcon: { height: metrics.hp2, width: metrics.hp2 },
     conatiner: {
         height: metrics.hp8,
@@ -512,7 +533,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.22,
         shadowRadius: metrics.hp1,
         elevation: 8,
-        height: metrics.hp10, width: "100%", marginTop: metrics.hp3, marginBottom:metrics.hp4,
+        height: metrics.hp10, width: "100%", marginTop: metrics.hp3, marginBottom: metrics.hp4,
     },
     payBackdrop: {
         flex: 1,

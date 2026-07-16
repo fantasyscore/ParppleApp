@@ -77,6 +77,8 @@ const DatingIntentionScreen = ({ route }: any) => {
             </TouchableOpacityView>
         )
     }
+    console.log(selectDating,"selectDating");
+    
     const onSubmit = () => {
         if (filter) {
             const dataToSave = {

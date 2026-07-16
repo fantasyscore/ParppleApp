@@ -10,7 +10,7 @@ import { NAVIGATION_TAKING_SCREEN } from '../navigation/routes';
 import { chatHistoryDetails, matchChatDetails } from '../slices/loginServices/authSlice';
 import { chatHistoryAPI } from '../actions/authActions';
 
-const ANDROID_CHANNEL_ID = 'parpple-high-priority';
+const ANDROID_CHANNEL_ID = 'parpple-popup-v2';
 
 // --------------------
 // DEDUPLICATION

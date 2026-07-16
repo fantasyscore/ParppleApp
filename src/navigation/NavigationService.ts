@@ -140,6 +140,14 @@ function isNavigationReady(): boolean {
   return ready;
 }
 
+function getCurrentRouteName(): string | undefined {
+  try {
+    return navigator?.getCurrentRoute?.()?.name;
+  } catch {
+    return undefined;
+  }
+}
+
 export default {
   goBack,
   navigate,
@@ -153,4 +161,5 @@ export default {
   push,
   replace,
   isNavigationReady,
+  getCurrentRouteName,
 };
