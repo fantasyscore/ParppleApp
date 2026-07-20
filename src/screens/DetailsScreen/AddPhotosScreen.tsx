@@ -1,13 +1,13 @@
 import React, { useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Alert, Dimensions, FlatList, Modal, PermissionsAndroid, Platform, StyleSheet, View } from "react-native";
+import { Alert, Dimensions, FlatList, ImageBackground, Modal, PermissionsAndroid, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import HeaderCommon from "../../common/HeaderCommon";
 import TopCommonLine from "../../common/TopCommonLine";
 import DubleTextLine from "../../common/DubleTextLine";
-import { AppText, ELEVEN, INTER_BOLD, INTER_MEDIUM, LIGHT_BLACK, OPECITY, OPECITY_DARK, RED, TWELVE } from "../../common/AppText";
+import { AppText, EIGHTEEN, ELEVEN, fontSize, INTER_BOLD, INTER_MEDIUM, LIGHT_BLACK, OPECITY, OPECITY_DARK, RED, SCHEHERAZADE_BOLD, SCHEHERAZADE_SEMI_BOLD, SIXTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
 import metrics from "../../assets/Metrics";
-import { addPhotoIcon, uploadIcon } from "../../helper/ImageAssets";
-import { colors } from "../../theme/colors";
+import { addPhotoIcon, applogo, BottomLayer, trunOnBackground, uploadIcon } from "../../helper/ImageAssets";
+import { colors, newColor } from "../../theme/colors";
 import FastImage from "react-native-fast-image";
 import { launchImageLibrary } from "react-native-image-picker";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
@@ -18,6 +18,9 @@ import { addProfile, deletePhotoAPI, discoverProfile, getNewMatches, getProfile,
 import { Image as ImageCompressor } from "react-native-compressor";
 import LinearGradient from "react-native-linear-gradient";
 import { check, request, PERMISSIONS, RESULTS, openSettings } from "react-native-permissions";
+import NavigationService from "../../navigation/NavigationService";
+import { NAVIGATION_LOCATION_SCREEN } from "../../navigation/routes";
+import { setAddProfile } from "../../slices/loginServices/authSlice";
 
 interface PermissionResult {
   granted: boolean;
@@ -91,10 +94,11 @@ const AddPhotoScreen = () => {
   const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
   const datalistnew = new Array(1).fill(null).map((_, index) => ({ id: String(index) }));
   const [photos, setPhotos] = useState(
-    Array(6)
+    Array(4)
       .fill({ id: "", image: "", imageId: "", loading: false })
       .map((_, i) => ({ id: String(i + 1), image: "", imageId: "", loading: false }))
   );
+
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
   const isPickerOpenRef = useRef(false);
@@ -458,64 +462,71 @@ const AddPhotoScreen = () => {
   };
 
   const uploadedCount = photos.filter((p) => p.image !== "" && p.image !== "Unsupported").length;
-  const minRequired = 2;
+  const minRequired = 1;
   const remaining = Math.max(0, minRequired - uploadedCount);
 
   const renderItem = ({ item, index }: { item: any; index: number }) => (
-    <View style={styles.itemWrapper}>
-      <TouchableOpacityView
-        onPress={() => {
-          if (!item.image || item.image === "Unsupported") {
-            pickMultipleImages();
-          }
-        }}
-        onLongPress={() => onLongPressImage(item.image)}
-        style={[styles.boxContainer, { width: "100%", height: "100%", marginBottom: 0 }]}
-        disabled={item.loading}
-      >
-        {item.image && item.image !== "Unsupported" ? (
-          <View style={{ width: "100%", height: "100%" }}>
-            <FastImage source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
-            {item.loading && (
-              <View style={[StyleSheet.absoluteFillObject, { backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" }]}>
-                <AppText color={colors.white} weight={INTER_BOLD} type={TWELVE}>
-                  Deleting...
-                </AppText>
-              </View>
-            )}
-          </View>
-        ) : item.loading ? (
-          <View style={styles.loaderContainer}>
-            <AppText color={LIGHT_BLACK} weight={INTER_BOLD}>
-              Uploading...
-            </AppText>
-          </View>
-        ) : item.image === "Unsupported" ? (
-          <View style={styles.loaderContainer}>
-            <AppText color={RED} weight={INTER_BOLD}>
-              Unsupported
-            </AppText>
-          </View>
-        ) : (
-          <FastImage source={uploadIcon} resizeMode="contain" style={styles.icon} />
-        )}
-      </TouchableOpacityView>
-
-      {item.image && !item.loading && (
+    <ImageBackground source={trunOnBackground} resizeMode="stretch" style={styles.trunback}>
+      <View style={styles.itemWrapper}>
         <TouchableOpacityView
-          onPress={() => deleteImage(item, index)}
-          style={styles.deleteButtonContainer}
+          onPress={() => {
+            if (!item.image || item.image === "Unsupported") {
+              pickMultipleImages();
+            }
+          }}
+          onLongPress={() => onLongPressImage(item.image)}
+          style={[styles.boxContainer, { width: "100%", height: "100%", marginBottom: 0 }]}
+          disabled={item.loading}
         >
-          <AppText color={colors.white} weight={INTER_BOLD} style={styles.deleteButtonText}>×</AppText>
+          {item.image && item.image !== "Unsupported" ? (
+            <View style={{ width: "100%", height: "100%" }}>
+              <FastImage source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
+              {item.loading && (
+                <View style={[StyleSheet.absoluteFillObject, { backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" }]}>
+                  <AppText color={OPECITY} weight={INTER_BOLD} type={TWELVE}>
+                    Deleting...
+                  </AppText>
+                </View>
+              )}
+            </View>
+          ) : item.loading ? (
+            <View style={styles.loaderContainer}>
+              <AppText color={OPECITY} weight={INTER_BOLD}>
+                Uploading...
+              </AppText>
+            </View>
+          ) : item.image === "Unsupported" ? (
+            <View style={styles.loaderContainer}>
+              <AppText color={RED} weight={INTER_BOLD}>
+                Unsupported
+              </AppText>
+            </View>
+          ) : (
+            <>
+              <FastImage source={uploadIcon} resizeMode="contain" tintColor={colors.white} style={[styles.icon, { marginTop: metrics.hp1 }]} />
+              <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} color={OPECITY}>
+                Upload
+              </AppText>
+            </>
+          )}
         </TouchableOpacityView>
-      )}
-    </View>
+
+        {item.image && !item.loading && (
+          <TouchableOpacityView
+            onPress={() => deleteImage(item, index)}
+            style={styles.deleteButtonContainer}
+          >
+            <AppText color={colors.white} weight={INTER_BOLD} style={styles.deleteButtonText}>×</AppText>
+          </TouchableOpacityView>
+        )}
+      </View>
+    </ImageBackground>
   );
 
 
 
   const onSubmit = async () => {
-    if (isSubmitting) return;
+    // if (isSubmitting) return;
     if (remaining > 0) return toastAlert.showToastError(`Please add ${remaining} more photo${remaining > 1 ? "s" : ""} to continue`);
 
     setIsSubmitting(true);
@@ -524,21 +535,15 @@ const AddPhotoScreen = () => {
       priority: index === 0,
       url: p.image,
     }));
-    const data = {
-      ...addProfileData,
-      gallery: galleryData,
-      fieldVisibility: { ...addProfileData?.fieldVisibility }
-    };
-    console.log(data, "datadatadata");
-
     try {
-      const res: any = await (dispatch as any)(addProfile(data));
-      // Navigation to All Set is handled inside addProfile() when statusCode === 200
-      if (res?.statusCode == 200) {
-        dispatch(getProfile(true));
-        dispatch(discoverProfile());
-        dispatch(getNewMatches());
-      }
+      const dataToSave = {
+        ...addProfileData,
+        gallery: galleryData,
+        fieldVisibility: { ...addProfileData?.fieldVisibility }
+      };
+      console.log(dataToSave,"dataToSavedataToSave")
+      dispatch(setAddProfile(dataToSave));
+      NavigationService.navigate(NAVIGATION_LOCATION_SCREEN);
     } finally {
       setIsSubmitting(false);
     }
@@ -546,10 +551,48 @@ const AddPhotoScreen = () => {
   const unsupportedImage = photos.find(
     item => item.image === "Unsupported"
   );
+  const onSkip =()=>{
+    const dataToSave = {
+      ...addProfileData,
+      gallery: [],
+      fieldVisibility: { ...addProfileData?.fieldVisibility }
+    };
+    dispatch(setAddProfile(dataToSave));
+    NavigationService.navigate(NAVIGATION_LOCATION_SCREEN);
+  }
+
 
   return (
-    <AppSafeAreaView>
-      <HeaderCommon />
+    <AppSafeAreaView color={newColor.blackNew}>
+      <FastImage source={applogo} resizeMode="contain" style={styles.logo} />
+      <AppText style={{ textAlign: "center", fontSize: fontSize(26), marginTop: metrics.hp1 }} weight={SCHEHERAZADE_SEMI_BOLD} color={WHITE}>
+        Add Your Photos
+      </AppText>
+      <FlatList
+        data={photos}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        contentContainerStyle={{ alignItems: "center", marginTop: metrics.hp10 }}
+        columnWrapperStyle={{ columnGap: metrics.hp2 }}
+      />
+      {remaining !== 0 ?
+      <TouchableOpacity onPress={()=>onSkip()} style={{ width:metrics.hp10, alignSelf:"flex-end"}}>
+        <AppText style={styles.skipText} type={TWENTY} weight={SCHEHERAZADE_BOLD} color={WHITE}>
+          Skip
+        </AppText>
+        </TouchableOpacity>
+        : <></>}
+      {remaining === 0 ?
+        <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
+          <TouchableOpacity activeOpacity={1} onPress={() => onSubmit()} style={styles.phoneContainer}>
+            <AppText weight={SCHEHERAZADE_BOLD} color={WHITE} type={TWENTY}>
+              Next
+            </AppText>
+          </TouchableOpacity>
+        </ImageBackground> : <></>
+      }
+      {/* <HeaderCommon />
       <View style={styles.container}>
         <TopCommonLine icon={addPhotoIcon} datalist={datalistnew} />
         <View style={{ paddingHorizontal: metrics.hp2 }}>
@@ -611,7 +654,7 @@ const AddPhotoScreen = () => {
             </TouchableOpacityView>
           </View>
         </Modal>
-      )}
+      )} */}
 
     </AppSafeAreaView>
   );
@@ -621,25 +664,50 @@ const AddPhotoScreen = () => {
 export default AddPhotoScreen;
 
 const styles = StyleSheet.create({
+  trunback: {
+    height: metrics.hp22,
+    width: metrics.hp20,
+    marginBottom: metrics.hp4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logo: {
+    height: metrics.hp7,
+    width: metrics.hp25,
+    alignSelf: "center",
+    marginTop: metrics.hp8,
+  },
+  bottomLayer: {
+    height: metrics.hp15,
+    width: "100%",
+    paddingVertical: metrics.hp2,
+    alignItems: "center"
+  },
+  phoneContainer: {
+    height: metrics.hp7,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: metrics.hp0_1,
+    borderColor: colors.white,
+    marginHorizontal: metrics.hp2,
+    marginTop: metrics.hp2,
+    width: "90%"
+  },
   container: {
     marginTop: metrics.hp3,
     flex: 1,
   },
   itemWrapper: {
-    height: metrics.hp12,
-    width: "30%",
+    height: metrics.hp18,
+    width: metrics.hp16,
     position: "relative",
-    marginBottom: metrics.hp1,
   },
   boxContainer: {
-    height: metrics.hp12,
-    borderWidth: metrics.hp0_1,
-    borderColor: colors.opecity,
-    borderRadius: metrics.hp1_5,
-    borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
+    backgroundColor: "#151517"
   },
   icon: {
     height: metrics.hp3,
@@ -697,8 +765,12 @@ const styles = StyleSheet.create({
     fontSize: metrics.hp1_8,
     lineHeight: metrics.hp1_8,
     textAlign: "center",
-    fontWeight:"600",
-    marginTop: Platform.OS ==="ios" ?  metrics.hp0_1 :-metrics.hp0_2,
+    fontWeight: "600",
+    marginTop: Platform.OS === "ios" ? metrics.hp0_1 : -metrics.hp0_2,
   },
-
+  skipText: {
+    alignSelf: "flex-end",
+    marginRight: metrics.hp3,
+    marginBottom: metrics.hp5
+  }
 });

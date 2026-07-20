@@ -696,24 +696,14 @@ export const familyPlaingDATA = [
 ];
 export const sexualityDATA = [
     {
-        id: "1",
-        title: "Prefer not to say",
-        sendTitle: "prefer,Not,To,Say",
-    },
-    {
         id: "2",
         title: "Straight",
         sendTitle: "straight",
     },
     {
-        id: "3",
-        title: "Gay",
-        sendTitle: "gay",
-    },
-    {
         id: "4",
-        title: "Lesbian",
-        sendTitle: "lesbian",
+        title: "HomoSexual",
+        sendTitle: "homoSexual",
     },
     {
         id: "5",
@@ -722,28 +712,13 @@ export const sexualityDATA = [
     },
     {
         id: "6",
-        title: "Allosexual",
-        sendTitle: "allosexual",
+        title: "Asexual",
+        sendTitle: "asexual",
     },
     {
         id: "7",
-        title: "Androsexual",
-        sendTitle: "androsexual",
-    },
-    {
-        id: "8",
-        title: "Autosexual",
-        sendTitle: "autosexual",
-    },
-    {
-        id: "9",
-        title: "Bicurious",
-        sendTitle: "bicurious",
-    },
-    {
-        id: "10",
-        title: "Not Listed",
-        sendTitle: "not,Listed",
+        title: "Queer",
+        sendTitle: "queer",
     },
 ];
 export const educationDATA = [

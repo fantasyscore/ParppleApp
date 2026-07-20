@@ -2,12 +2,12 @@ import React, { useEffect, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { ActivityIndicator, Alert, Animated, FlatList, ImageBackground, Modal, Platform, StyleSheet, View } from "react-native";
 import OneTimeProductHeader from "../../common/OneTimeProductHeader";
-import { crushParBack, flasIcon, goldCard, logoBlue, orBottomIcon, Platinum, platinumUpgrade, premiumIcon, superlIkeBackGround, upgradPlan } from "../../helper/ImageAssets";
+import { BottomLayer, chatAmountBackgroungNew, chatPurchaseBlack, chatPurchaseColour, chatsPurchesNewBackground, closeNewWhiteIcon, crushParBack, flasIcon, goldCard, logoBlue, orBottomIcon, Platinum, platinumUpgrade, popularBackground, premiumIcon, purchaseImageNew, superlIkeBackGround, timeShowNewBackground, upgradPlan } from "../../helper/ImageAssets";
 import LinearGradient from "react-native-linear-gradient";
-import { AppText, BLACK, EIGHT, ELEVEN, FORTEEN, INTER_BOLD, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, SCHEHERAZADE_BOLD, SIXTEEN, TEN, THIRTEEN, TWELVE, TWENTY_TWO, WHITE } from "../../common/AppText";
+import { AppText, BLACK, EIGHT, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, OPECITY_DARK, SCHEHERAZADE_BOLD, SIXTEEN, TEN, THIRTEEN, TWELVE, TWENTY, TWENTY_FOUR, TWENTY_TWO, WHITE } from "../../common/AppText";
 import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
-import { colors } from "../../theme/colors";
+import { colors, newColor } from "../../theme/colors";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import * as RNIap from '../../utils/iapWrapper';
 import { trackSuccessfulPurchase, getPurchaseTransactionId } from '../../services/analyticsService';
@@ -19,9 +19,9 @@ import { getProfile, iosPucrchesAPIIs, subscriptionVerifyAPI, verifyconsumableit
 
 // One-time Product SKUs
 const PRODUCT_SKUS = Platform.select({
-    android: ['10_crush_notes', '3_crush_notes', '1_crush_note'],
+    android: ['20_chats', '10_chats', '5_chats'],
     ios: ['10_crush_notes', '3_crush_notes', '1_crush_note'],
-}) ?? ['10_crush_notes', '3_crush_notes', '1_crush_note'];
+}) ?? ['20_chats', '10_chats', '5_chats'];
 
 // Helper to extract numeric price for calculations
 const extractPriceNumber = (priceStr: string): { amount: number; currency: string } => {
@@ -312,24 +312,90 @@ const CrushNotePurchase = () => {
         )
     }
 
-    if (loading) {
-        return (
-            <AppSafeAreaView>
-                <ImageBackground source={superlIkeBackGround} resizeMode="cover" style={{ flex: 1 }}>
-                    <OneTimeProductHeader title={"Get Crush Note"} />
-                    <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color={colors.purple} />
-                        <AppText style={{ marginTop: metrics.hp2 }} type={TWELVE} weight={INTER_MEDIUM}>Loading Crush Notes...</AppText>
-                    </View>
-                </ImageBackground>
-            </AppSafeAreaView>
-        );
-    }
+    // if (loading) {
+    //     return (
+    //         <AppSafeAreaView>
+    //             <ImageBackground source={superlIkeBackGround} resizeMode="cover" style={{ flex: 1 }}>
+    //                 <OneTimeProductHeader title={"Get Crush Note"} />
+    //                 <View style={styles.loadingContainer}>
+    //                     <ActivityIndicator size="large" color={colors.purple} />
+    //                     <AppText style={{ marginTop: metrics.hp2 }} type={TWELVE} weight={INTER_MEDIUM}>Loading Crush Notes...</AppText>
+    //                 </View>
+    //             </ImageBackground>
+    //         </AppSafeAreaView>
+    //     );
+    // }
     const subscriptionItem = { id: '3', icon: Platinum, title: 'Platinum' }
 
     return (
-        <AppSafeAreaView>
-            <ImageBackground source={crushParBack} resizeMode="cover" style={{ flex: 1 }}>
+        <AppSafeAreaView color={newColor.blackNew}>
+            <ImageBackground source={chatsPurchesNewBackground} resizeMode="stretch" style={{ height: metrics.hp30, width: "100%" }}>
+                <TouchableOpacityView onPress={() => NavigationService.goBack()} style={{ width: "100%", paddingVertical: metrics.hp3, marginTop: metrics.hp2, alignItems: "flex-end", paddingHorizontal: metrics.hp2 }}>
+                    <FastImage source={closeNewWhiteIcon} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp4 }} />
+                </TouchableOpacityView>
+            </ImageBackground>
+            <LinearGradient colors={["#21212350", "#212123"]} style={{ paddingHorizontal: metrics.hp2, marginTop: -metrics.hp3 }}>
+                <AppText style={{ textAlign: "center" }} weight={SCHEHERAZADE_BOLD} type={TWENTY_FOUR} color={WHITE}>
+                    Let Your First Message
+                </AppText>
+                <AppText style={{ marginTop: -metrics.hp3, textAlign: "center" }} weight={SCHEHERAZADE_BOLD} type={TWENTY_FOUR} color={WHITE}>
+                    Create the Magic.
+                </AppText>
+                <AppText style={{ textAlign: "center", marginTop: -metrics.hp1_5 }} type={FORTEEN} weight={INTER_MEDIUM} color={OPECITY}>
+                    Where Every Conversation Begins with{'\n'} Mystery.
+                </AppText>
+            </LinearGradient>
+            <FlatList
+                data={products}
+                keyExtractor={(item: any) => (item.productId || item.id).toString()}
+                showsVerticalScrollIndicator={false}
+                renderItem={({ item, index }) => {
+                    console.log(item, "item.discount");
+
+                    const isSelected = select === index;
+                    return (
+                        <TouchableOpacityView activeOpacity={1} onPress={() => setSelect(index)}>
+                            <ImageBackground source={isSelected ? chatPurchaseColour : chatPurchaseBlack} resizeMode="stretch" style={{ height: metrics.hp17, width: metrics.hp13, alignItems: "center", justifyContent: "center" }}>
+                                <AppText style={{ color: isSelected ? "black" : "#E6B7A8" }} type={TWENTY} weight={SCHEHERAZADE_BOLD}>
+                                    {item.count}
+                                </AppText>
+                                <AppText style={{ marginTop: -metrics.hp1_5 }} type={THIRTEEN} weight={INTER_REGULAR} color={isSelected ? BLACK : WHITE}>
+                                    Chats
+                                </AppText>
+                                {isSelected ?
+                                    <ImageBackground source={chatAmountBackgroungNew} resizeMode="stretch" style={{ height: metrics.hp4_6, width: metrics.hp12, bottom: -metrics.hp2, position: "absolute", alignItems: "center", justifyContent: "center" }}>
+                                        <AppText type={TEN} color={WHITE} weight={INTER_BOLD}>
+                                            {item.perItemPrice} / Chat
+                                        </AppText>
+                                    </ImageBackground> : <ImageBackground source={timeShowNewBackground} tintColor={"#E6B7A8"} resizeMode="stretch" style={{ height: metrics.hp4_6, width: metrics.hp12, bottom: -metrics.hp2, position: "absolute", alignItems: "center", justifyContent: "center" }}>
+                                        <AppText type={TEN} weight={INTER_BOLD}>
+                                            {item.perItemPrice} / Chat
+                                        </AppText>
+                                    </ImageBackground>}
+                                {index === 1 ?
+                                    <ImageBackground source={popularBackground} resizeMode="stretch" style={{ height: metrics.hp3_5, width: metrics.hp9, position: "absolute", right: -metrics.hp0_4, top: metrics.hp1, alignItems: "center", justifyContent: "center" }}>
+                                        <AppText style={{ marginTop: -metrics.hp1 }} type={TWELVE} weight={SCHEHERAZADE_BOLD} color={BLACK}>
+                                            {"   Popular"}
+                                        </AppText>
+                                    </ImageBackground> : <></>}
+                            </ImageBackground>
+                        </TouchableOpacityView>
+                    )
+                }}
+                horizontal
+                contentContainerStyle={{ paddingHorizontal: metrics.hp2, marginTop: metrics.hp2, gap: metrics.hp1 }}
+            />
+            <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
+                <TouchableOpacityView style={{ width: "100%", paddingHorizontal: metrics.hp2 }} onPress={handlePurchase}
+                    disabled={!!processing || products.length === 0}>
+                    <LinearGradient colors={["#D08FA9", "#FDD2C1"]} style={{ height: metrics.hp7, width: "100%", alignItems: "center", justifyContent: "center" }}>
+                        <AppText type={EIGHTEEN} weight={SCHEHERAZADE_BOLD} color={BLACK}>
+                            Get {products[select]?.count || ''} Crush Notes for {products[select]?.displayPrice || ''}
+                        </AppText>
+                    </LinearGradient>
+                </TouchableOpacityView>
+            </ImageBackground>
+            {/* <ImageBackground source={crushParBack} resizeMode="cover" style={{ flex: 1 }}>
                 <OneTimeProductHeader title={"Get Crush Note"} />
                 <View style={{ alignItems: "center", justifyContent: "center", marginTop: metrics.hp7 }}>
                     <AppText weight={SCHEHERAZADE_BOLD} type={TWENTY_TWO} color={BLACK}>
@@ -373,9 +439,9 @@ const CrushNotePurchase = () => {
                         )}
                     </TouchableOpacityView>
                 </View>
-            </ImageBackground>
+            </ImageBackground> */}
 
-            <Modal
+            {/* <Modal
                 visible={verifyModalVisible}
                 transparent
                 animationType="fade"
@@ -477,7 +543,7 @@ const CrushNotePurchase = () => {
                         </View>
                     </Animated.View>
                 </View>
-            </Modal>
+            </Modal> */}
         </AppSafeAreaView>
     )
 };
@@ -610,5 +676,11 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp4,
         alignItems: "center",
         justifyContent: "center",
+    },
+    bottomLayer: {
+        width: "100%",
+        paddingVertical: metrics.hp2,
+        alignItems: "center",
+        backgroundColor: newColor.blackNew,
     },
 });

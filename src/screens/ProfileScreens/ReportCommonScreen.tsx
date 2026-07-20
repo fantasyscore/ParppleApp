@@ -2,12 +2,12 @@ import React, { useCallback, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { ScrollView, StyleSheet, View } from "react-native";
 import FastImage from "react-native-fast-image";
-import { AppText, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, RED, WHITE } from "../../common/AppText";
+import { AppText, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, OPECITY_DARK, RED, SCHEHERAZADE_BOLD, TWENTY, WHITE } from "../../common/AppText";
 import metrics from "../../assets/Metrics";
 import { reportProfileIcon } from "../../helper/ImageAssets";
 import NavigationService from "../../navigation/NavigationService";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
-import { colors } from "../../theme/colors";
+import { colors, newColor } from "../../theme/colors";
 import { NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_CHATS_SCREEN, NAVIGATION_OHTER_REPORT_SCREEN, NAVIGATION_SUCCES_REPORTING_SCREEN } from "../../navigation/routes";
 import { useDispatch } from "react-redux";
 import { reportUserAPI } from "../../actions/authActions";
@@ -57,12 +57,12 @@ const ReportCommonScreen = ({ route }: any) => {
     }, [data?.reportedUserId, data?.subject, dispatch, isSubmitting, selectReport]);
 
     return (
-        <AppSafeAreaView>
+        <AppSafeAreaView color={newColor.blackNew}>
             <View style={styles.mainContainer}>
                 <View style={{ flexDirection: "row", alignItems: "center", marginBottom: metrics.hp0_5 }}>
-                    <FastImage source={reportProfileIcon} resizeMode='contain' style={styles.flagRedIcon} />
-                    <AppText type={FORTEEN} weight={INTER_BOLD} color={LIGHT_BLACK}>
-                        {"  "}Report
+                    <FastImage tintColor={colors.white} source={reportProfileIcon} resizeMode='contain' style={styles.flagRedIcon} />
+                    <AppText type={FORTEEN} weight={INTER_BOLD} color={WHITE}>
+                        {"    "}Report
                     </AppText>
                 </View>
                 <TouchableOpacityView onPress={() => NavigationService.goBack()}>
@@ -72,17 +72,17 @@ const ReportCommonScreen = ({ route }: any) => {
                 </TouchableOpacityView>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: metrics.hp2, marginTop: metrics.hp2, flex: 1 }}>
-                <AppText type={FORTEEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                <AppText type={FORTEEN} weight={INTER_SEMI_BOLD} color={OPECITY}>
                     {data?.headline}
                 </AppText>
-                <AppText style={{ marginTop: metrics.hp1_5 }} type={ELEVEN} weight={INTER_REGULAR} color={LIGHT_BLACK}>
+                <AppText style={{ marginTop: metrics.hp1_5, color: "#E6B7A8" }} type={ELEVEN} weight={INTER_REGULAR} color={LIGHT_BLACK}>
                     {data?.inLine}
                 </AppText>
                 <View style={{ flex: 1 }}>
                     {data?.data?.map((item: any, index: any) => {
                         return (
-                            <TouchableOpacityView onPress={() => setSelectReport(item.title)} style={[styles.listContainer, { marginTop: index == 0 ? metrics.hp2 : 0, backgroundColor: selectReport == item.title ? colors.darkGreenTen : colors.lightBack }]} key={index}>
-                                <AppText type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
+                            <TouchableOpacityView onPress={() => setSelectReport(item.title)} style={[styles.listContainer, { marginTop: index == 0 ? metrics.hp2 : 0, backgroundColor: selectReport == item.title ? "#7A4E40" : "#555359" }]} key={index}>
+                                <AppText type={ELEVEN} weight={INTER_SEMI_BOLD} color={WHITE}>
                                     {item.title}
                                 </AppText>
                             </TouchableOpacityView>
@@ -96,10 +96,10 @@ const ReportCommonScreen = ({ route }: any) => {
                     disabled={!selectReport || isSubmitting}
                     style={[
                         styles.button,
-                        { backgroundColor: selectReport && !isSubmitting ? colors.purple : colors.nanoOpecity },
+                        { /* backgroundColor: selectReport && !isSubmitting ? colors.purple : colors.nanoOpecity */ },
                     ]}
                 >
-                    <AppText type={FORTEEN} weight={INTER_SEMI_BOLD} color={WHITE}>
+                    <AppText style={{marginTop:-metrics.hp0_5}} type={TWENTY} weight={SCHEHERAZADE_BOLD} color={selectReport ? WHITE : OPECITY_DARK}>
                         {isSubmitting ? "Submitting..." : "Submit"}
                     </AppText>
                 </TouchableOpacityView>
@@ -132,13 +132,15 @@ const styles = StyleSheet.create({
     buttonContainer: {
         paddingHorizontal: metrics.hp2,
         paddingVertical: metrics.hp2,
-        borderTopWidth: metrics.hp0_2,
-        borderTopColor: colors.nanoOpecity
+        // borderTopWidth: metrics.hp0_2,
+        // borderTopColor: colors.nanoOpecity
     },
     button: {
-        height: metrics.hp5,
-        borderRadius: metrics.hp4,
+        height: metrics.hp6,
+        // borderRadius: metrics.hp4,
         alignItems: "center",
-        justifyContent: "center"
+        justifyContent: "center",
+        borderColor: "#FAFAFA",
+        borderWidth: metrics.hp0_1,
     },
 })

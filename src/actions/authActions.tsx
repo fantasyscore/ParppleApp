@@ -1,18 +1,18 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { appOperation } from "../appOperation";
-import { USER_TOKEN_KEY } from "../helper/Constants";
+import { USER_TOKEN_KEY, SWIPES_REMAINING_KEY, SUPER_LIKES_REMAINING_KEY, SWIPES_PER_DAY_KEY } from "../helper/Constants";
 import NavigationService from "../navigation/NavigationService";
-import { NAVIGATION_ALL_SET_SCREEN, NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_CHATS_SCREEN, NAVIGATION_OTP_SCREEN, NAVIGATION_PROCCED_SCREEN, NAVIGATION_TAKING_SCREEN, NAVIGATION_USER_EDIT_PROFILE_SCREEN, NAVIGATION_WELCOME_SCREEN } from "../navigation/routes";
+import { NAVIGATION_ALL_SET_SCREEN, NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_CHATS_SCREEN, NAVIGATION_GANDER_SCREEN, NAVIGATION_OTP_SCREEN, NAVIGATION_PROCCED_SCREEN, NAVIGATION_TAKING_SCREEN, NAVIGATION_USER_EDIT_PROFILE_SCREEN, NAVIGATION_WELCOME_SCREEN } from "../navigation/routes";
 import { toastAlert } from "./UploadImageActions";
 import Toast from "react-native-toast-message";
-import { chatHistoryDetails, matchChatDetails, setAttributes, setDiscoverData, setGetProfile, setLikeByOther, setLikeYou, setListProfiles, setNewMatches, setOtherUserProfile, setRecentMatches, setViewByOhter, setViewYou } from "../slices/loginServices/authSlice";
+import { chatHistoryDetails, matchChatDetails, setAttributes, setDiscoverData, setGetProfile, setLikeByOther, setLikeYou, setListProfiles, setNewMatches, setOtherUserProfile, setRecentMatches, setTurnOnData, setViewByOhter, setViewYou } from "../slices/loginServices/authSlice";
 import { logLogin, logSignUp, setAnalyticsUserId } from "../services/analyticsService";
 
 export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.guest.login(data);
-        console.log(response,"responseresponseresponse");
-        
+        console.log(response, "responseresponseresponse");
+
         if (response?.statusCode == 200) {
             toastAlert.showToastError(response.message);
             appOperation.setCustomerToken(response?.data?.tokenData?.token);
@@ -23,12 +23,14 @@ export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) =
                     await setAnalyticsUserId(String(userId));
                 }
                 await logLogin(data?.googleToken ? 'google' : data?.iosToken ? 'apple' : 'phone');
+                // NavigationService.navigate(NAVIGATION_GANDER_SCREEN);
                 dispatch(listProfiles());
                 dispatch(getProfile(true));
                 dispatch(discoverProfile())
             } else {
                 if (gmail) {
-                    NavigationService.navigate(NAVIGATION_PROCCED_SCREEN, { comming: "OTP" })
+                    NavigationService.navigate(NAVIGATION_GANDER_SCREEN);
+                    // NavigationService.navigate(NAVIGATION_PROCCED_SCREEN, { comming: "OTP" })
                 } else {
                     NavigationService.navigate(NAVIGATION_OTP_SCREEN, { PhoneNumber: data?.phoneNumber })
                 }
@@ -37,7 +39,7 @@ export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) =
             // toastAlert.showToastError(response.message);
         }
     } catch (error: any) {
-        toastAlert.showToastError(error);
+        // toastAlert.showToastError(error);
     }
 };
 export const sendOtpApi: any = (data: any, gmail: any) => async (dispatch: any) => {
@@ -48,7 +50,7 @@ export const sendOtpApi: any = (data: any, gmail: any) => async (dispatch: any) 
         } else {
         }
     } catch (error: any) {
-        toastAlert.showToastError(error);
+        // toastAlert.showToastError(error);
     }
 };
 export const otpVerifyAPIOne: any = (data: any, gmail: any) => async (dispatch: any) => {
@@ -67,25 +69,23 @@ export const otpVerifyAPIOne: any = (data: any, gmail: any) => async (dispatch: 
                 dispatch(listProfiles());
                 dispatch(getProfile(true));
                 dispatch(discoverProfile())
-            }else{
+            } else {
                 NavigationService.navigate(NAVIGATION_PROCCED_SCREEN, { comming: "OTP" })
             }
         } else {
             toastAlert.showToastError(response.message);
         }
     } catch (error: any) {
-        toastAlert.showToastError(error);
+        // toastAlert.showToastError(error);
     }
 };
 export const addProfile: any = (data: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.addProfileAPI(data);
-        console.log(response,"responseresponseresponse");
-        
         if (response?.statusCode == 200) {
             await logSignUp('profile_complete');
-            NavigationService.reset(NAVIGATION_ALL_SET_SCREEN)
             dispatch(listProfiles(true));
+            NavigationService.reset(NAVIGATION_BOTTOMTAB_SCREEN)
         } else {
             Toast.show({
                 type: "error",
@@ -94,10 +94,10 @@ export const addProfile: any = (data: any) => async (dispatch: any) => {
         }
         return response;
     } catch (error: any) {
-        Toast.show({
-            type: "error",
-            text2: "Unable to save your profile. Please try again.",
-        });
+        // Toast.show({
+        //     type: "error",
+        //     text2: "Unable to save your profile. Please try again.",
+        // });
         return { statusCode: 500, message: String(error ?? "") };
     }
 };
@@ -111,7 +111,7 @@ export const listProfiles: any = (navigate: any, skip?: number, limit?: number, 
         const payload: any = {};
         if (skip !== undefined) payload.skip = skip;
         if (limit !== undefined) payload.limit = limit;
-        
+
         const response: any = await appOperation.customer.datingProfileAPI(payload);
         if (response?.statusCode == 200) {
             const responseData = Array.isArray(response?.data) ? response.data : [];
@@ -119,7 +119,7 @@ export const listProfiles: any = (navigate: any, skip?: number, limit?: number, 
                 ...item,
                 index: Number.isFinite(Number(item?.index)) ? Number(item.index) : 0,
             }));
-            
+
             if (merge && getState) {
                 // Merge with existing profiles, avoiding duplicates
                 const state = getState();
@@ -144,7 +144,7 @@ export const listProfiles: any = (navigate: any, skip?: number, limit?: number, 
         return { data: [], newProfiles: [], mergedProfiles: [] };
     } catch (error: any) {
         NavigationService.navigate(NAVIGATION_WELCOME_SCREEN);
-        toastAlert.showToastError(error);
+        // toastAlert.showToastError(error);
         return { data: [], newProfiles: [], mergedProfiles: [], error };
     } finally {
         (listProfiles as any)._inFlight = false;
@@ -156,7 +156,19 @@ export const swipeLikeDisLike: any = (data: any) => async (dispatch: any) => {
         if (response?.statusCode == 200) {
         }
     } catch (error: any) {
-        toastAlert.showToastError(error);
+        // toastAlert.showToastError(error);
+    }
+};
+export const turnOn: any = (data: any) => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.turnOnAPI(data);
+        console.log(response, "responseresponseresponse");
+
+        if (response?.statusCode == 200) {
+            dispatch(setTurnOnData(response?.data))
+        }
+    } catch (error: any) {
+        // toastAlert.showToastError(error);
     }
 };
 export const likeByOther: any = () => async (dispatch: any) => {
@@ -166,7 +178,7 @@ export const likeByOther: any = () => async (dispatch: any) => {
             dispatch(setLikeByOther(response?.data))
         }
     } catch (error: any) {
-        toastAlert.showToastError(error);
+        // toastAlert.showToastError(error);
     }
 };
 export const likeYou: any = () => async (dispatch: any) => {
@@ -176,7 +188,7 @@ export const likeYou: any = () => async (dispatch: any) => {
             dispatch(setLikeYou(response?.data))
         }
     } catch (error: any) {
-        toastAlert.showToastError(error);
+        // toastAlert.showToastError(error);
     }
 };
 export const viewProfileByOther: any = () => async (dispatch: any) => {
@@ -186,7 +198,7 @@ export const viewProfileByOther: any = () => async (dispatch: any) => {
             dispatch(setViewByOhter(response?.data));
         }
     } catch (error: any) {
-        toastAlert.showToastError(error);
+        // toastAlert.showToastError(error);
     }
 };
 export const youView: any = () => async (dispatch: any) => {
@@ -196,7 +208,7 @@ export const youView: any = () => async (dispatch: any) => {
             dispatch(setViewYou(response?.data));
         }
     } catch (error: any) {
-        toastAlert.showToastError(error);
+        // toastAlert.showToastError(error);
     }
 };
 export const getOtherProfile: any = (data: any, isNavigate: any, setProfileData: any, profile: any, from: any) => async (dispatch: any) => {
@@ -249,13 +261,13 @@ export const editProfile: any = (data: any, navigate: any) => async (dispatch: a
         const response: any = await appOperation.customer.editProfileAPI(data);
         if (response?.statusCode == 200) {
             dispatch(getProfile(true));
-            navigate ? console.log() : NavigationService.goBack();
+            // navigate ? console.log() : NavigationService.goBack();
         } else {
             toastAlert.showToastError(response?.message || "Something went wrong!");
         }
     } catch (error: any) {
         console.log(error, "error");
-        toastAlert.showToastError(error);
+        // toastAlert.showToastError(error);
     } finally {
         isEditing = false;
     }
@@ -268,7 +280,7 @@ export const attributesGet: any = () => async (dispatch: any) => {
             dispatch(setAttributes(response?.data));
         }
     } catch (error: any) {
-        toastAlert.showToastError(error);
+        // toastAlert.showToastError(error);
     }
 };
 export const editFilter: any = (data: any) => async (dispatch: any) => {
@@ -278,7 +290,7 @@ export const editFilter: any = (data: any) => async (dispatch: any) => {
             NavigationService.goBack()
         }
     } catch (error: any) {
-        toastAlert.showToastError(error);
+        // toastAlert.showToastError(error);
     }
 };
 export const discoverProfile: any = () => async (dispatch: any) => {
@@ -330,15 +342,15 @@ export const userBlockAPI: any = (data: any) => async (dispatch: any) => {
             return NavigationService.navigate(NAVIGATION_CHATS_SCREEN)
         }
     } catch (error: any) {
-        console.log(error,"errorerrorerror");
-        
+        console.log(error, "errorerrorerror");
+
     }
 };
 export const chatHistoryAPI: any = (data: any, params: any, shouldNavigate: boolean = true) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.chatHistortAPI(data, params);
-        console.log(response,"responseresponseresponse");
-        
+        console.log(response, "responseresponseresponse");
+
         if (response?.statusCode == 200) {
             dispatch(chatHistoryDetails(response.data))
             if (shouldNavigate) {
@@ -389,7 +401,7 @@ export const activateBoostAPI: any = () => async (dispatch: any) => {
         }
         return true;
     } catch (error: any) {
-        toastAlert.showToastError(error?.message || "Failed to activate boost");
+        // toastAlert.showToastError(error?.message || "Failed to activate boost");
         throw error;
     }
 };
@@ -416,8 +428,8 @@ export const objectSendAPI: any = (data: any, params: any) => async (dispatch: a
 export const crushNoteAccecptAPI: any = (data: any, matchChatUserDetails: any, notNavigate: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.crushNoteAccecpt(data);
-        console.log(response,"response");
-        
+        console.log(response, "response");
+
         if (response?.statusCode == 200) {
             if (notNavigate) {
                 NavigationService.goBack()
@@ -437,7 +449,7 @@ export const crushNoteAccecptAPI: any = (data: any, matchChatUserDetails: any, n
             }
         }
     } catch (error: any) {
-        console.log(error,"errorerrorerrorerrorerror");
+        console.log(error, "errorerrorerrorerrorerror");
         throw error;
     }
 };
@@ -445,20 +457,20 @@ export const deleteAccountAPI: any = () => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.deleteAccount();
         if (response?.statusCode == 200) {
-            console.log(response,"responseresponseresponse");
-            
+            console.log(response, "responseresponseresponse");
+
         }
         return response;
     } catch (error: any) {
         throw error;
     }
 };
-export const iosPucrchesAPIIs: any = (data:any) => async (dispatch: any) => {
+export const iosPucrchesAPIIs: any = (data: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.iosPurchesAPI(data);
         if (response?.statusCode == 200) {
-            console.log(response,"responseresponseresponse");
-            
+            console.log(response, "responseresponseresponse");
+
         }
         return response;
     } catch (error: any) {
@@ -472,27 +484,27 @@ export const reportUserAPI: any =
         try {
             const response: any = await appOperation.customer.reportUserAPI(payload);
             if (response?.statusCode == 200) return response;
-            Toast.show({
-                type: "error",
-                text2: response?.message || "Unable to submit report. Please try again.",
-            });
+            // Toast.show({
+            //     type: "error",
+            //     text2: response?.message || "Unable to submit report. Please try again.",
+            // });
             return response;
         } catch (error: any) {
-            Toast.show({
-                type: "error",
-                text2: "Unable to submit report. Please try again.",
-            });
+            // Toast.show({
+            //     type: "error",
+            //     text2: "Unable to submit report. Please try again.",
+            // });
             return { statusCode: 500, message: String(error ?? "") };
         }
     };
 
-    export const blockByIdAPIUser: any = (data:any) => async (dispatch: any) => {
+export const blockByIdAPIUser: any = (data: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.blockByIdAPI(data);
         if (response?.statusCode == 200)
-            console.log(response,"responseresponseresponse");
+            console.log(response, "responseresponseresponse");
     } catch (error: any) {
-        console.log(error,"responseresponseresponse");
+        console.log(error, "responseresponseresponse");
     }
 };
 
@@ -500,10 +512,10 @@ export const reportUserAPI: any =
 export const uploadImagesPhotoAPI: any = (data: any, params: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.uplaodPhotoAPI(data);
-        console.log(response,"responseresponseresponseresponse")
+        console.log(response, "responseresponseresponseresponse")
 
         if (response?.statusCode == 200) {
-            console.log(response,"responseresponseresponseresponse")
+            console.log(response, "responseresponseresponseresponse")
         }
         return response;
     } catch (error: any) {
@@ -524,6 +536,11 @@ export const deletePhotoAPI: any = (data: { imageId: string }) => async (dispatc
 export const userLogout: any = () => async () => {
     appOperation.setCustomerToken('');
     await AsyncStorage.removeItem(USER_TOKEN_KEY);
+    await AsyncStorage.multiRemove([
+        SWIPES_REMAINING_KEY,
+        SUPER_LIKES_REMAINING_KEY,
+        SWIPES_PER_DAY_KEY
+    ]);
     await setAnalyticsUserId(null);
     NavigationService.reset(NAVIGATION_WELCOME_SCREEN);
 };

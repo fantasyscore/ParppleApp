@@ -22,7 +22,9 @@ export const initialState: AuthState = {
   chatHistory:[],
   recentMatches:[],
   receivedcrushNotes:[],
-  showMessage:undefined
+  showMessage:undefined,
+  turnOnData:[],
+  profileHide:undefined
 };
 
 export const authSlice = createSlice({
@@ -37,25 +39,6 @@ export const authSlice = createSlice({
     },
     setAddProfile: (state, { payload }: PayloadAction<any>) => {
       state.addProfileData = payload;
-    },
-    updateAddProfileLocation: (state, { payload }: PayloadAction<any>) => {
-      if (state.addProfileData) {
-        state.addProfileData = {
-          ...state.addProfileData,
-          coordinates: payload.coordinates,
-          city: payload.city,
-          state: payload.state,
-          country: payload.country,
-        };
-      } else {
-        state.addProfileData = {
-          coordinates: payload.coordinates,
-          city: payload.city,
-          state: payload.state,
-          country: payload.country,
-          pronouns: [],
-        };
-      }
     },
     setListProfiles: (state, { payload }: PayloadAction<any>) => {
       state.listProfiles = payload;
@@ -108,6 +91,12 @@ export const authSlice = createSlice({
     setRemoteMessage: (state, { payload }: PayloadAction<any>) => {
       state.showMessage = payload;
     },
+    setTurnOnData: (state, { payload }: PayloadAction<any>) => {
+      state.turnOnData = payload;
+    },
+    setProfileHide: (state, { payload }: PayloadAction<any>) => {
+      state.profileHide = payload;
+    },
   },
 });
 
@@ -115,7 +104,6 @@ export const {
   setLoading,
   setBottomRemove,
   setAddProfile,
-  updateAddProfileLocation,
   setListProfiles,
   setLikeByOther,
   setLikeYou,
@@ -132,7 +120,9 @@ export const {
   chatHistoryDetails,
   setRecentMatches,
   setReceivedCrushNotes,
-  setRemoteMessage
+  setRemoteMessage,
+  setTurnOnData,
+  setProfileHide
 } = authSlice.actions;
 
 export const authSelector = (state: RootState) => state.auth;

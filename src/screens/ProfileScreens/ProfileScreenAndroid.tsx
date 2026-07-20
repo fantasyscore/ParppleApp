@@ -1,29 +1,401 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Dimensions, FlatList, ImageBackground, Linking, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { Dimensions, FlatList, ImageBackground, Linking, Platform, ScrollView, StyleSheet, View, Modal, TextInput, PermissionsAndroid, Alert } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
-import { arrowBackForSafety, blockPurppleIcon, blueTikeIcon, callIcon, checkSafety, flasIcon, goldCardSmall, locationPurppleIcon, pencilIcon, platniumCardSmall, premiumIcon, profilebackGround, profileImage, pText, redHeart, rightArrow, sliverCardSmall, stylesRightArrow } from "../../helper/ImageAssets";
+import { arrowBackForSafety, bioBackground, biosToggla, blockPurppleIcon, blueTikeIcon, callIcon, checkSafety, dobIcon, editButtonBackground, flasIcon, forProfileDetailsBack, goldCardSmall, heightIconWhiteNew, locationIconWhiteNew, locationPurppleIcon, partnerheart, pencilIcon, platniumCardSmall, premiumIcon, profilebackGround, ProfileBackGroundNew, profileImage, pronounIcon, pText, redHeart, rightArrow, sliverCardSmall, stylesRightArrow, tabViewForLikes, trunOnBackground, uploadIcon, beingWatchIcon, bitingIcon, blinedFlodedIcon, dirtyTalks, fantasiesIcon, fotFetiesIcon, hairIcon, hugsIcon, massageIcon, musicIcons, oralIcon, rightSelectTrunOns, roomServiceIcon, scentsIcon, sextingIcon, smooheshIcon, TattosIcon, BottomLayer, danceNewIcon, rolePlayImageNew, choclateImageNew, touchNewIcon, dummyMaleProfile, dummyfemaleProfile } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
-import { colors } from "../../theme/colors";
+import { colors, newColor } from "../../theme/colors";
 import Svg, { Circle } from "react-native-svg";
 import FastImage from "react-native-fast-image";
-import { AppText, BLACK, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, NINE, OPECITY, OPECITY_DARK, PURPLE, RED, SCHEHERAZADE_BOLD, SKYBLUE, TEN, THIRTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
+import { AppText, BLACK, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, NINE, OPECITY, OPECITY_DARK, PURPLE, RED, SCHEHERAZADE_BOLD, SIXTEEN, SKYBLUE, TEN, THIRTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { premiumDetaiData, PurchaseCards, SafetyTips, TrustTransparency } from "../../common/UiltData";
 import { Screen } from "../../theme/dimens";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_EDIT_PROFILE_SCREEN, NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN, NAVIGATION_SETTING_SCREEN, NAVIGATION_SUBSCRIPTION_ALL_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN, NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_EDIT_PROFILE_SCREEN, NAVIGATION_FILTER_SCREEN, NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN, NAVIGATION_SETTING_SCREEN, NAVIGATION_SUBSCRIPTION_ALL_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN, NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from "../../navigation/routes";
 import { useDispatch, useSelector } from "react-redux";
-import { getProfile } from "../../actions/authActions";
+import { getProfile, editProfile, uploadImagesPhotoAPI, deletePhotoAPI } from "../../actions/authActions";
 import Carousel from "react-native-reanimated-carousel";
+import NewHeader from "../../common/NewHeader";
+import LinearGradient from "react-native-linear-gradient";
+import { check, request, PERMISSIONS, RESULTS, openSettings } from "react-native-permissions";
+import { launchImageLibrary } from "react-native-image-picker";
+import { Image as ImageCompressor } from "react-native-compressor";
+import { toastAlert } from "../../actions/UploadImageActions";
+import { setProfileHide } from "../../slices/loginServices/authSlice";
+
+interface PermissionResult {
+    granted: boolean;
+    newlyGranted: boolean;
+}
+
+async function requestGalleryPermission(): Promise<PermissionResult> {
+    if (Platform.OS === "android") {
+        try {
+            const granted = await PermissionsAndroid.request(
+                PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES || PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+                {
+                    title: "Gallery Permission",
+                    message: "App needs access to your photos to upload them.",
+                    buttonNeutral: "Ask Me Later",
+                    buttonNegative: "Cancel",
+                    buttonPositive: "OK",
+                }
+            );
+            const isGranted = granted === PermissionsAndroid.RESULTS.GRANTED;
+            return { granted: isGranted, newlyGranted: false };
+        } catch (err) {
+            console.warn("Android permission error:", err);
+            return { granted: false, newlyGranted: false };
+        }
+    } else {
+        try {
+            const permission = PERMISSIONS.IOS.PHOTO_LIBRARY;
+            const checkResult = await check(permission);
+
+            if (checkResult === RESULTS.GRANTED || checkResult === RESULTS.LIMITED) {
+                return { granted: true, newlyGranted: false };
+            }
+
+            if (checkResult === RESULTS.BLOCKED) {
+                Alert.alert(
+                    "Photo Library Permission Required",
+                    "Photo library access is disabled. Please enable it in your device Settings to choose profile photos.",
+                    [
+                        { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
+                        { text: "Cancel", style: "cancel" },
+                    ]
+                );
+                return { granted: false, newlyGranted: false };
+            }
+
+            const requestResult = await request(permission);
+            if (requestResult === RESULTS.BLOCKED) {
+                Alert.alert(
+                    "Photo Library Permission Required",
+                    "Photo library access is disabled. Please enable it in your device Settings to choose profile photos.",
+                    [
+                        { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
+                        { text: "Cancel", style: "cancel" },
+                    ]
+                );
+            }
+            const isAllowed = requestResult === RESULTS.GRANTED || requestResult === RESULTS.LIMITED;
+            return { granted: isAllowed, newlyGranted: isAllowed };
+        } catch (err) {
+            console.warn("iOS permission error:", err);
+            return { granted: false, newlyGranted: false };
+        }
+    }
+}
+
+const TURN_ON_DATA = [
+    { id: "1", title: "Smooches", discription: "Steal a kiss worth remembering.", image: smooheshIcon },
+    { id: "2", title: "Hugs", discription: "Hold me a little longer.", image: hugsIcon },
+    { id: "3", title: "Massage", discription: "Where every touch melts away the distance.", image: massageIcon },
+    { id: "4", title: "Oral", discription: "Open to deeper intimacy.", image: oralIcon },
+    { id: "5", title: "Dirty Talk", discription: "Whisper what you're really thinking.", image: dirtyTalks },
+    { id: "6", title: "Fantasies", discription: "Every secret deserves a safe place.", image: fantasiesIcon },
+    { id: "7", title: "Music", discription: "Set the mood, let the sparks follow.", image: musicIcons },
+    { id: "8", title: "Foot Fetish", discription: "A little obsession, a lot of chemistry.", image: fotFetiesIcon },
+    { id: "9", title: "Scents", discription: "Irresistible starts with a signature scent.", image: scentsIcon },
+    { id: "10", title: "Biting", discription: "A playful tease with a wild side.", image: bitingIcon },
+    { id: "11", title: "Hair", discription: "Lost in every strand.", image: hairIcon },
+    { id: "12", title: "Being Watched", discription: "The thrill of every lingering glance.", image: beingWatchIcon },
+    { id: "13", title: "Sexting", discription: "Turn texts into irresistible tension.", image: sextingIcon },
+    { id: "14", title: "Room Service", discription: "Luxury nights, unforgettable memories.", image: roomServiceIcon },
+    { id: "15", title: "Blindfolded", discription: "Trust the moment, embrace the mystery.", image: blinedFlodedIcon },
+    { id: "16", title: "Tattoos", discription: "Every ink tells a tempting story.", image: TattosIcon },
+    {
+        id: "17",
+        title: "Dance",
+        discription: "Let your bodies find the rhythm.",
+        image: danceNewIcon
+    },
+    {
+        id: "18",
+        title: "Role-Play",
+        discription: "Become whoever the night desires.",
+        image: rolePlayImageNew
+    },
+    {
+        id: "19",
+        title: "Chocolate",
+        discription: "Sweet enough to crave again.",
+        image: choclateImageNew
+    },
+    {
+        id: "20",
+        title: "Touch",
+        discription: "One touch can change everything.",
+        image: touchNewIcon
+    },
+];
 
 const ProfileScreenAndroid = () => {
     const dispatch = useDispatch();
     const [percentage, setPercentage] = useState(25);
-    const [tabSelect, setTabSelect] = useState("Premium");
+    const [selectedTab, setSelectedTab] = useState("My Bio");
     const [activeIndex, setActiveIndex] = useState(0);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [isBioModalVisible, setBioModalVisible] = useState(false);
+    const [bioInput, setBioInput] = useState("");
+    const [bioError, setBioError] = useState("");
     const userData = useSelector((state: any) => state.auth.userData);
-console.log(userData,"userData");
+    const profileHide = useSelector((state: any) => state.auth.profileHide);
+
+    const [selectedTurnOnIds, setSelectedTurnOnIds] = useState<any[]>([]);
+
+    const handleTurnOnSelect = (id: any) => {
+        setSelectedTurnOnIds((prev: any) =>
+            prev.includes(id)
+                ? prev.filter((item: any) => item !== id)
+                : [...prev, id]
+        );
+    };
+
+    const renderTurnOnItem = ({ item }: any) => {
+        const isSelected = selectedTurnOnIds.includes(item.id);
+        return (
+            <TouchableOpacityView activeOpacity={1} onPress={() => handleTurnOnSelect(item.id)}>
+                <ImageBackground source={trunOnBackground} tintColor={isSelected ? "#E6B7A8" : "#555359"} resizeMode="cover" style={styles.turnOnTrunback}>
+                    <FastImage source={item.image} resizeMode="contain" style={styles.turnOnImagesIcon} />
+                    <View style={{ alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp2 }}>
+                        <AppText style={{ color: isSelected ? newColor.blackNew : "#E6B7A8" }} type={EIGHTEEN} weight={SCHEHERAZADE_BOLD}>
+                            {item.title}
+                        </AppText>
+                        <AppText type={ELEVEN} style={{ textAlign: "center", marginTop: -metrics.hp1, color: isSelected ? newColor.blackNew : colors.white, opacity: isSelected ? 0.8 : 1 }}>
+                            {item.discription}
+                        </AppText>
+                    </View>
+                    {isSelected ?
+                        <FastImage source={rightSelectTrunOns} resizeMode="contain" style={{ height: metrics.hp3, width: metrics.hp3, position: "absolute", right: metrics.hp2, bottom: metrics.hp2 }} /> : null}
+                </ImageBackground>
+            </TouchableOpacityView>
+        )
+    };
+    const isPickerOpenRef = useRef(false);
+    const [localPhotos, setLocalPhotos] = useState<any[]>([]);
+    const localPhotosRef = useRef<any[]>([]);
+    localPhotosRef.current = localPhotos;
+
+    useEffect(() => {
+        if (userData?.gallery) {
+            const initialPhotos = userData.gallery.map((g: any, index: number) => ({
+                id: String(index),
+                image: g.url || "",
+                imageId: g._id || g.id || "",
+                loading: false
+            }));
+            setLocalPhotos(initialPhotos.slice(0, 4));
+        }
+    }, [userData?.gallery]);
+
+    const pickMultipleImages = async () => {
+        if (isPickerOpenRef.current) return;
+        const isAnyLoading = localPhotos.some((p) => p.loading);
+        if (isAnyLoading) {
+            toastAlert.showToastError("Please wait for the current action to finish.");
+            return;
+        }
+
+        try {
+            const permissionResult = await requestGalleryPermission();
+            if (!permissionResult.granted) return;
+
+            isPickerOpenRef.current = true;
+            if (Platform.OS === "ios" && permissionResult.newlyGranted) {
+                await new Promise((resolve) => setTimeout(resolve, 800));
+            }
+
+            launchImageLibrary(
+                {
+                    mediaType: "photo",
+                    selectionLimit: 4,
+                    quality: 0.8,
+                    ...(Platform.OS === 'ios' && { presentationStyle: 'pageSheet' })
+                },
+                async (res: any) => {
+                    isPickerOpenRef.current = false;
+                    if (res.didCancel || res.errorCode || res.errorMessage || !res.assets || res.assets.length === 0) {
+                        return;
+                    }
+
+                    const assets = res.assets.slice(0, 4);
+
+                    const loadingItems = assets.map((_, idx) => ({
+                        id: `loading-${Date.now()}-${idx}`,
+                        image: "",
+                        imageId: "",
+                        loading: true
+                    }));
+
+                    setLocalPhotos((prev) => {
+                        const next = [...loadingItems, ...prev];
+                        return next.slice(0, 4);
+                    });
+
+                    try {
+                        const uploadedUrls: { url: string; imageId: string }[] = [];
+                        for (const asset of assets) {
+                            try {
+                                const compressedUri = await ImageCompressor.compress(asset.uri, {
+                                    compressionMethod: "auto",
+                                    quality: 0.6,
+                                    maxWidth: 720,
+                                    maxHeight: 1080,
+                                });
+
+                                const formData = new FormData();
+                                formData.append("image", {
+                                    uri: compressedUri,
+                                    type: asset.type || "image/jpeg",
+                                    name: asset.fileName || `image_${Date.now()}.jpg`,
+                                } as any);
+
+                                const response: any = await dispatch(uploadImagesPhotoAPI(formData));
+                                if (response?.statusCode === 200 && response?.data) {
+                                    const imageUrl = typeof response.data === 'string' ? response.data : (response.data.url || response.data.image || response.data.fileUrl || "");
+                                    const imageId = response.data?._id || response.data?.id || "";
+                                    uploadedUrls.push({ url: imageUrl, imageId });
+                                } else {
+                                    uploadedUrls.push({ url: "Unsupported", imageId: "" });
+                                }
+                            } catch (err) {
+                                uploadedUrls.push({ url: "Unsupported", imageId: "" });
+                            }
+                        }
+
+                        const withoutLoading = localPhotosRef.current.filter(p => !p.loading);
+                        const newLoaded = uploadedUrls.map((u, i) => ({
+                            id: `new-${Date.now()}-${i}`,
+                            image: u.url,
+                            imageId: u.imageId,
+                            loading: false
+                        }));
+                        const combined = [...newLoaded, ...withoutLoading].slice(0, 4);
+
+                        setLocalPhotos(combined);
+
+                        const galleryData = combined.filter(p => p.image !== "Unsupported" && p.image !== "").map((p, index) => ({
+                            priority: index === 0,
+                            url: p.image,
+                        }));
+
+                        await dispatch(editProfile({ gallery: galleryData }, true) as any);
+                        dispatch(getProfile(false, true));
+                    } catch (err) {
+                        dispatch(getProfile(false, true));
+                    }
+                }
+            );
+        } catch (e) {
+            isPickerOpenRef.current = false;
+        }
+    };
+
+    const deleteImage = async (item: any) => {
+        if (item.loading) return;
+
+        const imageId = item.imageId;
+
+        if (!imageId) {
+            setLocalPhotos(prev => prev.filter(p => p.id !== item.id));
+            return;
+        }
+
+        setLocalPhotos((prev) => {
+            const next = prev.map(p => p.id === item.id ? { ...p, loading: true } : p);
+            return next;
+        });
+
+        try {
+            const res = await dispatch(deletePhotoAPI({ imageId }) as any);
+
+            if (res?.statusCode === 200 || res?.success || res?.code === 200) {
+                const remaining = localPhotosRef.current.filter(p => p.id !== item.id);
+                setLocalPhotos(remaining);
+
+                const galleryData = remaining.map((p, index) => ({
+                    priority: index === 0,
+                    url: p.image,
+                }));
+                await dispatch(editProfile({ gallery: galleryData }, true) as any);
+                dispatch(getProfile(false, true));
+            } else {
+                setLocalPhotos((prev) => prev.map(p => p.id === item.id ? { ...p, loading: false } : p));
+                toastAlert.showToastError(res?.message || "Failed to delete image");
+            }
+        } catch (err: any) {
+            console.error("Delete API error:", err);
+            setLocalPhotos((prev) => prev.map(p => p.id === item.id ? { ...p, loading: false } : p));
+            toastAlert.showToastError(err?.message || "An error occurred while deleting the image");
+        }
+    };
+
+    const renderPhotoItem = ({ item }: { item: any }) => {
+        if (item.isUploadBox) {
+            return (
+                <ImageBackground source={trunOnBackground} resizeMode="stretch" style={styles.trunback}>
+                    <View style={styles.itemWrapper}>
+                        <TouchableOpacityView
+                            onPress={pickMultipleImages}
+                            style={[styles.boxContainer, { width: "100%", height: "100%", marginBottom: 0 }]}
+                        >
+                            <FastImage source={uploadIcon} resizeMode="contain" tintColor={colors.white} style={[styles.icon, { marginTop: metrics.hp1 }]} />
+                            <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} color={OPECITY}>
+                                Upload
+                            </AppText>
+                        </TouchableOpacityView>
+                    </View>
+                </ImageBackground>
+            );
+        }
+
+        return (
+            <ImageBackground source={trunOnBackground} resizeMode="stretch" style={styles.trunback}>
+                <View style={styles.itemWrapper}>
+                    <View style={[styles.boxContainer, { width: "100%", height: "100%", marginBottom: 0 }]}>
+                        {item.image && item.image !== "Unsupported" ? (
+                            <View style={{ width: "100%", height: "100%" }}>
+                                <FastImage source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
+                                {item.loading && (
+                                    <View style={[StyleSheet.absoluteFillObject, { backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" }]}>
+                                        <AppText color={OPECITY} weight={INTER_BOLD} type={TWELVE}>
+                                            Deleting...
+                                        </AppText>
+                                    </View>
+                                )}
+                            </View>
+                        ) : item.loading ? (
+                            <View style={styles.loaderContainer}>
+                                <AppText color={OPECITY} weight={INTER_BOLD}>
+                                    Uploading...
+                                </AppText>
+                            </View>
+                        ) : item.image === "Unsupported" ? (
+                            <View style={styles.loaderContainer}>
+                                <AppText color={RED} weight={INTER_BOLD}>
+                                    Unsupported
+                                </AppText>
+                            </View>
+                        ) : null}
+                    </View>
+
+                    {item.image && !item.loading && (
+                        <TouchableOpacityView
+                            onPress={() => deleteImage(item)}
+                            style={styles.deleteButtonContainer}
+                        >
+                            <AppText color={colors.white} weight={INTER_BOLD} style={styles.deleteButtonText}>×</AppText>
+                        </TouchableOpacityView>
+                    )}
+                </View>
+            </ImageBackground>
+        );
+    };
+
+    console.log(userData, "userData");
 
     useEffect(() => {
         const n = Number(userData?.profileCompletion);
@@ -65,9 +437,230 @@ console.log(userData,"userData");
         dispatch(getProfile(navigate, profile))
     };
     const width = Dimensions.get('screen').width;
+    const hideUnHideProfile = () => {
+        dispatch(setProfileHide(profileHide === "Hide" ? "Unhide" : "Hide"));
+        toastAlert.showToastError(profileHide === "Hide" ? "Your profile is publish":"Your profile is hide")
+    }
     return (
-        <AppSafeAreaView>
-            <ImageBackground
+        <AppSafeAreaView color={colors.transparent}>
+            <LinearGradient style={{ flex: 1 }} colors={["#212123", "#555359"]}>
+                <ImageBackground
+                    source={ProfileBackGroundNew}
+                    resizeMode="cover"
+                    style={{ height: metrics.hp47, marginBottom: metrics.hp4, position: "relative", zIndex: 1, overflow: "visible" }}>
+                    <AppSafeAreaView
+                        color="transparent"
+                        style={{ flex: 1, backgroundColor: "transparent" }}>
+                        <NewHeader onPress={() => NavigationService.goBack()} onPressTwo={() => NavigationService.navigate(NAVIGATION_SETTING_SCREEN)} />
+                        <View style={{ marginTop: metrics.hp2, paddingHorizontal: metrics.hp2, flexDirection: "row", alignItems: "center" }}>
+                            <TouchableOpacityView activeOpacity={1} style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+                                <FastImage
+                                    source={userData?.gallery?.length === 0 ? userData?.gender === "male"? dummyMaleProfile : dummyfemaleProfile : { uri: userData?.gallery[0]?.url }}
+                                    resizeMode="cover"
+                                    style={[styles.imageContainer, { borderWidth: metrics.hp0_2, borderColor: "#E6B7A8" }]}
+                                />
+
+                            </TouchableOpacityView>
+                            <AppText type={TWENTY} weight={SCHEHERAZADE_BOLD} style={{ color: "#E6B7A8" }}>
+                                {" "}{userData?.username}
+                            </AppText>
+                        </View>
+                        <View style={{ paddingHorizontal: metrics.hp2 }}>
+
+                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp2 }}>
+                                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
+                                    <FastImage source={pronounIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                    <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
+                                        {"  "}{userData?.gender}
+                                    </AppText>
+                                </View>
+                                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
+                                    <FastImage source={dobIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                    <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
+                                        {"  "}{userData?.age} years
+                                    </AppText>
+                                </View>
+                                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
+                                    <FastImage source={heightIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                    <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
+                                        {"  "}{userData?.height} ft
+                                    </AppText>
+                                </View>
+                            </View>
+                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
+                                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
+                                    <FastImage source={locationIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                    <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
+                                        {"  "}{userData?.city}
+                                    </AppText>
+                                </View>
+                            </View>
+
+                        </View>
+                        <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_EDIT_PROFILE_SCREEN)}>
+                            <ImageBackground source={editButtonBackground} resizeMode="stretch" style={{ height: metrics.hp6, width: "95%", alignSelf: "center", marginLeft: metrics.hp2, marginTop: metrics.hp2, alignItems: "center", justifyContent: "center" }} >
+                                <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE}>
+                                    Edit Profile{"   "}
+                                </AppText>
+                            </ImageBackground>
+                        </TouchableOpacityView>
+                    </AppSafeAreaView>
+                    <View style={{
+                        position: "absolute",
+                        bottom: -metrics.hp7_5,
+                        flexDirection: "row",
+                        alignSelf: "center",
+                        paddingHorizontal: metrics.hp2,
+                        paddingBottom: metrics.hp2,
+                        zIndex: 10,
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 10 },
+                        shadowOpacity: 0.35,
+                        shadowRadius: 16,
+                        elevation: 14,
+                    }}>
+                        <TouchableOpacityView
+                            onPress={() => setSelectedTab("My Bio")}
+                            activeOpacity={1}
+                            style={{
+                                zIndex: selectedTab === "My Bio" ? 3 : 1,
+                                elevation: selectedTab === "My Bio" ? 3 : 1,
+                            }}>
+                            <ImageBackground
+                                source={tabViewForLikes}
+                                resizeMode="stretch"
+                                style={{
+                                    height: metrics.hp6,
+                                    width: metrics.hp14,
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                }}
+                                imageStyle={{
+                                    tintColor: selectedTab === "My Bio" ? "#E6B7A8" : "#555359",
+                                }}>
+                                <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
+                                    <AppText style={{ marginTop: -metrics.hp0_5, color: selectedTab === "My Bio" ? "black" : "#FAFAFA66" }} weight={SCHEHERAZADE_BOLD} type={SIXTEEN}>
+                                        My Bio
+                                    </AppText>
+                                </View>
+                            </ImageBackground>
+                        </TouchableOpacityView>
+
+                        <TouchableOpacityView
+                            onPress={() => setSelectedTab("Photos")}
+                            activeOpacity={1}
+                            style={{
+                                marginLeft: -metrics.hp3,
+                                zIndex: selectedTab === "Photos" ? 3 : 2,
+                                elevation: selectedTab === "Photos" ? 3 : 2,
+                            }}>
+                            <ImageBackground
+                                source={tabViewForLikes}
+                                resizeMode="stretch"
+                                style={{
+                                    height: metrics.hp6,
+                                    width: metrics.hp14,
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                }}
+                                imageStyle={{
+                                    tintColor: selectedTab === "Photos" ? "#E6B7A8" : "#555359",
+                                }}>
+                                <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
+                                    <AppText style={{ marginTop: -metrics.hp0_5, color: selectedTab === "Photos" ? "black" : "#FAFAFA66" }} weight={SCHEHERAZADE_BOLD} type={SIXTEEN}>
+                                        Photos
+                                    </AppText>
+                                </View>
+                            </ImageBackground>
+                        </TouchableOpacityView>
+
+                        <TouchableOpacityView
+                            onPress={() => setSelectedTab("Turn On")}
+                            activeOpacity={1}
+                            style={{
+                                marginLeft: -metrics.hp3,
+                                zIndex: selectedTab === "Turn On" ? 3 : 1,
+                                elevation: selectedTab === "Turn On" ? 3 : 1,
+                            }}>
+                            <ImageBackground
+                                source={tabViewForLikes}
+                                resizeMode="stretch"
+                                style={{
+                                    height: metrics.hp6,
+                                    width: metrics.hp14,
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                }}
+                                imageStyle={{
+                                    tintColor: selectedTab === "Turn On" ? "#E6B7A8" : "#555359",
+                                }}>
+                                <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
+                                    <AppText style={{ marginTop: -metrics.hp0_5, color: selectedTab === "Turn On" ? "black" : "#FAFAFA66" }} weight={SCHEHERAZADE_BOLD} type={SIXTEEN}>
+                                        Turn On
+                                    </AppText>
+                                </View>
+                            </ImageBackground>
+                        </TouchableOpacityView>
+                    </View>
+                </ImageBackground>
+                {selectedTab === "My Bio" && (
+                    <TouchableOpacityView
+                        activeOpacity={0.9}
+                        onPress={() => {
+                            setBioInput(userData?.bio || "");
+                            setBioError("");
+                            setBioModalVisible(true);
+                        }}
+                    >
+                        <ImageBackground source={bioBackground} resizeMode="stretch" style={{ height: metrics.hp15, marginTop: metrics.hp6, marginHorizontal: metrics.hp2 }}>
+                            <ImageBackground source={biosToggla} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp13, alignSelf: "center", marginTop: -metrics.hp2 }} >
+                                <AppText style={{ textAlign: "center" }} type={FORTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE}>
+                                    " My bio
+                                </AppText>
+                            </ImageBackground>
+                            <AppText style={{ marginHorizontal: metrics.hp2, textAlign: "center", marginVertical: metrics.hp1 }} weight={SCHEHERAZADE_BOLD} type={TWELVE} color={WHITE}>
+                                {userData?.bio ? userData.bio : "Write something about yourself..."}
+                            </AppText>
+                        </ImageBackground>
+                    </TouchableOpacityView>
+                )}
+                {selectedTab === "Photos" && (
+                    <View style={{ flex: 1, paddingHorizontal: metrics.hp2 }}>
+                        <FlatList
+                            data={[...(localPhotos.length < 4 ? [{ id: "upload-box", isUploadBox: true }] : []), ...localPhotos]}
+                            renderItem={renderPhotoItem}
+                            keyExtractor={(item, index) => item.id || String(index)}
+                            numColumns={2}
+                            contentContainerStyle={{/*  alignItems: "center", */ marginTop: metrics.hp4, paddingBottom: metrics.hp10 }}
+                            columnWrapperStyle={{ gap: metrics.hp1 }}
+                            showsVerticalScrollIndicator={false}
+                        />
+                    </View>
+                )}
+                {selectedTab === "Turn On" && (
+                    <View style={{ flex: 1, paddingHorizontal: metrics.hp2 }}>
+                        <FlatList
+                            data={TURN_ON_DATA}
+                            renderItem={renderTurnOnItem}
+                            keyExtractor={(item) => item.id.toString()}
+                            numColumns={2}
+                            contentContainerStyle={{ paddingHorizontal: metrics.hp2, alignItems: "center", marginTop: metrics.hp3, paddingBottom: metrics.hp5 }}
+                            columnWrapperStyle={{ columnGap: metrics.hp2, marginTop: metrics.hp6 }}
+                            showsVerticalScrollIndicator={false}
+                        />
+                    </View>
+                )}
+            </LinearGradient>
+            <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
+                <TouchableOpacityView style={{ width: "100%", alignItems: "center", justifyContent: "center" }} onPress={() => userData?.gender === "female" ? hideUnHideProfile() : NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN)}>
+                    <LinearGradient colors={userData?.gender === "male" ? ["#D08FA9", "#FDD2C1"] : profileHide === "Hide" ? ["#D08FA9", "#FDD2C1"] : ["#151517", "#151517"]} style={{ height: metrics.hp7, width: "90%", alignItems: "center", justifyContent: "center", borderWidth: userData?.gender === "male" ? 0 : profileHide === "Hide" ? 0 : metrics.hp0_1, borderColor: userData?.gender === "male" ? colors.transparent : profileHide === "Hide" ? colors.transparent : colors.white }}>
+                        <AppText type={EIGHTEEN} weight={SCHEHERAZADE_BOLD} color={userData?.gender === "male" ? BLACK : profileHide === "Hide" ? BLACK : WHITE}>
+                            {userData?.gender === "male" ? "Publish Profile" : profileHide === "Hide" ? "Publish Profile" : "Hide Profile"}
+                        </AppText>
+                    </LinearGradient>
+                </TouchableOpacityView>
+            </ImageBackground>
+            {/* <ImageBackground
                 source={profilebackGround}
                 resizeMode="cover"
                 style={styles.imgaeContainer}>
@@ -211,13 +804,6 @@ console.log(userData,"userData");
                                 )}
                             />
                         </View>
-                        {/* <FlatList
-                            data={PurchaseCards}
-                            renderItem={renderPurchaesCards}
-                            keyExtractor={(item) => item.id}
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={{ marginLeft: metrics.hp2, marginTop: metrics.hp3 }}
-                            horizontal={true} /> */}
                     </View>
                 }
                 {tabSelect == "Safety" &&
@@ -362,21 +948,84 @@ console.log(userData,"userData");
                                 Visit Website
                             </AppText>
                         </TouchableOpacityView>
-                        {/* <View style={{ height: metrics.hp0_1, backgroundColor: colors.persentageBorder, marginTop: metrics.hp2, }} />
-                        <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp2 }}>
-                            <FastImage source={callIcon} resizeMode="contain" style={{ height: metrics.hp1_5, width: metrics.hp1_5 }} />
-                            <AppText>
-                                {"  "}Relationship Safety Support NGO
-                            </AppText>
-                        </View>
-                        <TouchableOpacityView onPress={() => Linking.openURL("https://parpple.com/")} style={styles.visitBox}>
-                            <AppText type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                Visit Website
-                            </AppText>
-                        </TouchableOpacityView> */}
+                     
                     </ScrollView>
                 }
-            </ImageBackground>
+            </ImageBackground> */}
+            {/* Bio Edit Modal */}
+            <Modal
+                visible={isBioModalVisible}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setBioModalVisible(false)}
+            >
+                <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center" }}>
+                    <View style={{ width: "90%", backgroundColor: "#212123", borderRadius: metrics.hp2, padding: metrics.hp3 }}>
+                        <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE} style={{ marginBottom: metrics.hp2 }}>
+                            Edit Bio
+                        </AppText>
+
+                        <View style={{ backgroundColor: "#5B6168", borderRadius: metrics.hp1_5, padding: metrics.hp1_5 }}>
+                            <TextInput
+                                style={{
+                                    color: colors.white,
+                                    fontSize: 14,
+                                    minHeight: metrics.hp10,
+                                    textAlignVertical: "top"
+                                }}
+                                multiline
+                                maxLength={200}
+                                autoFocus={true}
+                                blurOnSubmit={false}
+                                placeholder="Write something about yourself..."
+                                placeholderTextColor="#FAFAFA66"
+                                value={bioInput}
+                                onChangeText={(text) => {
+                                    setBioInput(text);
+                                    setBioError("");
+                                }}
+                            />
+                            <AppText type={TEN} color={bioInput.length >= 200 ? RED : WHITE} style={{ alignSelf: "flex-end", marginTop: metrics.hp1 }}>
+                                {bioInput.length} / 200
+                            </AppText>
+                        </View>
+
+                        {bioError ? (
+                            <AppText type={TWELVE} color={RED} style={{ marginTop: metrics.hp1 }}>
+                                {bioError}
+                            </AppText>
+                        ) : null}
+
+                        <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: metrics.hp3 }}>
+                            <TouchableOpacityView
+                                onPress={() => setBioModalVisible(false)}
+                                style={{ paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp1, marginRight: metrics.hp1 }}
+                            >
+                                <AppText type={FORTEEN} color={WHITE}>
+                                    Cancel
+                                </AppText>
+                            </TouchableOpacityView>
+                            <TouchableOpacityView
+                                onPress={() => {
+                                    const trimmed = bioInput.trim();
+                                    if (trimmed.length === 0) {
+                                        setBioError("Bio cannot be empty.");
+                                        return;
+                                    }
+                                    dispatch(editProfile({ bio: trimmed }, false));
+                                    // dispatch(getProfile(false, true)); // ensure UI syncs immediately
+                                    setBioModalVisible(false);
+                                }}
+                                style={{ backgroundColor: "#E6B7A8", paddingHorizontal: metrics.hp3, paddingVertical: metrics.hp1, borderRadius: metrics.hp4 }}
+                            >
+                                <AppText type={FORTEEN} weight={INTER_BOLD} color={BLACK}>
+                                    Update
+                                </AppText>
+                            </TouchableOpacityView>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </AppSafeAreaView>
     );
 };
@@ -384,9 +1033,66 @@ console.log(userData,"userData");
 export default ProfileScreenAndroid;
 
 const styles = StyleSheet.create({
+    trunback: {
+        height: metrics.hp22,
+        width: metrics.hp20,
+        marginBottom: metrics.hp4,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    itemWrapper: {
+        height: metrics.hp18,
+        width: metrics.hp16,
+        position: "relative",
+    },
+    boxContainer: {
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+        backgroundColor: "#151517"
+    },
+    icon: {
+        height: metrics.hp3,
+        width: metrics.hp3,
+    },
+    image: {
+        height: "100%",
+        width: "100%",
+    },
+    loaderContainer: {
+        height: "100%",
+        width: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    deleteButtonContainer: {
+        position: "absolute",
+        top: metrics.hp0_5,
+        right: metrics.hp0_5,
+        width: metrics.hp2,
+        height: metrics.hp2,
+        backgroundColor: "red",
+        borderRadius: metrics.hp2_5 / 2,
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 10,
+        elevation: 5,
+    },
+    deleteButtonText: {
+        color: "white",
+        fontSize: metrics.hp1_8,
+        lineHeight: metrics.hp1_8,
+        textAlign: "center",
+        fontWeight: "600",
+        marginTop: Platform.OS === "ios" ? metrics.hp0_1 : -metrics.hp0_2,
+    },
     imgaeContainer: {
         flex: 1,
 
+    },
+    detailsContainer: {
+        height: metrics.hp37,
+        width: "100%",
     },
     inContainer: {
         paddingHorizontal: metrics.hp2,
@@ -415,7 +1121,7 @@ const styles = StyleSheet.create({
     blueTikIcon: {
         height: metrics.hp2_5,
         width: metrics.hp2_5,
-        marginTop:metrics.hp2
+        marginTop: metrics.hp2
     },
     pencilIcon: {
         height: metrics.hp2,
@@ -583,6 +1289,25 @@ const styles = StyleSheet.create({
     },
     visitBox: {
         height: metrics.hp2_7, width: metrics.hp13, backgroundColor: colors.white, alignItems: "center", justifyContent: "center", borderRadius: metrics.hp1_5, borderColor: colors.black, borderWidth: metrics.hp0_1, marginTop: metrics.hp1
-    }
+    },
+    turnOnTrunback: {
+        height: metrics.hp21,
+        width: metrics.hp20,
+        marginBottom: metrics.hp2,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    turnOnImagesIcon: {
+        height: metrics.hp17,
+        width: metrics.hp17,
+        position: "absolute",
+        top: -metrics.hp8
+    },
+    bottomLayer: {
+        width: "100%",
+        paddingVertical: metrics.hp2,
+        alignItems: "center",
+        backgroundColor: "#555359",
+    },
 
 });

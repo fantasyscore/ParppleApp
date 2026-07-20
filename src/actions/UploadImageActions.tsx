@@ -1,5 +1,5 @@
 import Toast from 'react-native-toast-message';
-import { interBold, interSemiBold } from '../theme/typography';
+import { interBold, interSemiBold, ScheherazadeNewBold } from '../theme/typography';
 import { fontSize } from '../common/AppText';
 import { colors } from '../theme/colors';
 export const uploadImageCloud = async (imageUri: any) => {
@@ -30,8 +30,8 @@ export const toastAlert = {
       Toast.show({
         type: 'success',
         text2: `${message}`,
-        text2Style: { fontSize: fontSize(10), fontFamily: interBold, color:colors.lightBlack },
-        text1Style: { fontFamily: interBold, color:colors.lightBlack },
+        text2Style: { fontSize: fontSize(14), fontFamily: ScheherazadeNewBold, color:colors.white },
+        text1Style: { fontSize: fontSize(14), fontFamily: ScheherazadeNewBold, color:colors.white },
       })
     },
   };

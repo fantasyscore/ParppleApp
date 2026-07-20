@@ -32,3 +32,6 @@ export const colors = {
   blackopcity: "#00000010",
   darGreen:"#19AC19"
 };
+export const newColor = {
+  blackNew:"#212123"
+}

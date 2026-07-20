@@ -9,7 +9,7 @@ import { Screen } from "../theme/dimens";
 
 const SearchContainer = ({ placeholder, value, onChangeText, style, editable = true }: any) => {
     return (
-        <View style={[styles.container, style]}>
+        <View style={{flexDirection:"row", alignItems:"center", paddingHorizontal:metrics.hp2}}>
             <FastImage source={searchIcon} resizeMode="contain" tintColor={colors.darkOpecity} style={styles.iconSearch} />
             <TextInput
                 allowFontScaling={false}
@@ -18,7 +18,7 @@ const SearchContainer = ({ placeholder, value, onChangeText, style, editable = t
                 onChangeText={(text) => onChangeText(text)}
                 placeholderTextColor={colors.darkOpecity}
                 editable={editable}
-                style={{ width: Screen.Width / 1.20, fontSize: fontSize(12), fontWeight: "500", fontFamily: INTER_MEDIUM, color: colors.black }}
+                style={{ width: Screen.Width / 1.4, fontSize: fontSize(12), fontWeight: "500", fontFamily: INTER_MEDIUM, color: colors.black, }}
             />
         </View>
     )

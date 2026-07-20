@@ -1,7 +1,7 @@
 import React from "react";
 import { Text, StyleSheet, TextStyle, Platform, PixelRatio, Dimensions } from "react-native";
 import { colors } from "../theme/colors";
-import { interBold, interExtraBold, interLight, interMedium, interRegular, interSemiBold, interThin, ScheherazadeNewBold, ScheherazadeNewMedium, ScheherazadeNewRegular, ScheherazadeNewSemiBold } from "../theme/typography";
+import { BadScriptRegular, interBold, interExtraBold, interLight, interMedium, interRegular, interSemiBold, interThin, ScheherazadeNewBold, ScheherazadeNewMedium, ScheherazadeNewRegular, ScheherazadeNewSemiBold } from "../theme/typography";
 import { TextPropsTemp } from "../types/common";
 
 export const NINE = "NINE";
@@ -33,6 +33,7 @@ export const SCHEHERAZADE_BOLD = "SCHEHERAZADE_BOLD";
 export const SCHEHERAZADE_MEDIUM = "SCHEHERAZADE_MEDIUM";
 export const SCHEHERAZADE_REGULAR = "SCHEHERAZADE_REGULAR";
 export const SCHEHERAZADE_SEMI_BOLD = "SCHEHERAZADE_SEMI_BOLD";
+export const BADSCRIPTREGALUR = "BADSCRIPTREGALUR";
 
 
 
@@ -183,6 +184,9 @@ const getTextStyle = (
     case SCHEHERAZADE_SEMI_BOLD:
       style["fontFamily"] = ScheherazadeNewSemiBold;
       break;
+      case BADSCRIPTREGALUR:
+        style["fontFamily"] = BadScriptRegular;
+        break;
     default:
       style["fontFamily"] = interMedium;
   }

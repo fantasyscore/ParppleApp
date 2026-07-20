@@ -1,31 +1,36 @@
 import React, { useState, useRef, useEffect } from "react";
-import { StyleSheet, View, ScrollView, Dimensions } from "react-native";
+import { StyleSheet, View, ScrollView, Dimensions, ImageBackground, TouchableOpacity } from "react-native";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import HeaderCommon from "../../common/HeaderCommon";
 import TopCommonLine from "../../common/TopCommonLine";
 import DubleTextLine from "../../common/DubleTextLine";
 import metrics from "../../assets/Metrics";
-import { straightenIcon } from "../../helper/ImageAssets";
+import { applogo, BananaHeight, BottomLayer, straightenIcon } from "../../helper/ImageAssets";
 import {
   AppText,
   BLACK,
+  EIGHTEEN,
   INTER_BOLD,
   INTER_SEMI_BOLD,
   OPECITY_DARK,
+  SCHEHERAZADE_BOLD,
   TWELVE,
+  TWENTY,
   TWENTY_FOUR,
+  WHITE,
 } from "../../common/AppText";
-import { colors } from "../../theme/colors";
+import { colors, newColor } from "../../theme/colors";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import GoButton from "../../common/GoButton";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_EDUCATION_SCREEN, NAVIGATION_LANGUAGE_SPEAK_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_EDUCATION_SCREEN, NAVIGATION_LANGUAGE_SPEAK_SCREEN, NAVIGATION_TRUN_ON_SCREEN } from "../../navigation/routes";
 import { Screen } from "../../theme/dimens";
 import { scale, verticalScale } from "react-native-size-matters";
 import { useDispatch, useSelector } from "react-redux";
 import { setAddProfile, setfilterData } from "../../slices/loginServices/authSlice";
-import { editProfile } from "../../actions/authActions";
+import { editProfile, turnOn } from "../../actions/authActions";
 import LinearGradient from "react-native-linear-gradient";
+import FastImage from "react-native-fast-image";
 
 // --- NO CHANGES IN THIS SECTION ---
 const heights: any = [];
@@ -162,6 +167,15 @@ const HeightScreen = ({ route }: any) => {
     }
     return (
       <View key={index} style={styles.rulerMarkContainer}>
+        {markText && (
+          <AppText
+            type={TWELVE}
+            weight={INTER_BOLD}
+            color={WHITE}
+            style={styles.markText}>
+            {markText}
+          </AppText>
+        )}
         <View
           style={[
             styles.rulerMark,
@@ -169,19 +183,11 @@ const HeightScreen = ({ route }: any) => {
             {
               width: markWidth,
               backgroundColor:
-                selectedHeight === item ? colors.purple : "#E0E0E0",
+                selectedHeight === item ? "#FDD2C1" : "#E0E0E0",
             },
           ]}
         />
-        {markText && (
-          <AppText
-            type={TWELVE}
-            weight={INTER_BOLD}
-            color={BLACK}
-            style={styles.markText}>
-            {markText}
-          </AppText>
-        )}
+
       </View>
     );
   };
@@ -205,23 +211,54 @@ const HeightScreen = ({ route }: any) => {
       const data = {
         ...addProfileData,
         height: selectedHeight,
-        education: "",
-        homeTown: "",
-        work: "",
-        jobTitle: "",
-        zodiaSign: "",
         fieldVisibility: { ...addProfileData?.fieldVisibility }
       };
       dispatch(setAddProfile(data))
-      NavigationService.navigate(NAVIGATION_LANGUAGE_SPEAK_SCREEN)
+      dispatch(turnOn({}))
+      NavigationService.navigate(NAVIGATION_TRUN_ON_SCREEN)
       // NavigationService.navigate(NAVIGATION_EDUCATION_SCREEN)
     }
   }
 
   return (
     // ... (No changes in the JSX return)
-    <AppSafeAreaView>
-      <HeaderCommon title={filter} />
+    <AppSafeAreaView color={newColor.blackNew}>
+      <FastImage source={applogo} resizeMode="contain" style={styles.logo} />
+      <View style={styles.container}>
+        <FastImage source={BananaHeight} resizeMode="cover" style={{ height: metrics.hp45, width: metrics.hp45, marginTop: metrics.hp10 }} />
+        <View style={styles.rulerContainer}>
+          <ScrollView
+            ref={scrollViewRef}
+            showsVerticalScrollIndicator={false}
+            snapToInterval={MARK_HEIGHT}
+            decelerationRate="fast"
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            contentContainerStyle={{
+              paddingTop: centerOffset,
+              paddingBottom: centerOffset,
+            }}
+          >
+            {currentDataSource.map(renderRulerMark)}
+          </ScrollView>
+        </View>
+        <View style={{ alignItems: "center", justifyContent: "center" }}>
+          <AppText type={EIGHTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE}>
+            How tall are you?
+          </AppText>
+          <AppText style={{ marginTop: -metrics.hp2 }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={WHITE}>
+            {selectedHeight}
+          </AppText>
+        </View>
+      </View>
+      <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
+        <TouchableOpacity activeOpacity={0.5} onPress={onSubmit} style={styles.phoneContainer}>
+          <AppText weight={SCHEHERAZADE_BOLD} color={WHITE} type={TWENTY}>
+            Next
+          </AppText>
+        </TouchableOpacity>
+      </ImageBackground>
+      {/* <HeaderCommon title={filter} />
       {filter ? <View style={styles.singleLine} /> : <></>}
       <View style={styles.container}>
         {filter ? <></> : <TopCommonLine icon={straightenIcon} datalist={datalist} />}
@@ -300,7 +337,7 @@ const HeightScreen = ({ route }: any) => {
             defaultVisible={true}
           />
         </View>
-      </LinearGradient>
+      </LinearGradient> */}
     </AppSafeAreaView>
   );
 };
@@ -343,8 +380,8 @@ const styles = StyleSheet.create({
   },
   rulerContainer: {
     position: "absolute",
-    right: scale(20),
-    top: verticalScale(100),
+    right: scale(0),
+    top: verticalScale(50),
     height: verticalScale(400),
   },
   rulerMarkContainer: {
@@ -364,8 +401,31 @@ const styles = StyleSheet.create({
   },
   markText: {
     marginLeft: scale(10),
-    color: colors.darkOpecity,
     minWidth: scale(40),
     textAlign: "left",
+  },
+  logo: {
+    height: metrics.hp7,
+    width: metrics.hp25,
+    alignSelf: "center",
+    marginTop: metrics.hp8,
+
+  },
+  bottomLayer: {
+    height: metrics.hp15,
+    width: "100%",
+    paddingVertical: metrics.hp2,
+    alignItems: "center"
+  },
+  phoneContainer: {
+    height: metrics.hp7,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: metrics.hp0_1,
+    borderColor: colors.white,
+    marginHorizontal: metrics.hp2,
+    marginTop: metrics.hp2,
+    width:"90%"
   },
 });

@@ -80,6 +80,9 @@ import { Platform } from "react-native";
 import ProfileScreenAndroid from "../screens/ProfileScreens/ProfileScreenAndroid";
 import CustomTabBarAndroid from "../common/CustomTabBarAndroid";
 import DiscoverScreenAndroid from "../screens/DiscoverScreens/DiscoverScreenAndroid";
+import TrunOnScreen from "../screens/DetailsScreen/TrunOnScreen";
+import ViewYouScreen from "../screens/LikesYouScreens/ViewYouScreen";
+import ProfilePreviewNew from "../screens/ProfileScreens/ProfilePreviewNew";
 
 const Navigator = () => {
   const Stack: any = createStackNavigator();
@@ -89,12 +92,11 @@ const Navigator = () => {
     return (
       <BottomTab.Navigator initialRouteName={routes.NAVIGATION_PEOPLE_SCREEN}
         backBehavior="initialRoute"
-        tabBar={(props: BottomTabBarProps) => Platform.OS === "ios" ? <CustomTabBar {...props} /> : <CustomTabBarAndroid {...props} />}>
-        <BottomTab.Screen name={routes.NAVIGATION_PEOPLE_SCREEN} component={Platform.OS === "ios" ? NewHomeScreen : PeopleScreen} options={{ headerShown: false }} />
-        <BottomTab.Screen name={routes.NAVIGATION_DISCOVER_SCREEN} component={Platform.OS === "ios" ? DiscoverScreen : DiscoverScreenAndroid} options={{ headerShown: false }} />
-        <BottomTab.Screen name={routes.NAVIGATION_CHATS_SCREEN} component={ChatsScreen} options={{ headerShown: false }} />
+        tabBar={(props: BottomTabBarProps) => <CustomTabBarAndroid {...props} />}>
+        <BottomTab.Screen name={routes.NAVIGATION_PEOPLE_SCREEN} component={PeopleScreen} options={{ headerShown: false }} />
         <BottomTab.Screen name={routes.NAVIGATION_LIKES_YOU_SCREEN} component={LikesYouScreen} options={{ headerShown: false }} />
-        <BottomTab.Screen name={routes.NAVIGATION_PROFILE_SCREEN} component={Platform.OS === "ios" ? ProfileScreen : ProfileScreenAndroid} options={{ headerShown: false }} />
+        <BottomTab.Screen name={routes.NAVIGATION_VIEW_YOU_SCREEN_SCREEN} component={ViewYouScreen} options={{ headerShown: false }} />
+        <BottomTab.Screen name={routes.NAVIGATION_CHATS_SCREEN} component={ChatsScreen} options={{ headerShown: false }} />
       </BottomTab.Navigator>
     )
   }
@@ -129,6 +131,7 @@ const Navigator = () => {
       <Stack.Screen name={routes.NAVIGATION_DISTANCE_SCREEN} component={DistanceSelectScreen} />
       <Stack.Screen name={routes.NAVIGATION_ABOUT_SCREEN} component={AboutScreen} />
       <Stack.Screen name={routes.NAVIGATION_HEIGHT_SCREEN} component={HeightScreen} />
+      <Stack.Screen name={routes.NAVIGATION_TRUN_ON_SCREEN} component={TrunOnScreen} />
       <Stack.Screen name={routes.NAVIGATION_EDUCATION_SCREEN} component={EducationScreen} />
       <Stack.Screen name={routes.NAVIGATION_BELONG_SCREEN} component={BelongFrom} />
       <Stack.Screen name={routes.NAVIGATION_WORK_PLACE_SCREEN} component={WorkPlace} />
@@ -145,9 +148,12 @@ const Navigator = () => {
       <Stack.Screen name={routes.NAVIGATION_PREVIEW_DETAILS_SCREEN} component={PreviewDetails} options={{ presentation: 'modal', cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS }} />
       <Stack.Screen name={routes.NAVIGATION_PEOPLE_SCREEN} component={PeopleScreen} />
       <Stack.Screen name={routes.NAVIGATION_FILTER_SCREEN} component={FilterScreen} />
+      <Stack.Screen name={routes.NAVIGATION_PROFILE_SCREEN} component={ProfileScreenAndroid} />
       <Stack.Screen name={routes.NAVIGATION_COMMONSELECT_PAGE_SCREEN} component={CommonSelectPage} />
       <Stack.Screen name={routes.NAVIGATION_MATCH_SCREEN} component={MatchScreen} />
       <Stack.Screen name={routes.NAVIGATION_EDIT_PROFILE_SCREEN} component={EditProfileScreen} />
+      <Stack.Screen name={routes.NAVIAGATION_PROFILE_PREVIEW_NEW_SCREEN} component={ProfilePreviewNew} />
+
       <Stack.Screen name={routes.NAVIGATION_PROFILE_STRENGTH_SCREEN} component={ProfileStrength} />
       <Stack.Screen name={routes.NAVIGATION_USER_EDIT_PROFILE_SCREEN} component={UserEditProfile} />
       <Stack.Screen name={routes.NAVIGATION_SUBSCRIPTION_SCREEN} component={SubscriptionScreen} />

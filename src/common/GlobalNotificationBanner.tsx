@@ -9,7 +9,7 @@ import Animated, {
     Easing,
 } from 'react-native-reanimated';
 import FastImage from 'react-native-fast-image';
-import { AppText, BLACK, FORTEEN, INTER_MEDIUM, INTER_REGULAR, SIXTEEN } from './AppText';
+import { AppText, BLACK, FORTEEN, INTER_MEDIUM, INTER_REGULAR, SIXTEEN, WHITE } from './AppText';
 import metrics from '../assets/Metrics';
 import { colors } from '../theme/colors';
 import NavigationService from '../navigation/NavigationService';
@@ -219,19 +219,19 @@ const GlobalNotificationBanner: React.FC<GlobalNotificationBannerProps> = ({
                         />
                     ) : (
                         <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                            <AppText type={SIXTEEN} weight={INTER_MEDIUM} color={BLACK}>
+                            <AppText type={SIXTEEN} weight={INTER_MEDIUM} color={WHITE}>
                                 {notification.senderName?.charAt(0)?.toUpperCase() || 'U'}
                             </AppText>
                         </View>
                     )}
                     <View style={styles.textContainer}>
-                        <AppText type={SIXTEEN} weight={INTER_MEDIUM} color={BLACK} numberOfLines={1}>
+                        <AppText type={SIXTEEN} weight={INTER_MEDIUM} color={WHITE} numberOfLines={1}>
                             {notification.senderName}
                         </AppText>
                         <AppText
                             type={FORTEEN}
                             weight={INTER_REGULAR}
-                            color={colors.black}
+                            color={WHITE}
                             style={styles.messageText}
                             numberOfLines={1}
                         >
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
         pointerEvents: 'box-none',
     },
     banner: {
-        backgroundColor: colors.white,
+        backgroundColor:"#555359" ,
         borderRadius: metrics.hp1,
         shadowColor: '#000',
         shadowOffset: {

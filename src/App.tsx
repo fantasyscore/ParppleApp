@@ -252,9 +252,9 @@ const codePushOptions = {
   checkFrequency: codePush.CheckFrequency.ON_APP_START,
   installMode: codePush.InstallMode.IMMEDIATE,
 };
-export default codePush(codePushOptions)(App);
+// export default codePush(codePushOptions)(App);
 // export default codePush(App);
-// export default App;
+export default App;
 
 const styles = StyleSheet.create({
   secureContainer: {

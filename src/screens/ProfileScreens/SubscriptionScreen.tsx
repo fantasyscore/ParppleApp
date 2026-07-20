@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { ActivityIndicator, Alert, Animated, Dimensions, ImageBackground, Modal, NativeModules, Platform, ScrollView, StyleSheet, View, Linking } from "react-native";
-import { goldHeader, GoldSubscriptionImage, infinityICon, logoBlue, platinumHeader, PlatiumSubscriptionImage, premiumIcon, silverHeader, stylesRightArrow } from "../../helper/ImageAssets";
+import { benifitsIconNew, BottomLayer, closeNewWhiteIcon, goldHeader, GoldSubscriptionImage, infinityICon, legalBackgroundSettin, logoBlue, platinumHeader, PlatiumSubscriptionImage, premiumIcon, purchaseImageNew, silverHeader, stylesRightArrow, subScriptionBackgroundNew, subscriptionSelectedNew, timeShowNewBackground } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import NavigationService from "../../navigation/NavigationService";
 import FastImage from "react-native-fast-image";
-import { AppText, BLACK, EIGHT, ELEVEN, FORTEEN, INTER_BOLD, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, SCHEHERAZADE_BOLD, TEN, TWELVE, TWENTY_TWO, WHITE } from "../../common/AppText";
+import { AppText, BLACK, EIGHT, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, OPECITY_DARK, SCHEHERAZADE_BOLD, SIXTEEN, TEN, THIRTEEN, TWELVE, TWENTY, TWENTY_FOUR, TWENTY_TWO, WHITE } from "../../common/AppText";
 import { SilverPurchasedis, GoldPurchasedis, PlatinumPurchasedis } from "../../common/UiltData";
-import { colors } from "../../theme/colors";
+import { colors, newColor } from "../../theme/colors";
 import * as RNIap from '../../utils/iapWrapper';
 import { trackSuccessfulPurchase, getPurchaseTransactionId } from '../../services/analyticsService';
 import { getAlreadyRecoveredTransactionIds, addRecoveredTransactionIds } from '../../services/purchaseRecoveryService';
@@ -26,7 +26,7 @@ import { check, openSettings, PERMISSIONS, request, RESULTS } from "react-native
 // silver_weekly', 'silver_month', 'silver_6month',
 const ALL_SUBSCRIPTION_SKUS = Platform.select({
     android: [
-        'silver_weekly', 'silver_month', 'silver_6month',
+        'publish_one_week', 'publish_one_month', 'publish_six_months',
         'gold_week', 'gold_month', 'gold_6month',
         'platinum_week', 'platinum_month', 'platinum_6month'
     ],
@@ -602,26 +602,145 @@ const SubscriptionScreen = ({ route }: any) => {
 
     if (loading) {
         return (
-            <AppSafeAreaView>
-                <ImageBackground source={getHeaderImage()} resizeMode="cover" style={styles.headerContainer}>
-                    <TouchableOpacityView onPress={() => NavigationService.goBack()} style={styles.closeButton} />
+            <AppSafeAreaView color={newColor.blackNew}>
+                <ImageBackground source={purchaseImageNew} resizeMode="stretch" style={{ height: metrics.hp30, width: "100%" }}>
+                    <TouchableOpacityView onPress={() => NavigationService.goBack()} style={{ width: "100%", paddingVertical: metrics.hp3, marginTop: metrics.hp2, alignItems: "flex-end", paddingHorizontal: metrics.hp2 }}>
+                        <FastImage source={closeNewWhiteIcon} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp4 }} />
+                    </TouchableOpacityView>
                 </ImageBackground>
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={colors.purple} />
-                    <AppText style={{ marginTop: metrics.hp2 }} type={TWELVE} weight={INTER_MEDIUM}>Loading Plans...</AppText>
-                </View>
             </AppSafeAreaView>
         );
     };
 
 
     return (
-        <AppSafeAreaView>
-            <ImageBackground source={getHeaderImage()} resizeMode="cover" style={styles.headerContainer}>
-                <TouchableOpacityView onPress={() => NavigationService.goBack()} style={styles.closeButton} />
+        <AppSafeAreaView color={newColor.blackNew}>
+            <ImageBackground source={purchaseImageNew} resizeMode="stretch" style={{ height: metrics.hp30, width: "100%" }}>
+                <TouchableOpacityView onPress={() => NavigationService.goBack()} style={{ width: "100%", paddingVertical: metrics.hp3, marginTop: metrics.hp2, alignItems: "flex-end", paddingHorizontal: metrics.hp2 }}>
+                    <FastImage source={closeNewWhiteIcon} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp4 }} />
+                </TouchableOpacityView>
             </ImageBackground>
+            <LinearGradient colors={["#21212350", "#212123"]} style={{ paddingHorizontal: metrics.hp2, marginTop: -metrics.hp5 }}>
+                <AppText style={{ textAlign: "center" }} weight={SCHEHERAZADE_BOLD} type={TWENTY_FOUR} color={WHITE}>
+                    Unlock the World Behind
+                </AppText>
+                <AppText style={{ marginTop: -metrics.hp3, textAlign: "center" }} weight={SCHEHERAZADE_BOLD} type={TWENTY_FOUR} color={WHITE}>
+                    the Mask.
+                </AppText>
+                <AppText style={{ textAlign: "center", marginTop: -metrics.hp1_5 }} type={FORTEEN} weight={INTER_MEDIUM} color={OPECITY}>
+                    Your VIP Pass to Anonymous Attraction.
+                </AppText>
+            </LinearGradient>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: metrics.hp10 }} style={{ paddingHorizontal: metrics.hp2, marginTop: metrics.hp3, }}>
+                {currentTierPlans?.map((item, index) => {
+                    return (
+                        <TouchableOpacityView activeOpacity={1} onPress={() => setSelectedPlanIndex(index)}>
+                            <ImageBackground source={selectedPlanIndex === index ? subscriptionSelectedNew : subScriptionBackgroundNew} resizeMode="stretch" style={{ height: metrics.hp10, marginBottom: metrics.hp2, justifyContent: "space-between", paddingHorizontal: metrics.hp2, flexDirection: "row", alignItems: "center" }} >
+                                <View>
+                                    <AppText style={{ marginTop: metrics.hp1 }} type={FORTEEN} weight={INTER_MEDIUM} color={selectedPlanIndex === index ? BLACK : WHITE}>
+                                        {item.planOf}
+                                    </AppText>
+                                    <AppText style={{ marginTop: -metrics.hp1 }} type={TWENTY} weight={SCHEHERAZADE_BOLD} color={selectedPlanIndex === index ? BLACK : WHITE}>
+                                        {item.displayPrice}
+                                    </AppText>
+                                </View>
+                                <AppText style={{ marginTop: metrics.hp3 }} type={THIRTEEN} weight={INTER_MEDIUM} color={selectedPlanIndex === index ? BLACK : WHITE}>
+                                    {item.amount} {item.ofPu}{"  "}
+                                </AppText>
+                                {index == 1 ?
+                                    <ImageBackground source={timeShowNewBackground} tintColor={selectedPlanIndex === index ? colors.black : "#E6B7A8"} resizeMode="contain" style={{ height: metrics.hp4_6, width: metrics.hp15, position: "absolute", right: metrics.hp0_5, top: -metrics.hp2 }}>
+                                        <AppText style={{ textAlign: "center", marginTop: metrics.hp1 }} type={THIRTEEN} weight={INTER_MEDIUM} color={selectedPlanIndex === index ? WHITE : BLACK}>
+                                            Most Popular
+                                        </AppText>
+                                    </ImageBackground> : <></>}
+                            </ImageBackground>
+                        </TouchableOpacityView>
+                    )
+                })}
+                <View style={{ height: metrics.hp0_1, backgroundColor: "#524440", marginTop: metrics.hp3, justifyContent: "center", alignItems: "center" }}>
+                    <ImageBackground source={timeShowNewBackground} resizeMode="contain" style={{ height: metrics.hp4_6, width: metrics.hp15, alignItems: "center", justifyContent: "center" }}>
+                        <AppText type={THIRTEEN} weight={INTER_MEDIUM} color={WHITE}>
+                            Benefits
+                        </AppText>
+                    </ImageBackground>
+                </View>
+                <View style={{ marginTop: metrics.hp2, flexDirection: "row", alignItems: "center" }}>
+                    <FastImage source={benifitsIconNew} resizeMode="contain" style={{ height: metrics.hp3, width: metrics.hp3, marginTop: -metrics.hp1 }} />
+                    <View style={{ marginHorizontal: metrics.hp2 }}>
+                        <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE}>
+                            Unlimites Likes
+                        </AppText>
+                        <AppText style={{ marginTop: -metrics.hp1 }} color={OPECITY_DARK} type={TWELVE} >
+                            Unlimited freedom to like and connect
+                        </AppText>
+                    </View>
+                </View>
+                <View style={{ marginTop: metrics.hp2, flexDirection: "row", alignItems: "center" }}>
+                    <FastImage source={benifitsIconNew} resizeMode="contain" style={{ height: metrics.hp3, width: metrics.hp3, marginTop: -metrics.hp1 }} />
+                    <View style={{ marginHorizontal: metrics.hp2 }}>
+                        <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE}>
+                            Priority Likes
+                        </AppText>
+                        <AppText style={{ marginTop: -metrics.hp1 }} color={OPECITY_DARK} type={TWELVE} >
+                            Your likes are shown first to increase match chances.
+                        </AppText>
+                    </View>
+                </View>
+                <View style={{ marginTop: metrics.hp2, flexDirection: "row", alignItems: "center" }}>
+                    <FastImage source={benifitsIconNew} resizeMode="contain" style={{ height: metrics.hp3, width: metrics.hp3, marginTop: -metrics.hp1 }} />
+                    <View style={{ marginHorizontal: metrics.hp2 }}>
+                        <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE}>
+                            Verified Profiles
+                        </AppText>
+                        <AppText style={{ marginTop: -metrics.hp1 }} color={OPECITY_DARK} type={TWELVE} >
+                            Get instantly match with the verified profiles with real connections.
+                        </AppText>
+                    </View>
+                </View>
+                <View style={{ marginTop: metrics.hp2, flexDirection: "row", alignItems: "center" }}>
+                    <FastImage source={benifitsIconNew} resizeMode="contain" style={{ height: metrics.hp3, width: metrics.hp3, marginTop: -metrics.hp1 }} />
+                    <View style={{ marginHorizontal: metrics.hp2 }}>
+                        <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE}>
+                            See Who Likes You
+                        </AppText>
+                        <AppText style={{ marginTop: -metrics.hp1 }} color={OPECITY_DARK} type={TWELVE} >
+                            Instantly view and match with interested
+                            profiles.
+                        </AppText>
+                    </View>
+                </View>
+                <View style={{ marginTop: metrics.hp2, flexDirection: "row", alignItems: "center" }}>
+                    <FastImage source={benifitsIconNew} resizeMode="contain" style={{ height: metrics.hp3, width: metrics.hp3, marginTop: -metrics.hp1 }} />
+                    <View style={{ marginHorizontal: metrics.hp2 }}>
+                        <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE}>
+                            Who Viewed You
+                        </AppText>
+                        <AppText style={{ marginTop: -metrics.hp1 }} color={OPECITY_DARK} type={TWELVE} >
+                            See who’s interested in you.
+                        </AppText>
+                    </View>
+                </View>
+                <ImageBackground source={legalBackgroundSettin} resizeMode="stretch" tintColor={colors.black} style={{ height: metrics.hp13, paddingHorizontal: metrics.hp2, alignItems: "center", justifyContent: "center", marginTop: metrics.hp2 }}>
+                    <AppText style={{ textAlign: "center" }} color={WHITE} type={THIRTEEN} weight={INTER_REGULAR}>
+                        Your membership renews automatically for uninterrupted access. Cancel at least 24 hours before renewal. Manage your membership anytime in Account Settings.
+                    </AppText>
+                </ImageBackground>
+            </ScrollView>
+            <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
+                <TouchableOpacityView style={{width:"100%", paddingHorizontal:metrics.hp2}} onPress={handlePurchase}
+                    disabled={!!processing || currentTierPlans.length === 0}>
+                    <LinearGradient colors={["#D08FA9", "#FDD2C1"]} style={{ height: metrics.hp7, width: "100%", alignItems: "center", justifyContent: "center" }}>
+                        <AppText type={EIGHTEEN} weight={SCHEHERAZADE_BOLD} color={BLACK}>
+                            Get {currentTierPlans[selectedPlanIndex]?.planOf || 'Plan'} for {currentTierPlans[selectedPlanIndex]?.displayPrice || ''}
+                        </AppText>
+                    </LinearGradient>
+                </TouchableOpacityView>
+            </ImageBackground>
+            {/* <ImageBackground source={getHeaderImage()} resizeMode="cover" style={styles.headerContainer}>
+                <TouchableOpacityView onPress={() => NavigationService.goBack()} style={styles.closeButton} />
+            </ImageBackground> */}
 
-            <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1, backgroundColor: "#F5F7FA" }}>
+            {/* <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1, backgroundColor: "#F5F7FA" }}>
                 <View style={styles.PremiumText}>
                     <FastImage source={premiumIcon} resizeMode="contain" style={styles.pencilIcon} />
                     <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>{"  "}Choose {selectedTier === "Platinum" ? "Flame" : selectedTier === "Gold" ? "Spark" : selectedTier} Plans</AppText>
@@ -699,7 +818,7 @@ const SubscriptionScreen = ({ route }: any) => {
                         <AppText type={FORTEEN} weight={INTER_SEMI_BOLD}>No plans found for {selectedTier}</AppText>
                     </View>
                 )}
-            </ScrollView>
+            </ScrollView> */}
 
             <Modal
                 visible={verifyModalVisible}
@@ -806,11 +925,8 @@ const SubscriptionScreen = ({ route }: any) => {
                 </View>
             </Modal>
 
-            <View style={styles.bottomcontainer}>
-                {/* <AppText weight={INTER_REGULAR} type={TEN}>
-                    By tapping Upgrade, your payment will be charged, your subscriptions auto-renew unless canceled at least 24 hours before the current period ends. Manage your subscription anytime in settings and you agree to our
-                    <AppText style={{ textDecorationLine: "underline" }} weight={INTER_SEMI_BOLD} type={TEN}> Terms</AppText>
-                </AppText> */}
+            {/* <View style={styles.bottomcontainer}>
+               
                 <TouchableOpacityView
                     onPress={handlePurchase}
                     disabled={!!processing || currentTierPlans.length === 0}
@@ -844,7 +960,7 @@ const SubscriptionScreen = ({ route }: any) => {
                         </View>
                     </View>
                 )}
-            </View>
+            </View> */}
 
             <Modal
                 animationType="fade"
@@ -957,7 +1073,7 @@ const styles = StyleSheet.create({
     bottomcontainer: { paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp1, backgroundColor: colors.white },
     buttonContiner: { height: metrics.hp5, borderRadius: metrics.hp4, backgroundColor: colors.purple, alignItems: "center", justifyContent: "center", marginTop: metrics.hp2, marginBottom: metrics.hp1 },
     buttonDisabled: { opacity: 0.5 },
-    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', },
     discountContainer: {
         width: metrics.hp6_5,
         height: metrics.hp2,
@@ -1093,5 +1209,11 @@ const styles = StyleSheet.create({
         marginHorizontal: metrics.hp0_8,
         color: '#7C7C7C',
         fontSize: 10,
+    },
+    bottomLayer: {
+        width: "100%",
+        paddingVertical: metrics.hp2,
+        alignItems: "center",
+        backgroundColor: newColor.blackNew,
     },
 });

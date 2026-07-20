@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Linking, Platform, StyleSheet, View } from "react-native";
-import { Appleicon, applogo, callIcon, googleIcon, welcomeVideo } from "../../helper/ImageAssets";
+import { ImageBackground, Linking, Platform, StyleSheet, View } from "react-native";
+import { Appleicon, applogo, BottomLayer, callIcon, googleIcon, homeLandImage, welcomeVideo } from "../../helper/ImageAssets";
 import { Screen } from "../../theme/dimens";
 import FastImage from "react-native-fast-image";
 import SafeGifImage from "../../common/SafeGifImage";
 import metrics from "../../assets/Metrics";
-import { colors } from "../../theme/colors";
-import { AppText, FORTEEN, INTER_BOLD, INTER_REGULAR, WHITE } from "../../common/AppText";
+import { colors, newColor } from "../../theme/colors";
+import { AppText, BADSCRIPTREGALUR, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_REGULAR, SCHEHERAZADE_BOLD, SCHEHERAZADE_SEMI_BOLD, SIXTEEN, THIRTEEN, THIRTY, TWELVE, TWENTY, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_LOGIN_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_GANDER_SCREEN, NAVIGATION_LOGIN_SCREEN } from "../../navigation/routes";
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { GoogleAuthProvider, getAuth, signInWithCredential } from '@react-native-firebase/auth';
 import { useDispatch } from "react-redux";
@@ -102,6 +102,7 @@ const WelcomeScreen = () => {
                 fcmtoken: fcmtoken,
                 iosToken: null
             };
+            
             dispatch(userLogin(data, true))
             return signInWithCredential(getAuth(), googleCredential);
         } catch (error: any) {
@@ -149,20 +150,14 @@ const WelcomeScreen = () => {
     };
 
     return (
-        <AppSafeAreaView>
-            <SafeGifImage style={styles.welCom}
-                resizeMode="cover" source={welcomeVideo} />
+        <AppSafeAreaView color={newColor.blackNew}>
             <FastImage source={applogo} resizeMode="contain" style={styles.logo} />
+            <AppText style={{ textAlign: "center", }} weight={BADSCRIPTREGALUR} type={SIXTEEN} color={WHITE}>
+                Where Secrets Spark Love
+            </AppText>
+            <FastImage source={homeLandImage} resizeMode="contain" style={styles.homeLandImage} />
             <View style={styles.bottomContainer}>
-                <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_LOGIN_SCREEN)} style={styles.phoneContainer}>
-                    <View style={styles.callIconContainer}>
-                        <FastImage source={callIcon} resizeMode="contain" style={styles.callIcon} />
-                    </View>
-                    <AppText weight={INTER_BOLD} type={FORTEEN}>
-                        {"          "}Continue with Phone Number
-                    </AppText>
-                </TouchableOpacityView>
-                {Platform.OS === "ios" ?
+                {/* {Platform.OS === "ios" ?
                     <TouchableOpacityView onPress={onAppleButtonPress} style={[styles.phoneContainer, { marginTop: metrics.hp2 }]}>
                         <View style={styles.callIconContainer}>
                             <FastImage source={Appleicon} resizeMode="contain" style={[styles.callIcon, { height: metrics.hp3, width: metrics.hp3 }]} />
@@ -170,30 +165,22 @@ const WelcomeScreen = () => {
                         <AppText weight={INTER_BOLD} type={FORTEEN}>
                             {"                  "}Continue with Apple
                         </AppText>
-                    </TouchableOpacityView> : <></>}
-                <TouchableOpacityView onPress={onGoogleButtonPress} style={[styles.phoneContainer, { marginTop: metrics.hp2 }]}>
-                    <View style={styles.callIconContainer}>
+                    </TouchableOpacityView> : <></>} */}
+                <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
+                    <TouchableOpacityView onPress={onGoogleButtonPress} style={[styles.phoneContainer, { marginTop: metrics.hp4 }]}>
                         <FastImage source={googleIcon} resizeMode="contain" style={styles.googleIcon} />
-                    </View>
-                    <AppText weight={INTER_BOLD} type={FORTEEN}>
-                        {"                  "}Continue with Google
+                        <AppText weight={SCHEHERAZADE_BOLD} color={WHITE} type={TWENTY}>
+                            Continue with Google
+                        </AppText>
+                    </TouchableOpacityView>
+                    <AppText type={THIRTEEN} weight={INTER_MEDIUM} style={styles.adultsText}>
+                        For adults aged 18+ only
                     </AppText>
-                </TouchableOpacityView>
-                {/* Sign in with Apple: iOS only; follows Apple's design guidelines via official AppleButton */}
-                {/* {Platform.OS === "ios" && (
-                    <View style={styles.appleButtonWrapper}>
-                        <AppleButton
-                            buttonStyle={AppleButton.Style.WHITE}
-                            buttonType={AppleButton.Type.SIGN_IN}
-                            style={styles.appleButton}
-                            onPress={onAppleButtonPress}
-                        />
-                    </View>
-                )} */}
-                <AppText type={INTER_REGULAR} style={{ textAlign: "center", marginTop: metrics.hp3 }} color={WHITE}>
-                    By tapping Create Account or Sign In, you agree to our <AppText onPress={() => Linking.openURL("https://parpple.com/terms_conditions")} color={WHITE} type={INTER_REGULAR} style={{ textDecorationLine: "underline" }}>Terms &{'\n'} Services.</AppText> Learn how we process your data in our{'\n'}
-                    <AppText onPress={() => Linking.openURL("https://parpple.com/privacy_policy")} color={WHITE} type={INTER_REGULAR} style={{ textDecorationLine: "underline" }}>Privacy Policy</AppText> and <AppText onPress={() => Linking.openURL("https://parpple.com/")} color={WHITE} type={INTER_REGULAR} style={{ textDecorationLine: "underline" }}>Cookies Policy.</AppText>
-                </AppText>
+                    <AppText type={TWELVE} style={{ textAlign: "center", marginTop: metrics.hp0_5 }} color={WHITE}>
+                        By tapping Create Account or Sign In, you agree to our {'\n'}<AppText type={TWELVE} onPress={() => Linking.openURL("https://parpple.com/terms_conditions")} color={WHITE} style={{ textDecorationLine: "underline" }}>Terms & Services.{'\n'}</AppText>
+                    </AppText>
+                </ImageBackground>
+
             </View>
         </AppSafeAreaView>
     )
@@ -217,15 +204,17 @@ const styles = StyleSheet.create({
         width: Screen.Width,
         position: "absolute",
         bottom: Platform.OS === "ios" ? metrics.hp5 : metrics.hp0,
-        paddingHorizontal: metrics.hp2,
+        // paddingHorizontal: metrics.hp2,
         paddingVertical: metrics.hp3
     },
     phoneContainer: {
-        height: metrics.hp6,
-        backgroundColor: colors.white,
-        borderRadius: metrics.hp3,
+        height: metrics.hp7,
         flexDirection: "row",
-        alignItems: "center"
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: metrics.hp0_1,
+        borderColor: colors.white,
+        marginHorizontal: metrics.hp2,
     },
     callIconContainer: {
         height: metrics.hp5_5,
@@ -247,8 +236,9 @@ const styles = StyleSheet.create({
         width: metrics.hp2_5
     },
     googleIcon: {
-        height: metrics.hp4,
-        width: metrics.hp4
+        height: metrics.hp3,
+        width: metrics.hp3,
+        marginRight: metrics.hp1
     },
     // Sign in with Apple: wrapper for spacing; button uses Apple's official styling
     appleButtonWrapper: {
@@ -261,6 +251,22 @@ const styles = StyleSheet.create({
         height: metrics.hp6,
         borderRadius: metrics.hp3,
     },
+    homeLandImage: {
+        height: metrics.hp45, width: metrics.hp45,
+        alignSelf: "center",
+        marginTop: metrics.hp8
+    },
+    bottomLayer: {
+        height: metrics.hp30,
+        width: "100%",
+        paddingVertical: metrics.hp2,
+    },
+    adultsText: {
+        color: "#E6B7A8",
+        textAlign: "center",
+        marginTop: metrics.hp2_5
+    }
+
 })
 
 

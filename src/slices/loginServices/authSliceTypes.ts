@@ -162,6 +162,8 @@ export interface AuthState {
   recentMatches:[];
   receivedcrushNotes:[];
   showMessage:undefined;
+  turnOnData:[];
+  profileHide:any;
 }
 export interface DeviceTokenParams {
   merchantId: string;

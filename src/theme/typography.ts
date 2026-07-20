@@ -10,3 +10,5 @@ export const ScheherazadeNewBold: string = 'ScheherazadeNew-Bold';
 export const ScheherazadeNewMedium: string = 'ScheherazadeNew-Medium';
 export const ScheherazadeNewRegular: string = 'ScheherazadeNew-Regular';
 export const ScheherazadeNewSemiBold: string = 'ScheherazadeNew-SemiBold';
+export const BadScriptRegular: string = 'BadScript-Regular';
+

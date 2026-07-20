@@ -45,8 +45,8 @@ const AppSafeAreaView = ({
   ) : (
     <View style={[{ flex: 1, backgroundColor: color ? color : colors.white }, style]}>
       <StatusBar
-        backgroundColor={'black'}
-        barStyle="dark-content"
+        backgroundColor={'white'}
+        barStyle="light-content"
       />
       {children}
     </View>

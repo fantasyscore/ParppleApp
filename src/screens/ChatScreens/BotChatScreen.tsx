@@ -1,10 +1,10 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Bubble, GiftedChat, Time } from 'react-native-gifted-chat';
-import { AppIcon, backIcon, blackIcon, blockModalImage, blueTikeIcon, check, checks, emojiIcon, noccce, profileImage, rightBlack, sendButton, unmatchModalImage } from '../../helper/ImageAssets';
+import { AppIcon, backIcon, backIconNew, blackIcon, blockModalImage, blueTikeIcon, check, checks, emojiIcon, HeaderHomeBack, noccce, profileImage, rightBlack, sendButton, timeShowNewBackground, unmatchModalImage } from '../../helper/ImageAssets';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 import ChatHeader from '../../common/ChatHeader';
-import { StyleSheet, View, TextInput, KeyboardAvoidingView, Keyboard, Dimensions, Modal, Animated } from 'react-native';
-import { colors } from '../../theme/colors';
+import { StyleSheet, View, TextInput, KeyboardAvoidingView, Keyboard, Dimensions, Modal, Animated, ImageBackground } from 'react-native';
+import { colors, newColor } from '../../theme/colors';
 import metrics from '../../assets/Metrics';
 import { AppText, fontSize, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, PURPLE, SCHEHERAZADE_BOLD, SIXTEEN, TEN, TWELVE, TWENTY_FOUR, WHITE } from '../../common/AppText';
 import { TouchableOpacityView } from '../../common/TouchableOpacityView';
@@ -57,10 +57,9 @@ const BotChatScreen = () => {
     const displayText = isToday ? 'Today' : `${date.getDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.getMonth()]} ${date.getFullYear()}`;
 
     return (
-      <View style={{ alignSelf: 'center', marginVertical: 10 }}>
-        <AppText color={OPECITY_DARK} weight={INTER_SEMI_BOLD} type={TEN}>{displayText}</AppText>
-
-      </View>
+      <ImageBackground source={timeShowNewBackground} resizeMode='stretch' style={{ height: metrics.hp4, width: metrics.hp14, alignSelf: 'center', marginVertical: 10, alignItems: "center", justifyContent: "center" }} >
+        <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TEN}>{displayText}</AppText>
+      </ImageBackground>
     );
   }, []);
 
@@ -70,12 +69,12 @@ const BotChatScreen = () => {
         <Bubble
           {...props}
           wrapperStyle={{
-            left: { backgroundColor: '#FFFFFF', borderRadius: metrics.hp0_5, padding: metrics.hp0_2, marginBottom: metrics.hp1_2 },
-            right: { backgroundColor: '#EDE0FF', borderRadius: metrics.hp0_5, padding: metrics.hp0_2, paddingRight: metrics.hp3, marginBottom: metrics.hp1_2, marginRight: metrics.hp1, position: 'relative' },
+            left: { backgroundColor: '#7A4E40', borderRadius: metrics.hp0_5, padding: metrics.hp0_2, marginBottom: metrics.hp1_2 },
+            right: { backgroundColor: '#555359', borderRadius: metrics.hp0_5, padding: metrics.hp0_2, paddingRight: metrics.hp3, marginBottom: metrics.hp1_2, marginRight: metrics.hp1, position: 'relative' },
           }}
           textStyle={{
-            left: { color: 'black', fontSize: fontSize(14), fontFamily: interSemiBold },
-            right: { color: 'black', fontSize: fontSize(14), fontFamily: interSemiBold },
+            left: { color: 'white', fontSize: fontSize(14), fontFamily: interSemiBold },
+            right: { color: 'white', fontSize: fontSize(14), fontFamily: interSemiBold },
           }}
         />
 
@@ -96,7 +95,7 @@ const BotChatScreen = () => {
   const renderTime = (props: any) => {
     return (
       <View>
-        <Time {...props} timeTextStyle={{ left: { color: colors.darkOpecity }, right: { color: colors.darkOpecity } }} containerStyle={{ left: { marginTop: 2 }, right: { marginTop: 2 } }} />
+        {/* <Time {...props} timeTextStyle={{ left: { color: colors.darkOpecity }, right: { color: colors.darkOpecity } }} containerStyle={{ left: { marginTop: 2 }, right: { marginTop: 2 } }} /> */}
         {props?.currentMessage?.isMine ?
           <FastImage source={noccce} resizeMode='contain' style={{
             height: metrics.hp2, width: metrics.hp2_3, position: 'absolute',
@@ -104,7 +103,7 @@ const BotChatScreen = () => {
             right: -metrics.hp3_7,
           }} tintColor={"#EDE0FF"} /> :
           <FastImage
-            source={noccce} resizeMode='contain' style={{
+            source={noccce} tintColor={"#7A4E40"} resizeMode='contain' style={{
               height: metrics.hp2, width: metrics.hp2_3, position: 'absolute',
               bottom: -metrics.hp0_29,
               left: -metrics.hp1,
@@ -121,22 +120,19 @@ const BotChatScreen = () => {
   );
 
   return (
-    <AppSafeAreaView>
-      <View style={styles.container}>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <TouchableOpacityView onPress={() => NavigationService.goBack()}>
-            <FastImage source={backIcon} resizeMode="contain" style={styles.backIcon} />
-          </TouchableOpacityView>
-          <TouchableOpacityView style={{ flexDirection: "row", alignItems: "center" }}>
-            <FastImage source={AppIcon} resizeMode="contain" style={styles.profileImage} />
-            <AppText type={TWELVE} weight={INTER_BOLD}>{"  "}Parpple Team,
-            </AppText>
-            <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />
-          </TouchableOpacityView>
-        </View>
-        <TouchableOpacityView style={{ padding: metrics.hp1 }} disabled={true}>
+    <AppSafeAreaView color={newColor.blackNew}>
+      <ImageBackground source={HeaderHomeBack} resizeMode="stretch" style={[styles.bottomLayer]}>
+
+        <TouchableOpacityView style={{
+          flexDirection: "row", alignItems: "center", paddingHorizontal: metrics.hp2,
+          marginTop: metrics.hp4_5,
+        }} onPress={() => NavigationService.goBack()}>
+          <FastImage source={backIconNew} resizeMode="contain" style={styles.backIcon} />
+          <FastImage source={AppIcon} resizeMode="cover" style={styles.profileImage} />
+          <AppText type={TWELVE} color={WHITE} weight={INTER_BOLD}>{"    "}Parpple Team
+          </AppText>
         </TouchableOpacityView>
-      </View>
+      </ImageBackground>
       <View style={{ flex: 1 }}>
         <View style={styles.containerChat}>
           <GiftedChat
@@ -158,15 +154,20 @@ const BotChatScreen = () => {
 export default BotChatScreen;
 
 const styles = StyleSheet.create({
+  bottomLayer: {
+    height: metrics.hp13,
+    width: "100%",
+    paddingVertical: metrics.hp2,
+  },
   container: {
     paddingHorizontal: metrics.hp2, flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    backgroundColor: colors.white,
+    backgroundColor: newColor.blackNew,
     marginTop: metrics.hp4_5,
     height: metrics.hp5_5
   },
   backIcon: {
-    height: metrics.hp2_5,
-    width: metrics.hp2_5,
+    height: metrics.hp4,
+    width: metrics.hp4
   },
   profileImage: {
     height: metrics.hp4,
@@ -177,12 +178,12 @@ const styles = StyleSheet.create({
   blueTickIcon: {
     height: metrics.hp2,
     width: metrics.hp2,
-    marginTop:metrics.hp0_4
+    marginTop: metrics.hp0_4
   },
   tabContainer: { backgroundColor: colors.white, height: metrics.hp5, justifyContent: 'flex-end' },
   selectLine: { height: metrics.hp0_3, width: metrics.hp11, borderTopRightRadius: metrics.hp1, borderTopLeftRadius: metrics.hp1 },
   inTabContainer: { alignItems: 'center', justifyContent: 'center', flex: 1 },
-  containerChat: { flex: 1, backgroundColor: '#F5F7FA', paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp5 },
+  containerChat: { flex: 1, backgroundColor: newColor.blackNew, paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp5 },
   inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: metrics.hp2, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e0e0e0', paddingVertical: metrics.hp2 },
   textInput: { minHeight: metrics.hp4, maxHeight: metrics.hp8, fontSize: fontSize(13), width: "83%", fontFamily: interMedium, marginLeft: metrics.hp1 },
   sendButton: { backgroundColor: '#6F13F2', borderRadius: metrics.hp50, marginLeft: 6, justifyContent: 'center', alignItems: 'center', height: metrics.hp5_5, width: metrics.hp5_5 },

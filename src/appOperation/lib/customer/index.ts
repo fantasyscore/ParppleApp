@@ -9,6 +9,8 @@ export default (appOperation: AppOperation) => ({
     appOperation.post(`datting-profile/showProfiles`, data || {}, CUSTOMER_TYPE),
   swipeLikeDisLikeAPI: (data: any) =>
     appOperation.post(`datting-profile/swipe`, data, CUSTOMER_TYPE),
+  turnOnAPI: (data: any) =>
+    appOperation.post(`turn-ons/list`, data, CUSTOMER_TYPE),
   likesLikeYouAPI: () =>
     appOperation.post(`datting-profile/likesOnProfile`, {}, CUSTOMER_TYPE),
   youLikedAPI: () =>

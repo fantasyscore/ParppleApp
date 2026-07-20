@@ -1,13 +1,13 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { AppState, AppStateStatus, Platform } from 'react-native';
+import { AppState, AppStateStatus, ImageBackground, Platform } from 'react-native';
 import { Bubble, GiftedChat, Time } from 'react-native-gifted-chat';
-import { blackIcon, blockModalImage, check, checks, emojiIcon, noccce, profileImage, rightBlack, sendButton, unmatchModalImage } from '../../helper/ImageAssets';
+import { blackIcon, blockModalImage, BottomLayer, chatBottomBackgroundImage, check, checks, emojiIcon, noccce, profileImage, rightBlack, sendButton, sendMessageNewIcon, timeShowNewBackground, unmatchModalImage } from '../../helper/ImageAssets';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 import ChatHeader from '../../common/ChatHeader';
 import { StyleSheet, View, TextInput, KeyboardAvoidingView, Keyboard, Dimensions, Modal, Animated } from 'react-native';
-import { colors } from '../../theme/colors';
+import { colors, newColor } from '../../theme/colors';
 import metrics from '../../assets/Metrics';
-import { AppText, fontSize, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, PURPLE, SCHEHERAZADE_BOLD, SIXTEEN, TEN, TWELVE, TWENTY_FOUR, WHITE } from '../../common/AppText';
+import { AppText, BLACK, fontSize, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, OPECITY_DARK, PURPLE, SCHEHERAZADE_BOLD, SIXTEEN, TEN, TWELVE, TWENTY_FOUR, WHITE } from '../../common/AppText';
 import { TouchableOpacityView } from '../../common/TouchableOpacityView';
 import FastImage from 'react-native-fast-image';
 import { interMedium, interSemiBold } from '../../theme/typography';
@@ -101,7 +101,7 @@ const TakingScreen = () => {
         setEmojiVisible(false);
         setInputText('');
         setCurrentPage(1);
-        setHasMoreMessages(true);   
+        setHasMoreMessages(true);
         setIsLoadingMore(false);
         setIsInitialLoading(false);
         hasLoadedInitialMessages.current = false;
@@ -115,13 +115,13 @@ const TakingScreen = () => {
             const matchId = matchChatUserDetails?.matchId;
             if (matchId) {
                 dispatch(setActiveChatMatchId(matchId));
-                
+
                 // CRITICAL: Clear all notifications for this chat when opened
                 // This mimics WhatsApp behavior - when user opens chat directly, all notifications for that chat are cleared
                 clearNotificationsByMatchId(matchId).catch((error) => {
                     console.error('[TakingScreen] Error clearing notifications:', error);
                 });
-                
+
                 // CRITICAL: Reset unread count when chat is opened
                 const state: any = store?.getState?.();
                 const newMatches = state?.auth?.newMatches || [];
@@ -142,7 +142,7 @@ const TakingScreen = () => {
         }, [dispatch, matchChatUserDetails?.matchId, store])
     );
 
-    
+
     const transformChatHistoryToMessages = useCallback((history: any[]): ChatMessage[] => {
         if (!history || !Array.isArray(history) || history.length === 0) {
             return [];
@@ -185,7 +185,7 @@ const TakingScreen = () => {
                 : `cst:${String(senderIdKey)}:${String(createdAtKey)}:${String(messageText || '')}`;
             return {
                 _id: messageId || Date.now() + Math.random(),
-                text: String(messageText || ''), 
+                text: String(messageText || ''),
                 createdAt: createdAt,
                 user: {
                     _id: userId,
@@ -249,7 +249,7 @@ const TakingScreen = () => {
 
     const socketRef = useRef<any>(null);
     const [socketReconnectKey, setSocketReconnectKey] = useState(0);
-    
+
     const socket = useMemo(() => {
         if (!socketUrl) return null;
         // Disconnect old socket if exists
@@ -293,7 +293,7 @@ const TakingScreen = () => {
             console.log('User typing event received:', response);
             if (!response) return;
             const myUserId = userDataRef.current?._id;
-            const activeOtherUserId = activeOtherUserIdRef.current; 
+            const activeOtherUserId = activeOtherUserIdRef.current;
 
             const typingUserId =
                 response?.userId ||
@@ -412,7 +412,7 @@ const TakingScreen = () => {
                     const userId = incomingSenderId || matchChatUserDetailsRef.current?.userId || 'other';
                     const newMessage: ChatMessage = {
                         _id: messageId,
-                        text: String(messageText || ''), 
+                        text: String(messageText || ''),
                         createdAt: createdAt,
                         isMine: false,
                         user: {
@@ -432,7 +432,7 @@ const TakingScreen = () => {
                         const sorted = updated.sort((a, b) => {
                             const timeA = a.createdAt.getTime();
                             const timeB = b.createdAt.getTime();
-                            return timeB - timeA; 
+                            return timeB - timeA;
                         });
                         console.log('[TakingScreen] Messages updated, total count:', sorted.length);
                         return sorted;
@@ -450,7 +450,7 @@ const TakingScreen = () => {
         };
         // Log socket connection status
         console.log('[TakingScreen] Setting up socket listeners, connected:', socket.connected);
-        
+
         socket.on('connect', () => {
             console.log('[TakingScreen] Socket connected successfully');
         });
@@ -465,7 +465,7 @@ const TakingScreen = () => {
 
         // CRITICAL: Remove all existing listeners first to prevent duplicates
         socket.removeAllListeners?.();
-        
+
         socket.on('connected', handleConnected);
         socket.on('newMatch', handleNewMatch);
         socket.on('superLike', handleSuperLike);
@@ -474,7 +474,7 @@ const TakingScreen = () => {
         socket.on('newMessage', handleIncomingMessage);
         socket.on('message_marked_read', handleMessageMarkedRead);
         socket.on('user_typing', handleUserTyping);
-        
+
         return () => {
             // CRITICAL: Clean up all listeners to prevent memory leaks and duplicate events
             try {
@@ -500,7 +500,7 @@ const TakingScreen = () => {
     useEffect(() => {
         const handleAppStateChange = (nextAppState: AppStateStatus) => {
             console.log('[TakingScreen] App state changed:', nextAppState);
-            
+
             if (nextAppState === 'active') {
                 // App is coming to foreground - reconnect socket if needed
                 // Socket was disconnected by GlobalNotificationManager on background
@@ -623,7 +623,7 @@ const TakingScreen = () => {
                         combined.sort((a, b) => {
                             const timeA = a.createdAt.getTime();
                             const timeB = b.createdAt.getTime();
-                            return timeB - timeA; 
+                            return timeB - timeA;
                         });
                         console.log('Total messages after prepend:', combined.length);
                         return combined;
@@ -690,7 +690,7 @@ const TakingScreen = () => {
             return updated.sort((a, b) => {
                 const timeA = a.createdAt.getTime();
                 const timeB = b.createdAt.getTime();
-                return timeB - timeA; 
+                return timeB - timeA;
             });
         });
         setInputText('');
@@ -716,10 +716,10 @@ const TakingScreen = () => {
         const displayText = isToday ? 'Today' : `${date.getDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.getMonth()]} ${date.getFullYear()}`;
 
         return (
-            <View style={{ alignSelf: 'center', marginVertical: 10 }}>
-                <AppText color={OPECITY_DARK} weight={INTER_SEMI_BOLD} type={TEN}>{displayText}</AppText>
+            <ImageBackground source={timeShowNewBackground} resizeMode='stretch' style={{ height: metrics.hp4, width: metrics.hp14, alignSelf: 'center', marginVertical: 10, alignItems: "center", justifyContent: "center" }} >
+                <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TEN}>{displayText}</AppText>
+            </ImageBackground>
 
-            </View>
         );
     }, []);
 
@@ -737,25 +737,26 @@ const TakingScreen = () => {
                 <Bubble
                     {...props}
                     wrapperStyle={{
-                        left: { backgroundColor: '#FFFFFF', borderRadius: metrics.hp0_5, padding: metrics.hp0_2, marginBottom: metrics.hp1_2 },
-                        right: { backgroundColor: '#EDE0FF', borderRadius: metrics.hp0_5, padding: metrics.hp0_2, paddingRight: metrics.hp3, marginBottom: metrics.hp1_2, marginRight: metrics.hp1, position: 'relative' },
+                        left: { backgroundColor: '#7A4E40', borderRadius: metrics.hp0_5, padding: metrics.hp0_2, marginBottom: metrics.hp1_2 },
+                        right: { backgroundColor: '#555359', borderRadius: metrics.hp0_5, padding: metrics.hp0_2, paddingRight: metrics.hp3, marginBottom: metrics.hp1_2, marginRight: metrics.hp1, position: 'relative' },
                     }}
                     textStyle={{
-                        left: { color: 'black', fontSize: fontSize(14), fontFamily: interSemiBold },
-                        right: { color: 'black', fontSize: fontSize(14), fontFamily: interSemiBold },
+                        left: { color: 'white', fontSize: fontSize(14), fontFamily: interSemiBold },
+                        right: { color: 'white', fontSize: fontSize(14), fontFamily: interSemiBold },
                     }}
                 />
-                {isCurrentUser && (
+                {/* {isCurrentUser && (
                     <View style={styles.readReceiptContainer}>
                         <FastImage
                             source={isRead ? checks : check}
                             resizeMode="contain"
+                            tintColor={colors.white}
                             style={[
                                 isRead ? styles.readReceiptIcon : styles.readReceiptIconUnread,
                             ]}
                         />
                     </View>
-                )}
+                )} */}
 
             </View>
         );
@@ -794,15 +795,15 @@ const TakingScreen = () => {
         if (props.currentMessage?._id === 'typing-indicator') return null;
         return (
             <View>
-                <Time {...props} timeTextStyle={{ left: { color: colors.darkOpecity }, right: { color: colors.darkOpecity } }} containerStyle={{ left: { marginTop: 2 }, right: { marginTop: 2 } }} />
+                {/* <Time {...props} timeTextStyle={{ left: { color: colors.white }, right: { color: colors.white } }} containerStyle={{ left: { marginTop: 2 }, right: { marginTop: 2 } }} /> */}
                 {props?.currentMessage?.isMine ?
                     <FastImage source={noccce} resizeMode='contain' style={{
                         height: metrics.hp2, width: metrics.hp2_3, position: 'absolute',
                         bottom: -metrics.hp0_29,
                         right: -metrics.hp3_7,
-                    }} tintColor={"#EDE0FF"} /> :
+                    }} tintColor={"#555359"} /> :
                     <FastImage
-                        source={noccce} resizeMode='contain' style={{
+                        source={noccce} tintColor={"#7A4E40"}  resizeMode='contain' style={{
                             height: metrics.hp2, width: metrics.hp2_3, position: 'absolute',
                             bottom: -metrics.hp0_29,
                             left: -metrics.hp1,
@@ -906,8 +907,60 @@ const TakingScreen = () => {
     };
 
     const renderCustomInput = () => (
-        <KeyboardAvoidingView keyboardVerticalOffset={80} style={styles.inputContainer}>
+        <KeyboardAvoidingView keyboardVerticalOffset={80} style={{backgroundColor:newColor.blackNew}} /* style={styles.inputContainer} */>
+            <ImageBackground  source={chatBottomBackgroundImage} resizeMode="stretch" style={styles.inputContainer}>
             <View style={styles.inputContainerType}>
+                <TextInput
+                    style={styles.textInput}
+                    value={inputText}
+                    onChangeText={(text) => {
+                        setInputText(text);
+                        if (text.length > 0) {
+                            handleTypingStart();
+                            handleTypingStop();
+                        } else {
+                            if (typingTimeoutRef.current) {
+                                clearTimeout(typingTimeoutRef.current);
+                                typingTimeoutRef.current = null;
+                            }
+                            emitTypingStatus(false);
+                        }
+                    }}
+                    onFocus={() => {
+                        if (inputText.length > 0) {
+                            handleTypingStart();
+                        }
+                    }}
+                    onBlur={() => {
+                        if (typingTimeoutRef.current) {
+                            clearTimeout(typingTimeoutRef.current);
+                            typingTimeoutRef.current = null;
+                        }
+                        emitTypingStatus(false);
+                    }}
+                    placeholder="Type a message..."
+                    placeholderTextColor={colors.white}
+                    multiline
+                />
+            </View>
+            <TouchableOpacityView
+                style={styles.sendButton}
+                onPress={() => {
+                    if (inputText.trim().length > 0) {
+                        console.log("Hello")
+                        onSend([{
+                            _id: Math.random(),
+                            text: inputText,
+                            createdAt: new Date(),
+                            isMine: true,
+                            user: { _id: USER_ID, name: 'Gurrent User', avatar: profileImage }
+                        }]);
+                    }
+                }}>
+                <FastImage source={sendMessageNewIcon} resizeMode='contain' style={{ height: metrics.hp5_5, width: metrics.hp5_5 }} />
+            </TouchableOpacityView>
+            </ImageBackground>
+            {/* <View style={styles.inputContainerType}>
                 <TextInput
                     style={styles.textInput}
                     value={inputText}
@@ -956,7 +1009,7 @@ const TakingScreen = () => {
                     }
                 }}>
                 <FastImage source={sendButton} resizeMode='contain' style={{ height: metrics.hp3, width: metrics.hp3 }} />
-            </TouchableOpacityView>
+            </TouchableOpacityView> */}
         </KeyboardAvoidingView>
     );
     const onthreedot = (index: any) => {
@@ -966,73 +1019,52 @@ const TakingScreen = () => {
 
     }
     return (
-        <AppSafeAreaView>
+        <AppSafeAreaView color={newColor.blackNew}>
             <ChatHeader setTabSelect={setTabSelect} onPress={() => refFilter?.current?.open()} />
-
-            <View style={styles.tabContainer}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <TouchableOpacityView onPress={() => setTabSelect('Chat')} style={[styles.inTabContainer,{ height:metrics.hp4}]}>
-                        <AppText type={TWELVE} weight={INTER_BOLD} color={tabSelect === 'Chat' ? PURPLE : OPECITY_DARK}>Chat</AppText>
-                        <View style={[styles.selectLine, { backgroundColor: tabSelect === 'Chat' ? colors.purple : colors.transparent,  marginTop:metrics.hp0_5, marginBottom:-metrics.hp1_1  }]} />
-                    </TouchableOpacityView>
-                    <AppText type={SIXTEEN} style={{ color: "#C3B7D0" }}>
-                        /
-                    </AppText>
-                    <TouchableOpacityView onPress={() => setTabSelect('Profile')} style={[styles.inTabContainer,{ height:metrics.hp4}]}>
-                        <AppText type={TWELVE} weight={INTER_BOLD} color={tabSelect === 'Profile' ? PURPLE : OPECITY_DARK}>Profile</AppText>
-                        <View style={[styles.selectLine, { backgroundColor: tabSelect === 'Profile' ? colors.purple : colors.transparent,marginTop:metrics.hp0_5, marginBottom:-metrics.hp1_1 }]} />
-                    </TouchableOpacityView>
+            <View style={{ flex: 1 }}>
+                <View style={styles.containerChat}>
+                    <GiftedChat
+                        messages={displayedMessages}
+                        onSend={onSend}
+                        user={{ _id: USER_ID, name: 'Gurrent User', avatar: profileImage }}
+                        renderAvatar={renderAvatar}
+                        renderBubble={renderBubble}
+                        renderDay={renderDay}
+                        renderTime={renderTime}
+                        renderInputToolbar={renderCustomInput}
+                        showUserAvatar={false}
+                        onLoadEarlier={loadOlderMessages}
+                        loadEarlier={hasMoreMessages && !isLoadingMore}
+                        isLoadingEarlier={isLoadingMore}
+                        infiniteScroll={true}
+                        renderLoadEarlier={() => {
+                            if (!hasMoreMessages) return null;
+                            if (isLoadingMore) {
+                                return (
+                                    <View style={{ paddingVertical: 10, alignItems: 'center' }}>
+                                        <ActivityIndicator size="small" color={colors.purple} />
+                                    </View>
+                                );
+                            }
+                            return null;
+                        }}
+                    />
+                    {isChatTransitioning && (
+                        <View style={styles.loaderContainer}>
+                            <ActivityIndicator size="large" color={colors.purple} />
+                        </View>
+                    )}
                 </View>
             </View>
 
-            {tabSelect == "Chat" ?
-                <View style={{ flex: 1 }}>
-                    <View style={styles.containerChat}>
-                        <GiftedChat
-                            messages={displayedMessages}
-                            onSend={onSend}
-                            user={{ _id: USER_ID, name: 'Gurrent User', avatar: profileImage }}
-                            renderAvatar={renderAvatar}
-                            renderBubble={renderBubble}
-                            renderDay={renderDay}
-                            renderTime={renderTime}
-                            renderInputToolbar={renderCustomInput}
-                            showUserAvatar={false}
-                            onLoadEarlier={loadOlderMessages}
-                            loadEarlier={hasMoreMessages && !isLoadingMore}
-                            isLoadingEarlier={isLoadingMore}
-                            infiniteScroll={true}
-                            renderLoadEarlier={() => {
-                                if (!hasMoreMessages) return null;
-                                if (isLoadingMore) {
-                                    return (
-                                        <View style={{ paddingVertical: 10, alignItems: 'center' }}>
-                                            <ActivityIndicator size="small" color={colors.purple} />
-                                        </View>
-                                    );
-                                }
-                                return null;
-                            }}
-                        />
-                        {isChatTransitioning && (
-                            <View style={styles.loaderContainer}>
-                                <ActivityIndicator size="large" color={colors.purple} />
-                            </View>
-                        )}
-                    </View>
-                </View> :
-                <View style={{ flex: 1 }}>
-                    <ChatProfileScreen always={true} />
-                </View>
-            }
             <RBSheet ref={refFilter} openDuration={100}
                 height={Dimensions.get('window').height / 3.10}
                 customStyles={{
                     wrapper: {
-                        backgroundColor: '#00000080',
+                        backgroundColor: "#00000020",
                     },
                     container: {
-                        backgroundColor: colors.white,
+                        backgroundColor: "#151517",
                         borderTopLeftRadius: metrics.hp2,
                         borderTopRightRadius: metrics.hp2
                     }
@@ -1043,10 +1075,10 @@ const TakingScreen = () => {
                             <TouchableOpacityView onPress={() => onthreedot(index)} key={index} style={styles.containerViewRb}>
                                 <FastImage source={item.icon} resizeMode='contain' style={styles.rbIcon} />
                                 <View style={styles.textContainerRb}>
-                                    <AppText type={FORTEEN} weight={INTER_SEMI_BOLD}>
+                                    <AppText type={FORTEEN} weight={INTER_SEMI_BOLD} color={WHITE}>
                                         {item.headLine}{" "}{matchChatUserDetails?.name}
                                     </AppText>
-                                    <AppText type={TEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                                    <AppText type={TEN} weight={INTER_MEDIUM} color={WHITE}>
                                         {item.disLine}
                                     </AppText>
                                 </View>
@@ -1064,18 +1096,18 @@ const TakingScreen = () => {
                     <View style={styles.centeredView}>
                         <View style={styles.confirmContainer}>
                             <FastImage source={unmatchModalImage} resizeMode="stretch" style={styles.bdyBack} />
-                            <AppText style={{ textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK}>
+                            <AppText style={{ textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={WHITE}>
                                 Would you like to
                             </AppText>
-                            <AppText style={{ marginTop: -metrics.hp3, textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK}>
+                            <AppText style={{ marginTop: -metrics.hp3, textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={WHITE}>
                                 Unmatch this user?
                             </AppText>
-                            <TouchableOpacityView onPress={() => unMatchButton()} style={[styles.ediButton, { backgroundColor: colors.purple, marginTop: metrics.hp0 }]}>
-                                <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
+                            <TouchableOpacityView onPress={() => unMatchButton()} style={[styles.ediButton, { backgroundColor: "#E6B7A8", marginTop: metrics.hp0 }]}>
+                                <AppText color={BLACK} weight={INTER_SEMI_BOLD} type={TWELVE}>
                                     Yes, Unmatch
                                 </AppText>
                             </TouchableOpacityView>
-                            <AppText onPress={() => setModalVisible(false)} weight={INTER_SEMI_BOLD} type={TWELVE} style={{ textAlign: "center", marginTop: metrics.hp2 }} color={LIGHT_BLACK}>
+                            <AppText onPress={() => setModalVisible(false)} weight={INTER_SEMI_BOLD} type={TWELVE} style={{ textAlign: "center", marginTop: metrics.hp2 }} color={WHITE}>
                                 No, cancel
                             </AppText>
                         </View>
@@ -1084,18 +1116,18 @@ const TakingScreen = () => {
                     <View style={styles.centeredView}>
                         <View style={[styles.confirmContainer, { height: metrics.hp42, }]}>
                             <FastImage source={blockModalImage} resizeMode="stretch" style={[styles.bdyBack, { height: metrics.hp18 }]} />
-                            <AppText style={{ textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={LIGHT_BLACK}>
+                            <AppText style={{ textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={WHITE}>
                                 Block {matchChatUserDetails?.name}?
                             </AppText>
-                            <AppText style={{ marginTop: -metrics.hp2, textAlign: "center" }} type={TWELVE} weight={INTER_MEDIUM} color={OPECITY_DARK}>
+                            <AppText style={{ marginTop: -metrics.hp2, textAlign: "center" }} type={TWELVE} weight={INTER_MEDIUM} color={OPECITY}>
                                 You won’t be able to undo this. You sure{'\n'} to continue?
                             </AppText>
-                            <TouchableOpacityView onPress={() => unBlockButton()} style={[styles.ediButton, { backgroundColor: colors.purple, marginTop: metrics.hp2 }]}>
-                                <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
+                            <TouchableOpacityView onPress={() => unBlockButton()} style={[styles.ediButton, { backgroundColor: "#E6B7A8", marginTop: metrics.hp2 }]}>
+                                <AppText color={BLACK} weight={INTER_SEMI_BOLD} type={TWELVE}>
                                     Yes, Block
                                 </AppText>
                             </TouchableOpacityView>
-                            <AppText onPress={() => setModalVisible(false)} weight={INTER_SEMI_BOLD} type={TWELVE} style={{ textAlign: "center", marginTop: metrics.hp2 }} color={LIGHT_BLACK}>
+                            <AppText onPress={() => setModalVisible(false)} weight={INTER_SEMI_BOLD} type={TWELVE} style={{ textAlign: "center", marginTop: metrics.hp2 }} color={WHITE}>
                                 No, cancel
                             </AppText>
                         </View>
@@ -1108,18 +1140,18 @@ const TakingScreen = () => {
 export default TakingScreen;
 
 const styles = StyleSheet.create({
-    tabContainer: { backgroundColor: colors.white, height: metrics.hp5, justifyContent: 'flex-end' },
+    tabContainer: { backgroundColor: newColor.blackNew, height: metrics.hp5, justifyContent: 'flex-end' },
     selectLine: { height: metrics.hp0_3, width: "80%", borderTopRightRadius: metrics.hp1, borderTopLeftRadius: metrics.hp1, },
     inTabContainer: { alignItems: 'center', justifyContent: 'center', flex: 1 },
-    containerChat: { flex: 1, backgroundColor: '#F5F7FA' },
-    inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: metrics.hp2, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e0e0e0', paddingVertical: metrics.hp2 },
-    textInput: { minHeight: metrics.hp4, maxHeight: metrics.hp8, fontSize: fontSize(13), width: "83%", fontFamily: interMedium, marginLeft: metrics.hp1, marginTop:Platform.OS === "ios"? metrics.hp1:0 },
-    sendButton: { backgroundColor: '#6F13F2', borderRadius: metrics.hp50, marginLeft: 6, justifyContent: 'center', alignItems: 'center', height: metrics.hp5_5, width: metrics.hp5_5 },
-    inputContainerType: { borderWidth: metrics.hp0_1, borderColor: colors.nanoOpecity, borderRadius: metrics.hp5, paddingHorizontal: metrics.hp1, alignItems: 'center', justifyContent: 'space-between', flexDirection: 'row', paddingVertical: metrics.hp0_5 },
+    containerChat: { flex: 1, backgroundColor: newColor.blackNew },
+    inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: metrics.hp2, backgroundColor: colors.transparent,paddingVertical: metrics.hp3 },
+    textInput: { minHeight: metrics.hp4, maxHeight: metrics.hp8, fontSize: fontSize(13), width: "83%", fontFamily: interMedium, marginLeft: metrics.hp1, marginTop: Platform.OS === "ios" ? metrics.hp1 : 0, color:colors.white },
+    sendButton: { /* backgroundColor: '#6F13F2', borderRadius: metrics.hp50, */ marginLeft: 6, /* justifyContent: 'center', alignItems: 'center', */ height: metrics.hp5_5, width: metrics.hp5_5 },
+    inputContainerType: { borderWidth: metrics.hp0_1, borderColor: "#C4C4C447", borderRadius: metrics.hp5, paddingHorizontal: metrics.hp1, alignItems: 'center', justifyContent: 'space-between', flexDirection: 'row', paddingVertical: metrics.hp0_5 , backgroundColor:"#212123"},
     emojiIcon: { height: metrics.hp3, width: metrics.hp3 },
     containerRb: { paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp2 },
-    containerViewRb: { paddingHorizontal: metrics.hp1, paddingVertical: metrics.hp2, flexDirection: "row", backgroundColor: colors.lightBack, marginBottom: metrics.hp0_5, borderRadius: metrics.hp1_5 },
-    rbIcon: { height: metrics.hp2_5, width: metrics.hp2_5, marginTop: metrics.hp0_5 },
+    containerViewRb: { paddingHorizontal: metrics.hp1, paddingVertical: metrics.hp2, flexDirection: "row", backgroundColor: "#212123", marginBottom: metrics.hp0_5, borderRadius: metrics.hp1_5 },
+    rbIcon: { height: metrics.hp2_5, width: metrics.hp2_5, marginTop: metrics.hp0_5, marginLeft:metrics.hp1 },
     textContainerRb: { paddingLeft: metrics.hp2, paddingRight: metrics.hp5 },
     centeredView: {
         flex: 1,
@@ -1130,7 +1162,7 @@ const styles = StyleSheet.create({
     },
     confirmContainer: {
         height: metrics.hp40,
-        backgroundColor: colors.white,
+        backgroundColor: "#212123",
         width: Screen.Width / 1.20,
         borderRadius: metrics.hp2,
     },
@@ -1143,7 +1175,7 @@ const styles = StyleSheet.create({
     ediButton: {
         height: metrics.hp5,
         borderWidth: 1,
-        borderColor: colors.purple,
+        borderColor: "#E6B7A810",
         borderRadius: metrics.hp4,
         alignItems: "center",
         justifyContent: "center",

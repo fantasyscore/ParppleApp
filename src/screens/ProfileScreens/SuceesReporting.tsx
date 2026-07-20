@@ -4,18 +4,18 @@ import { StyleSheet, View } from "react-native";
 import FastImage from "react-native-fast-image";
 import { rightSuccesIcon } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
-import { AppText, EIGHTEEN, FORTEEN, INTER_BOLD, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, TWELVE, WHITE } from "../../common/AppText";
+import { AppText, EIGHTEEN, FORTEEN, INTER_BOLD, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, SCHEHERAZADE_BOLD, TWELVE, TWENTY, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_CHATS_SCREEN } from "../../navigation/routes";
-import { colors } from "../../theme/colors";
+import { colors, newColor } from "../../theme/colors";
 
 const SuceesReporting = () => {
     return (
-        <AppSafeAreaView>
+        <AppSafeAreaView color={newColor.blackNew}>
             <View style={{ flex: 1 }}>
                 <FastImage source={rightSuccesIcon} resizeMode="cover" style={styles.icons} />
-                <AppText style={{ textAlign: "center" }} type={EIGHTEEN} weight={INTER_BOLD} color={LIGHT_BLACK}>
+                <AppText style={{ textAlign: "center" }} type={EIGHTEEN} weight={INTER_BOLD} color={WHITE}>
                     Thank you for reporting.
                 </AppText>
                 <AppText style={{ textAlign: "center", marginTop: metrics.hp1 }} type={TWELVE} weight={INTER_REGULAR} color={OPECITY_DARK}>
@@ -30,9 +30,9 @@ const SuceesReporting = () => {
                         NavigationService.goBack();
                         NavigationService.reset(NAVIGATION_CHATS_SCREEN);
                     }}
-                    style={[styles.button, { backgroundColor: colors.purple }]}
+                    style={styles.button}
                 >
-                    <AppText type={FORTEEN} weight={INTER_SEMI_BOLD} color={WHITE}>
+                    <AppText type={TWENTY} weight={SCHEHERAZADE_BOLD} color={ WHITE }>
                         Done
                     </AppText>
                 </TouchableOpacityView>
@@ -51,13 +51,14 @@ const styles = StyleSheet.create({
     buttonContainer: {
         paddingHorizontal: metrics.hp2,
         paddingVertical: metrics.hp2,
-        borderTopWidth: metrics.hp0_2,
-        borderTopColor: colors.nanoOpecity
+        // borderTopWidth: metrics.hp0_2,
+        // borderTopColor: colors.nanoOpecity
     },
     button: {
-        height: metrics.hp5,
-        borderRadius: metrics.hp4,
+        height: metrics.hp6,
         alignItems: "center",
-        justifyContent: "center"
+        justifyContent: "center",
+        borderColor: "#FAFAFA",
+        borderWidth: metrics.hp0_1,
     },
 })

@@ -4,6 +4,7 @@ import {
     StyleSheet,
     View,
     Platform,
+    ImageBackground,
 } from "react-native";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import HeaderCommon from "../../common/HeaderCommon";
@@ -11,30 +12,38 @@ import TopCommonLine from "../../common/TopCommonLine";
 import metrics from "../../assets/Metrics";
 import {
     AppText,
+    EIGHTEEN,
+    ELEVEN,
     fontSize,
     INTER_MEDIUM,
+    INTER_REGULAR,
     INTER_SEMI_BOLD,
     LIGHT_BLACK,
     OPECITY,
     SCHEHERAZADE_BOLD,
+    SCHEHERAZADE_SEMI_BOLD,
     SIXTEEN,
+    THIRTEEN,
     TWELVE,
+    TWENTY_FOUR,
     WHITE,
 } from "../../common/AppText";
-import { colors } from "../../theme/colors";
+import { colors, newColor } from "../../theme/colors";
 import FastImage from "react-native-fast-image";
 import GoButton from "../../common/GoButton";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { Screen } from "../../theme/dimens";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_LOCATION_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_HEIGHT_SCREEN, NAVIGATION_LOCATION_SCREEN } from "../../navigation/routes";
 import { toastAlert } from "../../actions/UploadImageActions";
 import { useDispatch, useSelector } from "react-redux";
 import { setAddProfile } from "../../slices/loginServices/authSlice";
 import LinearGradient from "react-native-linear-gradient";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { bdyBack, calendarIcon, dobIcon } from "../../helper/ImageAssets";
+import { applogo, bdyBack, BottomLayer, calendarIcon, dobIcon, dobImage } from "../../helper/ImageAssets";
 import DubleTextLine from "../../common/DubleTextLine";
+import DOBPicker from "../../components/DOBPicker";
+import { BlurView } from "@react-native-community/blur";
 
 const DobScreen = () => {
     const dispatch = useDispatch();
@@ -88,7 +97,7 @@ const DobScreen = () => {
             })
         );
         setModalVisible(false);
-        NavigationService.navigate(NAVIGATION_LOCATION_SCREEN);
+        NavigationService.navigate(NAVIGATION_HEIGHT_SCREEN);
     };
 
     const openPicker = () => {
@@ -100,8 +109,170 @@ const DobScreen = () => {
     };
 
     return (
-        <AppSafeAreaView>
-            <HeaderCommon />
+        <AppSafeAreaView color={newColor.blackNew}>
+            <FastImage source={applogo} resizeMode="contain" style={styles.logo} />
+            <FastImage source={dobImage} resizeMode="contain" style={styles.homeLandImage} />
+
+            <View style={{ position: "absolute", bottom: metrics.hp0, width: Screen.Width, }}>
+                <View style={{
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: metrics.hp5
+
+                }}>
+                    <AppText style={{ textAlign: "center" }} weight={SCHEHERAZADE_SEMI_BOLD} type={TWENTY_FOUR} color={WHITE}>
+                        When do you celebrate your
+                    </AppText>
+                    <AppText style={{ textAlign: "center", marginTop: -metrics.hp3 }} weight={SCHEHERAZADE_SEMI_BOLD} type={TWENTY_FOUR} color={WHITE}>
+                        birthday?
+                    </AppText>
+                    <AppText style={{ textAlign: "center", marginBottom: -metrics.hp2 }} type={THIRTEEN} weight={INTER_REGULAR} color={WHITE}>
+                        Choose you date of birth
+                    </AppText>
+                </View>
+                <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
+                    <View style={{ marginHorizontal: metrics.hp2 }}>
+                        <TouchableOpacityView onPress={openPicker} style={styles.dobContainer}>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                {dateDigits.map((digit, index) => (
+                                    <View
+                                        key={index}
+                                        style={[
+                                            styles.ddContainer,
+                                            {
+                                                marginLeft:
+                                                    index === 0
+                                                        ? 0
+                                                        : index === 2 || index === 4
+                                                            ? metrics.hp1_5
+                                                            : metrics.hp1,
+                                            },
+                                        ]}
+                                    >
+                                        <AppText
+                                            type={SIXTEEN}
+                                            weight={INTER_MEDIUM}
+                                            color={date ? WHITE : OPECITY}
+                                        >
+                                            {digit}
+                                        </AppText>
+                                        <View style={styles.ddLine} />
+                                    </View>
+                                ))}
+                            </View>
+
+                            <FastImage
+                                source={calendarIcon}
+                                resizeMode="contain"
+                                tintColor={colors.white}
+                                style={{ height: metrics.hp2_5, width: metrics.hp2_5, marginTop: metrics.hp0_5, marginLeft: metrics.hp2 }}
+                            />
+                        </TouchableOpacityView>
+
+                        <AppText
+                            style={{ marginTop: metrics.hp1, textAlign: "center", opacity: 0.5 }}
+                            color={OPECITY}
+                            weight={INTER_MEDIUM}
+                            type={TWELVE}
+                        >
+                            We’ll use this to calculate your age.
+                        </AppText>
+                    </View>
+                </ImageBackground>
+            </View>
+
+            {Platform.OS === "android" && (
+                <DOBPicker
+                    visible={showAndroidPicker}
+                    onClose={() => setShowAndroidPicker(false)}
+                    initialDate={date || new Date(1998, 6, 17)}
+                    onConfirm={(selectedDate) => {
+                        setDate(selectedDate);
+                        setTimeout(() => {
+                            setModalVisible(true);
+                        }, 500);
+                    }}
+                />
+            )}
+
+            <Modal transparent animationType="slide" visible={showIOSPicker}>
+                <TouchableOpacityView onPress={() => setShowIOSPicker(false)} style={styles.iosOverlay}>
+                    <TouchableOpacityView activeOpacity={0} onPress={() => console.log("")} style={styles.iosContainer}>
+                        <DateTimePicker
+                            value={date || minAgeDate}
+                            mode="date"
+                            display="spinner"
+                            textColor="black"
+                            themeVariant="light"
+                            maximumDate={minAgeDate}
+                            onChange={(e, selectedDate) => {
+                                if (selectedDate) setDate(selectedDate);
+                            }}
+                        />
+
+                        <LinearGradient
+                            style={{ position: "absolute", right: metrics.hp1, bottom: metrics.hp2 }}
+                            colors={["#ffffff50", colors.white, colors.white]}
+                        >
+                            <View style={{ marginTop: metrics.hp0 }}>
+                                <GoButton
+                                    colortrue={date}
+                                    onPress={() => {
+                                        if (!formattedDate) {
+                                            toastAlert.showToastError("Please add your DOB")
+                                        } else {
+                                            setShowIOSPicker(false)
+                                            setModalVisible(true)
+                                        }
+                                        // !formattedDate
+                                        //     ? toastAlert.showToastError("Please add your DOB")
+                                        //     : setShowIOSPicker(false)
+                                    }
+                                    }
+                                />
+                            </View>
+                        </LinearGradient>
+                    </TouchableOpacityView>
+                </TouchableOpacityView>
+            </Modal>
+            <Modal transparent animationType="fade" visible={modalVisible}>
+                <BlurView
+                   style={StyleSheet.absoluteFillObject}
+                   blurType="dark"
+                   blurAmount={0.2}
+                />
+                <View style={styles.centeredView}>
+                    <View style={styles.confirmContainer}>
+                        <FastImage source={bdyBack} style={styles.bdyBack} />
+
+                        <AppText
+                            weight={SCHEHERAZADE_BOLD}
+                            style={{ fontSize: fontSize(30), textAlign: "center", color: "#FDD2C1", marginTop: -metrics.hp1 }}
+                        >
+                            {date ? `You’re ${calculateAge(date)}` : ""}
+                        </AppText>
+
+                        <AppText color={WHITE} style={{ textAlign: "center", marginTop: -metrics.hp2 }} type={TWELVE}>
+                            Born {formatDate(date)}
+                        </AppText>
+                        <AppText color={WHITE} style={{ textAlign: "center", marginTop: metrics.hp1 }} type={ELEVEN} weight={INTER_REGULAR}>
+                            Can’t change later. Confirm it now.
+                        </AppText>
+                        <TouchableOpacityView activeOpacity={1} onPress={onSubmit} style={{ height: metrics.hp5, width: "90%", backgroundColor: "#212123", alignSelf: "center", justifyContent: "center", alignItems: "center", marginBottom: metrics.hp2, marginTop: metrics.hp2 }}>
+                            <AppText color={WHITE} type={SIXTEEN} weight={INTER_SEMI_BOLD}>
+                                Confirm
+                            </AppText>
+                        </TouchableOpacityView>
+                    </View>
+                    <TouchableOpacityView style={{ width: "90%", paddingVertical: metrics.hp2, alignItems: "center", justifyContent: "center" }} onPress={() => setModalVisible(false)}>
+                        <AppText color={WHITE} type={SIXTEEN} weight={INTER_SEMI_BOLD}>No, Edit</AppText>
+                    </TouchableOpacityView>
+                </View>
+
+            </Modal>
+
+
+            {/* <HeaderCommon />
 
             <View style={styles.container}>
                 <TopCommonLine icon={dobIcon} datalist={datalist} />
@@ -159,7 +330,6 @@ const DobScreen = () => {
                 </View>
             </View>
 
-            {/* Android Picker */}
             {showAndroidPicker && Platform.OS === "android" && (
                 <DateTimePicker
                     value={date || minAgeDate}
@@ -174,7 +344,6 @@ const DobScreen = () => {
                 />
             )}
 
-            {/* iOS Picker (Modal – REQUIRED) */}
             <Modal transparent animationType="slide" visible={showIOSPicker}>
                 <TouchableOpacityView onPress={() => setShowIOSPicker(false)} style={styles.iosOverlay}>
                     <TouchableOpacityView activeOpacity={0} onPress={()=>console.log("")} style={styles.iosContainer}>
@@ -232,7 +401,6 @@ const DobScreen = () => {
                 </View>
             </LinearGradient>
 
-            {/* Confirmation Modal */}
             <Modal transparent animationType="fade" visible={modalVisible}>
                 <View style={styles.centeredView}>
                     <View style={styles.confirmContainer}>
@@ -268,7 +436,7 @@ const DobScreen = () => {
                         </View>
                     </View>
                 </View>
-            </Modal>
+            </Modal> */}
         </AppSafeAreaView>
     );
 };
@@ -276,6 +444,26 @@ const DobScreen = () => {
 export default DobScreen;
 
 const styles = StyleSheet.create({
+    logo: {
+        height: metrics.hp7,
+        width: metrics.hp25,
+        alignSelf: "center",
+        marginTop: metrics.hp8,
+
+    },
+    homeLandImage: {
+        height: metrics.hp40, width: metrics.hp40,
+        alignSelf: "center",
+        marginTop: metrics.hp8,
+        marginLeft: -metrics.hp2
+    },
+    bottomLayer: {
+        height: metrics.hp20,
+        width: "100%",
+        paddingVertical: metrics.hp2,
+        alignItems: "center"
+    },
+
     container: { flex: 1, marginTop: metrics.hp3 },
     dobContainer: {
         flexDirection: "row",
@@ -286,7 +474,7 @@ const styles = StyleSheet.create({
     ddLine: {
         width: metrics.hp3_5,
         height: metrics.hp0_1,
-        backgroundColor: colors.black,
+        backgroundColor: colors.white,
     },
     iosOverlay: {
         flex: 1,
@@ -306,18 +494,15 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: colors.transparentBlack,
+        backgroundColor: "#00000095",
     },
     confirmContainer: {
         width: Screen.Width / 1.2,
-        backgroundColor: colors.white,
-        borderRadius: metrics.hp2,
+        backgroundColor: "#555359",
     },
     bdyBack: {
         width: Screen.Width / 1.2,
         height: metrics.hp16,
-        borderTopLeftRadius: metrics.hp2,
-        borderTopRightRadius: metrics.hp2,
     },
     actionRow: {
         flexDirection: "row",
@@ -332,5 +517,6 @@ const styles = StyleSheet.create({
         borderColor: colors.purple,
         alignItems: "center",
         justifyContent: "center",
+
     },
 });
