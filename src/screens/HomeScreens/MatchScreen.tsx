@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, View, TouchableOpacity, StatusBar, ImageBackground } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, withSpring, withSequence, withRepeat } from 'react-native-reanimated';
-import { bigHeart, heartEight, heartFive, heartFour, heartOne, heartSeven, heartSix, heartTwo, matchbackground, matchText } from '../../helper/ImageAssets';
+import { bigHeart, dummyfemaleProfile, dummyMaleProfile, heartEight, heartFive, heartFour, heartOne, heartSeven, heartSix, heartTwo, matchbackground, matchText, seeMoreBackground, trunOnBackground } from '../../helper/ImageAssets';
 import metrics from '../../assets/Metrics';
-import { AppText, EIGHTEEN, FORTEEN, INTER_MEDIUM, INTER_SEMI_BOLD, WHITE } from '../../common/AppText';
+import { AppText, EIGHTEEN, FORTEEN, INTER_MEDIUM, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, WHITE } from '../../common/AppText';
 import { colors } from '../../theme/colors';
 import NavigationService from '../../navigation/NavigationService';
 import { TouchableOpacityView } from '../../common/TouchableOpacityView';
@@ -26,11 +26,11 @@ const createGlowingHeartAnimation = (delay: number, startY: number, finalY: numb
             delay + 1000,
             withRepeat(
                 withSequence(
-                    withTiming(0.8, { duration: 1500 }), 
-                    withTiming(1, { duration: 1500 }) 
+                    withTiming(0.8, { duration: 1500 }),
+                    withTiming(1, { duration: 1500 })
                 ),
-                -1, 
-                true 
+                -1,
+                true
             )
         );
     }, []);
@@ -40,7 +40,7 @@ const createGlowingHeartAnimation = (delay: number, startY: number, finalY: numb
             opacity: opacity.value,
             transform: [
                 { translateY: translateY.value },
-                { scale: scale.value } 
+                { scale: scale.value }
             ],
         };
     });
@@ -48,7 +48,7 @@ const createGlowingHeartAnimation = (delay: number, startY: number, finalY: numb
     return animatedStyle;
 };
 
-const MatchScreen = ({matchData,setMatchVisible}:any) => {
+const MatchScreen = ({ matchData, setMatchVisible }: any) => {
     const profile1TranslateX = useSharedValue(-200);
     const profile2TranslateX = useSharedValue(200);
     const profilesOpacity = useSharedValue(0);
@@ -98,39 +98,39 @@ const MatchScreen = ({matchData,setMatchVisible}:any) => {
 
     return (
         <AppSafeAreaView>
-        <ImageBackground source={matchbackground} resizeMode='cover' style={styles.container}>
-            <StatusBar barStyle="light-content" backgroundColor="#A020F0" />
-            <Animated.Image source={heartEight} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp17, left: metrics.hp10, width: metrics.hp4, height: metrics.hp4 }, heartEightAnim]} />
-            <Animated.Image source={heartTwo} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp20, left: metrics.hp15, width: metrics.hp5, height: metrics.hp5 }, heartTwoAnim]} />
-            <Animated.Image source={heartSeven} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp14, left: metrics.hp25, width: metrics.hp6, height: metrics.hp6 }, heartSevenAnim]} />
-            <Animated.Image source={heartSix} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp18, left: metrics.hp28, width: metrics.hp7, height: metrics.hp7 }, heartSixAnim]} />
-            <Animated.Image source={heartFive} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp10, right: metrics.hp25, width: metrics.hp8, height: metrics.hp8 }, heartFiveAnim]} />
-            <Animated.Image source={heartFour} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp20, right: metrics.hp20, width: metrics.hp5, height: metrics.hp5 }, heartFourAnim]} />
-            <Animated.Image source={heartOne} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp15, right: metrics.hp20, width: metrics.hp7, height: metrics.hp7 }, heartOneAnim]} />
-            <View style={styles.profilesWrapper}>
-                <Animated.Image
-                    source={{ uri: matchData[0]?.profilePicture[0]?.url }}
-                    style={[styles.profileImage, animatedProfile1Style, styles.profile1Position]}
-                />
-                <Animated.Image
-                    source={{ uri: matchData[1]?.profilePicture[0]?.url }}
-                    style={[styles.profileImage, animatedProfile2Style, styles.profile2Position]}
-                />
-                <Animated.Image source={bigHeart} style={[styles.centralHeartWrapper, bigHeartAnim]} />
-            </View>
-            <View style={styles.textContainer}>
-                <Animated.Image source={matchText} resizeMode={'contain'} style={[styles.matchText, animatedMatchTextStyle]} />
-            </View>
-            <View style={styles.buttonsContainer}>
-                <AppText type={EIGHTEEN} color={WHITE} weight={INTER_MEDIUM}>Start a conversation now!</AppText>
-                <TouchableOpacityView onPress={()=>setMatchVisible(false)} style={styles.startButton}>
-                    <AppText type={FORTEEN} weight={INTER_SEMI_BOLD}>Go Back</AppText>
-                </TouchableOpacityView>
-                {/* <TouchableOpacityView onPress={()=>setMatchVisible(false)}>
-                    <AppText type={FORTEEN} color={WHITE} weight={INTER_MEDIUM} style={styles.notNowButtonText}>Not now</AppText>
-                </TouchableOpacityView> */}
-            </View>
-        </ImageBackground>
+            <ImageBackground source={matchbackground} resizeMode='cover' style={styles.container}>
+                <StatusBar barStyle="light-content" backgroundColor="#A020F0" />
+                {/* <Animated.Image source={heartEight} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp17, left: metrics.hp10, width: metrics.hp4, height: metrics.hp4 }, heartEightAnim]} />
+                <Animated.Image source={heartTwo} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp20, left: metrics.hp15, width: metrics.hp5, height: metrics.hp5 }, heartTwoAnim]} />
+                <Animated.Image source={heartSeven} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp14, left: metrics.hp25, width: metrics.hp6, height: metrics.hp6 }, heartSevenAnim]} />
+                <Animated.Image source={heartSix} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp18, left: metrics.hp28, width: metrics.hp7, height: metrics.hp7 }, heartSixAnim]} />
+                <Animated.Image source={heartFive} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp10, right: metrics.hp25, width: metrics.hp8, height: metrics.hp8 }, heartFiveAnim]} />
+                <Animated.Image source={heartFour} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp20, right: metrics.hp20, width: metrics.hp5, height: metrics.hp5 }, heartFourAnim]} />
+                <Animated.Image source={heartOne} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp15, right: metrics.hp20, width: metrics.hp7, height: metrics.hp7 }, heartOneAnim]} /> */}
+                <View style={styles.profilesWrapper}>
+                        <Animated.Image
+                            source={{ uri: matchData[0]?.profilePicture[0]?.url }}
+                            style={[styles.profileImage, animatedProfile1Style, styles.profile1Position]}
+                        />
+                    <Animated.Image
+                        source={{ uri: matchData[1]?.profilePicture[0]?.url }}
+                        style={[styles.profileImage, animatedProfile2Style, styles.profile2Position]}
+                    />
+                    {/* <Animated.Image source={bigHeart} style={[styles.centralHeartWrapper, bigHeartAnim]} /> */}
+                </View>
+                <View style={styles.textContainer}>
+                    <Animated.Image source={matchText} resizeMode={'contain'} style={[styles.matchText, animatedMatchTextStyle]} />
+                </View>
+                <View style={styles.buttonsContainer}>
+                    <AppText type={EIGHTEEN} color={WHITE} weight={INTER_MEDIUM}>Start a conversation now!</AppText>
+                    <TouchableOpacity>
+                        <ImageBackground source={seeMoreBackground} resizeMode='stretch' style={{height:metrics.hp6, width:metrics.hp20,alignItems:"center", justifyContent:"center", marginTop: metrics.hp4}}>
+                        <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD}>Go Back</AppText>
+                        </ImageBackground>
+                    </TouchableOpacity>
+                   
+                </View>
+            </ImageBackground>
         </AppSafeAreaView>
     );
 };
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     profileImage: {
         width: metrics.hp18,
         height: metrics.hp25,
-        borderRadius: 20,
+        // borderRadius: 20,
         position: 'absolute',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 8 },

@@ -49,6 +49,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
       launchOptions: launchOptions
     )
 
+    // 🎨 Match the app background (#212123) on the window and RN root view.
+    // The default root view background is white — it shows for a frame
+    // during screen transitions ("white flash"). Painting it with the app
+    // color makes transitions seamless.
+    let appBackground = UIColor(red: 0x21 / 255.0, green: 0x21 / 255.0, blue: 0x23 / 255.0, alpha: 1.0)
+    window?.backgroundColor = appBackground
+    window?.rootViewController?.view.backgroundColor = appBackground
+
     return true
   }
 

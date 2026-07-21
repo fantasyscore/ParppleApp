@@ -33,6 +33,8 @@ export default (appOperation: AppOperation) => ({
     appOperation.get(`datting-profile/discoveredProfiles`, undefined, undefined, CUSTOMER_TYPE),
   newMatchesAPI: () =>
     appOperation.post(`matches/newMatches`, {}, CUSTOMER_TYPE),
+  publishProfileAPI: (data:any) =>
+    appOperation.post(`dattingApp/users/toggle-publish`, data, CUSTOMER_TYPE),
   recentMatchesAPI: () =>
     appOperation.post(`matches/recentMatches`, {}, CUSTOMER_TYPE),
   userUnMatchApi: (data: any) =>

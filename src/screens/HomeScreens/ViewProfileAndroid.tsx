@@ -1,11 +1,11 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { Animated, FlatList, Image, ImageBackground, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { colors, newColor } from "../../theme/colors";
 import NewHeader from "../../common/NewHeader";
 import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
-import { bioBackground, biosToggla, directChatIcon, dobIcon, forProfileDetailsBack, heightIconWhiteNew, locationIconWhiteNew, locIcon, lockIconWhite, newCloseIcon, newLikeIcon, partnerheart, pronounIcon, straightenIcon, trunOnIcon, beingWatchIcon, bitingIcon, blinedFlodedIcon, BottomLayer, dirtyTalks, fantasiesIcon, fotFetiesIcon, hairIcon, hugsIcon, massageIcon, musicIcons, oralIcon, rightSelectTrunOns, roomServiceIcon, scentsIcon, sextingIcon, smooheshIcon, TattosIcon, trunOnBackground, touchNewIcon, choclateImageNew, danceNewIcon, rolePlayImageNew } from "../../helper/ImageAssets";
+import { bioBackground, biosToggla, directChatIcon, dobIcon, forProfileDetailsBack, heightIconWhiteNew, locationIconWhiteNew, locIcon, lockIconWhite, newCloseIcon, newLikeIcon, partnerheart, pronounIcon, straightenIcon, trunOnIcon, beingWatchIcon, bitingIcon, blinedFlodedIcon, BottomLayer, dirtyTalks, fantasiesIcon, fotFetiesIcon, hairIcon, hugsIcon, massageIcon, musicIcons, oralIcon, rightSelectTrunOns, roomServiceIcon, scentsIcon, sextingIcon, smooheshIcon, TattosIcon, trunOnBackground, touchNewIcon, choclateImageNew, danceNewIcon, rolePlayImageNew, dummyMaleProfile, dummyfemaleProfile } from "../../helper/ImageAssets";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { AppText, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
 import { useSelector } from "react-redux";
@@ -13,135 +13,45 @@ import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 const ITEM_WIDTH = metrics.hp34;
 const SPACING = metrics.hp1;
-const DATA = [
-    {
-        id: "1",
-        title: "Smooches",
-        discription: "Steal a kiss worth remembering.",
-        image: smooheshIcon
-    },
-    {
-        id: "2",
-        title: "Hugs",
-        discription: "Hold me a little longer.",
-        image: hugsIcon
-    },
-    {
-        id: "3",
-        title: "Massage",
-        discription: "Where every touch melts away the distance.",
-        image: massageIcon
-    },
-    {
-        id: "4",
-        title: "Oral",
-        discription: "Open to deeper intimacy.",
-        image: oralIcon
-    },
-    {
-        id: "5",
-        title: "Dirty Talk",
-        discription: "Whisper what you're really thinking.",
-        image: dirtyTalks
-    },
-    {
-        id: "6",
-        title: "Fantasies",
-        discription: "Every secret deserves a safe place.",
-        image: fantasiesIcon
-    },
-    {
-        id: "7",
-        title: "Music",
-        discription: "Set the mood, let the sparks follow.",
-        image: musicIcons
-    },
-    {
-        id: "8",
-        title: "Foot Fetish",
-        discription: "A little obsession, a lot of chemistry.",
-        image: fotFetiesIcon
-    },
-    {
-        id: "9",
-        title: "Scents",
-        discription: "Irresistible starts with a signature scent.",
-        image: scentsIcon
-    },
-    {
-        id: "10",
-        title: "Biting",
-        discription: "A playful tease with a wild side.",
-        image: bitingIcon
-    },
-    {
-        id: "11",
-        title: "Hair",
-        discription: "Lost in every strand.",
-        image: hairIcon
-    },
-    {
-        id: "12",
-        title: "Being Watched",
-        discription: "The thrill of every lingering glance.",
-        image: beingWatchIcon
-    },
-    {
-        id: "13",
-        title: "Sexting",
-        discription: "Turn texts into irresistible tension.",
-        image: sextingIcon
-    },
-    {
-        id: "14",
-        title: "Room Service",
-        discription: "Luxury nights, unforgettable memories.",
-        image: roomServiceIcon
-    },
-    {
-        id: "15",
-        title: "Blindfolded",
-        discription: "Trust the moment, embrace the mystery.",
-        image: blinedFlodedIcon
-    },
-    {
-        id: "16",
-        title: "Tattoos",
-        discription: "Every ink tells a tempting story.",
-        image: TattosIcon
-    },
-    {
-        id: "17",
-        title: "Dance",
-        discription: "Let your bodies find the rhythm.",
-        image: danceNewIcon
-    },
-    {
-        id: "18",
-        title: "Role-Play",
-        discription: "Become whoever the night desires.",
-        image: rolePlayImageNew
-    },
-    {
-        id: "19",
-        title: "Chocolate",
-        discription: "Sweet enough to crave again.",
-        image: choclateImageNew
-    },
-    {
-        id: "20",
-        title: "Touch",
-        discription: "One touch can change everything.",
-        image: touchNewIcon
-    },
 
-]
+const TURN_ON_IMAGES: any = {
+    "Smooches": smooheshIcon,
+    "Hugs": hugsIcon,
+    "Massage": massageIcon,
+    "Oral": oralIcon,
+    "Dirty Talk": dirtyTalks,
+    "Fantasies": fantasiesIcon,
+    "Music": musicIcons,
+    "Foot Fetish": fotFetiesIcon,
+    "Scents": scentsIcon,
+    "Biting": bitingIcon,
+    "Hair": hairIcon,
+    "Being Watched": beingWatchIcon,
+    "Sexting": sextingIcon,
+    "Room Service": roomServiceIcon,
+    "Blindfolded": blinedFlodedIcon,
+    "Tattoos": TattosIcon,
+    "Dance": danceNewIcon,
+    "Role-Play": rolePlayImageNew,
+    "Chocolate": choclateImageNew,
+    "Touch": touchNewIcon,
+};
 const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislikePress, handleLikePress, likeYoue }: any) => {
+console.log(currentProfileData,"currentProfileDatacurrentProfileDatacurrentProfileData");
+    
     const scrollX = useRef(new Animated.Value(0)).current;
     const userData = useSelector((state: any) => state.auth.userData);
 
     const [selectedIds, setSelectedIds] = useState([]);
+    const turnOnData = useSelector((state: any) => state?.auth?.turnOnData);
+    const [selectedTurnOnIds, setSelectedTurnOnIds] = useState<any[]>([]);
 
+    useEffect(() => {
+        if (userData?.turnOns) {
+            const initialTurnOnIds = userData.turnOns.map((t: any) => t._id || t.id);
+            setSelectedTurnOnIds(initialTurnOnIds);
+        }
+    }, [userData?.turnOns]);
     const renderItem = ({ item, index }: any) => {
         const inputRange = [
             (index - 1) * (ITEM_WIDTH + SPACING),
@@ -169,9 +79,9 @@ const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislike
                     height: metrics.hp45,
                     width: metrics.hp34
                 }}>
-                <TouchableOpacity activeOpacity={1} onPress={() => userData?.gender === "male" || userData?.isPublish === false? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : console.log("")}>
-                    <Image blurRadius={userData?.gender === "male" || userData?.isPublish === false? 10 : 0} source={{ uri: item.url }} resizeMode="cover" style={styles.imageMain} />
-                    {userData?.gender === "male" || userData?.isPublish === false?
+                <TouchableOpacity activeOpacity={1} onPress={() => userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : console.log("")}>
+                    <Image blurRadius={userData?.gender === "male" || userData?.isPublish === false ? 10 : 0} source={{ uri: item.url }} resizeMode="cover" style={styles.imageMain} />
+                    {userData?.gender === "male" || userData?.isPublish === false ?
                         <>
                             <View style={styles.galleryDim} />
                             <View style={styles.lockOverlay}>
@@ -191,22 +101,31 @@ const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislike
                 : [...prev, id] // Add
         );
     };
+    const selectedTurnOnList = React.useMemo(() => {
+        if (!turnOnData?.length || !currentProfileData?.attributes?.length) {
+            return [];
+        }
+    
+        return turnOnData.filter((item: any) =>
+            currentProfileData.attributes.includes(item._id)
+        );
+    }, [turnOnData, currentProfileData?.attributes]);
     const renderItemTurns_ons = ({ item }: any) => {
+        console.log(item,"itemitem");
+        
         const isSelected = selectedIds.includes(item.id);
         return (
             <TouchableOpacity activeOpacity={1} onPress={() => handleSelect(item.id)}>
-                <ImageBackground source={trunOnBackground} tintColor={isSelected ? "#E6B7A8" : "#555359"} resizeMode="cover" style={styles.trunback}>
-                    <FastImage source={item.image} resizeMode="contain" style={styles.imagesIcon} />
+                <ImageBackground source={trunOnBackground} tintColor={"#E6B7A8"} resizeMode="cover" style={styles.trunback}>
+                    <FastImage   source={TURN_ON_IMAGES[item.value]} resizeMode="contain" style={styles.imagesIcon} />
                     <View style={{ alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp2 }}>
-                        <AppText style={{ color: isSelected ? newColor.blackNew : "#E6B7A8" }} type={EIGHTEEN} weight={SCHEHERAZADE_BOLD}>
-                            {item.title}
+                        <AppText style={{ color:  newColor.blackNew}} type={EIGHTEEN} weight={SCHEHERAZADE_BOLD}>
+                        {item.value}
                         </AppText>
-                        <AppText type={ELEVEN} style={{ textAlign: "center", marginTop: -metrics.hp1, color: isSelected ? newColor.blackNew : colors.white, opacity: isSelected ? 0.8 : 1 }}>
-                            {item.discription}
+                        <AppText type={ELEVEN} style={{ textAlign: "center", marginTop: -metrics.hp1, color: newColor.blackNew, opacity: 0.8 }}>
+                        {item.message}
                         </AppText>
                     </View>
-                    {isSelected ?
-                        <FastImage source={rightSelectTrunOns} resizeMode="contain" style={{ height: metrics.hp3, width: metrics.hp3, position: "absolute", right: metrics.hp2, bottom: metrics.hp2 }} /> : <></>}
                 </ImageBackground>
             </TouchableOpacity>
         )
@@ -219,25 +138,26 @@ const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislike
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: metrics.hp10, marginTop: metrics.hp2 }}
             >
-                <Animated.FlatList
-                    data={currentProfileData?.profilePicture ? currentProfileData?.profilePicture : currentProfileData?.gallery}
-                    renderItem={renderItem}
-                    horizontal
-                    scrollEnabled
-                    showsHorizontalScrollIndicator={false}
-                    snapToInterval={ITEM_WIDTH + SPACING}
-                    decelerationRate="fast"
-                    bounces={false}
-                    onScroll={Animated.event(
-                        [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-                        { useNativeDriver: true }
-                    )}
-                    scrollEventThrottle={16}
-                />
-
+                {currentProfileData?.profilePicture?.length || currentProfileData?.gallery?.length ?
+                    <Animated.FlatList
+                        data={currentProfileData?.profilePicture ? currentProfileData?.profilePicture : currentProfileData?.gallery}
+                        renderItem={renderItem}
+                        horizontal
+                        scrollEnabled
+                        showsHorizontalScrollIndicator={false}
+                        snapToInterval={ITEM_WIDTH + SPACING}
+                        decelerationRate="fast"
+                        bounces={false}
+                        onScroll={Animated.event(
+                            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                            { useNativeDriver: true }
+                        )}
+                        scrollEventThrottle={16}
+                    /> : <></>
+                }
                 <View
                     style={{
-                        marginTop: -metrics.hp3, // overlap with FlatList
+                        marginTop: currentProfileData?.profilePicture?.length || currentProfileData?.gallery?.length ? -metrics.hp3 :metrics.hp3 , // overlap with FlatList
                         paddingHorizontal: metrics.hp2,
                         zIndex: 10,
                     }}>
@@ -247,7 +167,7 @@ const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislike
                         style={styles.detailsContainer}>
                         <View style={{ paddingHorizontal: metrics.hp2 }}>
                             <View style={{ flexDirection: "row" }}>
-                                <FastImage source={{ uri: currentProfileData?.profilePicture ? currentProfileData?.profilePicture[0]?.url : currentProfileData?.gallery[0]?.url }} resizeMode="cover" style={{ height: metrics.hp10, width: metrics.hp10, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: "#E6B7A8", marginTop: -metrics.hp2 }} />
+                                <FastImage source={currentProfileData?.profilePicture?.legnth || currentProfileData?.gallery?.length ? { uri: currentProfileData?.profilePicture ? currentProfileData?.profilePicture[0]?.url : currentProfileData?.gallery[0]?.url } : currentProfileData?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={{ height: metrics.hp10, width: metrics.hp10, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: "#E6B7A8", marginTop: -metrics.hp2 }} />
                                 <AppText type={TWENTY} weight={SCHEHERAZADE_BOLD} style={{ color: "#E6B7A8", marginTop: metrics.hp0_8 }}>
                                     {"   "}{currentProfileData?.username ? currentProfileData?.username : currentProfileData?.name}
                                 </AppText>
@@ -311,25 +231,25 @@ const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislike
                     </ImageBackground>
                 </View>
                 <FlatList
-                    data={DATA}
+                    data={selectedTurnOnList}
                     renderItem={renderItemTurns_ons}
-                    keyExtractor={(item) => item.id.toString()}
+                    keyExtractor={(item) => item._id.toString()}
                     numColumns={2}
                     contentContainerStyle={{ paddingHorizontal: metrics.hp2, alignItems: "center", marginTop: metrics.hp0, paddingBottom: metrics.hp5 }}
                     columnWrapperStyle={{ columnGap: metrics.hp2, marginTop: metrics.hp6 }} />
             </ScrollView>
             <View style={styles.actionsRow}>
                 {likeYoue === "You Liked" ? <></> :
-                    <TouchableOpacityView onPress={() => userData?.gender === "male" || userData?.isPublish === false? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : handleDislikePress(currentProfileData)} activeOpacity={1} >
+                    <TouchableOpacityView onPress={() => userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : handleDislikePress(currentProfileData)} activeOpacity={1} >
                         <FastImage source={newCloseIcon} resizeMode='contain' style={styles.dislikeButton} />
                     </TouchableOpacityView>
                 }
                 {likeYoue === "You Liked" ? <></> :
-                    <TouchableOpacityView onPress={() => userData?.gender === "male" || userData?.isPublish === false? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : handleLikePress(currentProfileData)} activeOpacity={1} >
+                    <TouchableOpacityView onPress={() => userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : handleLikePress(currentProfileData)} activeOpacity={1} >
                         <FastImage source={newLikeIcon} resizeMode='contain' style={styles.likeButton} />
                     </TouchableOpacityView>
                 }
-                <TouchableOpacityView onPress={() => userData?.gender === "male" || userData?.isPublish === false? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN)} activeOpacity={1} >
+                <TouchableOpacityView onPress={() => userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN)} activeOpacity={1} >
                     <FastImage source={directChatIcon} resizeMode='contain' style={styles.chatButton} />
                 </TouchableOpacityView>
             </View>

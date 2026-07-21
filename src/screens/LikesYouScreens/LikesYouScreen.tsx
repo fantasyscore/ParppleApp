@@ -14,7 +14,7 @@ import {
     View,
 } from 'react-native';
 import { AppText, INTER_MEDIUM, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, WHITE, BLACK, THIRTY, FORTEEN, TWENTY, fontSize, TWENTY_FOUR } from '../../common/AppText';
-import { directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, silverCard, straightenIcon, tabViewForLikes, likedYouNewIcon, youLikedNewIcon, whosWatchingYouWhitePurhces, youLikeEmptyNew, likeYouEmptyNew } from '../../helper/ImageAssets';
+import { directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, silverCard, straightenIcon, tabViewForLikes, likedYouNewIcon, youLikedNewIcon, whosWatchingYouWhitePurhces, youLikeEmptyNew, likeYouEmptyNew, dummyMaleProfile, dummyfemaleProfile, chatPurchaseColour } from '../../helper/ImageAssets';
 import metrics from '../../assets/Metrics';
 import FastImage from 'react-native-fast-image';
 import { colors, newColor } from '../../theme/colors';
@@ -128,7 +128,7 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, likeYoue
         <ImageBackground source={newProfileBackground} resizeMode='stretch' style={styles.cardBackground}>
             <TouchableOpacityView activeOpacity={1} onPress={() => onOpenPreview(item)} style={styles.cardHeaderRow}>
                 <FastImage
-                    source={{ uri: item?.profilePicture?.[0]?.url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
+                    source={item?.profilePicture?.length ? { uri: item?.profilePicture?.[0]?.url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable } : item?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile}
                     resizeMode='cover'
                     style={styles.avatar}
                 />
@@ -153,21 +153,35 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, likeYoue
             </TouchableOpacityView>
 
             <View style={styles.galleryWrap}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryContent}>
-                    {item?.profilePicture?.map((img: any, idx: number) => (
-                        <View key={img?.url ?? idx} style={styles.galleryItem}>
-                            <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male" || userData?.isPublish === false? 10 : 0} style={styles.galleryImage} />
-                            {userData?.gender === "male" || userData?.isPublish === false?
-                                <>
-                                    <View style={styles.galleryDim} />
-                                    <View style={styles.lockOverlay}>
-                                        <FastImage source={lockIconWhite} resizeMode='contain' style={styles.lockIcon} />
-                                    </View>
-                                </>
-                                : <></>}
-                        </View>
-                    ))}
-                </ScrollView>
+                {item?.profilePicture?.length ?
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryContent}>
+                        {item?.profilePicture?.map((img: any, idx: number) => (
+                            <View key={img?.url ?? idx} style={styles.galleryItem}>
+                                <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male" || userData?.isPublish === false ? 10 : 0} style={styles.galleryImage} />
+                                {userData?.gender === "male" || userData?.isPublish === false ?
+                                    <>
+                                        <View style={styles.galleryDim} />
+                                        <View style={styles.lockOverlay}>
+                                            <FastImage source={lockIconWhite} resizeMode='contain' style={styles.lockIcon} />
+                                        </View>
+                                    </>
+                                    : <></>}
+                            </View>
+                        ))}
+                    </ScrollView> :
+                    <ImageBackground source={chatPurchaseColour} tintColor={"#555359"} resizeMode='stretch' style={{
+                        width: metrics.hp23,
+                        height: metrics.hp28, marginTop: metrics.hp3,
+                        paddingHorizontal: metrics.hp2,
+                        paddingVertical: metrics.hp2,
+                        alignItems: "center",
+                        justifyContent: "center"
+                    }}>
+                        <AppText style={{ textAlign: "center", lineHeight: metrics.hp2 }} color={WHITE} type={TWELVE} weight={INTER_SEMI_BOLD}>
+                            {item.bio} I am here for the vision and i want tour the world and we just move the city and i love the garden
+                        </AppText>
+                    </ImageBackground>
+                }
             </View>
 
             <View style={styles.actionsRow}>
@@ -187,7 +201,7 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, likeYoue
             </View>
         </ImageBackground>
     );
-}, (prev, next) => prev.item === next.item && prev.onLike === next.onLike && prev.onDislike === next.onDislike && prev.onOpenPreview === next.onOpenPreview && next.likeYoue === next.likeYoue&& prev.userData === next.userData);
+}, (prev, next) => prev.item === next.item && prev.onLike === next.onLike && prev.onDislike === next.onDislike && prev.onOpenPreview === next.onOpenPreview && next.likeYoue === next.likeYoue && prev.userData === next.userData);
 
 const LikesYouScreen = () => {
     const dispatch = useDispatch();
@@ -386,7 +400,7 @@ const LikesYouScreen = () => {
             </AppText>
         </View>
     ), [userData?.gallery]);
-    if (userData?.gender === "male"|| userData?.isPublish === false) {
+    if (userData?.gender === "male" || userData?.isPublish === false) {
         return (
             <ImageBackground source={whosWatchingYouWhitePurhces} resizeMode="stretch"
                 style={{

@@ -14,7 +14,7 @@ import { Screen } from "../../theme/dimens";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_EDIT_PROFILE_SCREEN, NAVIGATION_FILTER_SCREEN, NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN, NAVIGATION_SETTING_SCREEN, NAVIGATION_SUBSCRIPTION_ALL_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN, NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from "../../navigation/routes";
 import { useDispatch, useSelector } from "react-redux";
-import { getProfile, editProfile, deletePhotoAPI } from "../../actions/authActions";
+import { getProfile, editProfile, deletePhotoAPI, publishProfileEveryone } from "../../actions/authActions";
 import { appOperation } from "../../appOperation";
 import Carousel from "react-native-reanimated-carousel";
 import NewHeader from "../../common/NewHeader";
@@ -23,6 +23,7 @@ import { toastAlert } from "../../actions/UploadImageActions";
 import { setProfileHide } from "../../slices/loginServices/authSlice";
 import PhotoEditorModal from "../../components/PhotoEditor/PhotoEditorModal";
 import { usePhotoEditorUpload, UploadedPhoto } from "../../components/PhotoEditor/usePhotoEditorUpload";
+import { useIsFocused } from "@react-navigation/native";
 
 const TURN_ON_IMAGES: any = {
     "Smooches": smooheshIcon,
@@ -49,6 +50,7 @@ const TURN_ON_IMAGES: any = {
 
 const ProfileScreenAndroid = () => {
     const dispatch = useDispatch();
+    const isFocused = useIsFocused();
     const [percentage, setPercentage] = useState(25);
     const [selectedTab, setSelectedTab] = useState("My Bio");
     const [activeIndex, setActiveIndex] = useState(0);
@@ -59,7 +61,7 @@ const ProfileScreenAndroid = () => {
     const userData = useSelector((state: any) => state.auth.userData);
     const profileHide = useSelector((state: any) => state.auth.profileHide);
     const turnOnData = useSelector((state: any) => state?.auth?.turnOnData);
-    console.log(userData,"userData");
+
 
     const [selectedTurnOnIds, setSelectedTurnOnIds] = useState<any[]>([]);
 
@@ -68,7 +70,7 @@ const ProfileScreenAndroid = () => {
             const initialTurnOnIds = userData.turnOns.map((t: any) => t._id || t.id);
             setSelectedTurnOnIds(initialTurnOnIds);
         }
-    }, [userData?.turnOns]);
+    }, [userData?.turnOns, isFocused]);
 
     const handleTurnOnSelect = async (id: any) => {
         const isSelected = selectedTurnOnIds.includes(id);
@@ -260,8 +262,6 @@ const ProfileScreenAndroid = () => {
         );
     };
 
-    console.log(userData, "userData");
-
     useEffect(() => {
         const n = Number(userData?.profileCompletion);
         setPercentage(Number.isFinite(n) ? n : 0);
@@ -302,8 +302,13 @@ const ProfileScreenAndroid = () => {
         dispatch(getProfile(navigate, profile))
     };
     const width = Dimensions.get('screen').width;
+    console.log(userData,"userDatauserData");
+    
     const hideUnHideProfile = () => {
-        dispatch(setProfileHide(profileHide === "Hide" ? "Unhide" : "Hide"));
+        const dataNew = {
+            isPublish:userData?.isPublish == false ? true: false
+        }
+        dispatch(publishProfileEveryone(dataNew))
         toastAlert.showToastError(profileHide === "Hide" ? "Your profile is publish":"Your profile is hide")
     }
     return (

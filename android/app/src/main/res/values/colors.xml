@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App primary background: shown behind all React views.
+         Prevents the white flash during screen transitions. -->
+    <color name="appBackground">#212123</color>
+</resources>

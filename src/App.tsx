@@ -242,7 +242,9 @@ const App = () => {
   return (
     <SafeAreaProvider>
       <Provider store={store}>
-        <StatusBar hidden={false} backgroundColor={'red'} />
+        {/* Match the app background so the status bar area never flashes a
+            foreign color while screens mount during navigation. */}
+        <StatusBar hidden={false} translucent backgroundColor={'transparent'} barStyle="light-content" />
           <Navigator />
       </Provider>
     </SafeAreaProvider>

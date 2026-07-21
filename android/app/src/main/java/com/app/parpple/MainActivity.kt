@@ -2,6 +2,7 @@ package com.app.parpple
 
 import android.content.Context
 import android.content.res.Configuration
+import android.view.WindowManager
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatDelegate
@@ -21,6 +22,11 @@ class MainActivity : ReactActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     SplashScreen.show(this) // show splash BEFORE super.onCreate
     super.onCreate(null)
+
+   window.setFlags(
+        WindowManager.LayoutParams.FLAG_SECURE,
+        WindowManager.LayoutParams.FLAG_SECURE
+    )
 
     // Make STATUS BAR transparent and allow content to draw behind it
     window.statusBarColor = android.graphics.Color.TRANSPARENT

@@ -26,7 +26,12 @@ export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) =
                 // NavigationService.navigate(NAVIGATION_GANDER_SCREEN);
                 dispatch(listProfiles());
                 dispatch(getProfile(true));
-                dispatch(discoverProfile())
+                dispatch(discoverProfile());
+                dispatch(likeByOther());
+                dispatch(likeYou());
+                dispatch(viewProfileByOther());
+                dispatch(youView());
+                dispatch(turnOn({}))
             } else {
                 if (gmail) {
                     NavigationService.navigate(NAVIGATION_GANDER_SCREEN);
@@ -311,6 +316,18 @@ export const getNewMatches: any = () => async (dispatch: any) => {
         const response: any = await appOperation.customer.newMatchesAPI();
         if (response?.statusCode == 200) {
             dispatch(setNewMatches(response?.data))
+        }
+    } catch (error: any) {
+    }
+};
+export const publishProfileEveryone: any = (data:any) => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.publishProfileAPI(data);
+        console.log(response,"responseresponse");
+        
+        if (response?.statusCode == 200) {
+            dispatch(getProfile(true) as any);
+            // dispatch(setNewMatches(response?.data))
         }
     } catch (error: any) {
     }

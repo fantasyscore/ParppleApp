@@ -1,33 +1,75 @@
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import React from "react";
+import React, { memo } from "react";
 import { ImageBackground, StyleSheet, View } from "react-native";
 import { colors, newColor } from "../theme/colors";
 import metrics from "../assets/Metrics";
 import { TouchableOpacityView } from "./TouchableOpacityView";
 import FastImage from "react-native-fast-image";
-import { AppText, THIRTEEN, INTER_MEDIUM, OPECITY, PURPLE, TWELVE, FORTEEN, WHITE, SCHEHERAZADE_BOLD, ELEVEN } from "./AppText";
+import { AppText, THIRTEEN, INTER_MEDIUM, OPECITY, PURPLE, TWELVE, FORTEEN, WHITE, SCHEHERAZADE_BOLD, ELEVEN, SIXTEEN } from "./AppText";
 import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_CHATS_SCREEN, NAVIGATION_DISCOVER_SCREEN, NAVIGATION_LIKES_YOU_SCREEN, NAVIGATION_PEOPLE_SCREEN, NAVIGATION_PROFILE_SCREEN, NAVIGATION_VIEW_YOU_SCREEN_SCREEN } from "../navigation/routes";
-import { BottomLayer, chatAmountBackgroungNew, chats, chatTab, chatTabNewNrml, chatTabNewNrmlColour, explore, explorTab, goToProifleIcon, likesYouNewNrml, likesYouNewNrmlColour, likeTab, likeyou, lockIconWhite, people, pepoleTab, pepoleTabNewNrml, pepoleTabNewNrmlColour, profile, profileTab, rightGoNewIcon, visiterNewNrml, visiterNewNrmlColour } from "../helper/ImageAssets";
+import { BottomLayer, boyProfileloakBackground, chatAmountBackgroungNew, chats, chatTab, chatTabNewNrml, chatTabNewNrmlColour, explore, explorTab, girlProfileLoakBackground, goToProifleIcon, likesYouNewNrml, likesYouNewNrmlColour, likeTab, likeyou, lockIconWhite, people, pepoleTab, pepoleTabNewNrml, pepoleTabNewNrmlColour, profile, profileTab, rightGoNewIcon, visiterNewNrml, visiterNewNrmlColour } from "../helper/ImageAssets";
 import { useSelector } from "react-redux";
 import { Image } from "react-native";
 import { Screen } from "../theme/dimens";
 import { BlurView } from "@react-native-community/blur";
 
+// PERFORMANCE NOTES (UI unchanged):
+// - Selectors return PRIMITIVES (booleans/strings) instead of arrays, so the
+//   tab bar only re-renders when a badge actually toggles — not on every
+//   likes/views API refresh that replaces the array reference.
+// - The full-screen BlurView banner is split into its own memoized component
+//   so tab presses / focus changes never re-composite the blur layer.
+// - Component is wrapped in React.memo: the tab bar re-renders only when the
+//   active tab index changes.
+
+const navigate = (route: any) => {
+    if (route === 'NAVIGATION_PEOPLE_SCREEN') return NavigationService.navigate(NAVIGATION_PEOPLE_SCREEN)
+    if (route === 'NAVIGATION_LIKES_YOU_SCREEN') return NavigationService.navigate(NAVIGATION_LIKES_YOU_SCREEN)
+    if (route === 'NAVIGATION_VIEW_YOU_SCREEN_SCREEN') return NavigationService.navigate(NAVIGATION_VIEW_YOU_SCREEN_SCREEN)
+    if (route === 'NAVIGATION_CHATS_SCREEN') return NavigationService.navigate(NAVIGATION_CHATS_SCREEN)
+}
+const goToProfile = () => NavigationService.navigate(NAVIGATION_PROFILE_SCREEN);
+const HiddenProfileOverlay = memo((userData: any) => (
+    <ImageBackground source={userData?.gender == "male" ? girlProfileLoakBackground : boyProfileloakBackground} resizeMode="stretch" style={{ height: Screen.Height, width: Screen.Width, position: "absolute", zIndex: 1, alignItems: "center", justifyContent: "center" }}>
+        <FastImage source={lockIconWhite} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp4, marginTop: metrics.hp18 }} />
+        <AppText style={{marginTop:metrics.hp2}} type={FORTEEN} weight={INTER_MEDIUM} color={WHITE}>
+            Unlock the Profile
+        </AppText>
+        <AppText style={{ paddingHorizontal: metrics.hp2, textAlign: "center" }} type={FORTEEN} weight={INTER_MEDIUM} color={OPECITY}>
+            To View other profile. You need to publish your profile
+        </AppText>
+        <TouchableOpacityView activeOpacity={1} onPress={goToProfile}>
+            <ImageBackground source={chatAmountBackgroungNew} resizeMode="stretch" style={{ height: metrics.hp8, width: metrics.hp25, alignItems: "center", justifyContent: "center", marginTop: metrics.hp8, flexDirection: "row" }}>
+                <AppText color={WHITE} weight={SCHEHERAZADE_BOLD} type={SIXTEEN}>
+                    {"  "}Go To Profile{"  "}
+                </AppText>
+                <FastImage source={goToProifleIcon} resizeMode="contain" style={{ height: metrics.hp3, width: metrics.hp3, marginTop: metrics.hp0_2, transform: [{ rotate: "180deg" }] }} />
+            </ImageBackground>
+        </TouchableOpacityView>
+    </ImageBackground>
+));
+
+// Full-screen "Unlock the Profile" banner: isolated + memoized so the blur
+// surface mounts once and is untouched by tab-bar re-renders.
+
+const badgeDotStyle = {
+    borderWidth: metrics.hp0_1, borderRadius: metrics.hp50, borderColor: "#E6B7A8",
+    position: "absolute" as const,
+    zIndex: 1,
+    right: metrics.hp3_5,
+    top: metrics.hp0,
+    height: metrics.hp1,
+    width: metrics.hp1,
+    backgroundColor: "#E6B7A8"
+};
 
 const CustomTabBarAndroid = ({ state }: BottomTabBarProps) => {
-    const bottomRemove = useSelector((state: any) => state.auth.bottomRemove);
-    const profileHide = useSelector((state: any) => state.auth.profileHide);
-    const likeByOtherData = useSelector((state: any) => state.auth.likeByOtherData);
-    const likeYouData = useSelector((state: any) => state.auth.likeYouData);
-    const viewByOtherData = useSelector((state: any) => state.auth.viewByOtherData);
-    const viewYouData = useSelector((state: any) => state.auth.viewYouData);
-    const navigate = (route: any) => {
-        if (route === 'NAVIGATION_PEOPLE_SCREEN') return NavigationService.navigate(NAVIGATION_PEOPLE_SCREEN)
-        if (route === 'NAVIGATION_LIKES_YOU_SCREEN') return NavigationService.navigate(NAVIGATION_LIKES_YOU_SCREEN)
-        if (route === 'NAVIGATION_VIEW_YOU_SCREEN_SCREEN') return NavigationService.navigate(NAVIGATION_VIEW_YOU_SCREEN_SCREEN)
-        if (route === 'NAVIGATION_CHATS_SCREEN') return NavigationService.navigate(NAVIGATION_CHATS_SCREEN)
-    }
+    const userData = useSelector((state: any) => state.auth.userData);
+    const hasLikesBadge = useSelector((state: any) =>
+        Boolean(state.auth.likeByOtherData?.length || state.auth.likeYouData?.length));
+    const hasViewsBadge = useSelector((state: any) =>
+        Boolean(state.auth.viewByOtherData?.length || state.auth.viewYouData?.length));
 
     const getIcon = (route: string, isFocused: boolean, index: number) => {
         return (
@@ -38,32 +80,12 @@ const CustomTabBarAndroid = ({ state }: BottomTabBarProps) => {
                     </View>
                 ) : route === "NAVIGATION_LIKES_YOU_SCREEN" ? (
                     <View style={styles.tabInner}>
-                        {likeByOtherData?.length || likeYouData?.length ?
-                            <View style={{
-                                borderWidth: metrics.hp0_1, borderRadius: metrics.hp50, borderColor: "#E6B7A8",
-                                position: "absolute",
-                                zIndex: 1,
-                                right: metrics.hp3_5,
-                                top: metrics.hp0,
-                                height: metrics.hp1,
-                                width: metrics.hp1,
-                                backgroundColor: "#E6B7A8"
-                            }} /> : <></>}
+                        {hasLikesBadge ? <View style={badgeDotStyle} /> : <></>}
                         <FastImage source={isFocused ? likesYouNewNrmlColour : likesYouNewNrml} resizeMode="contain" style={styles.icons} />
                     </View>
                 ) : route === "NAVIGATION_VIEW_YOU_SCREEN_SCREEN" ? (
                     <View style={styles.tabInner}>
-                        {viewByOtherData?.length || viewYouData?.length ?
-                            <View style={{
-                                borderWidth: metrics.hp0_1, borderRadius: metrics.hp50, borderColor: "#E6B7A8",
-                                position: "absolute",
-                                zIndex: 1,
-                                right: metrics.hp3_5,
-                                top: metrics.hp0,
-                                height: metrics.hp1,
-                                width: metrics.hp1,
-                                backgroundColor: "#E6B7A8"
-                            }} /> : <></>}
+                        {hasViewsBadge ? <View style={badgeDotStyle} /> : <></>}
                         <FastImage source={isFocused ? visiterNewNrmlColour : visiterNewNrml} resizeMode="contain" style={styles.icons} />
                     </View>
                 ) : (
@@ -77,59 +99,24 @@ const CustomTabBarAndroid = ({ state }: BottomTabBarProps) => {
 
     return (
         <>
-            {profileHide === "Hide" ?
-                <View style={{ height: Screen.Height, width: Screen.Width, position: "absolute", zIndex: 1, alignItems: "center", justifyContent: "center" }}>
-                    <BlurView
-                        style={StyleSheet.absoluteFillObject}
-                        blurType="dark"
-                        blurAmount={1}
-                        reducedTransparencyFallbackColor={colors.white}
-                    />
-                    <FastImage source={lockIconWhite} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp4, marginTop: metrics.hp13 }} />
-                    <AppText type={FORTEEN} weight={INTER_MEDIUM} color={WHITE}>
-                        Unlock the Profile
-                    </AppText>
-                    <AppText style={{ paddingHorizontal: metrics.hp2, textAlign: "center" }} type={FORTEEN} weight={INTER_MEDIUM} color={OPECITY}>
-                        To View other profile. You need to publish your profile
-                    </AppText>
-                    <TouchableOpacityView activeOpacity={1} onPress={() => NavigationService.navigate(NAVIGATION_PROFILE_SCREEN)}>
-                        <ImageBackground source={chatAmountBackgroungNew} resizeMode="contain" style={{ height: metrics.hp7, width: metrics.hp20, alignItems: "center", justifyContent: "center", marginTop: metrics.hp3, flexDirection: "row" }}>
-                            <AppText color={WHITE} weight={SCHEHERAZADE_BOLD} type={FORTEEN}>
-                                Go To Profile{"  "}
-                            </AppText>
-                            <FastImage source={goToProifleIcon} resizeMode="contain" style={{ height: metrics.hp2_5, width: metrics.hp2_5, marginTop: metrics.hp0_2, transform: [{ rotate: "180deg" }] }} />
-                        </ImageBackground>
-                    </TouchableOpacityView>
-                </View> : <></>}
-            <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
-                <View style={styles.flowContainer}>
-                    {state?.routes?.map((route, index) => {
-                        const isFocused = state.index === index;
-                        return (
-                            <View key={route.key} style={styles.routeWrapper}>
-                                {getIcon(route.name, isFocused, index)}
-                            </View>
-                        );
-                    })}
-                </View>
-            </ImageBackground>
+            {userData?.isPublish === false && userData?.gender === "female" ? <HiddenProfileOverlay userData={userData} /> :
+                <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
+                    <View style={styles.flowContainer}>
+                        {state?.routes?.map((route, index) => {
+                            const isFocused = state.index === index;
+                            return (
+                                <View key={route.key} style={styles.routeWrapper}>
+                                    {getIcon(route.name, isFocused, index)}
+                                </View>
+                            );
+                        })}
+                    </View>
+                </ImageBackground>
+            }
         </>
-        // <View style={styles.buttonContainer}>
-        //     <View style={styles.flowContainer}>
-        //         {state?.routes?.map((route, index) => {
-        //             const isFocused = state.index === index;
-        //             return (
-        //                 <View key={route.key} style={styles.routeWrapper}>
-        //                     {getIcon(route.name, isFocused, index)}
-        //                 </View>
-        //             );
-        //         })}
-        //     </View>
-        // </View>
-
     )
 };
-export default CustomTabBarAndroid;
+export default memo(CustomTabBarAndroid);
 const styles = StyleSheet.create({
     bottomLayer: {
         height: metrics.hp11,

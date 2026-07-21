@@ -10,13 +10,14 @@ import {
     Modal,
     PermissionsAndroid,
     Platform,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
     View,
 } from 'react-native';
-import { AppText, INTER_MEDIUM, FOURTEEN, INTER_REGULAR, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, WHITE, EIGHTEEN, fontSize, BLACK } from '../../common/AppText';
-import { toggalOnButtonNew, toggalOffButtonNew, serachButtonNew, resetButtonNew, directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, silverCard, straightenIcon } from '../../helper/ImageAssets';
+import { AppText, INTER_MEDIUM, FOURTEEN, INTER_REGULAR, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, WHITE, EIGHTEEN, fontSize, BLACK, THIRTEEN, FORTEEN, OPECITY } from '../../common/AppText';
+import { toggalOnButtonNew, toggalOffButtonNew, serachButtonNew, resetButtonNew, directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, silverCard, straightenIcon, dummyMaleProfile, dummyfemaleProfile, chatPurchaseColour, chatAmountBackgroungNew, goToProifleIcon } from '../../helper/ImageAssets';
 import metrics from '../../assets/Metrics';
 import FastImage from 'react-native-fast-image';
 import { colors, newColor } from '../../theme/colors';
@@ -29,7 +30,7 @@ import { setListProfiles } from '../../slices/loginServices/authSlice';
 import { createSocket } from '../../common/Socket';
 import MatchScreen from './MatchScreen';
 import NavigationService from '../../navigation/NavigationService';
-import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from '../../navigation/routes';
+import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_PROFILE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from '../../navigation/routes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SWIPES_PER_DAY_KEY, SWIPES_REMAINING_KEY, SUPER_LIKES_REMAINING_KEY } from '../../helper/Constants';
 import messaging from "@react-native-firebase/messaging";
@@ -39,6 +40,8 @@ import NewHeaderAndroid from '../../common/NewHeaderAndroid';
 import { useLikeDislikeAnimation } from '../../hooks/useLikeDislikeAnimation';
 import { LikeDislikeOverlays } from '../../common/LikeDislikeOverlays';
 import ViewProfileAndroid from './ViewProfileAndroid';
+import { Screen } from '../../theme/dimens';
+import { BlurView } from '@react-native-community/blur';
 
 const PROFILE_BATCH_LIMIT = 10;
 const TOP_UP_TRIGGER_COUNT = 3; // fetch more when this few profiles remain
@@ -130,7 +133,7 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData
         <ImageBackground source={newProfileBackground} resizeMode='stretch' style={styles.cardBackground}>
             <TouchableOpacityView activeOpacity={1} onPress={() => onOpenPreview(item)} style={styles.cardHeaderRow}>
                 <FastImage
-                    source={{ uri: item?.gallery?.[0]?.url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
+                    source={item?.gallery?.length ? { uri: item?.gallery?.[0]?.url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable } : item?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile}
                     resizeMode='cover'
                     style={styles.avatar}
                 />
@@ -155,20 +158,36 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData
             </TouchableOpacityView>
 
             <View style={styles.galleryWrap}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryContent}>
-                    {item?.gallery?.map((img: any, idx: number) => (
-                        <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" || userData?.isPublish === false? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : console.log()} key={img?.url ?? idx} style={styles.galleryItem}>
-                            <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male"|| userData?.isPublish === false ? 10 : 0} style={styles.galleryImage} />
-                            {userData?.gender === "male" || userData?.isPublish === false? <>
-                                <View style={styles.galleryDim} />
-                                <View style={styles.lockOverlay}>
-                                    <FastImage source={lockIconWhite} resizeMode='contain' style={styles.lockIcon} />
-                                </View>
-                            </> : <></>
-                            }
-                        </TouchableOpacityView>
-                    ))}
-                </ScrollView>
+                {item?.gallery?.length ?
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryContent}>
+                        {item?.gallery?.map((img: any, idx: number) => (
+                            <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : console.log()} key={img?.url ?? idx} style={styles.galleryItem}>
+                                <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male" || userData?.isPublish === false ? 10 : 0} style={styles.galleryImage} />
+                                {userData?.gender === "male" || userData?.isPublish === false ? <>
+                                    <View style={styles.galleryDim} />
+                                    <View style={styles.lockOverlay}>
+                                        <FastImage source={lockIconWhite} resizeMode='contain' style={styles.lockIcon} />
+                                    </View>
+                                </> : <></>
+                                }
+                            </TouchableOpacityView>
+                        ))}
+                    </ScrollView>
+                    :
+                    <ImageBackground source={chatPurchaseColour} tintColor={"#555359"} resizeMode='stretch' style={{
+                        width: metrics.hp23,
+                        height: metrics.hp28, marginTop: metrics.hp3,
+                        paddingHorizontal: metrics.hp2,
+                        paddingVertical: metrics.hp2,
+                        alignItems: "center",
+                        justifyContent: "center"
+                    }}>
+                        <AppText style={{ textAlign: "center", lineHeight: metrics.hp2 }} color={WHITE} type={TWELVE} weight={INTER_SEMI_BOLD}>
+                            {item.bio}
+                        </AppText>
+                    </ImageBackground>
+                }
+
             </View>
 
             <View style={styles.actionsRow}>
@@ -186,12 +205,17 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData
     );
 }, (prev, next) => prev.item === next.item && prev.onLike === next.onLike && prev.onDislike === next.onDislike && prev.onOpenPreview === next.onOpenPreview && prev.userData === next.userData);
 
+
+
+
 const PeopleScreen = () => {
     const dispatch = useDispatch();
     const IsFocused = useIsFocused();
     const listProfilesData = useSelector((state: any) => state.auth.listProfiles ?? []);
     const userData = useSelector((state: any) => state.auth.userData);
-    const profileHide = useSelector((state: any) => state.auth.profileHide);
+    // NOTE: `profileHide` was subscribed here but never used — every
+    // publish/hide toggle forced a full HomeScreen + FlatList re-render
+    // during the navigation transition (visible lag). Removed.
 
     const [matchVisible, setMatchVisible] = useState(false);
     const [matchData, setMatchData] = useState([]);
@@ -205,10 +229,11 @@ const PeopleScreen = () => {
     const [locationRadiusEnabled, setLocationRadiusEnabled] = useState(true);
     const [radius, setRadius] = useState([100]);
     const [photosOnly, setPhotosOnly] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const filterSheetRef = useRef<any>(null);
 
     const onFilterPress = useCallback(() => {
-        if (userData?.gender === "male"|| userData?.isPublish === false) {
+        if (userData?.gender === "male" || userData?.isPublish === false) {
             NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN)
         } else {
             filterSheetRef.current?.open();
@@ -535,9 +560,27 @@ const PeopleScreen = () => {
             </AppText>
         </View>
     ), [userData?.gallery]);
-
+    const onRefresh = useCallback(async () => {
+        if (refreshing) return;
+        setRefreshing(true);
+        try {
+            // Reset pagination
+            feedExhaustedRef.current = false;
+            isFetchingMoreRef.current = false;
+            prevListLengthRef.current = 0;
+            dispatch(setListProfiles([]));
+            await dispatch(
+                listProfiles(true, 0, PROFILE_BATCH_LIMIT, false)
+            );
+        } catch (error) {
+            console.log("Refresh Error:", error);
+        } finally {
+            setRefreshing(false);
+        }
+    }, [dispatch, refreshing]);
     return (
         <AppSafeAreaView style={{ flexGrow: 1 }} color={newColor.blackNew}>
+       
             <NewHeaderAndroid onFilterPress={onFilterPress} />
             <FlatList
                 data={listProfilesData}
@@ -554,6 +597,15 @@ const PeopleScreen = () => {
                 updateCellsBatchingPeriod={50}
                 removeClippedSubviews={Platform.OS === 'android'}
                 showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        colors={["#E6B7A8"]}      // Android
+                        tintColor="#E6B7A8"       // iOS
+                        progressBackgroundColor="#212123"
+                    />
+                }
             />
             <LikeDislikeOverlays
                 likeOverlayStyle={likeOverlayStyle}
@@ -873,5 +925,6 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         marginTop: metrics.hp2,
+
     },
 });
