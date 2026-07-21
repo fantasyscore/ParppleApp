@@ -156,8 +156,8 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, likeYoue
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryContent}>
                     {item?.profilePicture?.map((img: any, idx: number) => (
                         <View key={img?.url ?? idx} style={styles.galleryItem}>
-                            <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male" ? 10 : 0} style={styles.galleryImage} />
-                            {userData?.gender === "male" ?
+                            <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male" || userData?.isPublish === false? 10 : 0} style={styles.galleryImage} />
+                            {userData?.gender === "male" || userData?.isPublish === false?
                                 <>
                                     <View style={styles.galleryDim} />
                                     <View style={styles.lockOverlay}>
@@ -386,7 +386,7 @@ const LikesYouScreen = () => {
             </AppText>
         </View>
     ), [userData?.gallery]);
-    if (userData?.gender === "male") {
+    if (userData?.gender === "male"|| userData?.isPublish === false) {
         return (
             <ImageBackground source={whosWatchingYouWhitePurhces} resizeMode="stretch"
                 style={{

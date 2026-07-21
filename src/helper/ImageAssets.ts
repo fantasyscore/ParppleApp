@@ -318,4 +318,14 @@ export const youLikeEmptyNew = require("../assets/img/youLikeEmptyNew.png");
 export const goToProifleIcon = require("../assets/img/goToProifleIcon.png");
 export const dummyMaleProfile = require("../assets/img/dummyMaleProfile.png");
 export const dummyfemaleProfile = require("../assets/img/dummyfemaleProfile.png");
+export const mask10 = require("../assets/img/mask10.png");
+export const mask1 = require("../assets/img/mask1.png");
+export const mask2 = require("../assets/img/mask2.png");
+export const mask3 = require("../assets/img/mask3.png");
+export const mask4 = require("../assets/img/mask4.png");
+export const mask5 = require("../assets/img/mask5.png");
+export const mask6 = require("../assets/img/mask6.png");
+export const mask7 = require("../assets/img/mask7.png");
+export const mask8 = require("../assets/img/mask8.png");
+export const mask9 = require("../assets/img/mask9.png");
     

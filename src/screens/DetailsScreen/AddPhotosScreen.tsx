@@ -15,12 +15,13 @@ import GoButton from "../../common/GoButton";
 import { toastAlert } from "../../actions/UploadImageActions";
 import { useDispatch, useSelector } from "react-redux";
 import { addProfile, deletePhotoAPI, discoverProfile, getNewMatches, getProfile, uploadImagesPhotoAPI } from "../../actions/authActions";
-import { Image as ImageCompressor } from "react-native-compressor";
 import LinearGradient from "react-native-linear-gradient";
 import { check, request, PERMISSIONS, RESULTS, openSettings } from "react-native-permissions";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_LOCATION_SCREEN } from "../../navigation/routes";
 import { setAddProfile } from "../../slices/loginServices/authSlice";
+import PhotoEditorModal, { PhotoEditorResult } from "../../components/PhotoEditor/PhotoEditorModal";
+import { analyzeFaceForMask, FaceMaskAnalysis } from "../../helper/faceMask";
 
 interface PermissionResult {
   granted: boolean;
@@ -93,11 +94,23 @@ const AddPhotoScreen = () => {
   const dispatch = useDispatch();
   const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
   const datalistnew = new Array(1).fill(null).map((_, index) => ({ id: String(index) }));
-  const [photos, setPhotos] = useState(
+  const [photos, setPhotos] = useState<{ id: string; image: string; imageId: string; loading: boolean }[]>(
     Array(4)
-      .fill({ id: "", image: "", imageId: "", loading: false })
+      .fill(null)
       .map((_, i) => ({ id: String(i + 1), image: "", imageId: "", loading: false }))
   );
+
+  // The editor pipeline works on exactly one photo at a time: the slot being
+  // filled, the untouched local image, and the (optional) auto-detected face
+  const [editorState, setEditorState] = useState<{
+    visible: boolean;
+    slotIndex: number;
+    imageUri: string;
+    analysis: FaceMaskAnalysis | null;
+    fileName: string;
+    fileType: string;
+  }>({ visible: false, slotIndex: -1, imageUri: "", analysis: null, fileName: "", fileType: "" });
+  const [editorBusy, setEditorBusy] = useState(false);
 
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
@@ -109,156 +122,20 @@ const AddPhotoScreen = () => {
     setPreviewImage(imageUri);
     setPreviewVisible(true);
   };
-  const pickMultipleImages = async () => {
-    // Prevent multiple simultaneous picker launches
-    if (isPickerOpenRef.current) {
-      console.log("[AddPhotosScreen] pickMultipleImages: picker is already open or transitioning. Request ignored.");
-      return;
-    }
 
-    const isAnyLoading = photos.some((p) => p.loading);
-    if (isAnyLoading) {
-      toastAlert.showToastError("Please wait for the current action to finish.");
-      return;
-    }
+  const updateSlot = (
+    index: number,
+    patch: Partial<{ image: string; imageId: string; loading: boolean }>
+  ) => setPhotos((prev) => prev.map((p, i) => (i === index ? { ...p, ...patch } : p)));
 
-    try {
-      const permissionResult = await requestGalleryPermission();
-      console.log("[AddPhotosScreen] pickMultipleImages permission result:", permissionResult);
-
-      if (!permissionResult.granted) {
-        return;
-      }
-
-      const currentCount = photos.filter((p) => p.image !== "" && p.image !== "Unsupported").length;
-      const remainingSlots = 6 - currentCount;
-
-      if (remainingSlots <= 0) {
-        toastAlert.showToastError("You can upload a maximum of 6 photos only.");
-        return;
-      }
-
-      isPickerOpenRef.current = true;
-
-      // Safe presentation buffer delay for first-time grants on iOS
-      if (Platform.OS === "ios" && permissionResult.newlyGranted) {
-        console.log("[AddPhotosScreen] Newly granted iOS photo permission. Deferring picker presentation by 800ms...");
-        await new Promise((resolve) => setTimeout(resolve, 800));
-      }
-
-      console.log("[AddPhotosScreen] Launching image library for multiple images selection...");
-      launchImageLibrary(
-        {
-          mediaType: "photo",
-          selectionLimit: remainingSlots,
-          quality: 0.8,
-          ...(Platform.OS === 'ios' && { presentationStyle: 'pageSheet' })
-        },
-        async (res: any) => {
-          // Always reset the flag when picker closes
-          isPickerOpenRef.current = false;
-
-          // Handle cancellation or errors
-          if (res.didCancel) {
-            console.log("[AddPhotosScreen] Multiple images picker cancelled by user.");
-            return;
-          }
-          if (res.errorCode || res.errorMessage) {
-            console.error("[AddPhotosScreen] Image picker error:", res.errorMessage || res.errorCode);
-            return;
-          }
-          if (!res.assets || res.assets.length === 0) {
-            console.log("[AddPhotosScreen] No assets selected.");
-            return;
-          }
-
-          const assets = res.assets.slice(0, remainingSlots);
-          console.log(`[AddPhotosScreen] Selected ${assets.length} image(s) to upload.`);
-
-          // Set loading state
-          setPhotos((prev) => {
-            const updated = [...prev];
-            let count = 0;
-            for (let i = 0; i < updated.length && count < assets.length; i++) {
-              if (updated[i].image === "") {
-                updated[i].loading = true;
-                count++;
-              }
-            }
-            return updated;
-          });
-
-          // Process uploads asynchronously after state update
-          try {
-            const uploadedUrls: { url: string; imageId: string }[] = [];
-
-            for (const asset of assets) {
-              try {
-                const compressedUri = await ImageCompressor.compress(asset.uri, {
-                  compressionMethod: "auto",
-                  quality: 0.6,
-                  maxWidth: 720,
-                  maxHeight: 1080,
-                });
-
-                const formData = new FormData();
-                formData.append("image", {
-                  uri: compressedUri,
-                  type: asset.type || "image/jpeg",
-                  name: asset.fileName || `image_${Date.now()}.jpg`,
-                } as any);
-
-                const response: any = await dispatch(uploadImagesPhotoAPI(formData));
-                console.log("[AddPhotosScreen] Upload response:", response);
-
-                if (response?.statusCode === 200 && response?.data) {
-                  const imageUrl = typeof response.data === 'string' ? response.data : (response.data.url || response.data.image || response.data.fileUrl || "");
-                  const imageId = response.data?._id || response.data?.id || "";
-                  uploadedUrls.push({ url: imageUrl || "Unsupported", imageId });
-                  if (response?.data?.success === false || imageUrl === "Unsupported") {
-                    setResponseMessage(response?.data?.message || response?.message || "Unsupported image format or size.");
-                  }
-                } else {
-                  uploadedUrls.push({ url: "Unsupported", imageId: "" });
-                  setResponseMessage(response?.message || response?.data?.message || "Unsupported image format or size.");
-                }
-              } catch (err) {
-                console.error("[AddPhotosScreen] Compression or upload failed:", err);
-                uploadedUrls.push({ url: "Unsupported", imageId: "" });
-                setResponseMessage("Compression or upload failed. Please try a different image.");
-              }
-            }
-
-            // Update photos with uploaded URLs
-            setPhotos((prev) => {
-              let uploadIndex = 0;
-              const finalPhotos = prev.map((p) => {
-                if (p.loading && p.image === "" && uploadIndex < uploadedUrls.length) {
-                  const newImage = uploadedUrls[uploadIndex].url;
-                  const newId = uploadedUrls[uploadIndex].imageId;
-                  uploadIndex++;
-                  return { ...p, loading: false, image: newImage, imageId: newId };
-                }
-                return p;
-              });
-              return finalPhotos;
-            });
-          } catch (err) {
-            console.error("[AddPhotosScreen] Upload processing failed:", err);
-            setPhotos((prev) => prev.map((p) => ({ ...p, loading: false })));
-          }
-        }
-      );
-    } catch (e) {
-      console.error("[AddPhotosScreen] pickMultipleImages outer exception:", e);
-      isPickerOpenRef.current = false;
-    }
-  };
-
-  const pickSingleImage = async (index: number) => {
-    // Prevent multiple simultaneous picker launches
-    if (isPickerOpenRef.current) {
-      console.log("[AddPhotosScreen] pickSingleImage: picker is already open or transitioning. Request ignored.");
+  /**
+   * Step 1 of the flow: pick ONE photo for the tapped slot. Nothing is
+   * uploaded here — the photo goes straight into the editor, and only the
+   * flattened result the editor hands back ever reaches the network.
+   */
+  const pickImageForSlot = async (index: number) => {
+    if (isPickerOpenRef.current || editorState.visible) {
+      console.log("[AddPhotosScreen] pickImageForSlot: picker or editor already open. Request ignored.");
       return;
     }
 
@@ -270,7 +147,7 @@ const AddPhotoScreen = () => {
 
     try {
       const permissionResult = await requestGalleryPermission();
-      console.log("[AddPhotosScreen] pickSingleImage permission result:", permissionResult);
+      console.log("[AddPhotosScreen] pickImageForSlot permission result:", permissionResult);
 
       if (!permissionResult.granted) {
         return;
@@ -289,107 +166,167 @@ const AddPhotoScreen = () => {
         {
           mediaType: "photo",
           selectionLimit: 1,
-          quality: 0.8,
+          // Full quality: the editor needs the original pixels, and the only
+          // file ever uploaded is the flattened editor output
+          quality: 1,
           ...(Platform.OS === 'ios' && { presentationStyle: 'pageSheet' })
         },
         async (res: any) => {
-          // Always reset the flag when picker closes
           isPickerOpenRef.current = false;
 
-          // Handle cancellation or errors
           if (res.didCancel) {
-            console.log("[AddPhotosScreen] Single image picker cancelled by user.");
+            console.log("[AddPhotosScreen] Image picker cancelled by user.");
             return;
           }
           if (res.errorCode || res.errorMessage) {
             console.error("[AddPhotosScreen] Image picker error:", res.errorMessage || res.errorCode);
             return;
           }
-          if (!res.assets || res.assets.length === 0) {
+          const asset = res.assets?.[0];
+          if (!asset?.uri) {
             console.log("[AddPhotosScreen] No asset selected.");
             return;
           }
 
-          // Set loading state
-          setPhotos((prev) => {
-            const updated = [...prev];
-            updated[index].loading = true;
-            return updated;
+          // Step 2: try automatic face detection; the editor opens either way.
+          // A valid analysis auto-places the mask, null falls back to the
+          // manual sticker editor.
+          const analysis = await analyzeFaceForMask(asset.uri);
+          setEditorState({
+            visible: true,
+            slotIndex: index,
+            imageUri: asset.uri,
+            analysis,
+            fileName: asset.fileName || `image_${Date.now()}.jpg`,
+            fileType: asset.type || "image/jpeg",
           });
-
-          // Process upload asynchronously after state update
-          try {
-            const compressedUri = await ImageCompressor.compress(res.assets[0].uri, {
-              compressionMethod: "auto",
-              quality: 0.6,
-              maxWidth: 720,
-              maxHeight: 1080,
-            });
-
-            const formData = new FormData();
-            formData.append("image", {
-              uri: compressedUri,
-              type: res.assets[0].type || "image/jpeg",
-              name: res.assets[0].fileName || `image_${Date.now()}.jpg`,
-            } as any);
-
-            const response: any = await dispatch(uploadImagesPhotoAPI(formData));
-            console.log("[AddPhotosScreen] Single upload response:", response);
-
-            setPhotos((prev) => {
-              const updated = [...prev];
-              updated[index].loading = false;
-              if (response?.statusCode === 200 && response?.data) {
-                const imageUrl = typeof response.data === 'string' ? response.data : (response.data.url || response.data.image || response.data.fileUrl || "");
-                const imageId = response.data?._id || response.data?.id || "";
-                updated[index].image = imageUrl || "Unsupported";
-                updated[index].imageId = imageId;
-                if (response?.data?.success === false || imageUrl === "Unsupported") {
-                  setResponseMessage(response?.data?.message || response?.message || "Unsupported image format or size.");
-                }
-              } else {
-                updated[index].image = "Unsupported";
-                setResponseMessage(response?.message || response?.data?.message || "Unsupported image format or size.");
-              }
-              return updated;
-            });
-          } catch (err) {
-            console.error("[AddPhotosScreen] Single upload failed:", err);
-            setResponseMessage("An error occurred during upload. Please try a different image.");
-            setPhotos((prev) => {
-              const updated = [...prev];
-              updated[index].loading = false;
-              updated[index].image = "Unsupported";
-              return updated;
-            });
-          }
         }
       );
     } catch (e) {
-      console.error("[AddPhotosScreen] pickSingleImage outer exception:", e);
+      console.error("[AddPhotosScreen] pickImageForSlot outer exception:", e);
       isPickerOpenRef.current = false;
     }
   };
 
+  /** Uploads a local image file. Returns the failure message, if any. */
+  const uploadEditedImage = async (
+    file: { uri: string; name: string; type: string },
+    slotIndex: number
+  ): Promise<{ ok: boolean; message?: string }> => {
+    try {
+      const formData = new FormData();
+      formData.append("image", {
+        uri: file.uri,
+        type: file.type,
+        name: file.name,
+      } as any);
+
+      const response: any = await dispatch(uploadImagesPhotoAPI(formData));
+      console.log("[AddPhotosScreen] Photo upload response:", response);
+
+      if (response?.statusCode === 200 && response?.data && response?.data?.success !== false) {
+        const imageUrl =
+          typeof response.data === "string"
+            ? response.data
+            : response.data.url || response.data.image || response.data.fileUrl || "";
+        const imageId = response.data?._id || response.data?.id || "";
+        if (imageUrl) {
+          updateSlot(slotIndex, { image: imageUrl, imageId, loading: false });
+          return { ok: true };
+        }
+      }
+      return {
+        ok: false,
+        message: response?.data?.message || response?.message || "Unsupported image format or size.",
+      };
+    } catch (err: any) {
+      console.error("[AddPhotosScreen] Photo upload failed:", err);
+      return { ok: false, message: err?.message || "An error occurred during upload. Please try again." };
+    }
+  };
+
+  const closeEditor = () =>
+    setEditorState({ visible: false, slotIndex: -1, imageUri: "", analysis: null, fileName: "", fileType: "" });
+
+  /**
+   * Shared tail of the editor flow: upload the given file while the editor
+   * stays open behind a busy overlay; close it only once the backend has the
+   * URL. Failures offer Retry (same file) or Cancel (nothing saved, editor
+   * stays open so the user's edits aren't lost).
+   */
+  const uploadFromEditor = async (file: { uri: string; name: string; type: string }) => {
+    const { slotIndex } = editorState;
+    setEditorBusy(true);
+    let done = false;
+    while (!done) {
+      const outcome = await uploadEditedImage(file, slotIndex);
+      if (outcome.ok) {
+        done = true;
+        setEditorBusy(false);
+        closeEditor();
+      } else {
+        setResponseMessage(outcome.message || "");
+        const choice = await new Promise<"retry" | "cancel">((resolve) => {
+          Alert.alert(
+            "Upload Failed",
+            outcome.message || "Something went wrong while uploading this photo.",
+            [
+              { text: "Cancel", style: "cancel", onPress: () => resolve("cancel") },
+              { text: "Retry", onPress: () => resolve("retry") },
+            ],
+            { cancelable: false }
+          );
+        });
+        if (choice === "cancel") {
+          done = true;
+          setEditorBusy(false);
+        }
+      }
+    }
+  };
+
+  /** Done: upload the flattened editor output (always a JPEG). */
+  const onEditorDone = (result: PhotoEditorResult) =>
+    uploadFromEditor({
+      uri: result.uri,
+      name: editorState.fileName.replace(/\.[^.]+$/, "") + "_edited.jpg",
+      type: "image/jpeg",
+    });
+
+  /** Skip: upload the original picked photo untouched, in its native format. */
+  const onEditorSkip = () =>
+    uploadFromEditor({
+      uri: editorState.imageUri,
+      name: editorState.fileName,
+      type: editorState.fileType,
+    });
+
+  const onEditorCancel = () => {
+    if (editorBusy) return;
+    closeEditor();
+  };
+
+  // Removes the slot at `index` and shifts the remaining photos left
+  const removeSlotAndShiftLeft = (index: number) => {
+    setPhotos((prev) => {
+      const remainingSlots = prev.filter((_, i) => i !== index);
+      return [...remainingSlots, { id: "", image: "", imageId: "", loading: false }].map(
+        (item, idx) => ({
+          id: String(idx + 1),
+          image: item.image || "",
+          imageId: item.imageId || "",
+          loading: item.loading || false,
+        })
+      );
+    });
+  };
 
   const deleteImage = async (item: any, index: number) => {
     if (item.loading) return; // Prevent duplicate requests
 
     // If it's just "Unsupported" local state, just clear it immediately
     if (item.image === "Unsupported") {
-      setPhotos((prev) => {
-        const remainingSlots = prev.filter((_, i) => i !== index);
-        return [...remainingSlots, { image: "", imageId: "", loading: false }]
-          .map((item, idx) => {
-            const img = item.image || "";
-            return {
-              id: String(idx + 1),
-              image: img,
-              imageId: item.imageId || "",
-              loading: item.loading || false,
-            };
-          });
-      });
+      removeSlotAndShiftLeft(index);
       return;
     }
 
@@ -397,19 +334,7 @@ const AddPhotoScreen = () => {
 
     if (!imageId) {
       // Fallback: clear and shift left locally
-      setPhotos((prev) => {
-        const remainingSlots = prev.filter((_, i) => i !== index);
-        return [...remainingSlots, { image: "", imageId: "", loading: false }]
-          .map((item, idx) => {
-            const img = item.image || "";
-            return {
-              id: String(idx + 1),
-              image: img,
-              imageId: item.imageId || "",
-              loading: item.loading || false,
-            };
-          });
-      });
+      removeSlotAndShiftLeft(index);
       return;
     }
 
@@ -427,19 +352,7 @@ const AddPhotoScreen = () => {
       if (res?.statusCode === 200 || res?.success || res?.code === 200) {
         // 3. Delete was successful. We now remove the image from the local list
         // and shift subsequent images to the left to maintain order/priority.
-        setPhotos((prev) => {
-          const remainingSlots = prev.filter((_, i) => i !== index);
-          return [...remainingSlots, { image: "", imageId: "", loading: false }]
-            .map((item, idx) => {
-              const img = item.image || "";
-              return {
-                id: String(idx + 1),
-                image: img,
-                imageId: item.imageId || "",
-                loading: item.loading || false,
-              };
-            });
-        });
+        removeSlotAndShiftLeft(index);
       } else {
         // Handle failure: reset loading
         setPhotos((prev) => {
@@ -471,7 +384,7 @@ const AddPhotoScreen = () => {
         <TouchableOpacityView
           onPress={() => {
             if (!item.image || item.image === "Unsupported") {
-              pickMultipleImages();
+              pickImageForSlot(index);
             }
           }}
           onLongPress={() => onLongPressImage(item.image)}
@@ -541,7 +454,7 @@ const AddPhotoScreen = () => {
         gallery: galleryData,
         fieldVisibility: { ...addProfileData?.fieldVisibility }
       };
-      console.log(dataToSave,"dataToSavedataToSave")
+      console.log(dataToSave, "dataToSavedataToSave")
       dispatch(setAddProfile(dataToSave));
       NavigationService.navigate(NAVIGATION_LOCATION_SCREEN);
     } finally {
@@ -551,7 +464,7 @@ const AddPhotoScreen = () => {
   const unsupportedImage = photos.find(
     item => item.image === "Unsupported"
   );
-  const onSkip =()=>{
+  const onSkip = () => {
     const dataToSave = {
       ...addProfileData,
       gallery: [],
@@ -577,10 +490,10 @@ const AddPhotoScreen = () => {
         columnWrapperStyle={{ columnGap: metrics.hp2 }}
       />
       {remaining !== 0 ?
-      <TouchableOpacity onPress={()=>onSkip()} style={{ width:metrics.hp10, alignSelf:"flex-end"}}>
-        <AppText style={styles.skipText} type={TWENTY} weight={SCHEHERAZADE_BOLD} color={WHITE}>
-          Skip
-        </AppText>
+        <TouchableOpacity onPress={() => onSkip()} style={{ width: metrics.hp10, alignSelf: "flex-end" }}>
+          <AppText style={styles.skipText} type={TWENTY} weight={SCHEHERAZADE_BOLD} color={WHITE}>
+            Skip
+          </AppText>
         </TouchableOpacity>
         : <></>}
       {remaining === 0 ?
@@ -592,6 +505,19 @@ const AddPhotoScreen = () => {
           </TouchableOpacity>
         </ImageBackground> : <></>
       }
+      {editorState.visible && (
+        <PhotoEditorModal
+          visible={editorState.visible}
+          imageUri={editorState.imageUri}
+          analysis={editorState.analysis}
+          busy={editorBusy}
+          busyLabel="Uploading..."
+          onCancel={onEditorCancel}
+          onDone={onEditorDone}
+          onSkip={onEditorSkip}
+        />
+      )}
+
       {/* <HeaderCommon />
       <View style={styles.container}>
         <TopCommonLine icon={addPhotoIcon} datalist={datalistnew} />

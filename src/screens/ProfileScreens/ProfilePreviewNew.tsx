@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import NavigationService from "../../navigation/NavigationService";
 
@@ -13,134 +13,42 @@ import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { AppText, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
 const ITEM_WIDTH = metrics.hp34;
 const SPACING = metrics.hp1;
-const DATA = [
-    {
-        id: "1",
-        title: "Smooches",
-        discription: "Steal a kiss worth remembering.",
-        image: smooheshIcon
-    },
-    {
-        id: "2",
-        title: "Hugs",
-        discription: "Hold me a little longer.",
-        image: hugsIcon
-    },
-    {
-        id: "3",
-        title: "Massage",
-        discription: "Where every touch melts away the distance.",
-        image: massageIcon
-    },
-    {
-        id: "4",
-        title: "Oral",
-        discription: "Open to deeper intimacy.",
-        image: oralIcon
-    },
-    {
-        id: "5",
-        title: "Dirty Talk",
-        discription: "Whisper what you're really thinking.",
-        image: dirtyTalks
-    },
-    {
-        id: "6",
-        title: "Fantasies",
-        discription: "Every secret deserves a safe place.",
-        image: fantasiesIcon
-    },
-    {
-        id: "7",
-        title: "Music",
-        discription: "Set the mood, let the sparks follow.",
-        image: musicIcons
-    },
-    {
-        id: "8",
-        title: "Foot Fetish",
-        discription: "A little obsession, a lot of chemistry.",
-        image: fotFetiesIcon
-    },
-    {
-        id: "9",
-        title: "Scents",
-        discription: "Irresistible starts with a signature scent.",
-        image: scentsIcon
-    },
-    {
-        id: "10",
-        title: "Biting",
-        discription: "A playful tease with a wild side.",
-        image: bitingIcon
-    },
-    {
-        id: "11",
-        title: "Hair",
-        discription: "Lost in every strand.",
-        image: hairIcon
-    },
-    {
-        id: "12",
-        title: "Being Watched",
-        discription: "The thrill of every lingering glance.",
-        image: beingWatchIcon
-    },
-    {
-        id: "13",
-        title: "Sexting",
-        discription: "Turn texts into irresistible tension.",
-        image: sextingIcon
-    },
-    {
-        id: "14",
-        title: "Room Service",
-        discription: "Luxury nights, unforgettable memories.",
-        image: roomServiceIcon
-    },
-    {
-        id: "15",
-        title: "Blindfolded",
-        discription: "Trust the moment, embrace the mystery.",
-        image: blinedFlodedIcon
-    },
-    {
-        id: "16",
-        title: "Tattoos",
-        discription: "Every ink tells a tempting story.",
-        image: TattosIcon
-    },
-    {
-        id: "17",
-        title: "Dance",
-        discription: "Let your bodies find the rhythm.",
-        image: danceNewIcon
-    },
-    {
-        id: "18",
-        title: "Role-Play",
-        discription: "Become whoever the night desires.",
-        image: rolePlayImageNew
-    },
-    {
-        id: "19",
-        title: "Chocolate",
-        discription: "Sweet enough to crave again.",
-        image: choclateImageNew
-    },
-    {
-        id: "20",
-        title: "Touch",
-        discription: "One touch can change everything.",
-        image: touchNewIcon
-    },
-
-]
+const TURN_ON_IMAGES: any = {
+    "Smooches": smooheshIcon,
+    "Hugs": hugsIcon,
+    "Massage": massageIcon,
+    "Oral": oralIcon,
+    "Dirty Talk": dirtyTalks,
+    "Fantasies": fantasiesIcon,
+    "Music": musicIcons,
+    "Foot Fetish": fotFetiesIcon,
+    "Scents": scentsIcon,
+    "Biting": bitingIcon,
+    "Hair": hairIcon,
+    "Being Watched": beingWatchIcon,
+    "Sexting": sextingIcon,
+    "Room Service": roomServiceIcon,
+    "Blindfolded": blinedFlodedIcon,
+    "Tattoos": TattosIcon,
+    "Dance": danceNewIcon,
+    "Role-Play": rolePlayImageNew,
+    "Chocolate": choclateImageNew,
+    "Touch": touchNewIcon,
+};
 const ProfilePreviewNew = () => {
     const scrollX = useRef(new Animated.Value(0)).current;
     const userData = useSelector((state: any) => state?.auth?.userData);
+    const turnOnData = useSelector((state: any) => state?.auth?.turnOnData);
+    const [selectedTurnOnIds, setSelectedTurnOnIds] = useState<any[]>([]);
+
     const selectedIds = userData?.turnOn || userData?.turnOns || [];
 
+    useEffect(() => {
+        if (userData?.turnOns) {
+            const initialTurnOnIds = userData.turnOns.map((t: any) => t._id || t.id);
+            setSelectedTurnOnIds(initialTurnOnIds);
+        }
+    }, [userData?.turnOns]);
     const renderItem = ({ item, index }: any) => {
         const inputRange = [
             (index - 1) * (ITEM_WIDTH + SPACING),
@@ -179,17 +87,19 @@ const ProfilePreviewNew = () => {
         // Not selectable in preview
     };
     const renderItemTurns_ons = ({ item }: any) => {
-        const isSelected = selectedIds.includes(item.id);
+        const itemId = item._id || item.id;
+        const isSelected = selectedTurnOnIds.includes(itemId);
+        // const isSelected = selectedIds.includes(item.id);
         return (
-            <TouchableOpacity activeOpacity={1} onPress={() => { }}>
+            <TouchableOpacity activeOpacity={1}>
                 <ImageBackground source={trunOnBackground} tintColor={isSelected ? "#E6B7A8" : "#555359"} resizeMode="cover" style={styles.trunback}>
-                    <FastImage source={item.image} resizeMode="contain" style={styles.imagesIcon} />
+                    <FastImage source={TURN_ON_IMAGES[item.value]} resizeMode="contain" style={styles.imagesIcon} />
                     <View style={{ alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp2 }}>
                         <AppText style={{ color: isSelected ? newColor.blackNew : "#E6B7A8" }} type={EIGHTEEN} weight={SCHEHERAZADE_BOLD}>
-                            {item.title}
+                        {item.value}
                         </AppText>
                         <AppText type={ELEVEN} style={{ textAlign: "center", marginTop: -metrics.hp1, color: isSelected ? newColor.blackNew : colors.white, opacity: isSelected ? 0.8 : 1 }}>
-                            {item.discription}
+                        {item.message}
                         </AppText>
                     </View>
                     {isSelected ?
@@ -198,6 +108,17 @@ const ProfilePreviewNew = () => {
             </TouchableOpacity>
         )
     };
+    const selectedTurnOnList = React.useMemo(() => {
+        if (!turnOnData?.length || !userData?.turnOns?.length) {
+            return [];
+        }
+    
+        const selectedIds = userData.turnOns.map((item: any) => item._id);
+    
+        return turnOnData.filter((item: any) =>
+            selectedIds.includes(item._id)
+        );
+    }, [turnOnData, userData?.turnOns]);
 
     return (
         <AppSafeAreaView color={newColor.blackNew}>
@@ -304,9 +225,9 @@ const ProfilePreviewNew = () => {
                     </ImageBackground>
                 </View>
                 <FlatList
-                    data={DATA}
+                    data={selectedTurnOnList}
                     renderItem={renderItemTurns_ons}
-                    keyExtractor={(item) => item.id.toString()}
+                    keyExtractor={(item) => item._id.toString()}
                     numColumns={2}
                     contentContainerStyle={{ paddingHorizontal: metrics.hp2, alignItems: "center", marginTop: metrics.hp0, paddingBottom: metrics.hp5 }}
                     columnWrapperStyle={{ columnGap: metrics.hp2, marginTop: metrics.hp6 }} />

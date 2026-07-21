@@ -4,7 +4,7 @@ export const config = {
   ANDROID_CODEPUSH_DEPLOYMENT: `oIiEE-qmiCLsQff0q5hVnc_O6-s4QiRpdi1y8`,
   ENVIRONMENT: `Staging`,
   // Base URL for API and Socket connections
-  //  BASE_URL: `https://ebb5-2401-4900-88a8-72d5-d05c-73a4-2b08-4755.ngrok-free.app/`
+  //  BASE_URL: `https://8b5a-2401-4900-88a9-a9b0-4da6-ad5a-6727-4ed2.ngrok-free.app/`
  BASE_URL: `http://13.201.74.29/`,
   // Alternative: Use production URL when ready
   // BASE_URL: `https://api.parpple.com/`,

@@ -390,7 +390,7 @@ const CrushNotePurchase = () => {
                     disabled={!!processing || products.length === 0}>
                     <LinearGradient colors={["#D08FA9", "#FDD2C1"]} style={{ height: metrics.hp7, width: "100%", alignItems: "center", justifyContent: "center" }}>
                         <AppText type={EIGHTEEN} weight={SCHEHERAZADE_BOLD} color={BLACK}>
-                            Get {products[select]?.count || ''} Crush Notes for {products[select]?.displayPrice || ''}
+                            Get {products[select]?.count || ''} chats for {products[select]?.displayPrice || ''}
                         </AppText>
                     </LinearGradient>
                 </TouchableOpacityView>

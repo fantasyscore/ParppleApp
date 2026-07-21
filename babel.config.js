@@ -1,7 +1,9 @@
 module.exports = {
   presets: ['module:@react-native/babel-preset'],
-  plugins: ['react-native-worklets/plugin'],
   plugins: [
-    'react-native-reanimated/plugin',
+    // Reanimated 4.x: this is the canonical worklets plugin.
+    // Do NOT also add 'react-native-reanimated/plugin' — it is an alias of
+    // this exact module and Babel will report a duplicate plugin.
+    'react-native-worklets/plugin', // MUST be last
   ],
 };

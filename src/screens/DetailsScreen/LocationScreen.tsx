@@ -10,7 +10,7 @@ import { check, checkMultiple, request, requestMultiple, PERMISSIONS, RESULTS } 
 import Geolocation, { GeoPosition } from "react-native-geolocation-service";
 import { useDispatch, useSelector } from "react-redux";
 import { toastAlert } from "../../actions/UploadImageActions";
-import { addProfile, discoverProfile, getNewMatches, getProfile, likeByOther, likeYou, listProfiles, viewProfileByOther, youView } from "../../actions/authActions";
+import { addProfile, discoverProfile, getNewMatches, getProfile, likeByOther, likeYou, listProfiles, turnOn, viewProfileByOther, youView } from "../../actions/authActions";
 
 const GEOCODE_API_KEY = "AIzaSyAuzRbXX8dWA2n4QGD0ja-609e1wXMkHjI";
 
@@ -207,6 +207,7 @@ const LocationScreen = () => {
       dispatch(likeYou());
       dispatch(viewProfileByOther());
       dispatch(youView());
+      dispatch(turnOn({}))
     }
   };
 

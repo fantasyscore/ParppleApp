@@ -155,8 +155,8 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryContent}>
                     {item?.profilePicture?.map((img: any, idx: number) => (
                         <View key={img?.url ?? idx} style={styles.galleryItem}>
-                            <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male" ? 10 : 0} style={styles.galleryImage} />
-                            {userData?.gender === "male" ? <>
+                            <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male" || userData?.isPublish === false? 10 : 0} style={styles.galleryImage} />
+                            {userData?.gender === "male" || userData?.isPublish === false? <>
                                 <View style={styles.galleryDim} />
                                 <View style={styles.lockOverlay}>
                                     <FastImage source={lockIconWhite} resizeMode='contain' style={styles.lockIcon} />
@@ -375,7 +375,7 @@ const ViewYouScreen = () => {
     }), []);
 
 
-    if (userData?.gender === "male") {
+    if (userData?.gender === "male"|| userData?.isPublish === false) {
         return (
             <ImageBackground source={whoVisitYourProfileWithOutPurches} resizeMode="stretch"
                 style={{
@@ -480,7 +480,7 @@ const ViewYouScreen = () => {
                 <NewHeaderAndroid filterShow={false} />
             </View>
             {filteredData?.length === 0 ?
-                <ImageBackground source={ViewYoue === "You Viewed" ? viewedYouEmptyNew : youViewEmptuNew} resizeMode='stretch' style={{ flex: 1, alignItems: "center" }} >
+                <ImageBackground source={ViewYoue === "You Viewed" ? youViewEmptuNew : viewedYouEmptyNew} resizeMode='stretch' style={{ flex: 1, alignItems: "center" }} >
                     {ViewYoue === "You Viewed" ? <></> :
                         <TouchableOpacity activeOpacity={1} onPress={() => NavigationService.navigate(NAVIGATION_PEOPLE_SCREEN)} style={{ height: metrics.hp7, position: "absolute", bottom: metrics.hp13, borderWidth: metrics.hp0_1, borderColor: "#D08FA9", width: "95%", backgroundColor: "#00000050" }}>
                             <AppText type={TWENTY} weight={SCHEHERAZADE_BOLD} style={{ color: "#D08FA9", marginTop: metrics.hp0_5, textAlign: "center" }}>

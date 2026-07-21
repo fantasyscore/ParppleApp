@@ -125,7 +125,7 @@ type ProfileListCardProps = {
 // Memoized row: re-renders only when its own profile changes, not on every
 // list update / swipe elsewhere.
 const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData }: ProfileListCardProps) => {
-    
+
     return (
         <ImageBackground source={newProfileBackground} resizeMode='stretch' style={styles.cardBackground}>
             <TouchableOpacityView activeOpacity={1} onPress={() => onOpenPreview(item)} style={styles.cardHeaderRow}>
@@ -157,9 +157,9 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData
             <View style={styles.galleryWrap}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryContent}>
                     {item?.gallery?.map((img: any, idx: number) => (
-                        <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : console.log()} key={img?.url ?? idx} style={styles.galleryItem}>
-                            <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male" ? 10 : 0} style={styles.galleryImage} />
-                            {userData?.gender === "male" ? <>
+                        <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" || userData?.isPublish === false? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : console.log()} key={img?.url ?? idx} style={styles.galleryItem}>
+                            <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male"|| userData?.isPublish === false ? 10 : 0} style={styles.galleryImage} />
+                            {userData?.gender === "male" || userData?.isPublish === false? <>
                                 <View style={styles.galleryDim} />
                                 <View style={styles.lockOverlay}>
                                     <FastImage source={lockIconWhite} resizeMode='contain' style={styles.lockIcon} />
@@ -172,13 +172,13 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData
             </View>
 
             <View style={styles.actionsRow}>
-                <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : onDislike(item)}>
+                <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : onDislike(item)}>
                     <FastImage source={newCloseIcon} resizeMode='contain' style={styles.dislikeButton} />
                 </TouchableOpacityView>
-                <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : onLike(item)}>
+                <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : onLike(item)}>
                     <FastImage source={newLikeIcon} resizeMode='contain' style={styles.likeButton} />
                 </TouchableOpacityView>
-                <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN)}>
+                <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN)}>
                     <FastImage source={directChatIcon} resizeMode='contain' style={styles.chatButton} />
                 </TouchableOpacityView>
             </View>
@@ -208,7 +208,7 @@ const PeopleScreen = () => {
     const filterSheetRef = useRef<any>(null);
 
     const onFilterPress = useCallback(() => {
-        if (userData?.gender === "male") {
+        if (userData?.gender === "male"|| userData?.isPublish === false) {
             NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN)
         } else {
             filterSheetRef.current?.open();
@@ -514,7 +514,7 @@ const PeopleScreen = () => {
     }, []);
     const renderItem = useCallback(({ item }: any) => (
         <ProfileListCard item={item} onLike={handleLikePress} onDislike={handleDislikePress} onOpenPreview={handleOpenPreview} userData={userData} />
-    ), [handleLikePress, handleDislikePress,  userData  ]);
+    ), [handleLikePress, handleDislikePress, userData]);
 
     const keyExtractor = useCallback((item: any, index: number) => item?._id ?? `profile-${index}`, []);
 
@@ -535,7 +535,7 @@ const PeopleScreen = () => {
             </AppText>
         </View>
     ), [userData?.gallery]);
-   
+
     return (
         <AppSafeAreaView style={{ flexGrow: 1 }} color={newColor.blackNew}>
             <NewHeaderAndroid onFilterPress={onFilterPress} />

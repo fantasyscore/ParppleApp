@@ -3,7 +3,7 @@ import { AppSafeAreaView } from "../common/AppSafeAreaView";
 import { useDispatch } from "react-redux";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { USER_TOKEN_KEY } from "../helper/Constants";
-import { discoverProfile, getNewMatches, getProfile, likeByOther, likeYou, listProfiles, viewProfileByOther, youView } from "../actions/authActions";
+import { discoverProfile, getNewMatches, getProfile, likeByOther, likeYou, listProfiles, turnOn, viewProfileByOther, youView } from "../actions/authActions";
 import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_WELCOME_SCREEN } from "../navigation/routes";
 import FastImage from "react-native-fast-image";
@@ -31,6 +31,7 @@ const AuthLoding = () => {
           dispatch(likeYou());
           dispatch(viewProfileByOther());
           dispatch(youView());
+          dispatch(turnOn({}))
         } catch (dispatchError) {
           console.error('[AuthLoading] Error dispatching actions:', dispatchError);
           // Don't crash - continue with navigation if token exists

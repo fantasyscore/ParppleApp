@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Dimensions, FlatList, ImageBackground, Linking, Platform, ScrollView, StyleSheet, View, Modal, TextInput, PermissionsAndroid, Alert } from "react-native";
+import { Dimensions, FlatList, ImageBackground, Linking, Platform, ScrollView, StyleSheet, View, Modal, TextInput } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
 import { arrowBackForSafety, bioBackground, biosToggla, blockPurppleIcon, blueTikeIcon, callIcon, checkSafety, dobIcon, editButtonBackground, flasIcon, forProfileDetailsBack, goldCardSmall, heightIconWhiteNew, locationIconWhiteNew, locationPurppleIcon, partnerheart, pencilIcon, platniumCardSmall, premiumIcon, profilebackGround, ProfileBackGroundNew, profileImage, pronounIcon, pText, redHeart, rightArrow, sliverCardSmall, stylesRightArrow, tabViewForLikes, trunOnBackground, uploadIcon, beingWatchIcon, bitingIcon, blinedFlodedIcon, dirtyTalks, fantasiesIcon, fotFetiesIcon, hairIcon, hugsIcon, massageIcon, musicIcons, oralIcon, rightSelectTrunOns, roomServiceIcon, scentsIcon, sextingIcon, smooheshIcon, TattosIcon, BottomLayer, danceNewIcon, rolePlayImageNew, choclateImageNew, touchNewIcon, dummyMaleProfile, dummyfemaleProfile } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
@@ -14,123 +14,38 @@ import { Screen } from "../../theme/dimens";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_EDIT_PROFILE_SCREEN, NAVIGATION_FILTER_SCREEN, NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN, NAVIGATION_SETTING_SCREEN, NAVIGATION_SUBSCRIPTION_ALL_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN, NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from "../../navigation/routes";
 import { useDispatch, useSelector } from "react-redux";
-import { getProfile, editProfile, uploadImagesPhotoAPI, deletePhotoAPI } from "../../actions/authActions";
+import { getProfile, editProfile, deletePhotoAPI } from "../../actions/authActions";
+import { appOperation } from "../../appOperation";
 import Carousel from "react-native-reanimated-carousel";
 import NewHeader from "../../common/NewHeader";
 import LinearGradient from "react-native-linear-gradient";
-import { check, request, PERMISSIONS, RESULTS, openSettings } from "react-native-permissions";
-import { launchImageLibrary } from "react-native-image-picker";
-import { Image as ImageCompressor } from "react-native-compressor";
 import { toastAlert } from "../../actions/UploadImageActions";
 import { setProfileHide } from "../../slices/loginServices/authSlice";
+import PhotoEditorModal from "../../components/PhotoEditor/PhotoEditorModal";
+import { usePhotoEditorUpload, UploadedPhoto } from "../../components/PhotoEditor/usePhotoEditorUpload";
 
-interface PermissionResult {
-    granted: boolean;
-    newlyGranted: boolean;
-}
-
-async function requestGalleryPermission(): Promise<PermissionResult> {
-    if (Platform.OS === "android") {
-        try {
-            const granted = await PermissionsAndroid.request(
-                PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES || PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-                {
-                    title: "Gallery Permission",
-                    message: "App needs access to your photos to upload them.",
-                    buttonNeutral: "Ask Me Later",
-                    buttonNegative: "Cancel",
-                    buttonPositive: "OK",
-                }
-            );
-            const isGranted = granted === PermissionsAndroid.RESULTS.GRANTED;
-            return { granted: isGranted, newlyGranted: false };
-        } catch (err) {
-            console.warn("Android permission error:", err);
-            return { granted: false, newlyGranted: false };
-        }
-    } else {
-        try {
-            const permission = PERMISSIONS.IOS.PHOTO_LIBRARY;
-            const checkResult = await check(permission);
-
-            if (checkResult === RESULTS.GRANTED || checkResult === RESULTS.LIMITED) {
-                return { granted: true, newlyGranted: false };
-            }
-
-            if (checkResult === RESULTS.BLOCKED) {
-                Alert.alert(
-                    "Photo Library Permission Required",
-                    "Photo library access is disabled. Please enable it in your device Settings to choose profile photos.",
-                    [
-                        { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
-                        { text: "Cancel", style: "cancel" },
-                    ]
-                );
-                return { granted: false, newlyGranted: false };
-            }
-
-            const requestResult = await request(permission);
-            if (requestResult === RESULTS.BLOCKED) {
-                Alert.alert(
-                    "Photo Library Permission Required",
-                    "Photo library access is disabled. Please enable it in your device Settings to choose profile photos.",
-                    [
-                        { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
-                        { text: "Cancel", style: "cancel" },
-                    ]
-                );
-            }
-            const isAllowed = requestResult === RESULTS.GRANTED || requestResult === RESULTS.LIMITED;
-            return { granted: isAllowed, newlyGranted: isAllowed };
-        } catch (err) {
-            console.warn("iOS permission error:", err);
-            return { granted: false, newlyGranted: false };
-        }
-    }
-}
-
-const TURN_ON_DATA = [
-    { id: "1", title: "Smooches", discription: "Steal a kiss worth remembering.", image: smooheshIcon },
-    { id: "2", title: "Hugs", discription: "Hold me a little longer.", image: hugsIcon },
-    { id: "3", title: "Massage", discription: "Where every touch melts away the distance.", image: massageIcon },
-    { id: "4", title: "Oral", discription: "Open to deeper intimacy.", image: oralIcon },
-    { id: "5", title: "Dirty Talk", discription: "Whisper what you're really thinking.", image: dirtyTalks },
-    { id: "6", title: "Fantasies", discription: "Every secret deserves a safe place.", image: fantasiesIcon },
-    { id: "7", title: "Music", discription: "Set the mood, let the sparks follow.", image: musicIcons },
-    { id: "8", title: "Foot Fetish", discription: "A little obsession, a lot of chemistry.", image: fotFetiesIcon },
-    { id: "9", title: "Scents", discription: "Irresistible starts with a signature scent.", image: scentsIcon },
-    { id: "10", title: "Biting", discription: "A playful tease with a wild side.", image: bitingIcon },
-    { id: "11", title: "Hair", discription: "Lost in every strand.", image: hairIcon },
-    { id: "12", title: "Being Watched", discription: "The thrill of every lingering glance.", image: beingWatchIcon },
-    { id: "13", title: "Sexting", discription: "Turn texts into irresistible tension.", image: sextingIcon },
-    { id: "14", title: "Room Service", discription: "Luxury nights, unforgettable memories.", image: roomServiceIcon },
-    { id: "15", title: "Blindfolded", discription: "Trust the moment, embrace the mystery.", image: blinedFlodedIcon },
-    { id: "16", title: "Tattoos", discription: "Every ink tells a tempting story.", image: TattosIcon },
-    {
-        id: "17",
-        title: "Dance",
-        discription: "Let your bodies find the rhythm.",
-        image: danceNewIcon
-    },
-    {
-        id: "18",
-        title: "Role-Play",
-        discription: "Become whoever the night desires.",
-        image: rolePlayImageNew
-    },
-    {
-        id: "19",
-        title: "Chocolate",
-        discription: "Sweet enough to crave again.",
-        image: choclateImageNew
-    },
-    {
-        id: "20",
-        title: "Touch",
-        discription: "One touch can change everything.",
-        image: touchNewIcon
-    },
-];
+const TURN_ON_IMAGES: any = {
+    "Smooches": smooheshIcon,
+    "Hugs": hugsIcon,
+    "Massage": massageIcon,
+    "Oral": oralIcon,
+    "Dirty Talk": dirtyTalks,
+    "Fantasies": fantasiesIcon,
+    "Music": musicIcons,
+    "Foot Fetish": fotFetiesIcon,
+    "Scents": scentsIcon,
+    "Biting": bitingIcon,
+    "Hair": hairIcon,
+    "Being Watched": beingWatchIcon,
+    "Sexting": sextingIcon,
+    "Room Service": roomServiceIcon,
+    "Blindfolded": blinedFlodedIcon,
+    "Tattoos": TattosIcon,
+    "Dance": danceNewIcon,
+    "Role-Play": rolePlayImageNew,
+    "Chocolate": choclateImageNew,
+    "Touch": touchNewIcon,
+};
 
 const ProfileScreenAndroid = () => {
     const dispatch = useDispatch();
@@ -143,29 +58,54 @@ const ProfileScreenAndroid = () => {
     const [bioError, setBioError] = useState("");
     const userData = useSelector((state: any) => state.auth.userData);
     const profileHide = useSelector((state: any) => state.auth.profileHide);
+    const turnOnData = useSelector((state: any) => state?.auth?.turnOnData);
+    console.log(userData,"userData");
 
     const [selectedTurnOnIds, setSelectedTurnOnIds] = useState<any[]>([]);
 
-    const handleTurnOnSelect = (id: any) => {
-        setSelectedTurnOnIds((prev: any) =>
-            prev.includes(id)
-                ? prev.filter((item: any) => item !== id)
-                : [...prev, id]
-        );
+    useEffect(() => {
+        if (userData?.turnOns) {
+            const initialTurnOnIds = userData.turnOns.map((t: any) => t._id || t.id);
+            setSelectedTurnOnIds(initialTurnOnIds);
+        }
+    }, [userData?.turnOns]);
+
+    const handleTurnOnSelect = async (id: any) => {
+        const isSelected = selectedTurnOnIds.includes(id);
+        const newSelectedIds = isSelected
+            ? selectedTurnOnIds.filter((item: any) => item !== id)
+            : [...selectedTurnOnIds, id];
+
+        setSelectedTurnOnIds(newSelectedIds);
+
+        try {
+            const response: any = await appOperation.customer.editProfileAPI({ attributes: newSelectedIds });
+            if (response?.statusCode == 200) {
+                dispatch(getProfile(true) as any);
+            } else {
+                setSelectedTurnOnIds(selectedTurnOnIds);
+                toastAlert.showToastError(response?.message || "Something went wrong!");
+            }
+        } catch (e) {
+            // Revert on failure
+            setSelectedTurnOnIds(selectedTurnOnIds);
+            toastAlert.showToastError("Failed to update turn ons");
+        }
     };
 
     const renderTurnOnItem = ({ item }: any) => {
-        const isSelected = selectedTurnOnIds.includes(item.id);
+        const itemId = item._id || item.id;
+        const isSelected = selectedTurnOnIds.includes(itemId);
         return (
-            <TouchableOpacityView activeOpacity={1} onPress={() => handleTurnOnSelect(item.id)}>
+            <TouchableOpacityView activeOpacity={1} onPress={() => handleTurnOnSelect(itemId)}>
                 <ImageBackground source={trunOnBackground} tintColor={isSelected ? "#E6B7A8" : "#555359"} resizeMode="cover" style={styles.turnOnTrunback}>
-                    <FastImage source={item.image} resizeMode="contain" style={styles.turnOnImagesIcon} />
+                    <FastImage source={TURN_ON_IMAGES[item.value]} resizeMode="contain" style={styles.turnOnImagesIcon} />
                     <View style={{ alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp2 }}>
                         <AppText style={{ color: isSelected ? newColor.blackNew : "#E6B7A8" }} type={EIGHTEEN} weight={SCHEHERAZADE_BOLD}>
-                            {item.title}
+                        {item.value}
                         </AppText>
                         <AppText type={ELEVEN} style={{ textAlign: "center", marginTop: -metrics.hp1, color: isSelected ? newColor.blackNew : colors.white, opacity: isSelected ? 0.8 : 1 }}>
-                            {item.discription}
+                        {item.message}
                         </AppText>
                     </View>
                     {isSelected ?
@@ -174,7 +114,6 @@ const ProfileScreenAndroid = () => {
             </TouchableOpacityView>
         )
     };
-    const isPickerOpenRef = useRef(false);
     const [localPhotos, setLocalPhotos] = useState<any[]>([]);
     const localPhotosRef = useRef<any[]>([]);
     localPhotosRef.current = localPhotos;
@@ -191,108 +130,34 @@ const ProfileScreenAndroid = () => {
         }
     }, [userData?.gallery]);
 
-    const pickMultipleImages = async () => {
-        if (isPickerOpenRef.current) return;
-        const isAnyLoading = localPhotos.some((p) => p.loading);
-        if (isAnyLoading) {
-            toastAlert.showToastError("Please wait for the current action to finish.");
-            return;
-        }
-
-        try {
-            const permissionResult = await requestGalleryPermission();
-            if (!permissionResult.granted) return;
-
-            isPickerOpenRef.current = true;
-            if (Platform.OS === "ios" && permissionResult.newlyGranted) {
-                await new Promise((resolve) => setTimeout(resolve, 800));
+    // Shared pick → face-detect → edit → upload pipeline (same as AddPhotosScreen)
+    const { pickAndEdit, editorVisible, editorProps } = usePhotoEditorUpload({
+        canStart: () => {
+            const isAnyLoading = localPhotosRef.current.some((p) => p.loading);
+            if (isAnyLoading) {
+                toastAlert.showToastError("Please wait for the current action to finish.");
+                return false;
             }
+            return true;
+        },
+        onUploaded: async (_context: any, uploaded: UploadedPhoto) => {
+            const combined = [
+                { id: `new-${Date.now()}`, image: uploaded.url, imageId: uploaded.imageId, loading: false },
+                ...localPhotosRef.current.filter((p) => !p.loading),
+            ].slice(0, 4);
+            setLocalPhotos(combined);
 
-            launchImageLibrary(
-                {
-                    mediaType: "photo",
-                    selectionLimit: 4,
-                    quality: 0.8,
-                    ...(Platform.OS === 'ios' && { presentationStyle: 'pageSheet' })
-                },
-                async (res: any) => {
-                    isPickerOpenRef.current = false;
-                    if (res.didCancel || res.errorCode || res.errorMessage || !res.assets || res.assets.length === 0) {
-                        return;
-                    }
+            const galleryData = combined
+                .filter((p) => p.image !== "Unsupported" && p.image !== "")
+                .map((p, index) => ({
+                    priority: index === 0,
+                    url: p.image,
+                }));
 
-                    const assets = res.assets.slice(0, 4);
-
-                    const loadingItems = assets.map((_, idx) => ({
-                        id: `loading-${Date.now()}-${idx}`,
-                        image: "",
-                        imageId: "",
-                        loading: true
-                    }));
-
-                    setLocalPhotos((prev) => {
-                        const next = [...loadingItems, ...prev];
-                        return next.slice(0, 4);
-                    });
-
-                    try {
-                        const uploadedUrls: { url: string; imageId: string }[] = [];
-                        for (const asset of assets) {
-                            try {
-                                const compressedUri = await ImageCompressor.compress(asset.uri, {
-                                    compressionMethod: "auto",
-                                    quality: 0.6,
-                                    maxWidth: 720,
-                                    maxHeight: 1080,
-                                });
-
-                                const formData = new FormData();
-                                formData.append("image", {
-                                    uri: compressedUri,
-                                    type: asset.type || "image/jpeg",
-                                    name: asset.fileName || `image_${Date.now()}.jpg`,
-                                } as any);
-
-                                const response: any = await dispatch(uploadImagesPhotoAPI(formData));
-                                if (response?.statusCode === 200 && response?.data) {
-                                    const imageUrl = typeof response.data === 'string' ? response.data : (response.data.url || response.data.image || response.data.fileUrl || "");
-                                    const imageId = response.data?._id || response.data?.id || "";
-                                    uploadedUrls.push({ url: imageUrl, imageId });
-                                } else {
-                                    uploadedUrls.push({ url: "Unsupported", imageId: "" });
-                                }
-                            } catch (err) {
-                                uploadedUrls.push({ url: "Unsupported", imageId: "" });
-                            }
-                        }
-
-                        const withoutLoading = localPhotosRef.current.filter(p => !p.loading);
-                        const newLoaded = uploadedUrls.map((u, i) => ({
-                            id: `new-${Date.now()}-${i}`,
-                            image: u.url,
-                            imageId: u.imageId,
-                            loading: false
-                        }));
-                        const combined = [...newLoaded, ...withoutLoading].slice(0, 4);
-
-                        setLocalPhotos(combined);
-
-                        const galleryData = combined.filter(p => p.image !== "Unsupported" && p.image !== "").map((p, index) => ({
-                            priority: index === 0,
-                            url: p.image,
-                        }));
-
-                        await dispatch(editProfile({ gallery: galleryData }, true) as any);
-                        dispatch(getProfile(false, true));
-                    } catch (err) {
-                        dispatch(getProfile(false, true));
-                    }
-                }
-            );
-        } catch (e) {
-            isPickerOpenRef.current = false;
-        }
-    };
+            await dispatch(editProfile({ gallery: galleryData }, true) as any);
+            dispatch(getProfile(false, true));
+        },
+    });
 
     const deleteImage = async (item: any) => {
         if (item.loading) return;
@@ -339,7 +204,7 @@ const ProfileScreenAndroid = () => {
                 <ImageBackground source={trunOnBackground} resizeMode="stretch" style={styles.trunback}>
                     <View style={styles.itemWrapper}>
                         <TouchableOpacityView
-                            onPress={pickMultipleImages}
+                            onPress={() => pickAndEdit()}
                             style={[styles.boxContainer, { width: "100%", height: "100%", marginBottom: 0 }]}
                         >
                             <FastImage source={uploadIcon} resizeMode="contain" tintColor={colors.white} style={[styles.icon, { marginTop: metrics.hp1 }]} />
@@ -640,9 +505,9 @@ const ProfileScreenAndroid = () => {
                 {selectedTab === "Turn On" && (
                     <View style={{ flex: 1, paddingHorizontal: metrics.hp2 }}>
                         <FlatList
-                            data={TURN_ON_DATA}
+                            data={turnOnData}
                             renderItem={renderTurnOnItem}
-                            keyExtractor={(item) => item.id.toString()}
+                            keyExtractor={(item) => item._id.toString()}
                             numColumns={2}
                             contentContainerStyle={{ paddingHorizontal: metrics.hp2, alignItems: "center", marginTop: metrics.hp3, paddingBottom: metrics.hp5 }}
                             columnWrapperStyle={{ columnGap: metrics.hp2, marginTop: metrics.hp6 }}
@@ -653,9 +518,9 @@ const ProfileScreenAndroid = () => {
             </LinearGradient>
             <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
                 <TouchableOpacityView style={{ width: "100%", alignItems: "center", justifyContent: "center" }} onPress={() => userData?.gender === "female" ? hideUnHideProfile() : NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN)}>
-                    <LinearGradient colors={userData?.gender === "male" ? ["#D08FA9", "#FDD2C1"] : profileHide === "Hide" ? ["#D08FA9", "#FDD2C1"] : ["#151517", "#151517"]} style={{ height: metrics.hp7, width: "90%", alignItems: "center", justifyContent: "center", borderWidth: userData?.gender === "male" ? 0 : profileHide === "Hide" ? 0 : metrics.hp0_1, borderColor: userData?.gender === "male" ? colors.transparent : profileHide === "Hide" ? colors.transparent : colors.white }}>
-                        <AppText type={EIGHTEEN} weight={SCHEHERAZADE_BOLD} color={userData?.gender === "male" ? BLACK : profileHide === "Hide" ? BLACK : WHITE}>
-                            {userData?.gender === "male" ? "Publish Profile" : profileHide === "Hide" ? "Publish Profile" : "Hide Profile"}
+                    <LinearGradient colors={userData?.gender === "male" || userData?.isPublish === false? ["#D08FA9", "#FDD2C1"] : profileHide === "Hide" ? ["#D08FA9", "#FDD2C1"] : ["#151517", "#151517"]} style={{ height: metrics.hp7, width: "90%", alignItems: "center", justifyContent: "center", borderWidth: userData?.gender === "male" ? 0 : profileHide === "Hide" ? 0 : metrics.hp0_1, borderColor: userData?.gender === "male" ? colors.transparent : profileHide === "Hide" ? colors.transparent : colors.white }}>
+                        <AppText type={EIGHTEEN} weight={SCHEHERAZADE_BOLD} color={userData?.gender === "male" || userData?.isPublish === false? BLACK : profileHide === "Hide" ? BLACK : WHITE}>
+                            {userData?.gender === "male" || userData?.isPublish === false? "Publish Profile" : profileHide === "Hide" ? "Publish Profile" : "Hide Profile"}
                         </AppText>
                     </LinearGradient>
                 </TouchableOpacityView>
@@ -1026,6 +891,7 @@ const ProfileScreenAndroid = () => {
                     </View>
                 </View>
             </Modal>
+            {editorVisible && <PhotoEditorModal {...editorProps} />}
         </AppSafeAreaView>
     );
 };
