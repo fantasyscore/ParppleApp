@@ -3,6 +3,9 @@
  */
 import 'react-native-gesture-handler'; 
 import {AppRegistry, LogBox, Platform} from 'react-native';
+import { enableScreens, enableFreeze } from 'react-native-screens';
+enableScreens(true);
+enableFreeze(true);
 import {name as appName} from './app.json';
 import App from './src/App';
 import FastImage from 'react-native-fast-image';

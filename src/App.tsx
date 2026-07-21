@@ -16,6 +16,7 @@ import { setupPushListeners, getInitialNotification, registerBackgroundPushHandl
 import NavigationService from "./navigation/NavigationService";
 import { CaptureEventType, CaptureProtection } from "react-native-capture-protection";
 import FastImage from "react-native-fast-image";
+import { enableScreenSecurity } from "./utils/ScreenSecurity";
 import { AppIcon } from "./helper/ImageAssets";
 import metrics from "./assets/Metrics";
 import { AppText, INTER_MEDIUM, OPECITY_DARK, THIRTEEN } from "./common/AppText";
@@ -39,6 +40,7 @@ const App = () => {
     console.log('[App] Initializing app...');
     onAppStart(store);
     initializeAnalytics().catch(() => {});
+    enableScreenSecurity();
 
     if (Platform.OS === 'android') {
       InAppUpdate.checkForUpdate()

@@ -7,7 +7,7 @@ let isNavReady = false;
 // Queue navigation actions fired before NavigationContainer is ready (cold start race).
 // This prevents "Cannot read property 'dispatch' of undefined" crashes on first open.
 const pendingActions: any[] = [];
-const MAX_PENDING_ACTIONS = 20;
+const MAX_PENDING_ACTIONS = 0;
 
 function enqueueAction(action: any) {
   pendingActions.push(action);

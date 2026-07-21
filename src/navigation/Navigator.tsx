@@ -1,4 +1,4 @@
-import { CardStyleInterpolators, createStackNavigator, StackNavigationOptions, TransitionPresets } from "@react-navigation/stack";
+import { createNativeStackNavigator, NativeStackNavigationOptions } from "@react-navigation/native-stack";
 import { DarkTheme, NavigationContainer, Theme } from "@react-navigation/native";
 import "react-native-gesture-handler";
 import NavigationService from "./NavigationService";
@@ -81,7 +81,7 @@ import { newColor } from "../theme/colors";
 // tree (full screen remounts → white flash + lag).
 // ─────────────────────────────────────────────────────────────────────────────
 
-const Stack = createStackNavigator();
+const Stack = createNativeStackNavigator();
 const BottomTab = createBottomTabNavigator();
 
 // Dark navigation theme: react-navigation's DEFAULT theme paints every
@@ -104,10 +104,10 @@ const AppNavigationTheme: Theme = {
 //   (Instagram/WhatsApp-style push), instead of the platform default
 //   scale/fade which reveals the background under the card
 // - detachPreviousScreen (default true) keeps memory low after transition
-const defaultStackScreenOptions: StackNavigationOptions = {
+const defaultStackScreenOptions: NativeStackNavigationOptions = {
   headerShown: false,
-  cardStyle: { backgroundColor: newColor.blackNew },
-  ...TransitionPresets.SlideFromRightIOS,
+  contentStyle: { backgroundColor: newColor.blackNew },
+  animation: 'slide_from_right',
 };
 
 const renderTabBar = (props: BottomTabBarProps) => <CustomTabBarAndroid {...props} />;
@@ -123,7 +123,7 @@ const tabScreenOptions = {
 
 const BottomMainTab = () => {
   return (
-    <BottomTab.Navigator initialRouteName={routes.NAVIGATION_PEOPLE_SCREEN}
+    <BottomTab.Navigator id={undefined} initialRouteName={routes.NAVIGATION_PEOPLE_SCREEN}
       backBehavior="initialRoute"
       screenOptions={tabScreenOptions}
       tabBar={renderTabBar}>
@@ -136,7 +136,7 @@ const BottomMainTab = () => {
 };
 
 const MyAuthLoadingStack = () => (
-  <Stack.Navigator
+  <Stack.Navigator id={undefined}
     initialRouteName={routes.NAVIGATION_AUTH_LOADING_STACK}
     screenOptions={defaultStackScreenOptions}>
     {/* <Stack.Screen name={routes.NAVIGATION_IN_APP_PURCHASE_SCREEN} component={InAppPurchaseScreen} /> */}
@@ -180,7 +180,7 @@ const MyAuthLoadingStack = () => (
     <Stack.Screen name={routes.NAVIGATION_ADD_PHOTOS_SCREEN} component={AddPhotoScreen} />
     <Stack.Screen name={routes.NAVIGATION_ALL_SET_SCREEN} component={AllsetScreen} />
     <Stack.Screen name={routes.NAVIGATION_BOTTOMTAB_SCREEN} component={BottomMainTab} />
-    <Stack.Screen name={routes.NAVIGATION_PREVIEW_DETAILS_SCREEN} component={PreviewDetails} options={{ presentation: 'modal', cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS }} />
+    <Stack.Screen name={routes.NAVIGATION_PREVIEW_DETAILS_SCREEN} component={PreviewDetails} options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
     <Stack.Screen name={routes.NAVIGATION_PEOPLE_SCREEN} component={PeopleScreen} />
     <Stack.Screen name={routes.NAVIGATION_FILTER_SCREEN} component={FilterScreen} />
     <Stack.Screen name={routes.NAVIGATION_PROFILE_SCREEN} component={ProfileScreenAndroid} />
@@ -211,7 +211,7 @@ const MyAuthLoadingStack = () => (
 );
 
 const RootStackScreen = () => (
-  <Stack.Navigator screenOptions={defaultStackScreenOptions}>
+  <Stack.Navigator id={undefined} screenOptions={defaultStackScreenOptions}>
     <Stack.Screen name={routes.NAVIGATION_AUTH_LOADING_STACK} component={MyAuthLoadingStack} />
   </Stack.Navigator>
 );

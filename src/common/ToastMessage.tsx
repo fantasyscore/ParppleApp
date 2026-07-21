@@ -38,7 +38,7 @@ const toastConfig = {
 const ToastMessage: React.FC<Props> = props => {
 
     return (
-        <Toast topOffset={50} config={toastConfig} />
+        <Toast visibilityTime={1500} topOffset={50} config={toastConfig} />
     )
 }
 

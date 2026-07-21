@@ -1923,6 +1923,31 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - react-native-screenguard (2.0.2):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.11.18.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-hermes
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - SDWebImage (~> 5.11)
+    - Yoga
   - react-native-slider (5.2.0):
     - DoubleConversion
     - glog
@@ -2986,6 +3011,7 @@ DEPENDENCIES:
   - react-native-otp-verify (from `../node_modules/react-native-otp-verify`)
   - react-native-pager-view (from `../node_modules/react-native-pager-view`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
+  - react-native-screenguard (from `../node_modules/react-native-screenguard`)
   - "react-native-slider (from `../node_modules/@react-native-community/slider`)"
   - react-native-splash-screen (from `../node_modules/react-native-splash-screen`)
   - react-native-video (from `../node_modules/react-native-video`)
@@ -3198,6 +3224,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-pager-view"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
+  react-native-screenguard:
+    :path: "../node_modules/react-native-screenguard"
   react-native-slider:
     :path: "../node_modules/@react-native-community/slider"
   react-native-splash-screen:
@@ -3402,6 +3430,7 @@ SPEC CHECKSUMS:
   react-native-otp-verify: b8f402aceafdad77eba70620209c616f242ff0f1
   react-native-pager-view: 33e48f112b80717449f48580b04c45643401fa9f
   react-native-safe-area-context: 91a4dcfbb50787f7bf867f9d6940aef6c8b994c1
+  react-native-screenguard: c500273333b28f6f6641cdaceaca1812fe1d85f5
   react-native-slider: 942c32d7dfe8239a8f096d962919eacf035ef29e
   react-native-splash-screen: 95994222cc95c236bd3cdc59fe45ed5f27969594
   react-native-video: cd919078c9f56a819464aeeda3285388c632f6d8
