@@ -197,9 +197,9 @@ const ChatsScreen = () => {
                         resizeMode="cover"
                         style={styles.newMatchProfile}
                     />
-                    {item.online && !isBot && userData?.subscription?.plan !== "FREE" &&
-                        <View style={styles.activeBackground} />
-                    }
+                       {item.online && !isBot && 
+                      <View style={{height:metrics.hp1,width:metrics.hp1, backgroundColor:"#26F600", borderRadius:metrics.hp50, position:"absolute", top:metrics.hp1, left:metrics.hp1}}/>}
+                   
                     {/* {item?.lastMessage?.type == "crushNote" ?
                         <View style={{ height: metrics.hp4, width: metrics.hp4, alignItems: "center", justifyContent: "center", position: "absolute", bottom: 0, left: metrics.hp5, backgroundColor: colors.white, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: colors.blackopcity }}>
                             <FastImage source={shareRedIcon} resizeMode="contain" style={{ height: metrics.hp2_5, width: metrics.hp2_5, }} />
@@ -331,6 +331,8 @@ const ChatsScreen = () => {
                                         style={styles.newMatchProfile}
                                         imageStyle={{ borderRadius: metrics.hp50 }}
                                     >
+                                        {item.online? 
+                                     <View style={{height:metrics.hp1,width:metrics.hp1, backgroundColor:"#26F600", borderRadius:metrics.hp50, position:"absolute", top:metrics.hp1, left:metrics.hp1}}/>:<></>}
                                         <View style={styles.moreOverlay}>
                                             <AppText type={FORTEEN} color={WHITE} weight={INTER_BOLD}>
                                                 +{item.remaining}

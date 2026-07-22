@@ -17,7 +17,7 @@ import {
     View,
 } from 'react-native';
 import { AppText, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, WHITE, EIGHTEEN, fontSize, BLACK, THIRTEEN, FORTEEN, OPECITY } from '../../common/AppText';
-import { toggalOnButtonNew, toggalOffButtonNew, serachButtonNew, resetButtonNew, directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, straightenIcon, dummyMaleProfile, dummyfemaleProfile, chatPurchaseColour, chatAmountBackgroungNew, goToProifleIcon } from '../../helper/ImageAssets';
+import { toggalOnButtonNew, toggalOffButtonNew, serachButtonNew, resetButtonNew, directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, straightenIcon, dummyMaleProfile, dummyfemaleProfile, chatPurchaseColour, chatAmountBackgroungNew, goToProifleIcon, onlineProfileImage, scrollatthetopIcon } from '../../helper/ImageAssets';
 import metrics from '../../assets/Metrics';
 import FastImage from 'react-native-fast-image';
 import { colors, newColor } from '../../theme/colors';
@@ -48,7 +48,7 @@ import CrushNotesSender from './CrushNotesSender';
 
 const PROFILE_BATCH_LIMIT = 10;
 const TOP_UP_TRIGGER_COUNT = 3; // fetch more when this few profiles remain
-const CARD_HEIGHT = metrics.hp44;
+const CARD_HEIGHT = metrics.hp57;
 const CARD_MARGIN_BOTTOM = metrics.hp6;
 const ITEM_HEIGHT = CARD_HEIGHT + CARD_MARGIN_BOTTOM;
 const LIST_TOP_PADDING = metrics.hp3;
@@ -134,8 +134,11 @@ type ProfileListCardProps = {
 // list update / swipe elsewhere.
 const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData, setCrushNoteVisible, handleCrushNote }: ProfileListCardProps) => {
 
+
     return (
         <ImageBackground source={newProfileBackground} resizeMode='stretch' style={styles.cardBackground}>
+            {item.online ?
+                <FastImage source={onlineProfileImage} resizeMode='contain' style={{ height: metrics.hp8, width: metrics.hp15, position: "absolute", top: -metrics.hp2, left: -metrics.hp5_3 }} /> : <></>}
             <TouchableOpacityView activeOpacity={1} onPress={() => onOpenPreview(item)} style={styles.cardHeaderRow}>
                 <FastImage
                     source={item?.gallery?.length ? { uri: item?.gallery?.[0]?.url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable } : item?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile}
@@ -237,6 +240,36 @@ const PeopleScreen = () => {
     const [photosOnly, setPhotosOnly] = useState(false);
     const [isApplyingFilter, setIsApplyingFilter] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+
+    // Scroll To Top Logic
+    const flatListRef = useRef<FlatList>(null);
+    const [showScrollTop, setShowScrollTop] = useState(false);
+    const showScrollTopRef = useRef(false);
+    const scrollTopAnim = useRef(new Animated.Value(0)).current;
+
+    const handleScroll = useCallback((event: any) => {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        if (offsetY > 100 && !showScrollTopRef.current) {
+            showScrollTopRef.current = true;
+            setShowScrollTop(true);
+            Animated.timing(scrollTopAnim, {
+                toValue: 1,
+                duration: 250,
+                useNativeDriver: true,
+            }).start();
+        } else if (offsetY <= 100 && showScrollTopRef.current) {
+            showScrollTopRef.current = false;
+            Animated.timing(scrollTopAnim, {
+                toValue: 0,
+                duration: 250,
+                useNativeDriver: true,
+            }).start(() => setShowScrollTop(false));
+        }
+    }, [scrollTopAnim]);
+
+    const handleScrollToTop = useCallback(() => {
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    }, []);
 
     useEffect(() => {
         if (userData) {
@@ -656,6 +689,9 @@ const PeopleScreen = () => {
 
             <NewHeaderAndroid onFilterPress={onFilterPress} />
             <FlatList
+                ref={flatListRef}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
                 data={listProfilesData}
                 renderItem={renderItem}
                 keyExtractor={keyExtractor}
@@ -680,6 +716,23 @@ const PeopleScreen = () => {
                     />
                 }
             />
+
+            {showScrollTop && (
+                <Animated.View style={[styles.scrollTopContainer, {
+                    opacity: scrollTopAnim,
+                    transform: [{
+                        translateY: scrollTopAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [50, 0]
+                        })
+                    }]
+                }]}>
+                    <TouchableOpacityView activeOpacity={1} onPress={handleScrollToTop} style={styles.scrollTopButton}>
+                        <FastImage source={scrollatthetopIcon} resizeMode='contain' style={styles.scrollTopIcon} />
+                    </TouchableOpacityView>
+                </Animated.View>
+            )}
+
             <LikeDislikeOverlays
                 likeOverlayStyle={likeOverlayStyle}
                 likeIconAnimatedStyle={likeIconAnimatedStyle}
@@ -688,6 +741,9 @@ const PeopleScreen = () => {
                 crushlikeOverlayStyle={crushlikeOverlayStyle}
                 crushlikeIconAnimatedStyle={crushlikeIconAnimatedStyle}
             />
+            <TouchableOpacityView>
+            <FastImage source={scrollatthetopIcon} resizeMode='contain' style={{height:metrics.hp6, width:metrics.hp6, position:"absolute", bottom:metrics.hp2, zIndex:999}} />
+            </TouchableOpacityView>
             <Modal
                 animationType="fade"
                 visible={modalVisible}
@@ -702,7 +758,7 @@ const PeopleScreen = () => {
                 visible={crushNoteVisible}
                 statusBarTranslucent
                 onRequestClose={() => setCrushNoteVisible(false)}>
-                <CrushNotesSender setCrushNoteVisible={setCrushNoteVisible} crushNoteVisible={crushNoteVisible} currentProfileData={currentProfileData} handleCrushNotes={handleCrushNotes}/>
+                <CrushNotesSender setCrushNoteVisible={setCrushNoteVisible} crushNoteVisible={crushNoteVisible} currentProfileData={currentProfileData} handleCrushNotes={handleCrushNotes} />
             </Modal>
             <Modal
                 animationType="fade"
@@ -840,6 +896,20 @@ const styles = StyleSheet.create({
         paddingHorizontal: metrics.hp3,
         paddingTop: metrics.hp1,
     },
+    scrollTopContainer: {
+        position: 'absolute',
+        bottom: metrics.hp12,
+        right: metrics.hp2,
+        zIndex: 999,
+    },
+    scrollTopButton: {
+        height: metrics.hp8,
+        width: metrics.hp8,
+    },
+    scrollTopIcon: {
+        height: metrics.hp8,
+        width: metrics.hp8,
+    },
     sheetTitle: {
         textAlign: "center",
         marginBottom: metrics.hp2,
@@ -938,8 +1008,8 @@ const styles = StyleSheet.create({
         gap: metrics.hp0_5,
     },
     galleryItem: {
-        width: metrics.hp23,
-        height: metrics.hp28,
+        width: metrics.hp30,
+        height: metrics.hp37,
         overflow: "hidden",
     },
     galleryImage: {

@@ -2,9 +2,9 @@ import React from "react";
 import { ImageBackground, Platform, StyleSheet, View } from "react-native";
 import metrics from "../assets/Metrics";
 import FastImage from "react-native-fast-image";
-import {  backIconNew,  dummyfemaleProfile,  dummyMaleProfile,  HeaderHomeBack, threeDotNewIcon,} from "../helper/ImageAssets";
+import { backIconNew, dummyfemaleProfile, dummyMaleProfile, HeaderHomeBack, threeDotNewIcon, } from "../helper/ImageAssets";
 import { colors } from "../theme/colors";
-import { AppText, BLACK, EIGHTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, TEN, TWELVE, WHITE } from "./AppText";
+import { AppText, BLACK, EIGHTEEN, ELEVEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, TEN, THIRTEEN, TWELVE, WHITE } from "./AppText";
 import { TouchableOpacityView } from "./TouchableOpacityView";
 import NavigationService from "../navigation/NavigationService";
 import { useSelector } from "react-redux";
@@ -12,16 +12,22 @@ import { useSelector } from "react-redux";
 const ChatHeader = ({ onPress, setTabSelect }: any) => {
     const matchChatUserDetails = useSelector((state: any) => state.auth.matchChatUserDetails);
     const userData = useSelector((state: any) => state.auth.userData);
-    console.log(matchChatUserDetails,"matchChatUserDetails");
-    
+    console.log(matchChatUserDetails, "matchChatUserDetails");
+
     return (
         <ImageBackground source={HeaderHomeBack} resizeMode="stretch" style={[styles.bottomLayer]}>
             <View style={styles.container}>
                 <TouchableOpacityView style={{ flexDirection: "row", alignItems: "center" }} onPress={() => NavigationService.goBack()}>
                     <FastImage source={backIconNew} resizeMode="contain" style={styles.backIcon} />
-                    <FastImage source={matchChatUserDetails?.profilePicture?.url ? { uri: matchChatUserDetails?.profilePicture?.url } : matchChatUserDetails?.gender == "male"? dummyMaleProfile: dummyfemaleProfile} resizeMode="cover" style={styles.profileImage} />
-                    <AppText type={TWELVE} color={WHITE} weight={INTER_BOLD}>{"    "}{matchChatUserDetails?.username ? matchChatUserDetails?.username : matchChatUserDetails?.name}
-                    </AppText>
+                    <FastImage source={matchChatUserDetails?.profilePicture?.url ? { uri: matchChatUserDetails?.profilePicture?.url } : matchChatUserDetails?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={styles.profileImage} />
+                    <View>
+
+                        <AppText type={TWELVE} color={WHITE} weight={INTER_BOLD}>{"    "}{matchChatUserDetails?.username ? matchChatUserDetails?.username : matchChatUserDetails?.name}
+                        </AppText>
+                        <AppText type={ELEVEN} weight={INTER_MEDIUM} style={{ color: "#26F600", marginTop: -metrics.hp0 }}>
+                            {"    "}Online
+                        </AppText>
+                    </View>
                 </TouchableOpacityView>
                 <TouchableOpacityView onPress={onPress}>
                     <FastImage source={threeDotNewIcon} resizeMode="contain" style={styles.backIcon} />

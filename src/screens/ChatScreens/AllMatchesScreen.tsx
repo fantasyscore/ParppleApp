@@ -62,12 +62,14 @@ const AllMatchesScreen = () => {
     ({ item }: any) => {
       return (
         <TouchableOpacityView onPress={() => openChat(item)} style={styles.row}>
-          <FastImage source={ item?.profilePicture ? { uri: item?.profilePicture?.url } : item.gender == "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={styles.avatar} />
+          <FastImage source={item?.profilePicture ? { uri: item?.profilePicture?.url } : item.gender == "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={styles.avatar} />
+          {item.online ?
+            <View style={{ height: metrics.hp1, width: metrics.hp1, backgroundColor: "#26F600", borderRadius: metrics.hp50, position: "absolute", top: metrics.hp1, left: metrics.hp1 }} /> : <></>}
           <View style={{ flex: 1, marginLeft: metrics.hp2, }}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
-            
+
               <AppText style={{ textTransform: "capitalize" }} type={SIXTEEN} weight={INTER_BOLD} color={WHITE}>
-              {item.username ? item.username : item.name}{" "}
+                {item.username ? item.username : item.name}{" "}
               </AppText>
               {/* {userData?.faceVerified == true && Platform.OS ==="ios"?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />:
                <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />

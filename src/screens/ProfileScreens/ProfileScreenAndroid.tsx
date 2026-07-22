@@ -484,7 +484,7 @@ const ProfileScreenAndroid = () => {
                                     " My bio
                                 </AppText>
                             </ImageBackground>
-                            <AppText style={{ marginHorizontal: metrics.hp2, textAlign: "center", marginVertical: metrics.hp1, lineHeight:metrics.hp2 }}type={TWELVE} weight={SCHEHERAZADE_BOLD} color={WHITE}>
+                            <AppText style={{ marginHorizontal: metrics.hp2, textAlign: "center", marginVertical: metrics.hp1, lineHeight:metrics.hp2, marginBottom:metrics.hp3 }}type={TWELVE} weight={SCHEHERAZADE_BOLD} color={WHITE}>
                                 {userData?.bio ? userData.bio : "Write something about yourself..."}
                             </AppText>
                         </ImageBackground>

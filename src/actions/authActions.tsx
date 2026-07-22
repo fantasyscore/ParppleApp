@@ -200,7 +200,9 @@ export const viewProfileByOther: any = () => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.viewProfileByOtherAPI();
         if (response?.statusCode === 200) {
-            dispatch(setViewByOhter(response?.data));
+            // dispatch(setViewByOhter(response?.data));
+            dispatch(setViewYou(response?.data));
+
         }
     } catch (error: any) {
         // toastAlert.showToastError(error);
@@ -210,7 +212,7 @@ export const youView: any = () => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.youViewAPI();
         if (response?.statusCode === 200) {
-            dispatch(setViewYou(response?.data));
+            dispatch(setViewByOhter(response?.data));
         }
     } catch (error: any) {
         // toastAlert.showToastError(error);

@@ -150,4 +150,6 @@ export const mapIcon = require("../assets/img/mapIcon.png");
 export const noccce = require("../assets/img/noccce.png");
 export const sendMessageText = require("../assets/img/sendMessageText.png");
 export const partnerheart = require("../assets/img/partnerheart.png");
+export const onlineProfileImage = require("../assets/img/onlineProfileImage.png");
+export const scrollatthetopIcon = require("../assets/img/scrollatthetopIcon.png");
     

@@ -77,6 +77,7 @@ const metrics = {
   hp4_6: hp(4.6),
   hp4: hp(4),
   hp5: hp(5),
+  hp5_3: hp(5.3),
   hp5_4: hp(5.4),
   hp5_5: hp(5.5),
   hp5_6: hp(5.6),
@@ -154,6 +155,7 @@ const metrics = {
   hp50: hp(50),
   hp55: hp(52),
   hp54: hp(54),
+  hp57: hp(53),
   hp60: hp(60),
   hp80: hp(80),
 

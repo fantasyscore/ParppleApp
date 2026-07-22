@@ -36,7 +36,7 @@ const TURN_ON_IMAGES: any = {
     "Chocolate": choclateImageNew,
     "Touch": touchNewIcon,
 };
-const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislikePress, handleLikePress, likeYoue }: any) => {
+const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislikePress, handleLikePress, likeYoue, ViewYoue }: any) => {
 console.log(currentProfileData,"currentProfileDatacurrentProfileDatacurrentProfileData");
     
     const scrollX = useRef(new Animated.Value(0)).current;
@@ -167,7 +167,7 @@ console.log(currentProfileData,"currentProfileDatacurrentProfileDatacurrentProfi
                         style={styles.detailsContainer}>
                         <View style={{ paddingHorizontal: metrics.hp2, paddingVertical:metrics.hp2 }}>
                             <View style={{ flexDirection: "row" }}>
-                                <FastImage source={currentProfileData?.profilePicture?.legnth || currentProfileData?.gallery?.length ? { uri: currentProfileData?.profilePicture ? currentProfileData?.profilePicture[0]?.url : currentProfileData?.gallery[0]?.url } : currentProfileData?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={{ height: metrics.hp10, width: metrics.hp10, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: "#E6B7A8", marginTop: -metrics.hp4 }} />
+                                <FastImage source={currentProfileData?.profilePicture?.length || currentProfileData?.gallery?.length ? { uri: currentProfileData?.profilePicture ? currentProfileData?.profilePicture[0]?.url : currentProfileData?.gallery[0]?.url } : currentProfileData?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={{ height: metrics.hp10, width: metrics.hp10, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: "#E6B7A8", marginTop: -metrics.hp4 }} />
                                 <AppText type={TWENTY} weight={SCHEHERAZADE_BOLD} style={{ color: "#E6B7A8", marginTop: -metrics.hp1 }}>
                                     {"   "}{currentProfileData?.username ? currentProfileData?.username : currentProfileData?.name}
                                 </AppText>
@@ -244,7 +244,7 @@ console.log(currentProfileData,"currentProfileDatacurrentProfileDatacurrentProfi
                         <FastImage source={newCloseIcon} resizeMode='contain' style={styles.dislikeButton} />
                     </TouchableOpacityView>
                 }
-                {likeYoue === "You Liked" ? <></> :
+                {likeYoue === "You Liked" || ViewYoue === "You Viewed"? <></> :
                     <TouchableOpacityView onPress={() => userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : handleLikePress(currentProfileData)} activeOpacity={1} >
                         <FastImage source={newLikeIcon} resizeMode='contain' style={styles.likeButton} />
                     </TouchableOpacityView>

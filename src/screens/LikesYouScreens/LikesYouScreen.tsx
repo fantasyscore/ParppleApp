@@ -14,7 +14,7 @@ import {
     View,
 } from 'react-native';
 import { AppText, INTER_MEDIUM, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, WHITE, BLACK, THIRTY, FORTEEN, TWENTY, fontSize, TWENTY_FOUR } from '../../common/AppText';
-import { directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, silverCard, straightenIcon, tabViewForLikes, likedYouNewIcon, youLikedNewIcon, whosWatchingYouWhitePurhces, youLikeEmptyNew, likeYouEmptyNew, dummyMaleProfile, dummyfemaleProfile, chatPurchaseColour } from '../../helper/ImageAssets';
+import { directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, silverCard, straightenIcon, tabViewForLikes, likedYouNewIcon, youLikedNewIcon, whosWatchingYouWhitePurhces, youLikeEmptyNew, likeYouEmptyNew, dummyMaleProfile, dummyfemaleProfile, chatPurchaseColour, onlineProfileImage, scrollatthetopIcon } from '../../helper/ImageAssets';
 import metrics from '../../assets/Metrics';
 import FastImage from 'react-native-fast-image';
 import { colors, newColor } from '../../theme/colors';
@@ -37,10 +37,11 @@ import NewHeaderAndroid from '../../common/NewHeaderAndroid';
 import { useLikeDislikeAnimation } from '../../hooks/useLikeDislikeAnimation';
 import { LikeDislikeOverlays } from '../../common/LikeDislikeOverlays';
 import ViewProfileAndroid from '../HomeScreens/ViewProfileAndroid';
+import CrushNotesSender from '../HomeScreens/CrushNotesSender';
 
 const PROFILE_BATCH_LIMIT = 10;
 const TOP_UP_TRIGGER_COUNT = 3; // fetch more when this few profiles remain
-const CARD_HEIGHT = metrics.hp44;
+const CARD_HEIGHT = metrics.hp57;
 const CARD_MARGIN_BOTTOM = metrics.hp6;
 const ITEM_HEIGHT = CARD_HEIGHT + CARD_MARGIN_BOTTOM;
 const LIST_TOP_PADDING = metrics.hp3;
@@ -118,14 +119,18 @@ type ProfileListCardProps = {
     onDislike: (item: any) => void;
     onOpenPreview: (item: any) => void;
     likeYoue: any;
-    userData: any
+    userData: any;
+    setCrushNoteVisible: any;
+    handleCrushNote: any;
 };
 
 // Memoized row: re-renders only when its own profile changes, not on every
 // list update / swipe elsewhere.
-const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, likeYoue, userData }: ProfileListCardProps) => {
+const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, likeYoue, userData, setCrushNoteVisible, handleCrushNote }: ProfileListCardProps) => {
     return (
         <ImageBackground source={newProfileBackground} resizeMode='stretch' style={styles.cardBackground}>
+              {item.online ?
+                <FastImage source={onlineProfileImage} resizeMode='contain' style={{ height: metrics.hp8, width: metrics.hp15, position: "absolute", top: -metrics.hp2, left: -metrics.hp5_3 }} /> : <></>}
             <TouchableOpacityView activeOpacity={1} onPress={() => onOpenPreview(item)} style={styles.cardHeaderRow}>
                 <FastImage
                     source={item?.profilePicture?.length ? { uri: item?.profilePicture?.[0]?.url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable } : item?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile}
@@ -195,13 +200,13 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, likeYoue
                         <FastImage source={newLikeIcon} resizeMode='contain' style={styles.likeButton} />
                     </TouchableOpacityView>
                 }
-                <TouchableOpacityView activeOpacity={1} onPress={() => NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN)}>
+                <TouchableOpacityView activeOpacity={1} onPress={() => handleCrushNote(item)}>
                     <FastImage source={directChatIcon} resizeMode='contain' style={styles.chatButton} />
                 </TouchableOpacityView>
             </View>
         </ImageBackground>
     );
-}, (prev, next) => prev.item === next.item && prev.onLike === next.onLike && prev.onDislike === next.onDislike && prev.onOpenPreview === next.onOpenPreview && next.likeYoue === next.likeYoue && prev.userData === next.userData);
+}, (prev, next) => prev.item === next.item && prev.onLike === next.onLike && prev.onDislike === next.onDislike && prev.onOpenPreview === next.onOpenPreview && next.likeYoue === next.likeYoue && prev.userData === next.userData && prev.setCrushNoteVisible === next.setCrushNoteVisible && prev.handleCrushNote === next.handleCrushNote);
 
 const LikesYouScreen = () => {
     const dispatch = useDispatch();
@@ -221,6 +226,7 @@ const LikesYouScreen = () => {
     const [matchData, setMatchData] = useState([]);
     const [currentLocation, setCurrentLocation] = useState<{ lat: string; long: string }>({ lat: '', long: '' });
     const [modalVisible, setModalVisible] = useState(false);
+    const [crushNoteVisible, setCrushNoteVisible] = useState(false);
     const [currentProfileData, setCurrentProfileData] = useState({});
 
     const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
@@ -231,6 +237,36 @@ const LikesYouScreen = () => {
         dispatch(likeByOther());
         dispatch(likeYou());
     }, [IsFocused]);
+
+    // Scroll To Top Logic
+    const flatListRef = useRef<FlatList>(null);
+    const [showScrollTop, setShowScrollTop] = useState(false);
+    const showScrollTopRef = useRef(false);
+    const scrollTopAnim = useRef(new Animated.Value(0)).current;
+
+    const handleScroll = useCallback((event: any) => {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        if (offsetY > 100 && !showScrollTopRef.current) {
+            showScrollTopRef.current = true;
+            setShowScrollTop(true);
+            Animated.timing(scrollTopAnim, {
+                toValue: 1,
+                duration: 250,
+                useNativeDriver: true,
+            }).start();
+        } else if (offsetY <= 100 && showScrollTopRef.current) {
+            showScrollTopRef.current = false;
+            Animated.timing(scrollTopAnim, {
+                toValue: 0,
+                duration: 250,
+                useNativeDriver: true,
+            }).start(() => setShowScrollTop(false));
+        }
+    }, [scrollTopAnim]);
+
+    const handleScrollToTop = useCallback(() => {
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    }, []);
 
     const dataCorrect = () => {
         const { subscription } = userData || {};
@@ -259,10 +295,13 @@ const LikesYouScreen = () => {
     const {
         runLikeAnimation,
         runDislikeAnimation,
+        crushLikeAnimation,
         likeOverlayStyle,
         likeIconAnimatedStyle,
         dislikeOverlayStyle,
         dislikeIconAnimatedStyle,
+        crushlikeOverlayStyle,
+        crushlikeIconAnimatedStyle,
         isSwipeAnimatingRef,
     } = useLikeDislikeAnimation();
 
@@ -293,6 +332,27 @@ const LikesYouScreen = () => {
             handleListSwipe(item, "like");
         });
     }, [handleListSwipe, isSwipeAnimatingRef, runLikeAnimation]);
+
+    const handleCrushNote = useCallback((item: any) => {
+        if (userData?.gender === "male" || userData?.isPublish === false) {
+            NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN)
+        } else if (userData?.crushNotesRemaining == 0) {
+            NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN)
+        } else {
+            setCurrentProfileData(item)
+            setCrushNoteVisible(true)
+        }
+
+    }, [userData])
+
+    const handleCrushNotes = useCallback((item: any) => {
+        setModalVisible(false)
+        if (isSwipeAnimatingRef.current) return;
+        crushLikeAnimation(() => {
+            console.log("Crush Note sended")
+            handleListSwipe(item, "like");
+        });
+    }, [handleListSwipe, isSwipeAnimatingRef, crushLikeAnimation]);
 
     // ---- Socket: live match notifications ----
     const socketUrl = (() => {
@@ -378,8 +438,8 @@ const LikesYouScreen = () => {
         setModalVisible(true);
     }, []);
     const renderItem = useCallback(({ item }: any) => (
-        <ProfileListCard item={item} onLike={handleLikePress} onDislike={handleDislikePress} onOpenPreview={handleOpenPreview} likeYoue={likeYoue} userData={userData} />
-    ), [handleLikePress, handleDislikePress, handleOpenPreview, likeYoue, userData]);
+        <ProfileListCard item={item} onLike={handleLikePress} onDislike={handleDislikePress} onOpenPreview={handleOpenPreview} likeYoue={likeYoue} userData={userData} setCrushNoteVisible={setCrushNoteVisible} handleCrushNote={handleCrushNote} />
+    ), [handleLikePress, handleDislikePress, handleOpenPreview, likeYoue, userData, setCrushNoteVisible, handleCrushNote]);
 
     const keyExtractor = useCallback((item: any, index: number) => item?._id ?? `profile-${index}`, []);
 
@@ -516,6 +576,9 @@ const LikesYouScreen = () => {
                 </ImageBackground>
                 :
                 <FlatList
+                    ref={flatListRef}
+                    onScroll={handleScroll}
+                    scrollEventThrottle={16}
                     data={filteredData}
                     renderItem={renderItem}
                     keyExtractor={keyExtractor}
@@ -528,11 +591,30 @@ const LikesYouScreen = () => {
                     removeClippedSubviews={Platform.OS === 'android'}
                     showsVerticalScrollIndicator={false}
                 />}
+
+            {showScrollTop && (
+                <Animated.View style={[styles.scrollTopContainer, {
+                    opacity: scrollTopAnim,
+                    transform: [{
+                        translateY: scrollTopAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [50, 0]
+                        })
+                    }]
+                }]}>
+                    <TouchableOpacityView activeOpacity={1} onPress={handleScrollToTop} style={styles.scrollTopButton}>
+                        <FastImage source={scrollatthetopIcon} resizeMode='contain' style={styles.scrollTopIcon} />
+                    </TouchableOpacityView>
+                </Animated.View>
+            )}
+
             <LikeDislikeOverlays
                 likeOverlayStyle={likeOverlayStyle}
                 likeIconAnimatedStyle={likeIconAnimatedStyle}
                 dislikeOverlayStyle={dislikeOverlayStyle}
                 dislikeIconAnimatedStyle={dislikeIconAnimatedStyle}
+                crushlikeOverlayStyle={crushlikeOverlayStyle}
+                crushlikeIconAnimatedStyle={crushlikeIconAnimatedStyle}
             />
             <Modal
                 animationType="fade"
@@ -542,6 +624,13 @@ const LikesYouScreen = () => {
                 <ViewProfileAndroid currentProfileData={currentProfileData} setModalVisible={setModalVisible}
                     handleDislikePress={handleDislikePress}
                     handleLikePress={handleLikePress} likeYoue={likeYoue} />
+            </Modal>
+            <Modal
+                animationType="fade"
+                visible={crushNoteVisible}
+                statusBarTranslucent
+                onRequestClose={() => setCrushNoteVisible(false)}>
+                <CrushNotesSender setCrushNoteVisible={setCrushNoteVisible} crushNoteVisible={crushNoteVisible} currentProfileData={currentProfileData} handleCrushNotes={handleCrushNotes}/>
             </Modal>
             <Modal
                 animationType="fade"
@@ -565,6 +654,20 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         marginTop: metrics.hp4,
 
+    },
+    scrollTopContainer: {
+        position: 'absolute',
+        bottom: metrics.hp12,
+        right: metrics.hp2,
+        zIndex: 999,
+    },
+    scrollTopButton: {
+        height: metrics.hp8,
+        width: metrics.hp8,
+    },
+    scrollTopIcon: {
+        height: metrics.hp8,
+        width: metrics.hp8,
     },
     cardBackground: {
         height: CARD_HEIGHT,
@@ -616,8 +719,8 @@ const styles = StyleSheet.create({
         gap: metrics.hp0_5,
     },
     galleryItem: {
-        width: metrics.hp23,
-        height: metrics.hp28,
+        width: metrics.hp30,
+        height: metrics.hp37,
         overflow: "hidden",
     },
     galleryImage: {
