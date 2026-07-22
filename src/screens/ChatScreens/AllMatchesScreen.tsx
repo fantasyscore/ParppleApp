@@ -1,18 +1,21 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { FlatList, Platform, StyleSheet, View } from "react-native";
+import { FlatList, ImageBackground, Platform, StyleSheet, View } from "react-native";
 import FastImage from "react-native-fast-image";
 import { useDispatch, useSelector } from "react-redux";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import SearchContainer from "../../common/SearchContainer";
-import { AppText, BLACK, FORTEEN, INTER_BOLD, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, SIXTEEN, TWELVE } from "../../common/AppText";
+import { AppText, BLACK, FORTEEN, INTER_BOLD, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, SIXTEEN, TWELVE, WHITE } from "../../common/AppText";
 import metrics from "../../assets/Metrics";
-import { colors } from "../../theme/colors";
-import { backIcon, blueTikeIcon, reversIcoin } from "../../helper/ImageAssets";
+import { colors, newColor } from "../../theme/colors";
+// import { backIcon, blueTikeIcon, reversIcoin } from "../../helper/ImageAssets";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_TAKING_SCREEN } from "../../navigation/routes";
 import { chatHistoryAPI } from "../../actions/authActions";
 import { chatHistoryDetails, matchChatDetails } from "../../slices/loginServices/authSlice";
+import NewHeaderAndroid from "../../common/NewHeaderAndroid";
+import NewHeader from "../../common/NewHeader";
+import { ChatSearchIcon, dummyfemaleProfile, dummyMaleProfile } from "../../helper/ImageAssets";
 
 const normalize = (v: any) => String(v ?? "").toLowerCase();
 
@@ -33,7 +36,7 @@ const AllMatchesScreen = () => {
   const noSearchFound = useCallback(() => {
     return (
       <View style={{ alignItems: "center", justifyContent: "center", marginTop: metrics.hp6, paddingHorizontal: metrics.hp2 }}>
-        <AppText type={TWELVE} weight={INTER_BOLD} color={BLACK}>
+        <AppText type={TWELVE} weight={INTER_BOLD} color={WHITE}>
           No results found
         </AppText>
       </View>
@@ -59,24 +62,16 @@ const AllMatchesScreen = () => {
     ({ item }: any) => {
       return (
         <TouchableOpacityView onPress={() => openChat(item)} style={styles.row}>
-          <FastImage source={{ uri: item?.profilePicture?.url }} resizeMode="cover" style={styles.avatar} />
+          <FastImage source={ item?.profilePicture ? { uri: item?.profilePicture?.url } : item.gender == "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={styles.avatar} />
           <View style={{ flex: 1, marginLeft: metrics.hp2, }}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
-              {item.online && userData?.subscription?.plan !== "FREE" &&
-                <View style={styles.activeBackground} />
-              }
-              <AppText style={{textTransform:"capitalize"}} type={SIXTEEN} weight={INTER_BOLD} color={BLACK}>
-                {item?.name}{" "}
+            
+              <AppText style={{ textTransform: "capitalize" }} type={SIXTEEN} weight={INTER_BOLD} color={WHITE}>
+              {item.username ? item.username : item.name}{" "}
               </AppText>
-              {!!item?.username && (
-                <AppText style={{textTransform:"capitalize"}} type={TWELVE} weight={INTER_REGULAR} color={colors.darkOpecity}>
-                  {item?.username}
-                </AppText>
-              )}
-              
-              {userData?.faceVerified == true && Platform.OS ==="ios"?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />:
+              {/* {userData?.faceVerified == true && Platform.OS ==="ios"?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />:
                <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />
-              }
+              } */}
             </View>
             <AppText type={TWELVE} numberOfLines={1} weight={INTER_REGULAR} color={OPECITY_DARK}>
               Write your first message
@@ -92,21 +87,13 @@ const AllMatchesScreen = () => {
   const keyExtractor = useCallback((item: any) => String(item?.userId || item?._id || item?.matchId), []);
 
   return (
-    <AppSafeAreaView>
-
-      <View style={styles.header}>
-        <TouchableOpacityView onPress={() => NavigationService.goBack()} style={styles.backBtn}>
-          <FastImage source={backIcon} resizeMode="contain" style={styles.backIcon} />
-        </TouchableOpacityView>
-        <AppText type={FORTEEN} weight={INTER_BOLD} color={BLACK}>
-          All Matches
-        </AppText>
-        <View style={{ width: metrics.hp4 }} />
-      </View>
-
-      <View style={{ paddingHorizontal: metrics.hp2, marginTop: metrics.hp1 }}>
+    <AppSafeAreaView color={newColor.blackNew}>
+      <NewHeader title={"All Matches"} onPress={() => NavigationService.goBack()} />
+      <ImageBackground source={ChatSearchIcon} resizeMode="stretch" style={{ height: metrics.hp7, width: "95%", alignSelf: "center", marginLeft: metrics.hp2, marginTop: metrics.hp2, justifyContent: "center" }}>
         <SearchContainer value={search} onChangeText={setSearch} placeholder={"Search matches"} style={{ height: metrics.hp7 }} />
-      </View>
+
+      </ImageBackground>
+
 
       <FlatList
         data={filtered}
@@ -145,8 +132,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: metrics.hp1_8,
-    borderBottomWidth: metrics.hp0_1,
-    borderBottomColor: colors.borderfifty,
+    // borderBottomWidth: metrics.hp0_1,
+    // borderBottomColor: colors.borderfifty,
   },
   avatar: {
     height: metrics.hp7,
@@ -164,7 +151,7 @@ const styles = StyleSheet.create({
     height: metrics.hp1, width: metrics.hp1,
     backgroundColor: colors.darkGreen, borderRadius: metrics.hp20,
     marginRight: metrics.hp0_5
-},
+  },
 });
 
 

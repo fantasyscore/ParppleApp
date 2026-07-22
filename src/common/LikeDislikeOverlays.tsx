@@ -4,13 +4,15 @@ import Animated from 'react-native-reanimated';
 import FastImage from 'react-native-fast-image';
 import { colors, newColor } from '../theme/colors';
 import metrics from '../assets/Metrics';
-import { likeNewICon, disLikeNewIcon, newLikeIcon, newCloseIcon } from '../helper/ImageAssets';
+import { newLikeIcon, newCloseIcon, directChatIcon } from '../helper/ImageAssets';
 
 interface LikeDislikeOverlaysProps {
     likeOverlayStyle: any;
     likeIconAnimatedStyle: any;
     dislikeOverlayStyle: any;
     dislikeIconAnimatedStyle: any;
+    crushlikeIconAnimatedStyle: any;
+    crushlikeOverlayStyle: any
 }
 
 export const LikeDislikeOverlays = ({
@@ -18,6 +20,8 @@ export const LikeDislikeOverlays = ({
     likeIconAnimatedStyle,
     dislikeOverlayStyle,
     dislikeIconAnimatedStyle,
+    crushlikeOverlayStyle,
+    crushlikeIconAnimatedStyle,
 }: LikeDislikeOverlaysProps) => {
     return (
         <>
@@ -30,6 +34,11 @@ export const LikeDislikeOverlays = ({
             <Animated.View pointerEvents="none" style={[styles.likeFxOverlay, likeOverlayStyle]}>
                 <Animated.View style={likeIconAnimatedStyle}>
                     <FastImage source={newLikeIcon} resizeMode="contain" style={styles.likeFxIcon} />
+                </Animated.View>
+            </Animated.View>
+            <Animated.View pointerEvents="none" style={[styles.likeFxOverlay, crushlikeOverlayStyle]}>
+                <Animated.View style={crushlikeIconAnimatedStyle}>
+                    <FastImage source={directChatIcon} resizeMode="contain" style={styles.likeFxIcon} />
                 </Animated.View>
             </Animated.View>
         </>

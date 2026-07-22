@@ -5,13 +5,13 @@ import PeopleHeader from "../../common/PeopleHeader";
 import metrics from "../../assets/Metrics";
 import { colors, newColor } from "../../theme/colors";
 import FastImage from "react-native-fast-image";
-import { blackHeart, blueTikeIcon, chatNoMatchEmpty, ChatSearchIcon, goldCard, matchRoundCircle, messageIcon, Platinum, shareRedIcon, textforBlurImage, upgradPlan } from "../../helper/ImageAssets";
+import { ChatSearchIcon, dummyfemaleProfile, dummyMaleProfile, } from "../../helper/ImageAssets";
 import { AppText, BLACK, DARK_GREEN, DARKGREEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, LIGHT_GREEN, OPECITY, OPECITY_DARK, PURPLE, SCHEHERAZADE_BOLD, SIXTEEN, TEN, THIRTEEN, TWELVE, TWENTY_FOUR, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { chatData, newMatchData } from "../../common/UiltData";
 import SearchContainer from "../../common/SearchContainer";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_ALL_MATCHES_SCREEN, NAVIGATION_BOT_CHAT_SCREEN, NAVIGATION_PEOPLE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN, NAVIGATION_TAKING_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_ALL_MATCHES_SCREEN, NAVIGATION_BOT_CHAT_SCREEN, NAVIGATION_TAKING_SCREEN } from "../../navigation/routes";
 import { Screen } from "../../theme/dimens";
 import { useDispatch, useSelector } from "react-redux";
 import { chatHistoryAPI, getNewMatches, getOtherProfile, getRecentMatches } from "../../actions/authActions";
@@ -19,7 +19,6 @@ import { chatHistoryDetails, matchChatDetails, setNewMatches } from "../../slice
 import { useIsFocused } from "@react-navigation/native";
 import { AppIcon } from "../../helper/ImageAssets";
 import { Modal } from "react-native";
-import UserEditProfile from "../ProfileScreens/UserEditProfile";
 import NewHeaderAndroid from "../../common/NewHeaderAndroid";
 export const formatChatTime = (utcDate: any) => {
     const date = new Date(utcDate);
@@ -72,7 +71,7 @@ const ChatsScreen = () => {
         dispatch(getNewMatches())
         dispatch(getRecentMatches())
     }, [isFoucse])
-
+    
     const normalize = useCallback((v: any) => String(v ?? "").toLowerCase(), []);
     const query = useMemo(() => normalize(search).trim(), [normalize, search]);
 
@@ -148,29 +147,13 @@ const ChatsScreen = () => {
         NavigationService.navigate(NAVIGATION_TAKING_SCREEN);
         dispatch(chatHistoryAPI(data, params, false));
     };
-    let itemss = { id: "2", icon: goldCard, title: "Gold" }
-    const navigateITems = { id: "3", icon: Platinum, title: "Platinum" };
 
 
-    const onChatSubmit = (item: any) => {
-        console.log(item, "itemitemitemitem")
-        const isBot = item?.__type === "BOT";
-        if (item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM") {
-            NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: navigateITems }); return;
-        } else if (item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan === "PLATINUM") {
-            let data = {
-                "userId": item?.userId
-            };
-            let from = "Chat"
-            dispatch(getOtherProfile(data, false, setProfileData, true, from));
-            dispatch(matchChatDetails(item))
-        } else if (isBot) {
-            NavigationService.navigate(NAVIGATION_BOT_CHAT_SCREEN);
-        } else {
-            onSubmit(item);
-        }
-    }
+
+
     const renderItemChats = ({ item, index }: any) => {
+        console.log(item, "itemitemitem");
+
         const isBot = item?.__type === "BOT";
 
         let messageText = '';
@@ -189,7 +172,7 @@ const ChatsScreen = () => {
         return (
             <TouchableOpacityView
                 key={item?.userId}
-                onPress={() => onChatSubmit(item)/* () => {
+                onPress={() => isBot ? NavigationService.navigate(NAVIGATION_BOT_CHAT_SCREEN) : onSubmit(item)/* () => {
                     let data = {
                         "userId": item?.userId
                     };
@@ -210,7 +193,7 @@ const ChatsScreen = () => {
                 <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
                     <ImageBackground
                         blurRadius={item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM" ? metrics.hp3 : 0}
-                        source={isBot ? AppIcon : { uri: item?.profilePicture?.url }}
+                        source={isBot ? AppIcon : item?.profilePicture ? { uri: item?.profilePicture?.url } : item.gender == "male" ? dummyMaleProfile : dummyfemaleProfile}
                         resizeMode="cover"
                         style={styles.newMatchProfile}
                     />
@@ -223,18 +206,13 @@ const ChatsScreen = () => {
                         </View>
                         : <></>} */}
                     <View style={styles.messageContainer}>
-                        {item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM" ?
-                            <ImageBackground source={textforBlurImage} resizeMode="cover" blurRadius={metrics.hp5} imageStyle={{ borderRadius: metrics.hp1 }} style={{ height: metrics.hp1_5, width: metrics.hp12 }} />
-                            :
-                            <View style={{ flexDirection: "row" }}>
 
-                                <AppText style={{ textTransform: "capitalize" }} type={SIXTEEN} weight={INTER_BOLD} color={WHITE}>
-                                    {item.username? item.username:item.name }{"  "}
-                                </AppText>
-                                {item?.faceVerified == true && Platform.OS === "ios" ? <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} /> :
-                                    <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />}
-                            </View>
-                        }
+                        <View style={{ flexDirection: "row" }}>
+
+                            <AppText style={{ textTransform: "capitalize" }} type={SIXTEEN} weight={INTER_BOLD} color={WHITE}>
+                                {item.username ? item.username : item.name}{"  "}
+                            </AppText>
+                        </View>
                         {item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM" ?
                             <AppText style={{ marginTop: metrics.hp0_5 }} type={FORTEEN} numberOfLines={1} weight={item.unreadCount > 0 ? INTER_SEMI_BOLD : INTER_REGULAR} color={item.unreadCount > 0 ? WHITE : OPECITY}>
                                 Sent you a message
@@ -258,7 +236,7 @@ const ChatsScreen = () => {
                         </View> : <></>}
                     {!isBot && item.unreadCount > 0 &&
                         <View style={[styles.numberCount, { marginTop: metrics.hp0_5, backgroundColor: "#E6B7A8" }]}>
-                            <AppText type={TEN} weight={INTER_MEDIUM}>
+                            <AppText type={TEN} color={BLACK} weight={INTER_MEDIUM}>
                                 {item.unreadCount}
                             </AppText>
                         </View>
@@ -271,8 +249,8 @@ const ChatsScreen = () => {
                         </View>
                     }
                     {!isBot && item.unreadCount == 0 && item?.lastMessage?.senderId !== userData?._id &&
-                        <View style={{ paddingHorizontal: metrics.hp1, paddingVertical: metrics.hp0_2, backgroundColor: colors.singleButtonGreen, borderRadius: metrics.hp4, marginTop: metrics.hp0_5 }}>
-                            <AppText style={{ color: "#E6B7A8" }} weight={INTER_SEMI_BOLD}>
+                        <View style={{ paddingHorizontal: metrics.hp1, paddingVertical: metrics.hp0_2, backgroundColor: "#E6B7A8", borderRadius: metrics.hp4, marginTop: metrics.hp0_5 }}>
+                            <AppText color={BLACK} weight={INTER_SEMI_BOLD}>
                                 Your Turn
                             </AppText>
                         </View>
@@ -295,14 +273,14 @@ const ChatsScreen = () => {
             id: "4"
         },
     ]
+
     const HeaderListChats = () => {
         return recentPreviewData?.length === 0 ? (
             <View>
                 <View style={{ paddingHorizontal: metrics.hp2 }}>
                     <View style={styles.newMatchTextContainer}>
-                        <FastImage source={blackHeart} resizeMode="contain" tintColor={colors.white} style={styles.heartIcon} />
                         <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={WHITE}>
-                            {"  "}New Matches{"  "}
+                            New Matches{"  "}
                         </AppText>
                     </View>
                 </View>
@@ -330,7 +308,6 @@ const ChatsScreen = () => {
             <View>
                 <View style={{ paddingHorizontal: metrics.hp2 }}>
                     <View style={styles.newMatchTextContainer}>
-                        <FastImage source={blackHeart} tintColor={colors.white} resizeMode="contain" style={styles.heartIcon} />
                         <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={WHITE}>
                             {"  "}New Matches{"  "}
                         </AppText>
@@ -349,7 +326,7 @@ const ChatsScreen = () => {
                                     marginRight: metrics.hp2,
                                 }]}>
                                     <ImageBackground
-                                        source={{ uri: item?.avatarUrl }}
+                                        source={item?.avatarUrl ? { uri: item?.avatarUrl } : item?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile}
                                         resizeMode="cover"
                                         style={styles.newMatchProfile}
                                         imageStyle={{ borderRadius: metrics.hp50 }}
@@ -361,9 +338,8 @@ const ChatsScreen = () => {
                                         </View>
                                     </ImageBackground>
                                     <AppText style={{ marginTop: metrics.hp0_3, color: colors.white }} type={TWELVE} weight={INTER_SEMI_BOLD}>
-                                        {item.username? item.username:item.name}
+                                        {item.username ? item.username : item.name}
                                     </AppText>
-                                    <ImageBackground source={matchRoundCircle} resizeMode="cover" style={styles.matchRoudImage} />
                                 </TouchableOpacityView>
                             )
                         }
@@ -376,7 +352,7 @@ const ChatsScreen = () => {
                                     {/* Match avatar */}
                                 </ImageBackground>
                                 <AppText style={{ marginTop: metrics.hp0_3, color: colors.white }} type={TWELVE} weight={INTER_SEMI_BOLD}>
-                                {item.username? item.username:item.name}
+                                    {item.username ? item.username : item.name}
 
                                 </AppText>
                             </TouchableOpacityView>
@@ -389,6 +365,7 @@ const ChatsScreen = () => {
     };
 
 
+
     const ListHeaderComponent = () => (
         <>
             {HeaderListChats()}
@@ -396,30 +373,18 @@ const ChatsScreen = () => {
                 paddingHorizontal: metrics.hp2,
                 marginTop: metrics.hp4
             }]}>
-                <FastImage source={messageIcon} tintColor={colors.white} resizeMode="contain" style={styles.heartIcon} />
                 <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={WHITE}>
-                    {"  "}Messages{"  "}
+                    Messages{"  "}
                 </AppText>
             </View>
         </>
     );
 
-    const ListFooterComponent = () => {
-        if (newMatches?.length === 0) {
-            return (
-                <View style={{ marginBottom: metrics.hp4 }}>
-                    <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: itemss })} >
-                        <FastImage source={upgradPlan} resizeMode="contain" style={{ height: metrics.hp10, width: Screen.Width / 1, }} />
-                    </TouchableOpacityView>
-                </View>
-            );
-        }
-        return null;
-    };
+
 
     return (
         <AppSafeAreaView color={newColor.blackNew}>
-            <NewHeaderAndroid filterShow={false}/>
+            <NewHeaderAndroid message={true} filterShow={false} />
             <ImageBackground source={ChatSearchIcon} resizeMode="stretch" style={{ height: metrics.hp7, width: "95%", alignSelf: "center", marginLeft: metrics.hp2, marginTop: metrics.hp2, justifyContent: "center" }}>
                 {newMatches?.length ?
                     <SearchContainer onChangeText={setSearch} value={search} placeholder={"Search matches"} style={{ height: metrics.hp7, marginTop: Platform.OS === "ios" ? metrics.hp0_7 : 0 }} /> :

@@ -3,14 +3,14 @@ import { StyleSheet, TextInput, View } from "react-native";
 import metrics from "../assets/Metrics";
 import { colors } from "../theme/colors";
 import FastImage from "react-native-fast-image";
-import { searchIcon } from "../helper/ImageAssets";
 import { fontSize, INTER_MEDIUM } from "./AppText";
 import { Screen } from "../theme/dimens";
+import { searchIconNew } from "../helper/ImageAssets";
 
 const SearchContainer = ({ placeholder, value, onChangeText, style, editable = true }: any) => {
     return (
         <View style={{flexDirection:"row", alignItems:"center", paddingHorizontal:metrics.hp2}}>
-            <FastImage source={searchIcon} resizeMode="contain" tintColor={colors.darkOpecity} style={styles.iconSearch} />
+            <FastImage source={searchIconNew} resizeMode="contain" tintColor={colors.darkOpecity} style={styles.iconSearch} />
             <TextInput
                 allowFontScaling={false}
                 placeholder={placeholder}
@@ -18,7 +18,7 @@ const SearchContainer = ({ placeholder, value, onChangeText, style, editable = t
                 onChangeText={(text) => onChangeText(text)}
                 placeholderTextColor={colors.darkOpecity}
                 editable={editable}
-                style={{ width: Screen.Width / 1.4, fontSize: fontSize(12), fontWeight: "500", fontFamily: INTER_MEDIUM, color: colors.black, }}
+                style={{ width: Screen.Width / 1.4, fontSize: fontSize(12), fontWeight: "500", fontFamily: INTER_MEDIUM, color: colors.white, }}
             />
         </View>
     )

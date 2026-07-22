@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { Dimensions, FlatList, ImageBackground, Linking, Platform, ScrollView, StyleSheet, View, Modal, TextInput } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
-import { arrowBackForSafety, bioBackground, biosToggla, blockPurppleIcon, blueTikeIcon, callIcon, checkSafety, dobIcon, editButtonBackground, flasIcon, forProfileDetailsBack, goldCardSmall, heightIconWhiteNew, locationIconWhiteNew, locationPurppleIcon, partnerheart, pencilIcon, platniumCardSmall, premiumIcon, profilebackGround, ProfileBackGroundNew, profileImage, pronounIcon, pText, redHeart, rightArrow, sliverCardSmall, stylesRightArrow, tabViewForLikes, trunOnBackground, uploadIcon, beingWatchIcon, bitingIcon, blinedFlodedIcon, dirtyTalks, fantasiesIcon, fotFetiesIcon, hairIcon, hugsIcon, massageIcon, musicIcons, oralIcon, rightSelectTrunOns, roomServiceIcon, scentsIcon, sextingIcon, smooheshIcon, TattosIcon, BottomLayer, danceNewIcon, rolePlayImageNew, choclateImageNew, touchNewIcon, dummyMaleProfile, dummyfemaleProfile } from "../../helper/ImageAssets";
+import {  bioBackground, biosToggla,  dobIcon, editButtonBackground,  heightIconWhiteNew, locationIconWhiteNew, ProfileBackGroundNew,pronounIcon,  tabViewForLikes, trunOnBackground, uploadIcon, beingWatchIcon, bitingIcon, blinedFlodedIcon, dirtyTalks, fantasiesIcon, fotFetiesIcon, hairIcon, hugsIcon, massageIcon, musicIcons, oralIcon, rightSelectTrunOns, roomServiceIcon, scentsIcon, sextingIcon, smooheshIcon, TattosIcon, BottomLayer, danceNewIcon, rolePlayImageNew, choclateImageNew, touchNewIcon, dummyMaleProfile, dummyfemaleProfile } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
 import { colors, newColor } from "../../theme/colors";
 import Svg, { Circle } from "react-native-svg";
@@ -273,11 +273,7 @@ const ProfileScreenAndroid = () => {
     const safePct = Number.isFinite(Number(percentage)) ? Math.max(0, Math.min(100, Number(percentage))) : 0;
     const progress = (safePct / 100) * circumference;
 
-    const premiumDetaiData = [
-        { id: "1", icon: flasIcon, numberText: userData?.boostRemaining, title: "Boost", headLine: "Get more" },
-        { id: "2", icon: redHeart, numberText: userData?.superLikesRemaining, title: "Super Like", headLine: "Get more" },
-        { id: "3", icon: pText, numberText: userData?.subscription?.plan !== "FREE" ? `${userData?.subscription?.plan}\nSubscription` : "Get\nSubscription", title: "", headLine: userData?.subscription?.plan === "SILVER" || userData?.subscription?.plan === "GOLD" ? "Upgrade" : userData?.subscription?.plan === "PLATNIUM" ? "Elite" : "Purchase" },
-    ];
+    
     const renderPurchaesCards = ({ item, index }: any) => {
         return (
             <TouchableOpacityView key={index} activeOpacity={1} onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: item })} style={{ marginRight: index == 2 ? metrics.hp2 : 0 }}>
@@ -321,7 +317,7 @@ const ProfileScreenAndroid = () => {
                     <AppSafeAreaView
                         color="transparent"
                         style={{ flex: 1, backgroundColor: "transparent" }}>
-                        <NewHeader onPress={() => NavigationService.goBack()} onPressTwo={() => NavigationService.navigate(NAVIGATION_SETTING_SCREEN)} />
+                        <NewHeader profile={"Profile"}  onPress={() => NavigationService.goBack()} onPressTwo={() => NavigationService.navigate(NAVIGATION_SETTING_SCREEN)} />
                         <View style={{ marginTop: metrics.hp2, paddingHorizontal: metrics.hp2, flexDirection: "row", alignItems: "center" }}>
                             <TouchableOpacityView activeOpacity={1} style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
                                 <FastImage
@@ -482,13 +478,13 @@ const ProfileScreenAndroid = () => {
                             setBioModalVisible(true);
                         }}
                     >
-                        <ImageBackground source={bioBackground} resizeMode="stretch" style={{ height: metrics.hp15, marginTop: metrics.hp6, marginHorizontal: metrics.hp2 }}>
+                        <ImageBackground source={bioBackground} resizeMode="stretch" style={{ /* height: metrics.hp15, */ marginTop: metrics.hp6, marginHorizontal: metrics.hp2 }}>
                             <ImageBackground source={biosToggla} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp13, alignSelf: "center", marginTop: -metrics.hp2 }} >
                                 <AppText style={{ textAlign: "center" }} type={FORTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE}>
                                     " My bio
                                 </AppText>
                             </ImageBackground>
-                            <AppText style={{ marginHorizontal: metrics.hp2, textAlign: "center", marginVertical: metrics.hp1 }} weight={SCHEHERAZADE_BOLD} type={TWELVE} color={WHITE}>
+                            <AppText style={{ marginHorizontal: metrics.hp2, textAlign: "center", marginVertical: metrics.hp1, lineHeight:metrics.hp2 }}type={TWELVE} weight={SCHEHERAZADE_BOLD} color={WHITE}>
                                 {userData?.bio ? userData.bio : "Write something about yourself..."}
                             </AppText>
                         </ImageBackground>

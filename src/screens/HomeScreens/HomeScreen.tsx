@@ -16,8 +16,8 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { AppText, INTER_MEDIUM, FOURTEEN, INTER_REGULAR, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, WHITE, EIGHTEEN, fontSize, BLACK, THIRTEEN, FORTEEN, OPECITY } from '../../common/AppText';
-import { toggalOnButtonNew, toggalOffButtonNew, serachButtonNew, resetButtonNew, directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, silverCard, straightenIcon, dummyMaleProfile, dummyfemaleProfile, chatPurchaseColour, chatAmountBackgroungNew, goToProifleIcon } from '../../helper/ImageAssets';
+import { AppText, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, WHITE, EIGHTEEN, fontSize, BLACK, THIRTEEN, FORTEEN, OPECITY } from '../../common/AppText';
+import { toggalOnButtonNew, toggalOffButtonNew, serachButtonNew, resetButtonNew, directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, straightenIcon, dummyMaleProfile, dummyfemaleProfile, chatPurchaseColour, chatAmountBackgroungNew, goToProifleIcon } from '../../helper/ImageAssets';
 import metrics from '../../assets/Metrics';
 import FastImage from 'react-native-fast-image';
 import { colors, newColor } from '../../theme/colors';
@@ -25,12 +25,14 @@ import { TouchableOpacityView } from '../../common/TouchableOpacityView';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 import { getProfile, listProfiles, swipeLikeDisLike } from '../../actions/authActions';
+import { appOperation } from '../../appOperation';
+import { toastAlert } from '../../actions/UploadImageActions';
 import { useIsFocused } from '@react-navigation/native';
 import { setListProfiles } from '../../slices/loginServices/authSlice';
 import { createSocket } from '../../common/Socket';
 import MatchScreen from './MatchScreen';
 import NavigationService from '../../navigation/NavigationService';
-import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_PROFILE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from '../../navigation/routes';
+import { NAVIGATION_CRUSH_NOTE_SENDER_SCREEN, NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_PROFILE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from '../../navigation/routes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SWIPES_PER_DAY_KEY, SWIPES_REMAINING_KEY, SUPER_LIKES_REMAINING_KEY } from '../../helper/Constants';
 import messaging from "@react-native-firebase/messaging";
@@ -42,6 +44,7 @@ import { LikeDislikeOverlays } from '../../common/LikeDislikeOverlays';
 import ViewProfileAndroid from './ViewProfileAndroid';
 import { Screen } from '../../theme/dimens';
 import { BlurView } from '@react-native-community/blur';
+import CrushNotesSender from './CrushNotesSender';
 
 const PROFILE_BATCH_LIMIT = 10;
 const TOP_UP_TRIGGER_COUNT = 3; // fetch more when this few profiles remain
@@ -123,11 +126,13 @@ type ProfileListCardProps = {
     onDislike: (item: any) => void;
     onOpenPreview: (item: any) => void;
     userData: any;
+    setCrushNoteVisible: any;
+    handleCrushNote: any
 };
 
 // Memoized row: re-renders only when its own profile changes, not on every
 // list update / swipe elsewhere.
-const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData }: ProfileListCardProps) => {
+const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData, setCrushNoteVisible, handleCrushNote }: ProfileListCardProps) => {
 
     return (
         <ImageBackground source={newProfileBackground} resizeMode='stretch' style={styles.cardBackground}>
@@ -182,7 +187,7 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData
                         alignItems: "center",
                         justifyContent: "center"
                     }}>
-                        <AppText style={{ textAlign: "center", lineHeight: metrics.hp2 }} color={WHITE} type={TWELVE} weight={INTER_SEMI_BOLD}>
+                        <AppText style={{ textAlign: "center", lineHeight: metrics.hp2 }} color={WHITE} type={TWELVE} weight={SCHEHERAZADE_BOLD}>
                             {item.bio}
                         </AppText>
                     </ImageBackground>
@@ -194,16 +199,16 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData
                 <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : onDislike(item)}>
                     <FastImage source={newCloseIcon} resizeMode='contain' style={styles.dislikeButton} />
                 </TouchableOpacityView>
-                <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : onLike(item)}>
+                <TouchableOpacityView activeOpacity={1} onPress={() =>/*  userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : */ onLike(item)}>
                     <FastImage source={newLikeIcon} resizeMode='contain' style={styles.likeButton} />
                 </TouchableOpacityView>
-                <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN)}>
+                <TouchableOpacityView activeOpacity={1} onPress={() => handleCrushNote(item)}>
                     <FastImage source={directChatIcon} resizeMode='contain' style={styles.chatButton} />
                 </TouchableOpacityView>
             </View>
         </ImageBackground>
     );
-}, (prev, next) => prev.item === next.item && prev.onLike === next.onLike && prev.onDislike === next.onDislike && prev.onOpenPreview === next.onOpenPreview && prev.userData === next.userData);
+}, (prev, next) => prev.item === next.item && prev.onLike === next.onLike && prev.onDislike === next.onDislike && prev.onOpenPreview === next.onOpenPreview && prev.userData === next.userData && prev.setCrushNoteVisible === next.setCrushNoteVisible && prev.handleCrushNote === next.handleCrushNote);
 
 
 
@@ -224,12 +229,28 @@ const PeopleScreen = () => {
     const [swipesPerDay, setSwipesPerDay] = useState(0);
     const [currentLocation, setCurrentLocation] = useState<{ lat: string; long: string }>({ lat: '', long: '' });
     const [modalVisible, setModalVisible] = useState(false);
+    const [crushNoteVisible, setCrushNoteVisible] = useState(false);
     const [currentProfileData, setCurrentProfileData] = useState({})
-    const [ageRange, setAgeRange] = useState([18, 60]);
+    const [ageRange, setAgeRange] = useState([18, 80]);
     const [locationRadiusEnabled, setLocationRadiusEnabled] = useState(true);
     const [radius, setRadius] = useState([100]);
     const [photosOnly, setPhotosOnly] = useState(false);
+    const [isApplyingFilter, setIsApplyingFilter] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+
+    useEffect(() => {
+        if (userData) {
+            if (userData.preferredAgeRange) {
+                setAgeRange([userData.preferredAgeRange.min ?? 18, userData.preferredAgeRange.max ?? 80]);
+            }
+            if (userData.preferredDistanceKm !== undefined) {
+                setRadius([userData.preferredDistanceKm]);
+            }
+            if (userData.onlyImage !== undefined) {
+                setPhotosOnly(userData.onlyImage);
+            }
+        }
+    }, [userData?.preferredAgeRange, userData?.preferredDistanceKm, userData?.onlyImage]);
     const filterSheetRef = useRef<any>(null);
 
     const onFilterPress = useCallback(() => {
@@ -241,15 +262,38 @@ const PeopleScreen = () => {
     }, [userData]);
 
     const handleResetFilter = () => {
-        setAgeRange([18, 60]);
+        setAgeRange([18, 80]);
         setLocationRadiusEnabled(true);
         setRadius([100]);
         setPhotosOnly(false);
     };
 
-    const handleSearchFilter = () => {
-        filterSheetRef.current?.close();
-        // Trigger fetch logic here if needed
+    const handleSearchFilter = async () => {
+        if (isApplyingFilter) return;
+        setIsApplyingFilter(true);
+        try {
+            const payload = {
+                preferredAgeRange: {
+                    min: ageRange[0],
+                    max: ageRange[1]
+                },
+                preferredDistanceKm: radius[0],
+                onlyImage: photosOnly
+            };
+            const response: any = await appOperation.customer.editFilterAPI(payload);
+            if (response?.statusCode == 200 || response?.success || response?.status) {
+                toastAlert.showToastError('Filters updated successfully');
+                filterSheetRef.current?.close();
+                dispatch(listProfiles(true, 0, PROFILE_BATCH_LIMIT, false));
+                dispatch(getProfile(true));
+            } else {
+                toastAlert.showToastError(response?.message || 'Failed to update filters');
+            }
+        } catch (error: any) {
+            toastAlert.showToastError(error?.message || 'Something went wrong');
+        } finally {
+            setIsApplyingFilter(false);
+        }
     };
 
     // Refs mirror frequently-changing values so swipe handlers stay stable
@@ -266,10 +310,13 @@ const PeopleScreen = () => {
     const {
         runLikeAnimation,
         runDislikeAnimation,
+        crushLikeAnimation,
         likeOverlayStyle,
         likeIconAnimatedStyle,
         dislikeOverlayStyle,
         dislikeIconAnimatedStyle,
+        crushlikeOverlayStyle,
+        crushlikeIconAnimatedStyle,
         isSwipeAnimatingRef,
     } = useLikeDislikeAnimation();
 
@@ -427,6 +474,11 @@ const PeopleScreen = () => {
         // the low-water effect above refills the feed.
         dispatch(setListProfiles(profilesRef.current.filter((p: any) => p._id !== item._id)));
     }, [dispatch]);
+    const handleListCrushNotes = useCallback((item: any, type: "like" | "dislike") => {
+        if (!item?._id) return;
+        dispatch(setListProfiles(profilesRef.current.filter((p: any) => p._id !== item._id)));
+    }, [dispatch]);
+
 
     const handleDislikePress = useCallback((item: any) => {
         setModalVisible(false)
@@ -444,7 +496,7 @@ const PeopleScreen = () => {
         if (unlimitedLikes !== true) {
             const swipes = remainingSwipesRef.current ?? userDataRef.current?.swipesRemaining ?? 0;
             if (swipes <= 0) {
-                NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: { id: '1', icon: silverCard, title: 'Silver' } });
+                NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN);
                 return;
             }
         }
@@ -453,6 +505,14 @@ const PeopleScreen = () => {
             handleListSwipe(item, "like");
         });
     }, [handleListSwipe, isSwipeAnimatingRef, runLikeAnimation]);
+    const handleCrushNotes = useCallback((item: any) => {
+        setModalVisible(false)
+        if (isSwipeAnimatingRef.current) return;
+        crushLikeAnimation(() => {
+            console.log("Crush Note sended")
+            handleListCrushNotes(item, "like");
+        });
+    }, [handleListSwipe, isSwipeAnimatingRef, crushLikeAnimation]);
 
     // ---- Socket: live match notifications ----
     const socketUrl = (() => {
@@ -537,9 +597,22 @@ const PeopleScreen = () => {
         setCurrentProfileData(item)
         setModalVisible(true);
     }, []);
+
+    const handleCrushNote = useCallback((item: any) => {
+        if (userData?.gender === "male" || userData?.isPublish === false) {
+            NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN)
+        } else if (userData?.crushNotesRemaining == 0) {
+            NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN)
+        } else {
+            setCurrentProfileData(item)
+            setCrushNoteVisible(true)
+        }
+
+    }, [])
+
     const renderItem = useCallback(({ item }: any) => (
-        <ProfileListCard item={item} onLike={handleLikePress} onDislike={handleDislikePress} onOpenPreview={handleOpenPreview} userData={userData} />
-    ), [handleLikePress, handleDislikePress, userData]);
+        <ProfileListCard item={item} onLike={handleLikePress} onDislike={handleDislikePress} onOpenPreview={handleOpenPreview} userData={userData} setCrushNoteVisible={setCrushNoteVisible} handleCrushNote={handleCrushNote} />
+    ), [handleLikePress, handleDislikePress, userData, setCrushNoteVisible, handleCrushNote]);
 
     const keyExtractor = useCallback((item: any, index: number) => item?._id ?? `profile-${index}`, []);
 
@@ -580,7 +653,7 @@ const PeopleScreen = () => {
     }, [dispatch, refreshing]);
     return (
         <AppSafeAreaView style={{ flexGrow: 1 }} color={newColor.blackNew}>
-       
+
             <NewHeaderAndroid onFilterPress={onFilterPress} />
             <FlatList
                 data={listProfilesData}
@@ -612,6 +685,8 @@ const PeopleScreen = () => {
                 likeIconAnimatedStyle={likeIconAnimatedStyle}
                 dislikeOverlayStyle={dislikeOverlayStyle}
                 dislikeIconAnimatedStyle={dislikeIconAnimatedStyle}
+                crushlikeOverlayStyle={crushlikeOverlayStyle}
+                crushlikeIconAnimatedStyle={crushlikeIconAnimatedStyle}
             />
             <Modal
                 animationType="fade"
@@ -621,6 +696,13 @@ const PeopleScreen = () => {
                 <ViewProfileAndroid currentProfileData={currentProfileData} setModalVisible={setModalVisible}
                     handleDislikePress={handleDislikePress}
                     handleLikePress={handleLikePress} />
+            </Modal>
+            <Modal
+                animationType="fade"
+                visible={crushNoteVisible}
+                statusBarTranslucent
+                onRequestClose={() => setCrushNoteVisible(false)}>
+                <CrushNotesSender setCrushNoteVisible={setCrushNoteVisible} crushNoteVisible={crushNoteVisible} currentProfileData={currentProfileData} handleCrushNotes={handleCrushNotes}/>
             </Modal>
             <Modal
                 animationType="fade"
@@ -668,7 +750,7 @@ const PeopleScreen = () => {
                             sliderLength={metrics.wp80}
                             onValuesChange={(values) => setAgeRange(values)}
                             min={18}
-                            max={60}
+                            max={80}
                             step={1}
                             selectedStyle={{ backgroundColor: "#D08FA9" }}
                             unselectedStyle={{ backgroundColor: "#555" }}
@@ -680,7 +762,7 @@ const PeopleScreen = () => {
 
                     {/* Location Radius */}
                     <View style={styles.filterRow}>
-                        <AppText type={FOURTEEN} weight={INTER_SEMI_BOLD} color={WHITE} style={{ fontSize: fontSize(14) }}>
+                        <AppText type={FORTEEN} weight={INTER_SEMI_BOLD} color={WHITE} style={{ fontSize: fontSize(14) }}>
                             Location Radius
                         </AppText>
                         <TouchableOpacityView onPress={() => setLocationRadiusEnabled(!locationRadiusEnabled)}>
@@ -736,10 +818,10 @@ const PeopleScreen = () => {
                                 </AppText>
                             </ImageBackground>
                         </TouchableOpacityView>
-                        <TouchableOpacityView onPress={handleSearchFilter}>
-                            <ImageBackground source={serachButtonNew} resizeMode="contain" style={styles.actionBtnImage} >
+                        <TouchableOpacityView onPress={isApplyingFilter ? undefined : handleSearchFilter}>
+                            <ImageBackground source={serachButtonNew} resizeMode="contain" style={[styles.actionBtnImage, isApplyingFilter && { opacity: 0.5 }]} >
                                 <AppText color={BLACK} weight={SCHEHERAZADE_BOLD} type={EIGHTEEN}>
-                                    Search
+                                    {isApplyingFilter ? "Applying..." : "Search"}
                                 </AppText>
                             </ImageBackground>
                         </TouchableOpacityView>

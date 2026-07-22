@@ -314,6 +314,8 @@ export const discoverProfile: any = () => async (dispatch: any) => {
 export const getNewMatches: any = () => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.newMatchesAPI();
+        console.log(response,"responseresponseresponseresponseresponseresponse");
+        
         if (response?.statusCode == 200) {
             dispatch(setNewMatches(response?.data))
         }
@@ -335,6 +337,8 @@ export const publishProfileEveryone: any = (data:any) => async (dispatch: any) =
 export const getRecentMatches: any = () => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.recentMatchesAPI();
+        console.log(response,"responseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponse");
+        
         if (response?.statusCode == 200) {
             dispatch(setRecentMatches(response?.data))
         }

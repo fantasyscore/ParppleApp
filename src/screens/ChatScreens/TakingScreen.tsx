@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { AppState, AppStateStatus, ImageBackground, Platform } from 'react-native';
 import { Bubble, GiftedChat, Time } from 'react-native-gifted-chat';
-import { blackIcon, blockModalImage, BottomLayer, chatBottomBackgroundImage, check, checks, emojiIcon, noccce, profileImage, rightBlack, sendButton, sendMessageNewIcon, timeShowNewBackground, unmatchModalImage } from '../../helper/ImageAssets';
+import { blackIcon, blockModalImage, BottomLayer, chatBottomBackgroundImage, dummyfemaleProfile, dummyMaleProfile, noccce, sendMessageNewIcon, timeShowNewBackground, unmatchModalImage } from '../../helper/ImageAssets';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 import ChatHeader from '../../common/ChatHeader';
 import { StyleSheet, View, TextInput, KeyboardAvoidingView, Keyboard, Dimensions, Modal, Animated } from 'react-native';
@@ -13,7 +13,6 @@ import FastImage from 'react-native-fast-image';
 import { interMedium, interSemiBold } from '../../theme/typography';
 import EmojiSelector, { Categories } from 'react-native-emoji-selector';
 import { Screen } from '../../theme/dimens';
-import ChatProfileScreen from './ChatProfileScreen';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import { threeDotData } from '../../common/UiltData';
 import NavigationService from '../../navigation/NavigationService';
@@ -163,8 +162,8 @@ const TakingScreen = () => {
             const messageId = item._id || item.messageId || item.id;
             const isMine = item.isMine === true || item.isMine === 'true';
             const avatar = isMine
-                ? (userData?.profilePicture?.[0]?.url || userData?.gallery?.[0]?.url || profileImage)
-                : (otherUserProfile?.profilePicture?.[0]?.url || matchChatUserDetails?.profilePicture?.[0]?.url || profileImage);
+                ? (userData?.profilePicture?.[0]?.url || userData?.gallery?.[0]?.url || userData?.gender == "male"? dummyMaleProfile:dummyfemaleProfile)
+                : (otherUserProfile?.profilePicture?.[0]?.url || matchChatUserDetails?.profilePicture?.[0]?.url || matchChatUserDetails?.gender == "male"? dummyMaleProfile:dummyfemaleProfile);
 
             let createdAt: Date;
             if (item.createdAt) {
@@ -336,7 +335,7 @@ const TakingScreen = () => {
                         user: {
                             _id: 'typing-indicator-user',
                             name: senderName,
-                            avatar: matchChatUserDetailsRef.current?.profilePicture?.[0]?.url || profileImage,
+                            avatar: matchChatUserDetailsRef.current?.profilePicture?.[0]?.url || matchChatUserDetails?.gender =="male"?dummyMaleProfile:dummyfemaleProfile,
                         },
                     };
                     return GiftedChat.append(prevMessages, [typingMessage]);
@@ -376,8 +375,8 @@ const TakingScreen = () => {
 
                 const isMine = response.isMine === true || response.isMine === 'true';
                 const avatar = isMine
-                    ? (userDataRef.current?.profilePicture?.[0]?.url || userDataRef.current?.gallery?.[0]?.url || profileImage)
-                    : (otherUserProfileRef.current?.profilePicture?.[0]?.url || matchChatUserDetailsRef.current?.profilePicture?.[0]?.url || profileImage);
+                    ? (userDataRef.current?.profilePicture?.[0]?.url || userDataRef.current?.gallery?.[0]?.url || userDataRef.current?.gender == "male"?dummyMaleProfile:dummyfemaleProfile)
+                    : (otherUserProfileRef.current?.profilePicture?.[0]?.url || matchChatUserDetailsRef.current?.profilePicture?.[0]?.url || matchChatUserDetailsRef.current?.gender == "male"?dummyMaleProfile:dummyfemaleProfile);
                 let createdAt: Date;
                 if (response.createdAt) {
                     createdAt = typeof response.createdAt === 'string'
@@ -769,7 +768,7 @@ const TakingScreen = () => {
         }
         return (
             <FastImage
-                source={matchChatUserDetails?.profilePicture?.url ? { uri: matchChatUserDetails?.profilePicture?.url } : profileImage}
+                source={matchChatUserDetails?.profilePicture?.url ? { uri: matchChatUserDetails?.profilePicture?.url } : matchChatUserDetails?.gender == "male"? dummyMaleProfile:dummyfemaleProfile}
                 resizeMode='cover'
                 style={{ width: metrics.hp4, height: metrics.hp4, borderRadius: metrics.hp2, marginBottom: metrics.hp1_5 }}
             />
@@ -953,7 +952,7 @@ const TakingScreen = () => {
                             text: inputText,
                             createdAt: new Date(),
                             isMine: true,
-                            user: { _id: USER_ID, name: 'Gurrent User', avatar: profileImage }
+                            user: { _id: USER_ID, name: 'Gurrent User', avatar: dummyMaleProfile }
                         }]);
                     }
                 }}>
@@ -1026,7 +1025,7 @@ const TakingScreen = () => {
                     <GiftedChat
                         messages={displayedMessages}
                         onSend={onSend}
-                        user={{ _id: USER_ID, name: 'Gurrent User', avatar: profileImage }}
+                        user={{ _id: USER_ID, name: 'Gurrent User', avatar: userData?.gender == "male"?dummyMaleProfile:dummyfemaleProfile }}
                         renderAvatar={renderAvatar}
                         renderBubble={renderBubble}
                         renderDay={renderDay}

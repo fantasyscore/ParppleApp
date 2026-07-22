@@ -8,7 +8,7 @@ import FastImage from "react-native-fast-image";
 import { AppText, THIRTEEN, INTER_MEDIUM, OPECITY, PURPLE, TWELVE, FORTEEN, WHITE, SCHEHERAZADE_BOLD, ELEVEN, SIXTEEN } from "./AppText";
 import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_CHATS_SCREEN, NAVIGATION_DISCOVER_SCREEN, NAVIGATION_LIKES_YOU_SCREEN, NAVIGATION_PEOPLE_SCREEN, NAVIGATION_PROFILE_SCREEN, NAVIGATION_VIEW_YOU_SCREEN_SCREEN } from "../navigation/routes";
-import { BottomLayer, boyProfileloakBackground, chatAmountBackgroungNew, chats, chatTab, chatTabNewNrml, chatTabNewNrmlColour, explore, explorTab, girlProfileLoakBackground, goToProifleIcon, likesYouNewNrml, likesYouNewNrmlColour, likeTab, likeyou, lockIconWhite, people, pepoleTab, pepoleTabNewNrml, pepoleTabNewNrmlColour, profile, profileTab, rightGoNewIcon, visiterNewNrml, visiterNewNrmlColour } from "../helper/ImageAssets";
+import { BottomLayer, boyProfileloakBackground, chatAmountBackgroungNew, chatTabNewNrml, chatTabNewNrmlColour, girlProfileLoakBackground, goToProifleIcon, likesYouNewNrml, likesYouNewNrmlColour,  lockIconWhite, people, pepoleTab, pepoleTabNewNrml, pepoleTabNewNrmlColour, rightGoNewIcon, visiterNewNrml, visiterNewNrmlColour } from "../helper/ImageAssets";
 import { useSelector } from "react-redux";
 import { Image } from "react-native";
 import { Screen } from "../theme/dimens";

@@ -248,7 +248,7 @@ const TrunOnScreen = () => {
             .map((item: any) => item._id);
         const data = {
             ...addProfileData,
-            attribute: selectedTurnOns,
+            attributes: selectedTurnOns,
             fieldVisibility: { ...addProfileData?.fieldVisibility }
         };
         dispatch(setAddProfile(data))

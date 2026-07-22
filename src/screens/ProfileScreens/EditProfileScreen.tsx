@@ -152,7 +152,18 @@ const EditProfileScreen = () => {
     };
 
     const minAgeDate = new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate());
+    const originalDate = userData?.dateOfBirth
+        ? new Date(userData.dateOfBirth).toISOString().split("T")[0]
+        : "";
 
+    const currentDate = localDate
+        ? localDate.toISOString().split("T")[0]
+        : "";
+
+    const hasChanges =
+        localSexuality !== (userData?.sexualOrientation || "") ||
+        localHeight !== (userData?.height || "") ||
+        currentDate !== originalDate;
     return (
         <AppSafeAreaView color={newColor.blackNew}>
             <NewHeader title={"Edit Profile"} onPress={() => NavigationService.goBack()} preview={true} onPreview={() => NavigationService.navigate(NAVIAGATION_PROFILE_PREVIEW_NEW_SCREEN)} />
@@ -210,7 +221,7 @@ const EditProfileScreen = () => {
             </ScrollView>
 
             <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
-                <TouchableOpacityView onPress={handleUpdate} disabled={isUpdating} style={{ width: "90%" }}>
+                <TouchableOpacityView onPress={handleUpdate} disabled={isUpdating || !hasChanges} style={{ width: "90%", opacity: !hasChanges ? 0.5 : 1 }}>
                     <LinearGradient colors={["#D08FA9", "#FDD2C1"]} style={styles.gradientBtn}>
                         <AppText type={EIGHTEEN} weight={SCHEHERAZADE_BOLD} color={BLACK}>
                             {isUpdating ? "Updating..." : "Update Profile"}

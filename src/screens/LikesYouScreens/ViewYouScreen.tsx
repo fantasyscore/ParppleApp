@@ -176,8 +176,8 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData
                         alignItems: "center",
                         justifyContent: "center"
                     }}>
-                        <AppText style={{ textAlign: "center", lineHeight: metrics.hp2 }} color={WHITE} type={TWELVE} weight={INTER_SEMI_BOLD}>
-                            {item.bio} I am here for the vision and i want tour the world and we just move the city and i love the garden
+                        <AppText style={{ textAlign: "center", lineHeight: metrics.hp2 }} color={WHITE} type={TWELVE} weight={SCHEHERAZADE_BOLD}>
+                            {item.bio}
                         </AppText>
                     </ImageBackground>
                 }

@@ -163,12 +163,12 @@ console.log(currentProfileData,"currentProfileDatacurrentProfileDatacurrentProfi
                     }}>
                     <ImageBackground
                         source={forProfileDetailsBack}
-                        resizeMode="contain"
+                        resizeMode="stretch"
                         style={styles.detailsContainer}>
-                        <View style={{ paddingHorizontal: metrics.hp2 }}>
+                        <View style={{ paddingHorizontal: metrics.hp2, paddingVertical:metrics.hp2 }}>
                             <View style={{ flexDirection: "row" }}>
-                                <FastImage source={currentProfileData?.profilePicture?.legnth || currentProfileData?.gallery?.length ? { uri: currentProfileData?.profilePicture ? currentProfileData?.profilePicture[0]?.url : currentProfileData?.gallery[0]?.url } : currentProfileData?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={{ height: metrics.hp10, width: metrics.hp10, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: "#E6B7A8", marginTop: -metrics.hp2 }} />
-                                <AppText type={TWENTY} weight={SCHEHERAZADE_BOLD} style={{ color: "#E6B7A8", marginTop: metrics.hp0_8 }}>
+                                <FastImage source={currentProfileData?.profilePicture?.legnth || currentProfileData?.gallery?.length ? { uri: currentProfileData?.profilePicture ? currentProfileData?.profilePicture[0]?.url : currentProfileData?.gallery[0]?.url } : currentProfileData?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={{ height: metrics.hp10, width: metrics.hp10, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: "#E6B7A8", marginTop: -metrics.hp4 }} />
+                                <AppText type={TWENTY} weight={SCHEHERAZADE_BOLD} style={{ color: "#E6B7A8", marginTop: -metrics.hp1 }}>
                                     {"   "}{currentProfileData?.username ? currentProfileData?.username : currentProfileData?.name}
                                 </AppText>
                             </View>
@@ -206,20 +206,20 @@ console.log(currentProfileData,"currentProfileDatacurrentProfileDatacurrentProfi
                                     </AppText>
                                 </View>
                             </View>
-                            <ImageBackground source={bioBackground} resizeMode="stretch" style={{ height: metrics.hp9, width: "100%", marginTop: metrics.hp6, }}>
+                            <ImageBackground source={bioBackground} resizeMode="stretch" style={{ /* height: metrics.hp9, */ width: "100%", marginTop: metrics.hp6, }}>
                                 <ImageBackground source={biosToggla} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp13, alignSelf: "center", marginTop: -metrics.hp2 }} >
                                     <AppText style={{ textAlign: "center" }} type={FORTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE}>
                                         " My bio
                                     </AppText>
                                 </ImageBackground>
-                                <AppText style={{ marginHorizontal: metrics.hp2, textAlign: "center", marginVertical: metrics.hp1 }} type={TWELVE} color={WHITE}>
+                                <AppText style={{ marginHorizontal: metrics.hp2, textAlign: "center", marginVertical: metrics.hp1, lineHeight:metrics.hp2 }} type={TWELVE} weight={SCHEHERAZADE_BOLD} color={WHITE}>
                                     {currentProfileData.bio}
                                 </AppText>
                             </ImageBackground>
                         </View>
                     </ImageBackground>
                 </View>
-
+                {selectedTurnOnList?.length ?
 
                 <View style={{ paddingHorizontal: metrics.hp2 }}>
                     <View style={{ height: metrics.hp0_1, backgroundColor: "#524440", width: "100%", marginTop: metrics.hp4 }} />
@@ -229,7 +229,7 @@ console.log(currentProfileData,"currentProfileDatacurrentProfileDatacurrentProfi
                             {"  "}Turn-On
                         </AppText>
                     </ImageBackground>
-                </View>
+                </View>:<></>}
                 <FlatList
                     data={selectedTurnOnList}
                     renderItem={renderItemTurns_ons}
@@ -276,8 +276,9 @@ const styles = StyleSheet.create({
         width: metrics.hp3,
     },
     detailsContainer: {
-        height: metrics.hp37,
+        // height: metrics.hp37,
         width: "100%",
+        // marginVertical:metrics.hp2
     },
     actionsRow: {
         flexDirection: "row",

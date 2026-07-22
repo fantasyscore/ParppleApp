@@ -1,11 +1,8 @@
 import React, { useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { FlatList, ImageBackground, StyleSheet, TouchableOpacity, View } from "react-native";
-import HeaderCommon from "../../common/HeaderCommon";
-import TopCommonLine from "../../common/TopCommonLine";
-import DubleTextLine from "../../common/DubleTextLine";
 import metrics from "../../assets/Metrics";
-import { applogo, BottomLayer, femaleGirl, femaleGirlSelected, ganderIcon, malePerson, malePersonSelected } from "../../helper/ImageAssets";
+import { applogo, BottomLayer, femaleGirl, femaleGirlSelected, malePerson, malePersonSelected } from "../../helper/ImageAssets";
 import ListCheckBox from "../../common/ListCheckbox";
 import GoButton from "../../common/GoButton";
 import NavigationService from "../../navigation/NavigationService";

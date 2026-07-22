@@ -256,6 +256,7 @@ const LocationScreen = () => {
       <View style={{ paddingHorizontal: metrics.hp2 }}>
         <FastImage
           source={mapIcon}
+          tintColor={colors.white}
           resizeMode="contain"
           style={styles.mapIcon}
         />

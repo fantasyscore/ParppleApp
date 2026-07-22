@@ -2,7 +2,7 @@ import React from "react";
 import { ImageBackground, Platform, StyleSheet, View } from "react-native";
 import metrics from "../assets/Metrics";
 import FastImage from "react-native-fast-image";
-import { backIcon, backIconNew, blueTikeIcon, HeaderHomeBack, profileImage, threeDotNewIcon, threeIconDating, treeDotIcon } from "../helper/ImageAssets";
+import {  backIconNew,  dummyfemaleProfile,  dummyMaleProfile,  HeaderHomeBack, threeDotNewIcon,} from "../helper/ImageAssets";
 import { colors } from "../theme/colors";
 import { AppText, BLACK, EIGHTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, TEN, TWELVE, WHITE } from "./AppText";
 import { TouchableOpacityView } from "./TouchableOpacityView";
@@ -12,47 +12,24 @@ import { useSelector } from "react-redux";
 const ChatHeader = ({ onPress, setTabSelect }: any) => {
     const matchChatUserDetails = useSelector((state: any) => state.auth.matchChatUserDetails);
     const userData = useSelector((state: any) => state.auth.userData);
+    console.log(matchChatUserDetails,"matchChatUserDetails");
+    
     return (
         <ImageBackground source={HeaderHomeBack} resizeMode="stretch" style={[styles.bottomLayer]}>
             <View style={styles.container}>
                 <TouchableOpacityView style={{ flexDirection: "row", alignItems: "center" }} onPress={() => NavigationService.goBack()}>
                     <FastImage source={backIconNew} resizeMode="contain" style={styles.backIcon} />
-                    <FastImage source={matchChatUserDetails?.profilePicture?.url ? { uri: matchChatUserDetails?.profilePicture?.url } : profileImage} resizeMode="cover" style={styles.profileImage} />
+                    <FastImage source={matchChatUserDetails?.profilePicture?.url ? { uri: matchChatUserDetails?.profilePicture?.url } : matchChatUserDetails?.gender == "male"? dummyMaleProfile: dummyfemaleProfile} resizeMode="cover" style={styles.profileImage} />
                     <AppText type={TWELVE} color={WHITE} weight={INTER_BOLD}>{"    "}{matchChatUserDetails?.username ? matchChatUserDetails?.username : matchChatUserDetails?.name}
                     </AppText>
                 </TouchableOpacityView>
-                <TouchableOpacityView  onPress={onPress}>
-                <FastImage source={threeDotNewIcon} resizeMode="contain" style={styles.backIcon} />
-</TouchableOpacityView>
+                <TouchableOpacityView onPress={onPress}>
+                    <FastImage source={threeDotNewIcon} resizeMode="contain" style={styles.backIcon} />
+                </TouchableOpacityView>
             </View>
 
         </ImageBackground>
-        // <View style={styles.container}>
-        //     <View style={{ flexDirection: "row", alignItems: "center" }}>
-        //         <TouchableOpacityView onPress={() => NavigationService.goBack()}>
-        //             <FastImage source={backIcon} resizeMode="contain" style={styles.backIcon} />
-        //         </TouchableOpacityView>
-        //         <TouchableOpacityView style={{ flexDirection: "row", alignItems: "center" }} onPress={() => setTabSelect('Profile')}>
-        //             <FastImage source={matchChatUserDetails?.profilePicture?.url ? { uri: matchChatUserDetails?.profilePicture?.url } : profileImage} resizeMode="cover" style={styles.profileImage} />
-        //             <View>
-        //                 <View style={{flexDirection:"row", alignItems:"center"}}>
-        //                 <AppText type={TWELVE} weight={INTER_BOLD}>{"  "}{matchChatUserDetails?.name},
-        //                 </AppText>
-        //                 {userData?.faceVerified == true && Platform.OS ==="ios" ?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />:
-        //                 <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />
-        //                 }
-        //                 </View>
-        //                 {matchChatUserDetails?.online&&
-        //                 <AppText type={TEN} style={{ color: "green" }} weight={INTER_SEMI_BOLD}>
-        //                 {"  "}Online
-        //                 </AppText> }
-        //             </View>
-        //         </TouchableOpacityView>
-        //     </View>
-        //     <TouchableOpacityView style={{ padding: metrics.hp1 }} onPress={onPress}>
-        //         <FastImage source={treeDotIcon} resizeMode="contain" style={styles.threeDots} />
-        //     </TouchableOpacityView>
-        // </View>
+
     )
 };
 export default ChatHeader;
@@ -69,11 +46,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between"
     },
-    // container: {
-    //     paddingHorizontal: metrics.hp2, flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    //     backgroundColor: colors.white,
-    //     marginTop: metrics.hp5
-    // },
     backIcon: {
         height: metrics.hp4,
         width: metrics.hp4

@@ -5,7 +5,7 @@ import { backIconNew, HeaderHomeBack, previewImageIBackground, settingIconNew } 
 import metrics from "../assets/Metrics";
 import { AppText, EIGHTEEN, SCHEHERAZADE_BOLD, SIXTEEN, WHITE } from "./AppText";
 
-const NewHeader = ({ title, onPress, onPressTwo,preview, onPreview }: any) => {
+const NewHeader = ({ title, onPress, onPressTwo, preview, onPreview, profile }: any) => {
     return (
         <ImageBackground source={HeaderHomeBack} resizeMode="stretch" style={styles.container}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", flex: 1 }}>
@@ -16,18 +16,18 @@ const NewHeader = ({ title, onPress, onPressTwo,preview, onPreview }: any) => {
                 }}>
                     <FastImage source={backIconNew} resizeMode="contain" style={styles.backIcon} />
                     <AppText type={EIGHTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE}>
-                        {"     "}{title}
+                        {"     "}{profile ? profile : title}
                     </AppText>
                 </TouchableOpacity>
                 {title ? <></> :
-                <TouchableOpacity onPress={onPressTwo}>
-                    <FastImage source={settingIconNew} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp4, marginTop: metrics.hp3, }} />
+                    <TouchableOpacity onPress={onPressTwo}>
+                        <FastImage source={settingIconNew} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp4, marginTop: metrics.hp3, }} />
                     </TouchableOpacity>
                 }
                 {preview ?
-                <TouchableOpacity onPress={onPreview}>
-                <FastImage source={previewImageIBackground} resizeMode="contain" style={{height:metrics.hp5, width:metrics.hp15, marginTop:metrics.hp3}}/>
-                </TouchableOpacity>:<></>}
+                    <TouchableOpacity onPress={onPreview}>
+                        <FastImage source={previewImageIBackground} resizeMode="contain" style={{ height: metrics.hp5, width: metrics.hp15, marginTop: metrics.hp3 }} />
+                    </TouchableOpacity> : <></>}
             </View>
         </ImageBackground>
     )

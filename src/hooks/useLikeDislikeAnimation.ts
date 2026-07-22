@@ -12,10 +12,15 @@ export const useLikeDislikeAnimation = () => {
     const likeOverlayOpacity = useSharedValue(0);
     const likeIconScale = useSharedValue(0.7);
 
+    const isCrushFxRunningRef = useRef(false);
+    const crushOverlayOpacity = useSharedValue(0);
+    const crushIconScale = useSharedValue(0.7);
+
     const isSwipeAnimatingRef = useRef(false);
     const swipeAnimationReleaseTimerRef = useRef<NodeJS.Timeout | null>(null);
     const dislikeFxTimerRef = useRef<NodeJS.Timeout | null>(null);
     const likeFxTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const crushFxTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     const runDislikeAnimation = useCallback((onComplete?: () => void) => {
         if (isDislikeFxRunningRef.current) return;
@@ -89,6 +94,44 @@ export const useLikeDislikeAnimation = () => {
         }, 240);
     }, [likeIconScale, likeOverlayOpacity]);
 
+
+    const crushLikeAnimation = useCallback((onComplete?: () => void) => {
+        if (isCrushFxRunningRef.current) return;
+        isCrushFxRunningRef.current = true;
+        isSwipeAnimatingRef.current = true;
+        
+        if (swipeAnimationReleaseTimerRef.current) {
+            clearTimeout(swipeAnimationReleaseTimerRef.current);
+        }
+        crushOverlayOpacity.value = 0;
+        crushIconScale.value = 0.7;
+
+        crushOverlayOpacity.value = withTiming(1, { duration: 70 });
+        crushIconScale.value = withSequence(
+            withTiming(1.28, { duration: 120 }),
+            withTiming(0.9, { duration: 90 }),
+            withTiming(1, { duration: 70 })
+        );
+
+        if (crushFxTimerRef.current) {
+            clearTimeout(crushFxTimerRef.current);
+        }
+        
+        crushFxTimerRef.current = setTimeout(() => {
+            if (onComplete) onComplete();
+            
+            crushOverlayOpacity.value = withTiming(0, { duration: 90 });
+            isCrushFxRunningRef.current = false;
+            crushFxTimerRef.current = null;
+            
+            swipeAnimationReleaseTimerRef.current = setTimeout(() => {
+                isSwipeAnimatingRef.current = false;
+                swipeAnimationReleaseTimerRef.current = null;
+            }, TRANSITION_MS + 120);
+        }, 240);
+    }, [crushIconScale, crushOverlayOpacity]);
+
+
     useEffect(() => {
         return () => {
             if (swipeAnimationReleaseTimerRef.current) {
@@ -99,6 +142,9 @@ export const useLikeDislikeAnimation = () => {
             }
             if (likeFxTimerRef.current) {
                 clearTimeout(likeFxTimerRef.current);
+            }
+            if (crushFxTimerRef.current) {
+                clearTimeout(crushFxTimerRef.current);
             }
         };
     }, []);
@@ -118,14 +164,23 @@ export const useLikeDislikeAnimation = () => {
     const likeIconAnimatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: likeIconScale.value }],
     }));
+    const crushlikeOverlayStyle = useAnimatedStyle(() => ({
+        opacity: crushOverlayOpacity.value,
+    }));
 
+    const crushlikeIconAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: crushIconScale.value }],
+    }));
     return {
         runLikeAnimation,
         runDislikeAnimation,
+        crushLikeAnimation,
         likeOverlayStyle,
         likeIconAnimatedStyle,
         dislikeOverlayStyle,
         dislikeIconAnimatedStyle,
+        crushlikeOverlayStyle,
+        crushlikeIconAnimatedStyle,
         isSwipeAnimatingRef,
     };
 };

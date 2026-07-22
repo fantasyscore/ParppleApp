@@ -108,12 +108,12 @@ const MatchScreen = ({ matchData, setMatchVisible }: any) => {
                 <Animated.Image source={heartFour} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp20, right: metrics.hp20, width: metrics.hp5, height: metrics.hp5 }, heartFourAnim]} />
                 <Animated.Image source={heartOne} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp15, right: metrics.hp20, width: metrics.hp7, height: metrics.hp7 }, heartOneAnim]} /> */}
                 <View style={styles.profilesWrapper}>
-                        <Animated.Image
-                            source={{ uri: matchData[0]?.profilePicture[0]?.url }}
-                            style={[styles.profileImage, animatedProfile1Style, styles.profile1Position]}
-                        />
                     <Animated.Image
-                        source={{ uri: matchData[1]?.profilePicture[0]?.url }}
+                        source={matchData[0]?.profilePicture[0]?.url ? { uri: matchData[0]?.profilePicture[0]?.url } : dummyMaleProfile}
+                        style={[styles.profileImage, animatedProfile1Style, styles.profile1Position]}
+                    />
+                    <Animated.Image
+                        source={matchData[1]?.profilePicture[0]?.url ? { uri: matchData[1]?.profilePicture[0]?.url } : dummyfemaleProfile}
                         style={[styles.profileImage, animatedProfile2Style, styles.profile2Position]}
                     />
                     {/* <Animated.Image source={bigHeart} style={[styles.centralHeartWrapper, bigHeartAnim]} /> */}
@@ -123,12 +123,12 @@ const MatchScreen = ({ matchData, setMatchVisible }: any) => {
                 </View>
                 <View style={styles.buttonsContainer}>
                     <AppText type={EIGHTEEN} color={WHITE} weight={INTER_MEDIUM}>Start a conversation now!</AppText>
-                    <TouchableOpacity>
-                        <ImageBackground source={seeMoreBackground} resizeMode='stretch' style={{height:metrics.hp6, width:metrics.hp20,alignItems:"center", justifyContent:"center", marginTop: metrics.hp4}}>
-                        <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD}>Go Back</AppText>
+                    <TouchableOpacity onPress={() => setMatchVisible(false)}>
+                        <ImageBackground source={seeMoreBackground} resizeMode='stretch' style={{ height: metrics.hp6, width: metrics.hp20, alignItems: "center", justifyContent: "center", marginTop: metrics.hp4 }}>
+                            <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD}>Go Back</AppText>
                         </ImageBackground>
                     </TouchableOpacity>
-                   
+
                 </View>
             </ImageBackground>
         </AppSafeAreaView>

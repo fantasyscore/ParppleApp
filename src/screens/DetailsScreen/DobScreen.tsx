@@ -41,7 +41,6 @@ import { setAddProfile } from "../../slices/loginServices/authSlice";
 import LinearGradient from "react-native-linear-gradient";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { applogo, bdyBack, BottomLayer, calendarIcon, dobIcon, dobImage } from "../../helper/ImageAssets";
-import DubleTextLine from "../../common/DubleTextLine";
 import DOBPicker from "../../components/DOBPicker";
 import { BlurView } from "@react-native-community/blur";
 
