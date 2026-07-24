@@ -350,7 +350,7 @@ const ChatsScreen = () => {
                                 marginLeft: recentPreviewData?.length <= 3 ? metrics.hp2 : 0,
                                 marginRight: recentPreviewData?.length > 3 ? metrics.hp2 : 0
                             }]}>
-                                <ImageBackground source={{ uri: item?.profilePicture?.url }} resizeMode="cover" style={styles.newMatchProfile}>
+                                <ImageBackground source={item?.profilePicture?.url? { uri: item?.profilePicture?.url }: item?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={styles.newMatchProfile}>
                                     {/* Match avatar */}
                                 </ImageBackground>
                                 <AppText style={{ marginTop: metrics.hp0_3, color: colors.white }} type={TWELVE} weight={INTER_SEMI_BOLD}>

@@ -26,6 +26,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { clearActiveChat, setActiveChatMatchId } from '../../slices/inAppNotificationSlice';
 import { chatHistoryDetails, setNewMatches } from '../../slices/loginServices/authSlice';
 import { clearNotificationsByMatchId } from '../../notifications/pushNotifications';
+import SeeOtherUserProfile from './SeeOtherUserProfile';
 
 const USER_ID = 1;
 
@@ -61,6 +62,8 @@ const TakingScreen = () => {
     const [inputText, setInputText] = useState('');
     const [emojiVisible, setEmojiVisible] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
+    const [otherUserProfie, setOtherUserProfile] = useState(false);
+
     const [saveReportTitle, setSaveReportTitle] = useState("");
     const [profileData, setProfileData] = useState();
     const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
@@ -69,6 +72,7 @@ const TakingScreen = () => {
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
     const [isInitialLoading, setIsInitialLoading] = useState(false);
+    const [currentProfileData, setCurrentProfileData] = useState({})
     const activeMatchIdRef = useRef<string | undefined>(matchChatUserDetails?.matchId);
     const activeOtherUserIdRef = useRef<string | undefined>(matchChatUserDetails?.userId);
     const matchChatUserDetailsRef = useRef<any>(matchChatUserDetails);
@@ -346,6 +350,8 @@ const TakingScreen = () => {
                 );
             }
         };
+
+
         const handleIncomingMessage = (response: any) => {
             console.log('[TakingScreen] Incoming message received:', response);
             if (!response) {
@@ -737,7 +743,7 @@ const TakingScreen = () => {
                     {...props}
                     wrapperStyle={{
                         left: { backgroundColor: '#7A4E40', borderRadius: metrics.hp0_5, padding: metrics.hp0_2, marginBottom: metrics.hp1_2 },
-                        right: { backgroundColor: '#555359', borderRadius: metrics.hp0_5, padding: metrics.hp0_2, paddingRight: metrics.hp3, marginBottom: metrics.hp1_2, marginRight: metrics.hp1, position: 'relative' },
+                        right: { backgroundColor: '#555359', borderRadius: metrics.hp0_5, padding: metrics.hp0_2,/*  paddingRight: metrics.hp3, */ marginBottom: metrics.hp1_2, marginRight: metrics.hp1, position: 'relative' },
                     }}
                     textStyle={{
                         left: { color: 'white', fontSize: fontSize(14), fontFamily: interSemiBold },
@@ -760,18 +766,25 @@ const TakingScreen = () => {
             </View>
         );
     }, [userData?._id]);
-
+    const seeOtherProfile = () => {
+        let data = {
+            "userId": matchChatUserDetails?.userId
+        };
+        dispatch(getOtherProfile(data, setCurrentProfileData, setOtherUserProfile));
+    }
     const renderAvatar = useCallback((props: any) => {
         if (props.currentMessage.user._id === USER_ID) return null;
         if (props.currentMessage._id === 'typing-indicator' || props.currentMessage.user._id === 'typing-indicator-user') {
             return null;
         }
         return (
-            <FastImage
-                source={matchChatUserDetails?.profilePicture?.url ? { uri: matchChatUserDetails?.profilePicture?.url } : matchChatUserDetails?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile}
-                resizeMode='cover'
-                style={{ width: metrics.hp4, height: metrics.hp4, borderRadius: metrics.hp2, marginBottom: metrics.hp1_5 }}
-            />
+            <TouchableOpacityView onPress={() => seeOtherProfile()}>
+                <FastImage
+                    source={matchChatUserDetails?.profilePicture?.url ? { uri: matchChatUserDetails?.profilePicture?.url } : matchChatUserDetails?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile}
+                    resizeMode='cover'
+                    style={{ width: metrics.hp4, height: metrics.hp4, borderRadius: metrics.hp2, marginBottom: metrics.hp1_5 }}
+                />
+            </TouchableOpacityView>
         );
     }, [matchChatUserDetails?.profilePicture]);
     const unMatchButton = () => {
@@ -794,12 +807,12 @@ const TakingScreen = () => {
         if (props.currentMessage?._id === 'typing-indicator') return null;
         return (
             <View>
-                {/* <Time {...props} timeTextStyle={{ left: { color: colors.white }, right: { color: colors.white } }} containerStyle={{ left: { marginTop: 2 }, right: { marginTop: 2 } }} /> */}
+                <Time {...props} timeTextStyle={{ left: { color: colors.white }, right: { color: colors.white } }} containerStyle={{ left: { marginTop: 2 }, right: { marginTop: 2 } }} />
                 {props?.currentMessage?.isMine ?
                     <FastImage source={noccce} resizeMode='contain' style={{
                         height: metrics.hp2, width: metrics.hp2_3, position: 'absolute',
-                        bottom: -metrics.hp0_29,
-                        right: -metrics.hp3_7,
+                        bottom: -metrics.hp0_24,
+                        right: -metrics.hp1,
                     }} tintColor={"#555359"} /> :
                     <FastImage
                         source={noccce} tintColor={"#7A4E40"} resizeMode='contain' style={{
@@ -1019,7 +1032,7 @@ const TakingScreen = () => {
     }
     return (
         <AppSafeAreaView color={newColor.blackNew}>
-            <ChatHeader setTabSelect={setTabSelect} onPress={() => refFilter?.current?.open()} />
+            <ChatHeader setTabSelect={setTabSelect} onPress={() => refFilter?.current?.open()} seeProfileOther={() => seeOtherProfile()} />
             <View style={{ flex: 1 }}>
                 <View style={styles.containerChat}>
                     <GiftedChat
@@ -1131,6 +1144,14 @@ const TakingScreen = () => {
                             </AppText>
                         </View>
                     </View>}
+            </Modal>
+
+            <Modal
+                animationType="fade"
+                visible={otherUserProfie}
+                statusBarTranslucent
+                onRequestClose={() => setOtherUserProfile(false)}>
+                <SeeOtherUserProfile currentProfileData={currentProfileData} setModalVisible={setOtherUserProfile} />
             </Modal>
         </AppSafeAreaView>
     );

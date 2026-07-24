@@ -9,7 +9,7 @@ import { TouchableOpacityView } from "./TouchableOpacityView";
 import NavigationService from "../navigation/NavigationService";
 import { useSelector } from "react-redux";
 
-const ChatHeader = ({ onPress, setTabSelect }: any) => {
+const ChatHeader = ({ onPress, setTabSelect, seeProfileOther }: any) => {
     const matchChatUserDetails = useSelector((state: any) => state.auth.matchChatUserDetails);
     const userData = useSelector((state: any) => state.auth.userData);
     console.log(matchChatUserDetails, "matchChatUserDetails");
@@ -19,15 +19,19 @@ const ChatHeader = ({ onPress, setTabSelect }: any) => {
             <View style={styles.container}>
                 <TouchableOpacityView style={{ flexDirection: "row", alignItems: "center" }} onPress={() => NavigationService.goBack()}>
                     <FastImage source={backIconNew} resizeMode="contain" style={styles.backIcon} />
+                    <TouchableOpacityView style={{flexDirection:"row", alignItems:'center'}} onPress={seeProfileOther}>
                     <FastImage source={matchChatUserDetails?.profilePicture?.url ? { uri: matchChatUserDetails?.profilePicture?.url } : matchChatUserDetails?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={styles.profileImage} />
                     <View>
 
                         <AppText type={TWELVE} color={WHITE} weight={INTER_BOLD}>{"    "}{matchChatUserDetails?.username ? matchChatUserDetails?.username : matchChatUserDetails?.name}
                         </AppText>
+                        {matchChatUserDetails?.online ? 
                         <AppText type={ELEVEN} weight={INTER_MEDIUM} style={{ color: "#26F600", marginTop: -metrics.hp0 }}>
                             {"    "}Online
-                        </AppText>
+                        </AppText>:<></>}
                     </View>
+                    </TouchableOpacityView>
+
                 </TouchableOpacityView>
                 <TouchableOpacityView onPress={onPress}>
                     <FastImage source={threeDotNewIcon} resizeMode="contain" style={styles.backIcon} />

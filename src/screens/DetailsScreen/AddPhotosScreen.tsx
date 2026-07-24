@@ -1,9 +1,6 @@
 import React, { useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { Alert, Dimensions, FlatList, ImageBackground, Modal, PermissionsAndroid, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
-import HeaderCommon from "../../common/HeaderCommon";
-import TopCommonLine from "../../common/TopCommonLine";
-import DubleTextLine from "../../common/DubleTextLine";
 import { AppText, EIGHTEEN, ELEVEN, fontSize, INTER_BOLD, INTER_MEDIUM, LIGHT_BLACK, OPECITY, OPECITY_DARK, RED, SCHEHERAZADE_BOLD, SCHEHERAZADE_SEMI_BOLD, SIXTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
 import metrics from "../../assets/Metrics";
 import { addPhotoImageTop, applogo, BottomLayer, trunOnBackground, uploadIcon } from "../../helper/ImageAssets";
@@ -481,7 +478,7 @@ const AddPhotoScreen = () => {
       <AppText style={{ textAlign: "center", fontSize: fontSize(26), marginTop: metrics.hp1 }} weight={SCHEHERAZADE_SEMI_BOLD} color={WHITE}>
         Add Your Photos
       </AppText>
-      <FastImage source={addPhotoImageTop} resizeMode="contain" style={{height:metrics.hp20, width:metrics.hp20, marginTop:metrics.hp20, left:metrics.hp12, position:"absolute"}}/>
+      <FastImage source={addPhotoImageTop} resizeMode="contain" style={{ height: metrics.hp20, width: metrics.hp20, marginTop: metrics.hp20, left: metrics.hp12, position: "absolute" }} />
       <FlatList
         data={photos}
         renderItem={renderItem}

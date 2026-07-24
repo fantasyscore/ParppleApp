@@ -218,20 +218,12 @@ export const youView: any = () => async (dispatch: any) => {
         // toastAlert.showToastError(error);
     }
 };
-export const getOtherProfile: any = (data: any, isNavigate: any, setProfileData: any, profile: any, from: any) => async (dispatch: any) => {
+export const getOtherProfile: any = (data: any, setCurrentProfileData:any, setOtherUserProfile:any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.otherDataProfileAPI(data);
         if (response?.statusCode == 200) {
-            dispatch(setOtherUserProfile(response?.data));
-            const dataWithIndex = {
-                ...response?.data,
-                index: 0
-            };
-            if (!profile) {
-                setProfileData(dataWithIndex)
-            }
-
-            !isNavigate && NavigationService.navigate(NAVIGATION_USER_EDIT_PROFILE_SCREEN, { other: true, from })
+            setCurrentProfileData(response?.data);
+            setOtherUserProfile(true)
         }
     } catch (error: any) {
         console.log(error, "error");
