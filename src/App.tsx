@@ -6,7 +6,7 @@ import Navigator from "./navigation/Navigator";
 import store from "./store/store";
 import { StatusBar, Text, View, AppState, AppStateStatus, StyleSheet, Platform, TouchableOpacity, Modal } from "react-native";
 import SplashScreen from "react-native-splash-screen";
-import { InAppUpdate } from "./native/inAppUpdate";
+import { ForceUpdateService } from "./services/ForceUpdateService";
 import ToastMessage from "./common/ToastMessage";
 import codePush from "@revopush/react-native-code-push";
 import { recoverPurchasesOnStartup } from "./services/purchaseRecoveryService";
@@ -41,13 +41,7 @@ const App = () => {
     enableScreenSecurity();
 
     if (Platform.OS === 'android') {
-      InAppUpdate.checkForUpdate()
-        .then((result) => {
-          console.log('[InAppUpdate] Startup update check complete. Status:', result.status);
-        })
-        .catch((error) => {
-          console.error('[InAppUpdate] Startup update check failed:', error);
-        });
+      ForceUpdateService.checkAndEnforceUpdate();
     }
 
     setTimeout(() => {
@@ -76,6 +70,7 @@ const App = () => {
       ) {
         console.log('[App] App resuming from background/killed state');
         isInitialMountRef.current = false;
+        ForceUpdateService.checkAndEnforceUpdate();
         recoverPurchasesOnStartup().catch(() => { });
         setTimeout(() => {
           try {
