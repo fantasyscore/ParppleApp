@@ -162,8 +162,8 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, ViewYoue
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryContent}>
                         {item?.profilePicture?.map((img: any, idx: number) => (
                             <View key={img?.url ?? idx} style={styles.galleryItem}>
-                                <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male" || userData?.isPublish === false ? 10 : 0} style={styles.galleryImage} />
-                                {userData?.gender === "male" || userData?.isPublish === false ? <>
+                                <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male" && userData?.isPublish === false ? 10 : 0} style={styles.galleryImage} />
+                                {userData?.gender === "male" && userData?.isPublish === false ? <>
                                     <View style={styles.galleryDim} />
                                     <View style={styles.lockOverlay}>
                                         <FastImage source={lockIconWhite} resizeMode='contain' style={styles.lockIcon} />
@@ -175,8 +175,8 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, ViewYoue
                     </ScrollView>
                     :
                     <ImageBackground source={chatPurchaseColour} tintColor={"#555359"} resizeMode='stretch' style={{
-                        width: metrics.hp23,
-                        height: metrics.hp28, marginTop: metrics.hp3,
+                        width: metrics.hp30,
+                        height: metrics.hp37, marginTop: metrics.hp3,
                         paddingHorizontal: metrics.hp2,
                         paddingVertical: metrics.hp2,
                         alignItems: "center",
@@ -337,7 +337,7 @@ const ViewYouScreen = () => {
     }, [handleListSwipe, isSwipeAnimatingRef, runLikeAnimation]);
 
     const handleCrushNote = useCallback((item: any) => {
-        if (userData?.gender === "male" || userData?.isPublish === false) {
+        if (userData?.gender === "male" && userData?.isPublish === false) {
             NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN)
         } else if (userData?.crushNotesRemaining == 0) {
             NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN)
@@ -456,7 +456,7 @@ const ViewYouScreen = () => {
     }), []);
 
 
-    if (userData?.gender === "male" || userData?.isPublish === false) {
+    if (userData?.gender === "male" && userData?.isPublish === false) {
         return (
             <ImageBackground source={whoVisitYourProfileWithOutPurches} resizeMode="stretch"
                 style={{

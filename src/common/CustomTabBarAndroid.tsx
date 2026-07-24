@@ -8,7 +8,7 @@ import FastImage from "react-native-fast-image";
 import { AppText, THIRTEEN, INTER_MEDIUM, OPECITY, PURPLE, TWELVE, FORTEEN, WHITE, SCHEHERAZADE_BOLD, ELEVEN, SIXTEEN } from "./AppText";
 import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_CHATS_SCREEN, NAVIGATION_DISCOVER_SCREEN, NAVIGATION_LIKES_YOU_SCREEN, NAVIGATION_PEOPLE_SCREEN, NAVIGATION_PROFILE_SCREEN, NAVIGATION_VIEW_YOU_SCREEN_SCREEN } from "../navigation/routes";
-import { BottomLayer, boyProfileloakBackground, chatAmountBackgroungNew, chatTabNewNrml, chatTabNewNrmlColour, girlProfileLoakBackground, goToProifleIcon, likesYouNewNrml, likesYouNewNrmlColour,  lockIconWhite, people, pepoleTab, pepoleTabNewNrml, pepoleTabNewNrmlColour, rightGoNewIcon, visiterNewNrml, visiterNewNrmlColour } from "../helper/ImageAssets";
+import { BottomLayer, boyProfileloakBackground, chatAmountBackgroungNew, chatTabNewNrml, chatTabNewNrmlColour, girlProfileLoakBackground, goToProifleIcon, likesYouNewNrml, likesYouNewNrmlColour, lockIconWhite, people, pepoleTab, pepoleTabNewNrml, pepoleTabNewNrmlColour, rightGoNewIcon, visiterNewNrml, visiterNewNrmlColour } from "../helper/ImageAssets";
 import { useSelector } from "react-redux";
 import { Image } from "react-native";
 import { Screen } from "../theme/dimens";
@@ -33,7 +33,7 @@ const goToProfile = () => NavigationService.navigate(NAVIGATION_PROFILE_SCREEN);
 const HiddenProfileOverlay = memo((userData: any) => (
     <ImageBackground source={userData?.gender == "male" ? girlProfileLoakBackground : boyProfileloakBackground} resizeMode="stretch" style={{ height: Screen.Height, width: Screen.Width, position: "absolute", zIndex: 1, alignItems: "center", justifyContent: "center" }}>
         <FastImage source={lockIconWhite} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp4, marginTop: metrics.hp18 }} />
-        <AppText style={{marginTop:metrics.hp2}} type={FORTEEN} weight={INTER_MEDIUM} color={WHITE}>
+        <AppText style={{ marginTop: metrics.hp2 }} type={FORTEEN} weight={INTER_MEDIUM} color={WHITE}>
             Unlock the Profile
         </AppText>
         <AppText style={{ paddingHorizontal: metrics.hp2, textAlign: "center" }} type={FORTEEN} weight={INTER_MEDIUM} color={OPECITY}>
@@ -96,10 +96,21 @@ const CustomTabBarAndroid = ({ state }: BottomTabBarProps) => {
             </TouchableOpacityView>
         );
     };
+    const hasPublishPlan =
+        [
+            "publish_one_week",
+            "publish_one_month",
+            "publish_six_months",
+        ].includes(userData?.subscription?.plan);
 
+    const shouldShowOverlay =
+        (userData?.gender === "female" && userData?.isPublish === false) ||
+        (userData?.gender === "male" &&
+            hasPublishPlan &&
+            userData?.isPublish === false);
     return (
         <>
-            {userData?.isPublish === false && userData?.gender === "female" ? <HiddenProfileOverlay userData={userData} /> :
+            {shouldShowOverlay ? <HiddenProfileOverlay userData={userData} /> :
                 <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
                     <View style={styles.flowContainer}>
                         {state?.routes?.map((route, index) => {

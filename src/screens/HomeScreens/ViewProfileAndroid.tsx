@@ -79,9 +79,9 @@ console.log(currentProfileData,"currentProfileDatacurrentProfileDatacurrentProfi
                     height: metrics.hp45,
                     width: metrics.hp34
                 }}>
-                <TouchableOpacity activeOpacity={1} onPress={() => userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : console.log("")}>
-                    <Image blurRadius={userData?.gender === "male" || userData?.isPublish === false ? 10 : 0} source={{ uri: item.url }} resizeMode="cover" style={styles.imageMain} />
-                    {userData?.gender === "male" || userData?.isPublish === false ?
+                <TouchableOpacity activeOpacity={1} onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : console.log("")}>
+                    <Image blurRadius={userData?.gender === "male" && userData?.isPublish === false ? 10 : 0} source={{ uri: item.url }} resizeMode="cover" style={styles.imageMain} />
+                    {userData?.gender === "male" && userData?.isPublish === false ?
                         <>
                             <View style={styles.galleryDim} />
                             <View style={styles.lockOverlay}>
@@ -240,16 +240,16 @@ console.log(currentProfileData,"currentProfileDatacurrentProfileDatacurrentProfi
             </ScrollView>
             <View style={styles.actionsRow}>
                 {likeYoue === "You Liked" ? <></> :
-                    <TouchableOpacityView onPress={() => userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : handleDislikePress(currentProfileData)} activeOpacity={1} >
+                    <TouchableOpacityView onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : handleDislikePress(currentProfileData)} activeOpacity={1} >
                         <FastImage source={newCloseIcon} resizeMode='contain' style={styles.dislikeButton} />
                     </TouchableOpacityView>
                 }
                 {likeYoue === "You Liked" || ViewYoue === "You Viewed"? <></> :
-                    <TouchableOpacityView onPress={() => userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : handleLikePress(currentProfileData)} activeOpacity={1} >
+                    <TouchableOpacityView onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : handleLikePress(currentProfileData)} activeOpacity={1} >
                         <FastImage source={newLikeIcon} resizeMode='contain' style={styles.likeButton} />
                     </TouchableOpacityView>
                 }
-                <TouchableOpacityView onPress={() => userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN)} activeOpacity={1} >
+                <TouchableOpacityView onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN)} activeOpacity={1} >
                     <FastImage source={directChatIcon} resizeMode='contain' style={styles.chatButton} />
                 </TouchableOpacityView>
             </View>

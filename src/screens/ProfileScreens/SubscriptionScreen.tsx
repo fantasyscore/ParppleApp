@@ -36,7 +36,7 @@ const ALL_SUBSCRIPTION_SKUS = Platform.select({
         'platinum_week', 'platinum_month', 'platinum_6month'
     ],
 }) ?? [
-        'silver_weekly', 'silver_month', 'silver_6month',
+        'publish_one_week', 'publish_one_month', 'publish_six_months',
         'gold_week', 'gold_month', 'gold_6month',
         'platinum_week', 'platinum_month', 'platinum_6month'
     ];

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { Dimensions, FlatList, ImageBackground, Linking, Platform, ScrollView, StyleSheet, View, Modal, TextInput } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
-import {  bioBackground, biosToggla,  dobIcon, editButtonBackground,  heightIconWhiteNew, locationIconWhiteNew, ProfileBackGroundNew,pronounIcon,  tabViewForLikes, trunOnBackground, uploadIcon, beingWatchIcon, bitingIcon, blinedFlodedIcon, dirtyTalks, fantasiesIcon, fotFetiesIcon, hairIcon, hugsIcon, massageIcon, musicIcons, oralIcon, rightSelectTrunOns, roomServiceIcon, scentsIcon, sextingIcon, smooheshIcon, TattosIcon, BottomLayer, danceNewIcon, rolePlayImageNew, choclateImageNew, touchNewIcon, dummyMaleProfile, dummyfemaleProfile } from "../../helper/ImageAssets";
+import { bioBackground, biosToggla, dobIcon, editButtonBackground, heightIconWhiteNew, locationIconWhiteNew, ProfileBackGroundNew, pronounIcon, tabViewForLikes, trunOnBackground, uploadIcon, beingWatchIcon, bitingIcon, blinedFlodedIcon, dirtyTalks, fantasiesIcon, fotFetiesIcon, hairIcon, hugsIcon, massageIcon, musicIcons, oralIcon, rightSelectTrunOns, roomServiceIcon, scentsIcon, sextingIcon, smooheshIcon, TattosIcon, BottomLayer, danceNewIcon, rolePlayImageNew, choclateImageNew, touchNewIcon, dummyMaleProfile, dummyfemaleProfile } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
 import { colors, newColor } from "../../theme/colors";
 import Svg, { Circle } from "react-native-svg";
@@ -273,7 +273,7 @@ const ProfileScreenAndroid = () => {
     const safePct = Number.isFinite(Number(percentage)) ? Math.max(0, Math.min(100, Number(percentage))) : 0;
     const progress = (safePct / 100) * circumference;
 
-    
+
     const renderPurchaesCards = ({ item, index }: any) => {
         return (
             <TouchableOpacityView key={index} activeOpacity={1} onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: item })} style={{ marginRight: index == 2 ? metrics.hp2 : 0 }}>
@@ -306,7 +306,27 @@ const ProfileScreenAndroid = () => {
         }
         dispatch(publishProfileEveryone(dataNew))
         toastAlert.showToastError(userData?.isPublish === false ? "Your profile is published" : "Your profile is hidden")
-    }
+    };
+    const planHai = userData?.subscription?.plan === "publish_one_week" || userData?.subscription?.plan === "publish_one_month" || userData?.subscription?.plan === "publish_six_months";
+    const hasPublishPlan =
+        userData?.subscription?.plan === "publish_one_week" ||
+        userData?.subscription?.plan === "publish_one_month" ||
+        userData?.subscription?.plan === "publish_six_months";
+
+    const canManagePublish =
+        userData?.gender === "female" ||
+        (userData?.gender === "male" && hasPublishPlan);
+
+    const isPublishButton =
+        userData?.isPublish === false || profileHide === "Hide";
+
+    const handlePublishPress = () => {
+        if (canManagePublish) {
+            hideUnHideProfile();
+        } else {
+            NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN);
+        }
+    };
     return (
         <AppSafeAreaView color={colors.transparent}>
             <LinearGradient style={{ flex: 1 }} colors={["#212123", "#555359"]}>
@@ -317,7 +337,7 @@ const ProfileScreenAndroid = () => {
                     <AppSafeAreaView
                         color="transparent"
                         style={{ flex: 1, backgroundColor: "transparent" }}>
-                        <NewHeader profile={"Profile"}  onPress={() => NavigationService.goBack()} onPressTwo={() => NavigationService.navigate(NAVIGATION_SETTING_SCREEN)} />
+                        <NewHeader profile={"Profile"} onPress={() => NavigationService.goBack()} onPressTwo={() => NavigationService.navigate(NAVIGATION_SETTING_SCREEN)} />
                         <View style={{ marginTop: metrics.hp2, paddingHorizontal: metrics.hp2, flexDirection: "row", alignItems: "center" }}>
                             <TouchableOpacityView activeOpacity={1} style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
                                 <FastImage
@@ -484,7 +504,7 @@ const ProfileScreenAndroid = () => {
                                     " My bio
                                 </AppText>
                             </ImageBackground>
-                            <AppText style={{ marginHorizontal: metrics.hp2, textAlign: "center", marginVertical: metrics.hp1, lineHeight:metrics.hp2, marginBottom:metrics.hp3 }}type={TWELVE} weight={SCHEHERAZADE_BOLD} color={WHITE}>
+                            <AppText style={{ marginHorizontal: metrics.hp2, textAlign: "center", marginVertical: metrics.hp1, lineHeight: metrics.hp2, marginBottom: metrics.hp3 }} type={TWELVE} weight={SCHEHERAZADE_BOLD} color={WHITE}>
                                 {userData?.bio ? userData.bio : "Write something about yourself..."}
                             </AppText>
                         </ImageBackground>
@@ -517,15 +537,55 @@ const ProfileScreenAndroid = () => {
                     </View>
                 )}
             </LinearGradient>
-            <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
-                <TouchableOpacityView style={{ width: "100%", alignItems: "center", justifyContent: "center" }} onPress={() => userData?.gender === "female" ? hideUnHideProfile() : NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN)}>
-                    <LinearGradient colors={userData?.gender === "male" || userData?.isPublish === false ? ["#D08FA9", "#FDD2C1"] : profileHide === "Hide" ? ["#D08FA9", "#FDD2C1"] : ["#151517", "#151517"]} style={{ height: metrics.hp7, width: "90%", alignItems: "center", justifyContent: "center", borderWidth: userData?.gender === "male" ? 0 : profileHide === "Hide" ? 0 : metrics.hp0_1, borderColor: userData?.gender === "male" ? colors.transparent : profileHide === "Hide" ? colors.transparent : colors.white }}>
-                        <AppText type={EIGHTEEN} weight={SCHEHERAZADE_BOLD} color={userData?.gender === "male" || userData?.isPublish === false ? BLACK : profileHide === "Hide" ? BLACK : WHITE}>
-                            {userData?.gender === "male" || userData?.isPublish === false ? "Publish Profile" : profileHide === "Hide" ? "Publish Profile" : "Hide Profile"}
+            <ImageBackground
+                source={BottomLayer}
+                resizeMode="stretch"
+                style={styles.bottomLayer}
+            >
+                <TouchableOpacityView
+                    style={{
+                        width: "100%",
+                        alignItems: "center",
+                        justifyContent: "center",
+                    }}
+                    onPress={handlePublishPress}
+                >
+                    <LinearGradient
+                        colors={
+                            isPublishButton
+                                ? ["#D08FA9", "#FDD2C1"]
+                                : ["#151517", "#151517"]
+                        }
+                        style={{
+                            height: metrics.hp7,
+                            width: "90%",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            borderWidth: isPublishButton ? 0 : metrics.hp0_1,
+                            borderColor: isPublishButton
+                                ? colors.transparent
+                                : colors.white,
+                        }}
+                    >
+                        <AppText
+                            type={EIGHTEEN}
+                            weight={SCHEHERAZADE_BOLD}
+                            color={isPublishButton ? BLACK : WHITE}
+                        >
+                            {isPublishButton ? "Publish Profile" : "Hide Profile"}
                         </AppText>
                     </LinearGradient>
                 </TouchableOpacityView>
             </ImageBackground>
+            {/* <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
+                <TouchableOpacityView style={{ width: "100%", alignItems: "center", justifyContent: "center" }} onPress={() => userData?.gender === "female" ? hideUnHideProfile() : userData?.gender === "male" && planHai ? hideUnHideProfile() : NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN)}>
+                    <LinearGradient colors={userData?.gender === "male" && userData?.isPublish === false ? ["#D08FA9", "#FDD2C1"] : profileHide === "Hide" ? ["#D08FA9", "#FDD2C1"] : ["#151517", "#151517"]} style={{ height: metrics.hp7, width: "90%", alignItems: "center", justifyContent: "center", borderWidth: userData?.gender === "male" && userData.isPublish === false ? 0 : profileHide === "Hide" ? 0 : metrics.hp0_1, borderColor: userData?.gender === "male" && userData.isPublish === false ? colors.transparent : profileHide === "Hide" ? colors.transparent : colors.white }}>
+                        <AppText type={EIGHTEEN} weight={SCHEHERAZADE_BOLD} color={userData?.gender === "male" && userData?.isPublish === false ? BLACK : profileHide === "Hide" ? BLACK : WHITE}>
+                            {userData?.gender === "male" && userData?.isPublish === false ? "Publish Profile" : profileHide === "Hide" ? "Publish Profile" : "Hide Profile"}
+                        </AppText>
+                    </LinearGradient>
+                </TouchableOpacityView>
+            </ImageBackground> */}
             {/* <ImageBackground
                 source={profilebackGround}
                 resizeMode="cover"

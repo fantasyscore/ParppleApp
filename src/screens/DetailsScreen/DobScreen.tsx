@@ -48,7 +48,7 @@ const DobScreen = () => {
     const dispatch = useDispatch();
     const datalist = new Array(12).fill(null).map((_, index) => ({ id: String(index) }));
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
-
+    const todaynew = new Date();
     const [date, setDate] = useState<Date | null>(null);
     const [showAndroidPicker, setShowAndroidPicker] = useState(false);
     const [showIOSPicker, setShowIOSPicker] = useState(false);
@@ -184,7 +184,7 @@ const DobScreen = () => {
                 <DOBPicker
                     visible={showAndroidPicker}
                     onClose={() => setShowAndroidPicker(false)}
-                    initialDate={date || new Date(1998, 6, 17)}
+                    initialDate={date || todaynew}
                     onConfirm={(selectedDate) => {
                         setDate(selectedDate);
                         setTimeout(() => {

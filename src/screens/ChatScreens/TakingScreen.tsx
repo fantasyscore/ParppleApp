@@ -162,8 +162,8 @@ const TakingScreen = () => {
             const messageId = item._id || item.messageId || item.id;
             const isMine = item.isMine === true || item.isMine === 'true';
             const avatar = isMine
-                ? (userData?.profilePicture?.[0]?.url || userData?.gallery?.[0]?.url || userData?.gender == "male"? dummyMaleProfile:dummyfemaleProfile)
-                : (otherUserProfile?.profilePicture?.[0]?.url || matchChatUserDetails?.profilePicture?.[0]?.url || matchChatUserDetails?.gender == "male"? dummyMaleProfile:dummyfemaleProfile);
+                ? (userData?.profilePicture?.[0]?.url || userData?.gallery?.[0]?.url || userData?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile)
+                : (otherUserProfile?.profilePicture?.[0]?.url || matchChatUserDetails?.profilePicture?.[0]?.url || matchChatUserDetails?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile);
 
             let createdAt: Date;
             if (item.createdAt) {
@@ -335,7 +335,7 @@ const TakingScreen = () => {
                         user: {
                             _id: 'typing-indicator-user',
                             name: senderName,
-                            avatar: matchChatUserDetailsRef.current?.profilePicture?.[0]?.url || matchChatUserDetails?.gender =="male"?dummyMaleProfile:dummyfemaleProfile,
+                            avatar: matchChatUserDetailsRef.current?.profilePicture?.[0]?.url || matchChatUserDetails?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile,
                         },
                     };
                     return GiftedChat.append(prevMessages, [typingMessage]);
@@ -375,8 +375,8 @@ const TakingScreen = () => {
 
                 const isMine = response.isMine === true || response.isMine === 'true';
                 const avatar = isMine
-                    ? (userDataRef.current?.profilePicture?.[0]?.url || userDataRef.current?.gallery?.[0]?.url || userDataRef.current?.gender == "male"?dummyMaleProfile:dummyfemaleProfile)
-                    : (otherUserProfileRef.current?.profilePicture?.[0]?.url || matchChatUserDetailsRef.current?.profilePicture?.[0]?.url || matchChatUserDetailsRef.current?.gender == "male"?dummyMaleProfile:dummyfemaleProfile);
+                    ? (userDataRef.current?.profilePicture?.[0]?.url || userDataRef.current?.gallery?.[0]?.url || userDataRef.current?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile)
+                    : (otherUserProfileRef.current?.profilePicture?.[0]?.url || matchChatUserDetailsRef.current?.profilePicture?.[0]?.url || matchChatUserDetailsRef.current?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile);
                 let createdAt: Date;
                 if (response.createdAt) {
                     createdAt = typeof response.createdAt === 'string'
@@ -768,7 +768,7 @@ const TakingScreen = () => {
         }
         return (
             <FastImage
-                source={matchChatUserDetails?.profilePicture?.url ? { uri: matchChatUserDetails?.profilePicture?.url } : matchChatUserDetails?.gender == "male"? dummyMaleProfile:dummyfemaleProfile}
+                source={matchChatUserDetails?.profilePicture?.url ? { uri: matchChatUserDetails?.profilePicture?.url } : matchChatUserDetails?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile}
                 resizeMode='cover'
                 style={{ width: metrics.hp4, height: metrics.hp4, borderRadius: metrics.hp2, marginBottom: metrics.hp1_5 }}
             />
@@ -802,7 +802,7 @@ const TakingScreen = () => {
                         right: -metrics.hp3_7,
                     }} tintColor={"#555359"} /> :
                     <FastImage
-                        source={noccce} tintColor={"#7A4E40"}  resizeMode='contain' style={{
+                        source={noccce} tintColor={"#7A4E40"} resizeMode='contain' style={{
                             height: metrics.hp2, width: metrics.hp2_3, position: 'absolute',
                             bottom: -metrics.hp0_29,
                             left: -metrics.hp1,
@@ -906,58 +906,58 @@ const TakingScreen = () => {
     };
 
     const renderCustomInput = () => (
-        <KeyboardAvoidingView keyboardVerticalOffset={80} style={{backgroundColor:newColor.blackNew}} /* style={styles.inputContainer} */>
-            <ImageBackground  source={chatBottomBackgroundImage} resizeMode="stretch" style={styles.inputContainer}>
-            <View style={styles.inputContainerType}>
-                <TextInput
-                    style={styles.textInput}
-                    value={inputText}
-                    onChangeText={(text) => {
-                        setInputText(text);
-                        if (text.length > 0) {
-                            handleTypingStart();
-                            handleTypingStop();
-                        } else {
+        <KeyboardAvoidingView keyboardVerticalOffset={80} style={{ backgroundColor: newColor.blackNew }} /* style={styles.inputContainer} */>
+            <ImageBackground source={chatBottomBackgroundImage} resizeMode="stretch" style={styles.inputContainer}>
+                <View style={styles.inputContainerType}>
+                    <TextInput
+                        style={styles.textInput}
+                        value={inputText}
+                        onChangeText={(text) => {
+                            setInputText(text);
+                            if (text.length > 0) {
+                                handleTypingStart();
+                                handleTypingStop();
+                            } else {
+                                if (typingTimeoutRef.current) {
+                                    clearTimeout(typingTimeoutRef.current);
+                                    typingTimeoutRef.current = null;
+                                }
+                                emitTypingStatus(false);
+                            }
+                        }}
+                        onFocus={() => {
+                            if (inputText.length > 0) {
+                                handleTypingStart();
+                            }
+                        }}
+                        onBlur={() => {
                             if (typingTimeoutRef.current) {
                                 clearTimeout(typingTimeoutRef.current);
                                 typingTimeoutRef.current = null;
                             }
                             emitTypingStatus(false);
+                        }}
+                        placeholder="Type a message..."
+                        placeholderTextColor={colors.white}
+                        multiline
+                    />
+                </View>
+                <TouchableOpacityView
+                    style={styles.sendButton}
+                    onPress={() => {
+                        if (inputText.trim().length > 0) {
+                            console.log("Hello")
+                            onSend([{
+                                _id: Math.random(),
+                                text: inputText,
+                                createdAt: new Date(),
+                                isMine: true,
+                                user: { _id: USER_ID, name: 'Gurrent User', avatar: dummyMaleProfile }
+                            }]);
                         }
-                    }}
-                    onFocus={() => {
-                        if (inputText.length > 0) {
-                            handleTypingStart();
-                        }
-                    }}
-                    onBlur={() => {
-                        if (typingTimeoutRef.current) {
-                            clearTimeout(typingTimeoutRef.current);
-                            typingTimeoutRef.current = null;
-                        }
-                        emitTypingStatus(false);
-                    }}
-                    placeholder="Type a message..."
-                    placeholderTextColor={colors.white}
-                    multiline
-                />
-            </View>
-            <TouchableOpacityView
-                style={styles.sendButton}
-                onPress={() => {
-                    if (inputText.trim().length > 0) {
-                        console.log("Hello")
-                        onSend([{
-                            _id: Math.random(),
-                            text: inputText,
-                            createdAt: new Date(),
-                            isMine: true,
-                            user: { _id: USER_ID, name: 'Gurrent User', avatar: dummyMaleProfile }
-                        }]);
-                    }
-                }}>
-                <FastImage source={sendMessageNewIcon} resizeMode='contain' style={{ height: metrics.hp5_5, width: metrics.hp5_5 }} />
-            </TouchableOpacityView>
+                    }}>
+                    <FastImage source={sendMessageNewIcon} resizeMode='contain' style={{ height: metrics.hp5_5, width: metrics.hp5_5 }} />
+                </TouchableOpacityView>
             </ImageBackground>
             {/* <View style={styles.inputContainerType}>
                 <TextInput
@@ -1025,7 +1025,7 @@ const TakingScreen = () => {
                     <GiftedChat
                         messages={displayedMessages}
                         onSend={onSend}
-                        user={{ _id: USER_ID, name: 'Gurrent User', avatar: userData?.gender == "male"?dummyMaleProfile:dummyfemaleProfile }}
+                        user={{ _id: USER_ID, name: 'Gurrent User', avatar: userData?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile }}
                         renderAvatar={renderAvatar}
                         renderBubble={renderBubble}
                         renderDay={renderDay}
@@ -1075,7 +1075,7 @@ const TakingScreen = () => {
                                 <FastImage source={item.icon} resizeMode='contain' style={styles.rbIcon} />
                                 <View style={styles.textContainerRb}>
                                     <AppText type={FORTEEN} weight={INTER_SEMI_BOLD} color={WHITE}>
-                                        {item.headLine}{" "}{matchChatUserDetails?.name}
+                                        {item.headLine}{" "}{matchChatUserDetails?.username ? matchChatUserDetails?.username : matchChatUserDetails?.name}
                                     </AppText>
                                     <AppText type={TEN} weight={INTER_MEDIUM} color={WHITE}>
                                         {item.disLine}
@@ -1143,14 +1143,14 @@ const styles = StyleSheet.create({
     selectLine: { height: metrics.hp0_3, width: "80%", borderTopRightRadius: metrics.hp1, borderTopLeftRadius: metrics.hp1, },
     inTabContainer: { alignItems: 'center', justifyContent: 'center', flex: 1 },
     containerChat: { flex: 1, backgroundColor: newColor.blackNew },
-    inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: metrics.hp2, backgroundColor: colors.transparent,paddingVertical: metrics.hp3 },
-    textInput: { minHeight: metrics.hp4, maxHeight: metrics.hp8, fontSize: fontSize(13), width: "83%", fontFamily: interMedium, marginLeft: metrics.hp1, marginTop: Platform.OS === "ios" ? metrics.hp1 : 0, color:colors.white },
+    inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: metrics.hp2, backgroundColor: colors.transparent, paddingVertical: metrics.hp3 },
+    textInput: { minHeight: metrics.hp4, maxHeight: metrics.hp8, fontSize: fontSize(13), width: "83%", fontFamily: interMedium, marginLeft: metrics.hp1, marginTop: Platform.OS === "ios" ? metrics.hp1 : 0, color: colors.white },
     sendButton: { /* backgroundColor: '#6F13F2', borderRadius: metrics.hp50, */ marginLeft: 6, /* justifyContent: 'center', alignItems: 'center', */ height: metrics.hp5_5, width: metrics.hp5_5 },
-    inputContainerType: { borderWidth: metrics.hp0_1, borderColor: "#C4C4C447", borderRadius: metrics.hp5, paddingHorizontal: metrics.hp1, alignItems: 'center', justifyContent: 'space-between', flexDirection: 'row', paddingVertical: metrics.hp0_5 , backgroundColor:"#212123"},
+    inputContainerType: { borderWidth: metrics.hp0_1, borderColor: "#C4C4C447", borderRadius: metrics.hp5, paddingHorizontal: metrics.hp1, alignItems: 'center', justifyContent: 'space-between', flexDirection: 'row', paddingVertical: metrics.hp0_5, backgroundColor: "#212123" },
     emojiIcon: { height: metrics.hp3, width: metrics.hp3 },
     containerRb: { paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp2 },
     containerViewRb: { paddingHorizontal: metrics.hp1, paddingVertical: metrics.hp2, flexDirection: "row", backgroundColor: "#212123", marginBottom: metrics.hp0_5, borderRadius: metrics.hp1_5 },
-    rbIcon: { height: metrics.hp2_5, width: metrics.hp2_5, marginTop: metrics.hp0_5, marginLeft:metrics.hp1 },
+    rbIcon: { height: metrics.hp2_5, width: metrics.hp2_5, marginTop: metrics.hp0_5, marginLeft: metrics.hp1 },
     textContainerRb: { paddingLeft: metrics.hp2, paddingRight: metrics.hp5 },
     centeredView: {
         flex: 1,

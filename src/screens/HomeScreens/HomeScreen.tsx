@@ -17,7 +17,7 @@ import {
     View,
 } from 'react-native';
 import { AppText, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, WHITE, EIGHTEEN, fontSize, BLACK, THIRTEEN, FORTEEN, OPECITY } from '../../common/AppText';
-import { toggalOnButtonNew, toggalOffButtonNew, serachButtonNew, resetButtonNew, directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, straightenIcon, dummyMaleProfile, dummyfemaleProfile, chatPurchaseColour, chatAmountBackgroungNew, goToProifleIcon, onlineProfileImage, scrollatthetopIcon } from '../../helper/ImageAssets';
+import { toggalOnButtonNew, toggalOffButtonNew, serachButtonNew, resetButtonNew, directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, straightenIcon, dummyMaleProfile, dummyfemaleProfile, chatPurchaseColour, chatAmountBackgroungNew, goToProifleIcon, onlineProfileImage, scrollatthetopIcon, trunOnBackground } from '../../helper/ImageAssets';
 import metrics from '../../assets/Metrics';
 import FastImage from 'react-native-fast-image';
 import { colors, newColor } from '../../theme/colors';
@@ -169,10 +169,10 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData
                 {item?.gallery?.length ?
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryContent}>
                         {item?.gallery?.map((img: any, idx: number) => (
-                            <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : console.log()} key={img?.url ?? idx} style={styles.galleryItem}>
-                                <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male" || userData?.isPublish === false ? 10 : 0} style={styles.galleryImage} />
-                                {userData?.gender === "male" || userData?.isPublish === false ? <>
-                                    <View style={styles.galleryDim} />
+                            <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : console.log()} key={img?.url ?? idx} style={styles.galleryItem}>
+                                <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male" && userData?.isPublish === false ? 10 : 0} style={styles.galleryImage} />
+                                {userData?.gender === "male" && userData?.isPublish === false ? <>
+                                    <View style={styles.galleryDim} />  
                                     <View style={styles.lockOverlay}>
                                         <FastImage source={lockIconWhite} resizeMode='contain' style={styles.lockIcon} />
                                     </View>
@@ -183,8 +183,8 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData
                     </ScrollView>
                     :
                     <ImageBackground source={chatPurchaseColour} tintColor={"#555359"} resizeMode='stretch' style={{
-                        width: metrics.hp23,
-                        height: metrics.hp28, marginTop: metrics.hp3,
+                        width: metrics.hp30,
+                        height: metrics.hp37, marginTop: metrics.hp3,
                         paddingHorizontal: metrics.hp2,
                         paddingVertical: metrics.hp2,
                         alignItems: "center",
@@ -199,7 +199,7 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData
             </View>
 
             <View style={styles.actionsRow}>
-                <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : onDislike(item)}>
+                <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : onDislike(item)}>
                     <FastImage source={newCloseIcon} resizeMode='contain' style={styles.dislikeButton} />
                 </TouchableOpacityView>
                 <TouchableOpacityView activeOpacity={1} onPress={() =>/*  userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : */ onLike(item)}>
@@ -240,6 +240,7 @@ const PeopleScreen = () => {
     const [photosOnly, setPhotosOnly] = useState(false);
     const [isApplyingFilter, setIsApplyingFilter] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [limitReachlike, setLimitReachlike] = useState(false)
 
     // Scroll To Top Logic
     const flatListRef = useRef<FlatList>(null);
@@ -287,7 +288,7 @@ const PeopleScreen = () => {
     const filterSheetRef = useRef<any>(null);
 
     const onFilterPress = useCallback(() => {
-        if (userData?.gender === "male" || userData?.isPublish === false) {
+        if (userData?.gender === "male" && userData?.isPublish === false) {
             NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN)
         } else {
             filterSheetRef.current?.open();
@@ -529,8 +530,13 @@ const PeopleScreen = () => {
         if (unlimitedLikes !== true) {
             const swipes = remainingSwipesRef.current ?? userDataRef.current?.swipesRemaining ?? 0;
             if (swipes <= 0) {
-                NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN);
-                return;
+                if (userData?.gender == "female" && swipes == 0) {
+                    toastAlert.showToastError("You've run out of Likes")
+                    return;
+                } else {
+                    NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN);
+                    return;
+                }
             }
         }
 
@@ -630,11 +636,13 @@ const PeopleScreen = () => {
         setCurrentProfileData(item)
         setModalVisible(true);
     }, []);
+    console.log(userData?.crushNotesRemaining,"userData?.crushNotesRemaining");
+    
 
     const handleCrushNote = useCallback((item: any) => {
-        if (userData?.gender === "male" || userData?.isPublish === false) {
+        if (userData?.gender === "male" && userData?.isPublish === false) {
             NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN)
-        } else if (userData?.crushNotesRemaining == 0) {
+        } else if (userData?.crushNotesRemaining === 0) {
             NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN)
         } else {
             setCurrentProfileData(item)
@@ -642,6 +650,7 @@ const PeopleScreen = () => {
         }
 
     }, [])
+   
 
     const renderItem = useCallback(({ item }: any) => (
         <ProfileListCard item={item} onLike={handleLikePress} onDislike={handleDislikePress} onOpenPreview={handleOpenPreview} userData={userData} setCrushNoteVisible={setCrushNoteVisible} handleCrushNote={handleCrushNote} />
@@ -741,9 +750,7 @@ const PeopleScreen = () => {
                 crushlikeOverlayStyle={crushlikeOverlayStyle}
                 crushlikeIconAnimatedStyle={crushlikeIconAnimatedStyle}
             />
-            <TouchableOpacityView>
-            <FastImage source={scrollatthetopIcon} resizeMode='contain' style={{height:metrics.hp6, width:metrics.hp6, position:"absolute", bottom:metrics.hp2, zIndex:999}} />
-            </TouchableOpacityView>
+
             <Modal
                 animationType="fade"
                 visible={modalVisible}
@@ -760,6 +767,21 @@ const PeopleScreen = () => {
                 onRequestClose={() => setCrushNoteVisible(false)}>
                 <CrushNotesSender setCrushNoteVisible={setCrushNoteVisible} crushNoteVisible={crushNoteVisible} currentProfileData={currentProfileData} handleCrushNotes={handleCrushNotes} />
             </Modal>
+            {/* <Modal animationType="fade"
+                visible={true}
+                statusBarTranslucent onRequestClose={() => setLimitReachlike(false)}>
+                <View style={{
+                    flex: 1,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    backgroundColor: colors.transparentBlack,
+                    paddingHorizontal: metrics.hp2
+                }}>
+                    <ImageBackground source={trunOnBackground} resizeMode='contain' style={{ height: metrics.hp20, width: "90%" }}>
+
+                    </ImageBackground>
+                </View>
+            </Modal> */}
             <Modal
                 animationType="fade"
                 transparent
@@ -892,6 +914,13 @@ const PeopleScreen = () => {
 export default PeopleScreen;
 
 const styles = StyleSheet.create({
+    centeredView: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: colors.transparentBlack,
+        paddingHorizontal: metrics.hp2
+    },
     sheetContent: {
         paddingHorizontal: metrics.hp3,
         paddingTop: metrics.hp1,
