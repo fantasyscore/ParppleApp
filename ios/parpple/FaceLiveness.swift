@@ -70,7 +70,12 @@ final class FaceLiveness: NSObject {
         }
       )
 
-      vc.modalPresentationStyle = .fullScreen
+      vc.modalPresentationStyle = .pageSheet
+      if #available(iOS 15.0, *) {
+        if let sheet = vc.sheetPresentationController {
+          sheet.detents = [.medium()]
+        }
+      }
       presenter.present(vc, animated: true)
     }
   }

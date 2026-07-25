@@ -52,6 +52,6 @@
         android:name="com.parpple.faceliveness.FaceLivenessActivity"
         android:exported="false"
         android:screenOrientation="portrait"
-        android:theme="@style/Theme.AppCompat.DayNight.NoActionBar" />
+        android:theme="@style/TranslucentDialogTheme" />
     </application>
 </manifest>

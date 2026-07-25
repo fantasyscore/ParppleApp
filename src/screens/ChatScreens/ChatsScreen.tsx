@@ -353,7 +353,7 @@ const ChatsScreen = () => {
                                 <ImageBackground source={item?.profilePicture?.url? { uri: item?.profilePicture?.url }: item?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={styles.newMatchProfile}>
                                     {/* Match avatar */}
                                 </ImageBackground>
-                                <AppText style={{ marginTop: metrics.hp0_3, color: colors.white }} type={TWELVE} weight={INTER_SEMI_BOLD}>
+                                <AppText style={{ marginTop: metrics.hp1, color: colors.white, }} type={TWELVE} weight={INTER_SEMI_BOLD}>
                                     {item.username ? item.username : item.name}
 
                                 </AppText>

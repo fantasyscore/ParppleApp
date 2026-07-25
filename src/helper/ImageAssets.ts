@@ -152,4 +152,8 @@ export const sendMessageText = require("../assets/img/sendMessageText.png");
 export const partnerheart = require("../assets/img/partnerheart.png");
 export const onlineProfileImage = require("../assets/img/onlineProfileImage.png");
 export const scrollatthetopIcon = require("../assets/img/scrollatthetopIcon.png");
+export const sexualityIcon = require("../assets/img/sexualityIcon.png");
+export const modalBackground = require("../assets/img/modalBackground.png");
+export const verifiedButton = require("../assets/img/verifiedButton.png");
+export const verifiedBadgeIcon = require("../assets/img/verifiedBadgeIcon.png");
     

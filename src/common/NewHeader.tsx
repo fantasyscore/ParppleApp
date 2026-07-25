@@ -1,11 +1,13 @@
 import React from "react";
 import { ImageBackground, StyleSheet, TouchableOpacity, View } from "react-native";
 import FastImage from "react-native-fast-image";
-import { backIconNew, HeaderHomeBack, previewImageIBackground, settingIconNew } from "../helper/ImageAssets";
+import { backIconNew, HeaderHomeBack, previewImageIBackground, settingIconNew, verifiedButton } from "../helper/ImageAssets";
 import metrics from "../assets/Metrics";
-import { AppText, EIGHTEEN, SCHEHERAZADE_BOLD, SIXTEEN, WHITE } from "./AppText";
+import { AppText, EIGHTEEN, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, WHITE } from "./AppText";
+import { useSelector } from "react-redux";
 
-const NewHeader = ({ title, onPress, onPressTwo, preview, onPreview, profile }: any) => {
+const NewHeader = ({ title, onPress, onPressTwo, preview, onPreview, profile, onVerificationPress, isPublishButton }: any) => {
+    const userData = useSelector((state: any) => state.auth.userData);
     return (
         <ImageBackground source={HeaderHomeBack} resizeMode="stretch" style={styles.container}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", flex: 1 }}>
@@ -20,9 +22,16 @@ const NewHeader = ({ title, onPress, onPressTwo, preview, onPreview, profile }: 
                     </AppText>
                 </TouchableOpacity>
                 {title ? <></> :
-                    <TouchableOpacity onPress={onPressTwo}>
-                        <FastImage source={settingIconNew} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp4, marginTop: metrics.hp3, }} />
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp3, }}>
+                        {userData?.faceVerified === true ? <></> : isPublishButton ? <></> :
+                            <TouchableOpacity activeOpacity={1} onPress={onVerificationPress}>
+                                <FastImage source={verifiedButton} resizeMode="contain" style={{ height: metrics.hp6, width: metrics.hp12, marginRight: metrics.hp2 }} />
+                            </TouchableOpacity>
+                        }
+                        <TouchableOpacity onPress={onPressTwo}>
+                            <FastImage source={settingIconNew} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp4, }} />
+                        </TouchableOpacity>
+                    </View>
                 }
                 {preview ?
                     <TouchableOpacity onPress={onPreview}>

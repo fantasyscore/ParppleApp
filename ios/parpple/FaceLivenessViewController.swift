@@ -110,6 +110,7 @@ private struct FaceLivenessHostView: View {
   @State private var isPresented: Bool = true
 
   var body: some View {
+    ZStack(alignment: .topTrailing) {
 #if canImport(FaceLiveness)
     let livenessCreds = LivenessCredentialsProvider(awsCognitoProvider: credentialsProvider)
     FaceLivenessDetectorView(
@@ -154,6 +155,21 @@ private struct FaceLivenessHostView: View {
         )
       }
 #endif
+
+      // Close Button
+      Button(action: {
+        onOutcome(.cancelled(message: "User cancelled"))
+      }) {
+        Image(systemName: "xmark")
+          .font(.system(size: 16, weight: .bold))
+          .foregroundColor(.white)
+          .padding(12)
+          .background(Color.black.opacity(0.5))
+          .clipShape(Circle())
+      }
+      .padding(.top, 16)
+      .padding(.trailing, 16)
+    }
   }
 }
 

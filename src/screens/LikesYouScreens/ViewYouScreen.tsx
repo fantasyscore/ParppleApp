@@ -14,7 +14,7 @@ import {
     View,
 } from 'react-native';
 import { AppText, INTER_MEDIUM, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, WHITE, BLACK, TWENTY_FOUR, THIRTY, fontSize, TWENTY, FORTEEN } from '../../common/AppText';
-import { directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, silverCard, straightenIcon, tabViewForLikes, likedYouNewIcon, youLikedNewIcon, viewedYouNewIcon, youViewednewIcon, whoVisitYourProfileWithOutPurches, viewedYouEmptyNew, youViewEmptuNew, dummyMaleProfile, dummyfemaleProfile, chatPurchaseColour, onlineProfileImage, scrollatthetopIcon } from '../../helper/ImageAssets';
+import { directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, silverCard, straightenIcon, tabViewForLikes, likedYouNewIcon, youLikedNewIcon, viewedYouNewIcon, youViewednewIcon, whoVisitYourProfileWithOutPurches, viewedYouEmptyNew, youViewEmptuNew, dummyMaleProfile, dummyfemaleProfile, chatPurchaseColour, onlineProfileImage, scrollatthetopIcon, verifiedBadgeIcon } from '../../helper/ImageAssets';
 import metrics from '../../assets/Metrics';
 import FastImage from 'react-native-fast-image';
 import { colors, newColor } from '../../theme/colors';
@@ -123,20 +123,28 @@ type ProfileListCardProps = {
     setCrushNoteVisible: any;
     handleCrushNote: any;
 };
-
+const capitalizeFirstLetter = (text: string) => {
+    if (!text) return text;
+    return text.charAt(0).toUpperCase() + text.slice(1);
+};
 // Memoized row: re-renders only when its own profile changes, not on every
 // list update / swipe elsewhere.
 const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, ViewYoue, userData, setCrushNoteVisible, handleCrushNote }: ProfileListCardProps) => {
     return (
         <ImageBackground source={newProfileBackground} resizeMode='stretch' style={styles.cardBackground}>
-              {item.online ?
+            {item.online ?
                 <FastImage source={onlineProfileImage} resizeMode='contain' style={{ height: metrics.hp8, width: metrics.hp15, position: "absolute", top: -metrics.hp2, left: -metrics.hp5_3 }} /> : <></>}
             <TouchableOpacityView activeOpacity={1} onPress={() => onOpenPreview(item)} style={styles.cardHeaderRow}>
-                <FastImage
-                    source={item?.profilePicture?.length ? { uri: item?.profilePicture?.[0]?.url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable } : item?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile}
-                    resizeMode='cover'
-                    style={styles.avatar}
-                />
+                <View>
+                    <FastImage
+                        source={item?.profilePicture?.length ? { uri: item?.profilePicture?.[0]?.url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable } : item?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile}
+                        resizeMode='cover'
+                        style={styles.avatar}
+                    />
+                    {item?.faceVerified ?
+                        <FastImage source={verifiedBadgeIcon} resizeMode='contain' style={{ height: metrics.hp4, width: metrics.hp4, position: "absolute", right: -metrics.hp0_5, top: metrics.hp0_5 }} />
+                        : <></>}
+                </View>
                 <View style={styles.headerInfo}>
                     <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} style={styles.nameText}>
                         {item.username ? item.username : item.name}, {item.age} y
@@ -144,7 +152,7 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, ViewYoue
                     <View style={styles.metaRow}>
                         <FastImage source={locIcon} resizeMode='contain' style={styles.metaIcon} />
                         <AppText color={WHITE} weight={INTER_SEMI_BOLD}>
-                            {" "}{item.distanceInKm} Km
+                            {" "}{item.distanceInKm < 10 ? "Near You" : `${item.distanceInKm} Km`}, {capitalizeFirstLetter(item.city)}
                         </AppText>
                     </View>
                     <View style={[styles.metaRow, { marginTop: metrics.hp0_5 }]}>
@@ -436,7 +444,7 @@ const ViewYouScreen = () => {
     }, []);
 
 
-    
+
 
     // ---- List rendering ----
     const handleOpenPreview = useCallback((item: any) => {
@@ -620,14 +628,14 @@ const ViewYouScreen = () => {
                 onRequestClose={() => setModalVisible(false)}>
                 <ViewProfileAndroid currentProfileData={currentProfileData} setModalVisible={setModalVisible}
                     handleDislikePress={handleDislikePress}
-                    handleLikePress={handleLikePress} likeYoue={likeYoue} ViewYoue={ViewYoue}/>
+                    handleLikePress={handleLikePress} likeYoue={likeYoue} ViewYoue={ViewYoue} />
             </Modal>
             <Modal
                 animationType="fade"
                 visible={crushNoteVisible}
                 statusBarTranslucent
                 onRequestClose={() => setCrushNoteVisible(false)}>
-                <CrushNotesSender setCrushNoteVisible={setCrushNoteVisible} crushNoteVisible={crushNoteVisible} currentProfileData={currentProfileData} handleCrushNotes={handleCrushNotes}/>
+                <CrushNotesSender setCrushNoteVisible={setCrushNoteVisible} crushNoteVisible={crushNoteVisible} currentProfileData={currentProfileData} handleCrushNotes={handleCrushNotes} />
             </Modal>
             <Modal
                 animationType="fade"
@@ -685,7 +693,7 @@ const styles = StyleSheet.create({
         marginTop: metrics.hp1,
     },
     headerInfo: {
-        marginLeft: metrics.hp3,
+        marginLeft: metrics.hp2,
     },
     nameText: {
         color: "#E6B7A8",

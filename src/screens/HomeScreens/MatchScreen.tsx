@@ -109,11 +109,11 @@ const MatchScreen = ({ matchData, setMatchVisible }: any) => {
                 <Animated.Image source={heartOne} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp15, right: metrics.hp20, width: metrics.hp7, height: metrics.hp7 }, heartOneAnim]} /> */}
                 <View style={styles.profilesWrapper}>
                     <Animated.Image
-                        source={matchData[0]?.profilePicture[0]?.url ? { uri: matchData[0]?.profilePicture[0]?.url } : dummyMaleProfile}
+                        source={matchData[0]?.profilePicture[0]?.url ? { uri: matchData[0]?.profilePicture[0]?.url } : matchData?.gender === "male"? dummyMaleProfile : dummyfemaleProfile}
                         style={[styles.profileImage, animatedProfile1Style, styles.profile1Position]}
                     />
                     <Animated.Image
-                        source={matchData[1]?.profilePicture[0]?.url ? { uri: matchData[1]?.profilePicture[0]?.url } : dummyfemaleProfile}
+                        source={matchData[1]?.profilePicture[0]?.url ? { uri: matchData[1]?.profilePicture[0]?.url } : matchData?.gender === "female"? dummyfemaleProfile : dummyMaleProfile}
                         style={[styles.profileImage, animatedProfile2Style, styles.profile2Position]}
                     />
                     {/* <Animated.Image source={bigHeart} style={[styles.centralHeartWrapper, bigHeartAnim]} /> */}

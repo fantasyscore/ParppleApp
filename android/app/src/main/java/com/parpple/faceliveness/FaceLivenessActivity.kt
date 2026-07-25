@@ -9,7 +9,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.amplifyframework.auth.AWSCredentials
 import com.amplifyframework.auth.AWSCredentialsProvider
 import com.amplifyframework.auth.AWSTemporaryCredentials
@@ -21,11 +33,14 @@ import java.util.Date
 import aws.smithy.kotlin.runtime.time.toSdkInstant
 import java.util.concurrent.Executors
 import com.amplifyframework.core.Consumer
+import android.view.WindowManager
 
 class FaceLivenessActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-
+  window.attributes = window.attributes.apply {
+        screenBrightness = -1f // Use system brightness
+    }
     val sessionId = intent.getStringExtra(EXTRA_SESSION_ID)
     if (sessionId.isNullOrBlank()) {
       setResult(
@@ -71,27 +86,61 @@ class FaceLivenessActivity : ComponentActivity() {
           finished.value = false
         }
 
-        FaceLivenessDetector(
-          sessionId = sessionId,
-          region = region,
-          credentialsProvider = credsProvider,
-          onComplete = {
-            if (finished.value) return@FaceLivenessDetector
-            finished.value = true
-            setResult(Activity.RESULT_OK, Intent())
-            finish()
-          },
-          onError = { error ->
-            if (finished.value) return@FaceLivenessDetector
-            finished.value = true
-            setResult(
-              Activity.RESULT_CANCELED,
-              Intent()
-                .putExtra(EXTRA_ERROR_MESSAGE, error.message ?: "Face liveness failed")
+        Box(
+          modifier = Modifier
+            .fillMaxSize()
+            .padding(vertical = 120.dp, horizontal = 16.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.Black)
+        ) {
+          FaceLivenessDetector(
+            sessionId = sessionId,
+            region = region,
+            credentialsProvider = credsProvider,
+            onComplete = {
+              if (finished.value) return@FaceLivenessDetector
+              finished.value = true
+              setResult(Activity.RESULT_OK, Intent())
+              finish()
+            },
+            onError = { error ->
+              if (finished.value) return@FaceLivenessDetector
+              finished.value = true
+              setResult(
+                Activity.RESULT_CANCELED,
+                Intent()
+                  .putExtra(EXTRA_ERROR_MESSAGE, error.message ?: "Face liveness failed")
+              )
+              finish()
+            }
+          )
+
+          // Close Button
+          IconButton(
+            onClick = {
+              if (finished.value) return@IconButton
+              finished.value = true
+              setResult(
+                Activity.RESULT_CANCELED,
+                Intent().putExtra(EXTRA_ERROR_MESSAGE, "User cancelled")
+              )
+              finish()
+            },
+            modifier = Modifier
+              .align(Alignment.TopStart)
+              .padding(16.dp)
+              .background(Color(0x80000000), CircleShape)
+          ) {
+            Text(
+              text = "✕",
+              color = Color.White,
+              style = androidx.compose.ui.text.TextStyle(
+                  fontSize = 18.sp,
+                  fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+              )
             )
-            finish()
           }
-        )
+        }
       }
     }
   }

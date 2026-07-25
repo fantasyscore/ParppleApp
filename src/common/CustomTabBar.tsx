@@ -65,12 +65,6 @@ const TabIconButton = ({
 
     return (
         <TouchableOpacityView style={styles.tabItem} onPress={handlePress}>
-            <BlurView
-                style={StyleSheet.absoluteFillObject}
-                blurType="light"
-                blurAmount={1}
-                reducedTransparencyFallbackColor={colors.white}
-            />
             <View
                 style={{
                     ...StyleSheet.absoluteFillObject,

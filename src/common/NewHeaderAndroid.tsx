@@ -13,7 +13,7 @@ const NewHeaderAndroid = ({ style, onFilterPress, filterShow = true, message }: 
     return (
         <ImageBackground source={HeaderHomeBack} resizeMode="stretch" style={[styles.bottomLayer, style]}>
             <View style={styles.container}>
-                <FastImage source={message?messagesText: applogo} resizeMode="contain" style={styles.headerLogo} />
+                <FastImage source={message ? messagesText : applogo} resizeMode="contain" style={styles.headerLogo} />
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                     {filterShow ?
                         <TouchableOpacity activeOpacity={1} onPress={onFilterPress}>
@@ -22,7 +22,7 @@ const NewHeaderAndroid = ({ style, onFilterPress, filterShow = true, message }: 
                     }
                     <TouchableOpacity activeOpacity={1} onPress={() => NavigationService.navigate(NAVIGATION_PROFILE_SCREEN)}>
                         <FastImage
-                            source={userData?.gallery?.length === 0 ? userData?.gender === "male"? dummyMaleProfile : dummyfemaleProfile : { uri: userData?.gallery?.[0]?.url }}
+                            source={userData?.gallery?.length === 0 ? userData?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile : { uri: userData?.gallery?.[0]?.url }}
                             resizeMode="cover"
                             style={[styles.filterIcon, { borderRadius: metrics.hp50 }]}
                         />

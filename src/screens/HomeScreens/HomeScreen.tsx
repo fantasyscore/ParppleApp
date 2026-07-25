@@ -1,13 +1,15 @@
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import {
+    Alert,
     Animated,
     FlatList,
     Image,
     ImageBackground,
     InteractionManager,
     Modal,
+    NativeModules,
     PermissionsAndroid,
     Platform,
     RefreshControl,
@@ -16,8 +18,8 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { AppText, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, WHITE, EIGHTEEN, fontSize, BLACK, THIRTEEN, FORTEEN, OPECITY } from '../../common/AppText';
-import { toggalOnButtonNew, toggalOffButtonNew, serachButtonNew, resetButtonNew, directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, straightenIcon, dummyMaleProfile, dummyfemaleProfile, chatPurchaseColour, chatAmountBackgroungNew, goToProifleIcon, onlineProfileImage, scrollatthetopIcon, trunOnBackground } from '../../helper/ImageAssets';
+import { AppText, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, WHITE, EIGHTEEN, fontSize, BLACK, THIRTEEN, FORTEEN, OPECITY, TWENTY_TWO, INTER_BOLD, RED } from '../../common/AppText';
+import { toggalOnButtonNew, toggalOffButtonNew, serachButtonNew, resetButtonNew, directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, straightenIcon, dummyMaleProfile, dummyfemaleProfile, chatPurchaseColour, chatAmountBackgroungNew, goToProifleIcon, onlineProfileImage, scrollatthetopIcon, trunOnBackground, modalBackground, closeNewWhiteIcon, verifiedBadgeIcon } from '../../helper/ImageAssets';
 import metrics from '../../assets/Metrics';
 import FastImage from 'react-native-fast-image';
 import { colors, newColor } from '../../theme/colors';
@@ -36,15 +38,15 @@ import { NAVIGATION_CRUSH_NOTE_SENDER_SCREEN, NAVIGATION_CRUSH_PURCHESE_SCREEN, 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SWIPES_PER_DAY_KEY, SWIPES_REMAINING_KEY, SUPER_LIKES_REMAINING_KEY } from '../../helper/Constants';
 import messaging from "@react-native-firebase/messaging";
-import { checkMultiple, PERMISSIONS, RESULTS } from "react-native-permissions";
+import { check, checkMultiple, openSettings, PERMISSIONS, request, RESULTS } from "react-native-permissions";
 import Geolocation from "react-native-geolocation-service";
 import NewHeaderAndroid from '../../common/NewHeaderAndroid';
 import { useLikeDislikeAnimation } from '../../hooks/useLikeDislikeAnimation';
 import { LikeDislikeOverlays } from '../../common/LikeDislikeOverlays';
 import ViewProfileAndroid from './ViewProfileAndroid';
-import { Screen } from '../../theme/dimens';
-import { BlurView } from '@react-native-community/blur';
 import CrushNotesSender from './CrushNotesSender';
+import { TouchEventType } from 'react-native-gesture-handler/lib/typescript/TouchEventType';
+import FullScreenViewPhoto from '../../components/FullScreenViewPhoto';
 
 const PROFILE_BATCH_LIMIT = 10;
 const TOP_UP_TRIGGER_COUNT = 3; // fetch more when this few profiles remain
@@ -53,7 +55,14 @@ const CARD_MARGIN_BOTTOM = metrics.hp6;
 const ITEM_HEIGHT = CARD_HEIGHT + CARD_MARGIN_BOTTOM;
 const LIST_TOP_PADDING = metrics.hp3;
 const AVATAR_PRELOAD_CACHE_LIMIT = 120;
+const ITEM_WIDTH = metrics.hp30;
+const SPACING = metrics.hp1;
 
+type FaceLivenessResult =
+    | { status?: string; message?: string }
+    | string
+    | null
+    | undefined;
 const runAfterInitialInteractions = (callback: () => void, delay = 0) => {
     let interactionHandle: { cancel?: () => void } | null = null;
     const timer = setTimeout(() => {
@@ -64,6 +73,42 @@ const runAfterInitialInteractions = (callback: () => void, delay = 0) => {
         clearTimeout(timer);
         interactionHandle?.cancel?.();
     };
+};
+const PremiumAnimatedModal = ({ visible, onClose, children }: any) => {
+    const [show, setShow] = useState(visible);
+    const translateY = useRef(new Animated.Value(metrics.hp5)).current;
+    const opacity = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            setShow(true);
+            Animated.parallel([
+                Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+                Animated.spring(translateY, { toValue: 0, friction: 8, tension: 50, useNativeDriver: true })
+            ]).start();
+        } else {
+            Animated.parallel([
+                Animated.timing(opacity, { toValue: 0, duration: 250, useNativeDriver: true }),
+                Animated.timing(translateY, { toValue: metrics.hp2, duration: 250, useNativeDriver: true })
+            ]).start(() => setShow(false));
+        }
+    }, [visible]);
+
+    if (!show) return null;
+
+    return (
+        <Modal transparent visible={show} onRequestClose={onClose} animationType="none">
+            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", paddingHorizontal: metrics.hp2 }}>
+                <Animated.View style={{ opacity, transform: [{ translateY }], width: "100%" }}>
+                    <ImageBackground style={{ width: "100%", shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 20, elevation: 15 }} source={modalBackground} resizeMode="stretch">
+                        <View style={{ padding: metrics.hp2 }}>
+                            {children}
+                        </View>
+                    </ImageBackground>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
 };
 
 const PulsingCircle = memo(({ size }: { size: number }) => {
@@ -127,24 +172,33 @@ type ProfileListCardProps = {
     onOpenPreview: (item: any) => void;
     userData: any;
     setCrushNoteVisible: any;
-    handleCrushNote: any
+    handleCrushNote: any;
 };
 
 // Memoized row: re-renders only when its own profile changes, not on every
 // list update / swipe elsewhere.
-const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData, setCrushNoteVisible, handleCrushNote }: ProfileListCardProps) => {
+const capitalizeFirstLetter = (text: string) => {
+    if (!text) return text;
+    return text.charAt(0).toUpperCase() + text.slice(1);
+};
 
+const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData, setCrushNoteVisible, handleCrushNote }: ProfileListCardProps) => {
 
     return (
         <ImageBackground source={newProfileBackground} resizeMode='stretch' style={styles.cardBackground}>
             {item.online ?
                 <FastImage source={onlineProfileImage} resizeMode='contain' style={{ height: metrics.hp8, width: metrics.hp15, position: "absolute", top: -metrics.hp2, left: -metrics.hp5_3 }} /> : <></>}
             <TouchableOpacityView activeOpacity={1} onPress={() => onOpenPreview(item)} style={styles.cardHeaderRow}>
-                <FastImage
-                    source={item?.gallery?.length ? { uri: item?.gallery?.[0]?.url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable } : item?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile}
-                    resizeMode='cover'
-                    style={styles.avatar}
-                />
+                <View>
+                    <FastImage
+                        source={item?.gallery?.length ? { uri: item?.gallery?.[0]?.url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable } : item?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile}
+                        resizeMode='cover'
+                        style={styles.avatar}
+                    />
+                    {item?.faceVerified ?
+                        <FastImage source={verifiedBadgeIcon} resizeMode='contain' style={{ height: metrics.hp4, width: metrics.hp4, position: "absolute", right: -metrics.hp0_5, top: metrics.hp0_5 }} />
+                        : <></>}
+                </View>
                 <View style={styles.headerInfo}>
                     <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} style={styles.nameText}>
                         {item.username ? item.username : item.name}, {item.age} y
@@ -152,7 +206,7 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData
                     <View style={styles.metaRow}>
                         <FastImage source={locIcon} resizeMode='contain' style={styles.metaIcon} />
                         <AppText color={WHITE} weight={INTER_SEMI_BOLD}>
-                            {" "}{item.distanceInKm < 10 ? "Near You" : `${item.distanceInKm} Km`}
+                            {" "}{item.distanceInKm < 10 ? "Near You" : `${item.distanceInKm} Km`}, {capitalizeFirstLetter(item.city)}
                         </AppText>
                     </View>
                     <View style={[styles.metaRow, { marginTop: metrics.hp0_5 }]}>
@@ -172,7 +226,7 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData
                             <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : console.log()} key={img?.url ?? idx} style={styles.galleryItem}>
                                 <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male" && userData?.isPublish === false ? 10 : 0} style={styles.galleryImage} />
                                 {userData?.gender === "male" && userData?.isPublish === false ? <>
-                                    <View style={styles.galleryDim} />  
+                                    <View style={styles.galleryDim} />
                                     <View style={styles.lockOverlay}>
                                         <FastImage source={lockIconWhite} resizeMode='contain' style={styles.lockIcon} />
                                     </View>
@@ -211,7 +265,7 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData
             </View>
         </ImageBackground>
     );
-}, (prev, next) => prev.item === next.item && prev.onLike === next.onLike && prev.onDislike === next.onDislike && prev.onOpenPreview === next.onOpenPreview && prev.userData === next.userData && prev.setCrushNoteVisible === next.setCrushNoteVisible && prev.handleCrushNote === next.handleCrushNote);
+}, (prev, next) => prev.item === next.item && prev.onLike === next.onLike && prev.onDislike === next.onDislike && prev.onOpenPreview === next.onOpenPreview && prev.userData === next.userData && prev.setCrushNoteVisible === next.setCrushNoteVisible && prev.handleCrushNote === next.handleCrushNote && prev.fullprofile === next.fullprofile);
 
 
 
@@ -220,7 +274,9 @@ const PeopleScreen = () => {
     const dispatch = useDispatch();
     const IsFocused = useIsFocused();
     const listProfilesData = useSelector((state: any) => state.auth.listProfiles ?? []);
+    const profileHide = useSelector((state: any) => state.auth.profileHide);
     const userData = useSelector((state: any) => state.auth.userData);
+    const scrollX = useRef(new Animated.Value(0)).current;
     // NOTE: `profileHide` was subscribed here but never used — every
     // publish/hide toggle forced a full HomeScreen + FlatList re-render
     // during the navigation transition (visible lag). Removed.
@@ -241,7 +297,12 @@ const PeopleScreen = () => {
     const [isApplyingFilter, setIsApplyingFilter] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [limitReachlike, setLimitReachlike] = useState(false)
+    const [verifyModalVisible, setVerifyModalVisible] = useState(false);
+    const [fullProfileShow, setFullProfileShow] = useState(false);
+    const [fullProfileShowCurrentData, setFullProfileShowCurrentData] = useState<any>({});
 
+    const [verifyStage, setVerifyStage] = useState<'prompt' | 'verifying' | 'success' | 'error'>('prompt');
+    const [verifyError, setVerifyError] = useState<string>('');
     // Scroll To Top Logic
     const flatListRef = useRef<FlatList>(null);
     const [showScrollTop, setShowScrollTop] = useState(false);
@@ -530,8 +591,8 @@ const PeopleScreen = () => {
         if (unlimitedLikes !== true) {
             const swipes = remainingSwipesRef.current ?? userDataRef.current?.swipesRemaining ?? 0;
             if (swipes <= 0) {
-                if (userData?.gender == "female" && swipes == 0) {
-                    toastAlert.showToastError("You've run out of Likes")
+                if (userData?.gender == "female" && userData?.faceVerified === false && swipes === 0) {
+                    setVerifyModalVisible(true)
                     return;
                 } else {
                     NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN);
@@ -543,7 +604,7 @@ const PeopleScreen = () => {
         runLikeAnimation(() => {
             handleListSwipe(item, "like");
         });
-    }, [handleListSwipe, isSwipeAnimatingRef, runLikeAnimation]);
+    }, [handleListSwipe, isSwipeAnimatingRef, runLikeAnimation, userData, IsFocused]);
     const handleCrushNotes = useCallback((item: any) => {
         setModalVisible(false)
         if (isSwipeAnimatingRef.current) return;
@@ -636,8 +697,7 @@ const PeopleScreen = () => {
         setCurrentProfileData(item)
         setModalVisible(true);
     }, []);
-    console.log(userData?.crushNotesRemaining,"userData?.crushNotesRemaining");
-    
+
 
     const handleCrushNote = useCallback((item: any) => {
         if (userData?.gender === "male" && userData?.isPublish === false) {
@@ -649,8 +709,16 @@ const PeopleScreen = () => {
             setCrushNoteVisible(true)
         }
 
-    }, [])
-   
+    }, [userData])
+    const hasPublishPlan =
+        userData?.subscription?.plan === "publish_one_week" ||
+        userData?.subscription?.plan === "publish_one_month" ||
+        userData?.subscription?.plan === "publish_six_months";
+
+    const canManagePublish =
+        userData?.gender === "female" ||
+        (userData?.gender === "male" && hasPublishPlan);
+
 
     const renderItem = useCallback(({ item }: any) => (
         <ProfileListCard item={item} onLike={handleLikePress} onDislike={handleDislikePress} onOpenPreview={handleOpenPreview} userData={userData} setCrushNoteVisible={setCrushNoteVisible} handleCrushNote={handleCrushNote} />
@@ -693,6 +761,128 @@ const PeopleScreen = () => {
             setRefreshing(false);
         }
     }, [dispatch, refreshing]);
+
+
+    const FaceLiveness = (NativeModules as any)?.FaceLiveness as
+        | { startLiveness?: (sessionId: string) => Promise<FaceLivenessResult> }
+        | undefined;
+
+    const moduleAvailable = useMemo(() => {
+        return Boolean(FaceLiveness && typeof FaceLiveness.startLiveness === 'function');
+    }, [FaceLiveness]);
+    const getCameraPermissionType = useCallback(() => {
+        return Platform.OS === "ios" ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA;
+    }, []);
+    const ensureCameraPermission = useCallback(async (): Promise<boolean> => {
+        try {
+            const permissionType = getCameraPermissionType();
+            const currentStatus = await check(permissionType);
+
+            if (currentStatus === RESULTS.GRANTED) return true;
+
+            if (currentStatus === RESULTS.BLOCKED) {
+                Alert.alert(
+                    "Camera permission required",
+                    "Camera permission is disabled. Please enable it from Settings to continue face verification.",
+                    [
+                        { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
+                        { text: "Cancel", style: "cancel" },
+                    ]
+                );
+                return false;
+            }
+
+            const requestedStatus = await request(permissionType);
+            if (requestedStatus === RESULTS.GRANTED) return true;
+
+            Alert.alert(
+                "Camera permission denied",
+                "Face verification requires camera access. You can enable it from Settings.",
+                [
+                    { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
+                    { text: "Cancel", style: "cancel" },
+                ]
+            );
+            return false;
+        } catch (error) {
+            console.warn("Camera permission check failed:", error);
+            Alert.alert("Permission error", "Unable to check camera permission. Please try again.");
+            return false;
+        }
+    }, [getCameraPermissionType]);
+
+    const start = async () => {
+        if (!moduleAvailable) {
+            const msg =
+                'FaceLiveness native module not found. Make sure you rebuilt the app (not just Metro reload).';
+            console.warn('[FaceLivenessTest] ' + msg);
+            return;
+        }
+
+        // setLoading(true);
+
+        try {
+            const isCameraAllowed = await ensureCameraPermission();
+            if (!isCameraAllowed) {
+                return;
+            }
+
+            console.log('[FaceLivenessTest] Requesting session from /faceId/liveliness');
+            const sessionResp = await (appOperation.customer as any).createFaceLivenessSessionAPI();
+            const sessionId = sessionResp?.data
+            console.log(sessionId, "sessionResp");
+
+            if (!sessionId) {
+                throw new Error('Session API did not return a valid sessionId');
+            }
+
+            console.log('[FaceLivenessTest] Starting native liveness with sessionId:', sessionId);
+            if (!FaceLiveness || typeof FaceLiveness.startLiveness !== 'function') {
+                throw new Error('FaceLiveness native module is not available on this device.');
+            }
+            const res = await FaceLiveness.startLiveness(sessionId);
+            console.log('[FaceLivenessTest] Native result:', res);
+
+            // Normalize a few common shapes.
+            if (res && typeof res === 'object') {
+                const status = (res as any).status;
+                if (status === 'success') {
+                    console.log('[FaceLivenessTest] Verifying session via faceId/verifySessionResult');
+                    const verifyResp = await (appOperation.customer as any).verifyFaceLivenessSessionAPI({
+                        sessionId,
+                    });
+                    if (verifyResp?.data?.success) {
+                        if (verifyResp?.data?.confidence >= 80) {
+                            dispatch(getProfile(true))
+                            setVerifyStage('success');
+                        } else {
+                            setVerifyError("Confidence too low. Please try again.");
+                            setVerifyStage('error');
+                        }
+                    } else {
+                        setVerifyError(verifyResp?.message || "Verification failed. Please try again.");
+                        setVerifyStage('error');
+                    }
+                } else if (status === 'cancelled') {
+                    setVerifyError("Verification cancelled.");
+                    setVerifyStage('error');
+                } else {
+                    setVerifyError(`Result: ${JSON.stringify(res)}`);
+                    setVerifyStage('error');
+                }
+            } else {
+                setVerifyError("Liveness Success");
+                setVerifyStage('error');
+            }
+        } catch (e: any) {
+            const msg = e?.message ?? String(e);
+            console.error('[FaceLivenessTest] Error:', e);
+            setVerifyError(msg);
+            setVerifyStage('error');
+        } finally {
+            // setLoading(false);
+        }
+    };
     return (
         <AppSafeAreaView style={{ flexGrow: 1 }} color={newColor.blackNew}>
 
@@ -906,7 +1096,89 @@ const PeopleScreen = () => {
                     </View>
                 </ScrollView>
             </RBSheet>
-
+            <PremiumAnimatedModal
+                visible={verifyModalVisible}
+                onClose={() => setVerifyModalVisible(false)}>
+                {verifyStage === 'prompt' &&
+                    <View style={{ alignItems: "center" }}>
+                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={WHITE} style={{ textAlign: "center", marginBottom: metrics.hp1 }}>
+                            Like Limit Reached
+                        </AppText>
+                        <AppText type={TWELVE} weight={INTER_MEDIUM} color={OPECITY} style={{ textAlign: "center", marginBottom: metrics.hp3, marginTop: -metrics.hp2 }}>
+                            Keep the likes flowing. You get 5 free likes every 24 hours - or unlimited likes when you verify your profile. Your verification selfie is completely private and never shown to anyone.
+                        </AppText>
+                        <TouchableOpacityView
+                            onPress={start}
+                            style={{ backgroundColor: "#E6B7A8", height: metrics.hp6, alignItems: "center", justifyContent: "center", width: "100%", marginBottom: metrics.hp1_5 }}
+                        >
+                            <AppText color={BLACK} weight={INTER_BOLD} type={FORTEEN}>
+                                Continue
+                            </AppText>
+                        </TouchableOpacityView>
+                        <TouchableOpacityView
+                            onPress={() => setVerifyModalVisible(false)}
+                            style={{ backgroundColor: "rgba(255,255,255,0.05)", height: metrics.hp6, alignItems: "center", justifyContent: "center", width: "100%", borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" }}
+                        >
+                            <AppText color={WHITE} weight={INTER_BOLD} type={FORTEEN}>
+                                Close
+                            </AppText>
+                        </TouchableOpacityView>
+                    </View>}
+                {verifyStage === 'success' && (
+                    <View style={{ alignItems: "center" }}>
+                        <View style={{ height: metrics.hp8, width: metrics.hp8, borderRadius: metrics.hp4, backgroundColor: '#73D673', alignItems: 'center', justifyContent: 'center', marginBottom: metrics.hp2, borderWidth: 1, borderColor: 'rgba(76, 175, 80, 0.3)' }}>
+                            <AppText color={WHITE} weight={INTER_BOLD} type={TWENTY_TWO}>✓</AppText>
+                        </View>
+                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={WHITE} style={{ textAlign: "center", marginBottom: metrics.hp1, marginTop: -metrics.hp2 }}>
+                            Verification Successful
+                        </AppText>
+                        <AppText type={TWELVE} weight={INTER_MEDIUM} color={OPECITY} style={{ textAlign: "center", marginBottom: metrics.hp3, marginTop: -metrics.hp2 }}>
+                            Your face verification has been completed successfully. Your account is now fully verified.
+                        </AppText>
+                        <TouchableOpacityView
+                            onPress={() => setVerifyModalVisible(false)}
+                            style={{ backgroundColor: "#E6B7A8", height: metrics.hp6, alignItems: "center", justifyContent: "center", width: "100%" }}
+                        >
+                            <AppText color={BLACK} weight={INTER_BOLD} type={FORTEEN}>
+                                Continue
+                            </AppText>
+                        </TouchableOpacityView>
+                    </View>
+                )}
+                {verifyStage === 'error' && (
+                    <View style={{ alignItems: "center" }}>
+                        <View style={{ height: metrics.hp8, width: metrics.hp8, borderRadius: metrics.hp4, backgroundColor: '#FF6483', alignItems: 'center', justifyContent: 'center', marginBottom: metrics.hp2, borderWidth: 1, borderColor: 'rgba(255,0,0,0.3)' }}>
+                            <AppText color={RED} weight={INTER_BOLD} type={TWENTY_TWO}>!</AppText>
+                        </View>
+                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={WHITE} style={{ textAlign: "center", marginBottom: metrics.hp1, marginTop: -metrics.hp2 }}>
+                            Verification Failed
+                        </AppText>
+                        <AppText type={TWELVE} weight={INTER_MEDIUM} color={OPECITY} style={{ textAlign: "center", marginBottom: metrics.hp3, marginTop: -metrics.hp2 }}>
+                            {verifyError || "We were unable to verify your identity. Please try again in a well-lit environment and ensure your face is clearly visible."}
+                        </AppText>
+                        <TouchableOpacityView
+                            onPress={() => {
+                                // setVerifyStage('prompt' as any);
+                                start();
+                            }}
+                            style={{ backgroundColor: "#E6B7A8", height: metrics.hp6, alignItems: "center", justifyContent: "center", width: "100%", marginBottom: metrics.hp1_5 }}
+                        >
+                            <AppText color={BLACK} weight={INTER_BOLD} type={FORTEEN}>
+                                Try Again
+                            </AppText>
+                        </TouchableOpacityView>
+                        <TouchableOpacityView
+                            onPress={() => { setVerifyStage('prompt' as any); setVerifyModalVisible(false) }}
+                            style={{ backgroundColor: "rgba(255,255,255,0.05)", height: metrics.hp6, alignItems: "center", justifyContent: "center", width: "100%", borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" }}
+                        >
+                            <AppText color={WHITE} weight={INTER_BOLD} type={FORTEEN}>
+                                Cancel
+                            </AppText>
+                        </TouchableOpacityView>
+                    </View>
+                )}
+            </PremiumAnimatedModal>
+            {/* <FullScreenViewPhoto fullProfileShow={fullProfileShow} setFullProfileShow={setFullProfileShow} fullProfileShowCurrentDat={fullProfileShowCurrentData} /> */}
         </AppSafeAreaView>
     );
 };
@@ -1005,7 +1277,7 @@ const styles = StyleSheet.create({
         marginTop: metrics.hp1,
     },
     headerInfo: {
-        marginLeft: metrics.hp3,
+        marginLeft: metrics.hp2,
     },
     nameText: {
         color: "#E6B7A8",
@@ -1108,4 +1380,9 @@ const styles = StyleSheet.create({
         marginTop: metrics.hp2,
 
     },
+    imageMain: {
+        height: metrics.hp45,
+        width: metrics.hp30
+    },
+
 });

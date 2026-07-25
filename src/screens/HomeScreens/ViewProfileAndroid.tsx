@@ -1,16 +1,17 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { Animated, FlatList, Image, ImageBackground, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { colors, newColor } from "../../theme/colors";
 import NewHeader from "../../common/NewHeader";
 import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
-import { bioBackground, biosToggla, directChatIcon, dobIcon, forProfileDetailsBack, heightIconWhiteNew, locationIconWhiteNew, locIcon, lockIconWhite, newCloseIcon, newLikeIcon, partnerheart, pronounIcon, straightenIcon, trunOnIcon, beingWatchIcon, bitingIcon, blinedFlodedIcon, BottomLayer, dirtyTalks, fantasiesIcon, fotFetiesIcon, hairIcon, hugsIcon, massageIcon, musicIcons, oralIcon, rightSelectTrunOns, roomServiceIcon, scentsIcon, sextingIcon, smooheshIcon, TattosIcon, trunOnBackground, touchNewIcon, choclateImageNew, danceNewIcon, rolePlayImageNew, dummyMaleProfile, dummyfemaleProfile } from "../../helper/ImageAssets";
+import { bioBackground, biosToggla, directChatIcon, dobIcon, forProfileDetailsBack, heightIconWhiteNew, locationIconWhiteNew, locIcon, lockIconWhite, newCloseIcon, newLikeIcon, partnerheart, pronounIcon, straightenIcon, trunOnIcon, beingWatchIcon, bitingIcon, blinedFlodedIcon, BottomLayer, dirtyTalks, fantasiesIcon, fotFetiesIcon, hairIcon, hugsIcon, massageIcon, musicIcons, oralIcon, rightSelectTrunOns, roomServiceIcon, scentsIcon, sextingIcon, smooheshIcon, TattosIcon, trunOnBackground, touchNewIcon, choclateImageNew, danceNewIcon, rolePlayImageNew, dummyMaleProfile, dummyfemaleProfile, sexualityIcon, verifiedBadgeIcon } from "../../helper/ImageAssets";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { AppText, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
 import { useSelector } from "react-redux";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
+import FullScreenViewPhoto from "../../components/FullScreenViewPhoto";
 const ITEM_WIDTH = metrics.hp34;
 const SPACING = metrics.hp1;
 
@@ -37,21 +38,38 @@ const TURN_ON_IMAGES: any = {
     "Touch": touchNewIcon,
 };
 const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislikePress, handleLikePress, likeYoue, ViewYoue }: any) => {
-console.log(currentProfileData,"currentProfileDatacurrentProfileDatacurrentProfileData");
-    
+
     const scrollX = useRef(new Animated.Value(0)).current;
     const userData = useSelector((state: any) => state.auth.userData);
 
     const [selectedIds, setSelectedIds] = useState([]);
     const turnOnData = useSelector((state: any) => state?.auth?.turnOnData);
     const [selectedTurnOnIds, setSelectedTurnOnIds] = useState<any[]>([]);
-
+    const [fullProfileShow, setFullProfileShow] = useState(false);
+    const [fullProfileShowCurrentData, setFullProfileShowCurrentData] = useState<any>({});
     useEffect(() => {
         if (userData?.turnOns) {
             const initialTurnOnIds = userData.turnOns.map((t: any) => t._id || t.id);
             setSelectedTurnOnIds(initialTurnOnIds);
         }
     }, [userData?.turnOns]);
+    const hasPublishPlan =
+        userData?.subscription?.plan === "publish_one_week" ||
+        userData?.subscription?.plan === "publish_one_month" ||
+        userData?.subscription?.plan === "publish_six_months";
+
+    const canManagePublish =
+        userData?.gender === "female" ||
+        (userData?.gender === "male" && hasPublishPlan);
+
+    // const fullprofile = useCallback(() => {
+    //     if (canManagePublish) {
+    //         setFullProfileShowCurrentData(currentProfileData);
+    //         setFullProfileShow(true)
+    //     } else {
+    //         NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN);
+    //     }
+    // }, [])
     const renderItem = ({ item, index }: any) => {
         const inputRange = [
             (index - 1) * (ITEM_WIDTH + SPACING),
@@ -79,7 +97,7 @@ console.log(currentProfileData,"currentProfileDatacurrentProfileDatacurrentProfi
                     height: metrics.hp45,
                     width: metrics.hp34
                 }}>
-                <TouchableOpacity activeOpacity={1} onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : console.log("")}>
+                <TouchableOpacity activeOpacity={1} onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : console.log()}>
                     <Image blurRadius={userData?.gender === "male" && userData?.isPublish === false ? 10 : 0} source={{ uri: item.url }} resizeMode="cover" style={styles.imageMain} />
                     {userData?.gender === "male" && userData?.isPublish === false ?
                         <>
@@ -105,30 +123,34 @@ console.log(currentProfileData,"currentProfileDatacurrentProfileDatacurrentProfi
         if (!turnOnData?.length || !currentProfileData?.attributes?.length) {
             return [];
         }
-    
+
         return turnOnData.filter((item: any) =>
             currentProfileData.attributes.includes(item._id)
         );
     }, [turnOnData, currentProfileData?.attributes]);
     const renderItemTurns_ons = ({ item }: any) => {
-        console.log(item,"itemitem");
-        
+        console.log(item, "itemitem");
+
         const isSelected = selectedIds.includes(item.id);
         return (
             <TouchableOpacity activeOpacity={1} onPress={() => handleSelect(item.id)}>
                 <ImageBackground source={trunOnBackground} tintColor={"#E6B7A8"} resizeMode="cover" style={styles.trunback}>
-                    <FastImage   source={TURN_ON_IMAGES[item.value]} resizeMode="contain" style={styles.imagesIcon} />
+                    <FastImage source={TURN_ON_IMAGES[item.value]} resizeMode="contain" style={styles.imagesIcon} />
                     <View style={{ alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp2 }}>
-                        <AppText style={{ color:  newColor.blackNew}} type={EIGHTEEN} weight={SCHEHERAZADE_BOLD}>
-                        {item.value}
+                        <AppText style={{ color: newColor.blackNew }} type={EIGHTEEN} weight={SCHEHERAZADE_BOLD}>
+                            {item.value}
                         </AppText>
                         <AppText type={ELEVEN} style={{ textAlign: "center", marginTop: -metrics.hp1, color: newColor.blackNew, opacity: 0.8 }}>
-                        {item.message}
+                            {item.message}
                         </AppText>
                     </View>
                 </ImageBackground>
             </TouchableOpacity>
         )
+    };
+    const capitalizeFirstLetter = (text: string) => {
+        if (!text) return text;
+        return text.charAt(0).toUpperCase() + text.slice(1);
     };
 
     return (
@@ -157,7 +179,7 @@ console.log(currentProfileData,"currentProfileDatacurrentProfileDatacurrentProfi
                 }
                 <View
                     style={{
-                        marginTop: currentProfileData?.profilePicture?.length || currentProfileData?.gallery?.length ? -metrics.hp3 :metrics.hp3 , // overlap with FlatList
+                        marginTop: currentProfileData?.profilePicture?.length || currentProfileData?.gallery?.length ? -metrics.hp3 : metrics.hp3, // overlap with FlatList
                         paddingHorizontal: metrics.hp2,
                         zIndex: 10,
                     }}>
@@ -165,10 +187,15 @@ console.log(currentProfileData,"currentProfileDatacurrentProfileDatacurrentProfi
                         source={forProfileDetailsBack}
                         resizeMode="stretch"
                         style={styles.detailsContainer}>
-                        <View style={{ paddingHorizontal: metrics.hp2, paddingVertical:metrics.hp2 }}>
+                        <View style={{ paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp2 }}>
                             <View style={{ flexDirection: "row" }}>
-                                <FastImage source={currentProfileData?.profilePicture?.length || currentProfileData?.gallery?.length ? { uri: currentProfileData?.profilePicture ? currentProfileData?.profilePicture[0]?.url : currentProfileData?.gallery[0]?.url } : currentProfileData?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={{ height: metrics.hp10, width: metrics.hp10, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: "#E6B7A8", marginTop: -metrics.hp4 }} />
-                                <AppText type={TWENTY} weight={SCHEHERAZADE_BOLD} style={{ color: "#E6B7A8", marginTop: -metrics.hp1 }}>
+                                <View>
+                                    <FastImage source={currentProfileData?.profilePicture?.length || currentProfileData?.gallery?.length ? { uri: currentProfileData?.profilePicture ? currentProfileData?.profilePicture[0]?.url : currentProfileData?.gallery[0]?.url } : currentProfileData?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={{ height: metrics.hp10, width: metrics.hp10, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: "#E6B7A8", marginTop: -metrics.hp4 }} />
+                                    {currentProfileData?.faceVerified ?
+                                        <FastImage source={verifiedBadgeIcon} resizeMode='contain' style={{ height: metrics.hp4, width: metrics.hp4, position: "absolute", right: -metrics.hp0_5, top: -metrics.hp4 }} />
+                                        : <></>}
+                                </View>
+                                <AppText type={EIGHTEEN} weight={SCHEHERAZADE_BOLD} style={{ color: "#E6B7A8", marginTop: -metrics.hp1 }}>
                                     {"   "}{currentProfileData?.username ? currentProfileData?.username : currentProfileData?.name}
                                 </AppText>
                             </View>
@@ -176,43 +203,73 @@ console.log(currentProfileData,"currentProfileDatacurrentProfileDatacurrentProfi
                                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
                                     <FastImage source={pronounIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
                                     <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                        {"  "}{currentProfileData?.gender}
+                                        {"  "}{capitalizeFirstLetter(currentProfileData?.gender)}
                                     </AppText>
                                 </View>
+                                {currentProfileData?.sexualOrientation ?
+                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
+                                        <FastImage source={sexualityIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                        <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
+                                            {"  "}{capitalizeFirstLetter(currentProfileData?.sexualOrientation)}
+                                        </AppText>
+                                    </View>
+                                    : <></>}
                                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
                                     <FastImage source={dobIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
                                     <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
                                         {"  "}{currentProfileData?.age} years
                                     </AppText>
                                 </View>
-                                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168" }}>
-                                    <FastImage source={partnerheart} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
-                                    <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                        {"  "}{currentProfileData?.distanceInKm < 10 ? "Near You" : `${currentProfileData?.distanceInKm} Km`}
-                                    </AppText>
-                                </View>
+                                {currentProfileData?.sexualOrientation ? <></> :
+                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168" }}>
+                                        <FastImage source={partnerheart} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                        <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
+                                            {"  "}{currentProfileData?.distanceInKm < 10 ? "Near You" : `${currentProfileData?.distanceInKm} Km`}
+                                        </AppText>
+                                    </View>
+                                }
                             </View>
                             <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
-                                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
+                                {currentProfileData?.sexualOrientation ?
+                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168" }}>
+                                        <FastImage source={partnerheart} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                        <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
+                                            {"  "}{currentProfileData?.distanceInKm < 10 ? "Near You" : `${currentProfileData?.distanceInKm} Km`}
+                                        </AppText>
+                                    </View> : <></>
+                                }
+                                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1, marginLeft: currentProfileData?.sexualOrientation ? metrics.hp1 : metrics.hp0 }}>
                                     <FastImage source={heightIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
                                     <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
                                         {"  "}{currentProfileData?.height} ft
                                     </AppText>
                                 </View>
-                                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
-                                    <FastImage source={locationIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
-                                    <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                        {"  "}{currentProfileData?.city}
-                                    </AppText>
-                                </View>
+                                {currentProfileData?.sexualOrientation ? <></> :
+                                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
+                                            <FastImage source={locationIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                            <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
+                                                {"  "}{capitalizeFirstLetter(currentProfileData?.city)}
+                                            </AppText>
+                                        </View>
+                                    </View>}
                             </View>
+                            {currentProfileData?.sexualOrientation ?
+                                <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
+                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
+                                        <FastImage source={locationIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                        <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
+                                            {"  "}{capitalizeFirstLetter(currentProfileData?.city)}
+                                        </AppText>
+                                    </View>
+                                </View> : <></>}
                             <ImageBackground source={bioBackground} resizeMode="stretch" style={{ /* height: metrics.hp9, */ width: "100%", marginTop: metrics.hp6, }}>
                                 <ImageBackground source={biosToggla} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp13, alignSelf: "center", marginTop: -metrics.hp2 }} >
                                     <AppText style={{ textAlign: "center" }} type={FORTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE}>
                                         " My bio
                                     </AppText>
                                 </ImageBackground>
-                                <AppText style={{ marginHorizontal: metrics.hp2, textAlign: "center", marginVertical: metrics.hp1, lineHeight:metrics.hp2 }} type={TWELVE} weight={SCHEHERAZADE_BOLD} color={WHITE}>
+                                <AppText style={{ marginHorizontal: metrics.hp2, textAlign: "center", marginVertical: metrics.hp1, lineHeight: metrics.hp2 }} type={TWELVE} weight={SCHEHERAZADE_BOLD} color={WHITE}>
                                     {currentProfileData.bio}
                                 </AppText>
                             </ImageBackground>
@@ -221,15 +278,15 @@ console.log(currentProfileData,"currentProfileDatacurrentProfileDatacurrentProfi
                 </View>
                 {selectedTurnOnList?.length ?
 
-                <View style={{ paddingHorizontal: metrics.hp2 }}>
-                    <View style={{ height: metrics.hp0_1, backgroundColor: "#524440", width: "100%", marginTop: metrics.hp4 }} />
-                    <ImageBackground source={biosToggla} resizeMode="contain" style={{ height: metrics.hp7, width: metrics.hp18, alignSelf: "center", marginTop: -metrics.hp3, alignItems: "center", justifyContent: "center", flexDirection: "row", }} >
-                        <FastImage source={trunOnIcon} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp4 }} />
-                        <AppText type={FORTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE}>
-                            {"  "}Turn-On
-                        </AppText>
-                    </ImageBackground>
-                </View>:<></>}
+                    <View style={{ paddingHorizontal: metrics.hp2 }}>
+                        <View style={{ height: metrics.hp0_1, backgroundColor: "#524440", width: "100%", marginTop: metrics.hp4 }} />
+                        <ImageBackground source={biosToggla} resizeMode="contain" style={{ height: metrics.hp7, width: metrics.hp18, alignSelf: "center", marginTop: -metrics.hp3, alignItems: "center", justifyContent: "center", flexDirection: "row", }} >
+                            <FastImage source={trunOnIcon} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp4 }} />
+                            <AppText type={FORTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE}>
+                                {"  "}Turn-On
+                            </AppText>
+                        </ImageBackground>
+                    </View> : <></>}
                 <FlatList
                     data={selectedTurnOnList}
                     renderItem={renderItemTurns_ons}
@@ -244,7 +301,7 @@ console.log(currentProfileData,"currentProfileDatacurrentProfileDatacurrentProfi
                         <FastImage source={newCloseIcon} resizeMode='contain' style={styles.dislikeButton} />
                     </TouchableOpacityView>
                 }
-                {likeYoue === "You Liked" || ViewYoue === "You Viewed"? <></> :
+                {likeYoue === "You Liked" || ViewYoue === "You Viewed" ? <></> :
                     <TouchableOpacityView onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : handleLikePress(currentProfileData)} activeOpacity={1} >
                         <FastImage source={newLikeIcon} resizeMode='contain' style={styles.likeButton} />
                     </TouchableOpacityView>
@@ -253,6 +310,7 @@ console.log(currentProfileData,"currentProfileDatacurrentProfileDatacurrentProfi
                     <FastImage source={directChatIcon} resizeMode='contain' style={styles.chatButton} />
                 </TouchableOpacityView>
             </View>
+            {/* <FullScreenViewPhoto fullProfileShow={fullProfileShow} setFullProfileShow={setFullProfileShow} fullProfileShowCurrentDat={fullProfileShowCurrentData} /> */}
         </AppSafeAreaView>
     )
 };

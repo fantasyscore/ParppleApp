@@ -8,7 +8,6 @@ import {
 } from "react-native";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import HeaderCommon from "../../common/HeaderCommon";
-import TopCommonLine from "../../common/TopCommonLine";
 import metrics from "../../assets/Metrics";
 import {
     AppText,
@@ -42,7 +41,6 @@ import LinearGradient from "react-native-linear-gradient";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { applogo, bdyBack, BottomLayer, calendarIcon, dobIcon, dobImage } from "../../helper/ImageAssets";
 import DOBPicker from "../../components/DOBPicker";
-import { BlurView } from "@react-native-community/blur";
 
 const DobScreen = () => {
     const dispatch = useDispatch();
@@ -68,15 +66,14 @@ const DobScreen = () => {
         ? getDateDigits(date)
         : ["D", "D", "M", "M", "Y", "Y", "Y", "Y"];
 
-    const formattedDate = date?.toISOString().split("T")[0];
+    const formattedDate = date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}` : undefined;
 
     const formatDate = (d: Date | null) => {
         if (!d) return "";
-        return d.toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-        });
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = months[d.getMonth()];
+        return `${day} ${month} ${d.getFullYear()}`;
     };
 
     const calculateAge = (dob: Date) => {
@@ -235,11 +232,6 @@ const DobScreen = () => {
                 </TouchableOpacityView>
             </Modal>
             <Modal transparent animationType="fade" visible={modalVisible}>
-                <BlurView
-                   style={StyleSheet.absoluteFillObject}
-                   blurType="dark"
-                   blurAmount={0.2}
-                />
                 <View style={styles.centeredView}>
                     <View style={styles.confirmContainer}>
                         <FastImage source={bdyBack} style={styles.bdyBack} />
@@ -269,173 +261,6 @@ const DobScreen = () => {
                 </View>
 
             </Modal>
-
-
-            {/* <HeaderCommon />
-
-            <View style={styles.container}>
-                <TopCommonLine icon={dobIcon} datalist={datalist} />
-
-                <View style={{ paddingHorizontal: metrics.hp2 }}>
-                    <DubleTextLine
-                        firstText="When do you celebrate"
-                        secondText="your birthday?"
-                    />
-
-                    <TouchableOpacityView onPress={openPicker} style={styles.dobContainer}>
-                        <View style={{ flexDirection: "row", alignItems: "center" }}>
-                            {dateDigits.map((digit, index) => (
-                                <View
-                                    key={index}
-                                    style={[
-                                        styles.ddContainer,
-                                        {
-                                            marginLeft:
-                                                index === 0
-                                                    ? 0
-                                                    : index === 2 || index === 4
-                                                        ? metrics.hp1_5
-                                                        : metrics.hp1,
-                                        },
-                                    ]}
-                                >
-                                    <AppText
-                                        type={SIXTEEN}
-                                        weight={INTER_MEDIUM}
-                                        color={date ? LIGHT_BLACK : OPECITY}
-                                    >
-                                        {digit}
-                                    </AppText>
-                                    <View style={styles.ddLine} />
-                                </View>
-                            ))}
-                        </View>
-
-                        <FastImage
-                            source={calendarIcon}
-                            resizeMode="contain"
-                            style={{ height: metrics.hp2_5, width: metrics.hp2_5 }}
-                        />
-                    </TouchableOpacityView>
-
-                    <AppText
-                        style={{ marginTop: metrics.hp1 }}
-                        color={OPECITY}
-                        weight={INTER_MEDIUM}
-                        type={TWELVE}
-                    >
-                        We’ll use this to calculate your age.
-                    </AppText>
-                </View>
-            </View>
-
-            {showAndroidPicker && Platform.OS === "android" && (
-                <DateTimePicker
-                    value={date || minAgeDate}
-                    mode="date"
-                    maximumDate={minAgeDate}
-                    display="default"
-                    // style={{}}
-                    onChange={(event, selectedDate) => {
-                        setShowAndroidPicker(false);
-                        if (selectedDate) setDate(selectedDate);
-                    }}
-                />
-            )}
-
-            <Modal transparent animationType="slide" visible={showIOSPicker}>
-                <TouchableOpacityView onPress={() => setShowIOSPicker(false)} style={styles.iosOverlay}>
-                    <TouchableOpacityView activeOpacity={0} onPress={()=>console.log("")} style={styles.iosContainer}>
-                        <DateTimePicker
-                            value={date || minAgeDate}
-                            mode="date"
-                            display="spinner"
-                            textColor="black"
-                            themeVariant="light" 
-                            maximumDate={minAgeDate}
-                            onChange={(e, selectedDate) => {
-                                if (selectedDate) setDate(selectedDate);
-                            }}
-                        />
-
-                        <LinearGradient
-                            style={{ position:"absolute", right:metrics.hp1, bottom:metrics.hp2 }}
-                            colors={["#ffffff50", colors.white, colors.white]}
-                        >
-                            <View style={{ marginTop: metrics.hp0 }}>
-                                <GoButton
-                                    colortrue={date}
-                                    onPress={() => {
-                                        if(!formattedDate){
-                                            toastAlert.showToastError("Please add your DOB")
-                                        }else{
-                                            setShowIOSPicker(false)
-                                            setModalVisible(true)
-                                        }
-                                        // !formattedDate
-                                        //     ? toastAlert.showToastError("Please add your DOB")
-                                        //     : setShowIOSPicker(false)
-                                    }
-                                    }
-                                />
-                            </View>
-                        </LinearGradient>
-                    </TouchableOpacityView>
-                </TouchableOpacityView>
-            </Modal>
-
-            <LinearGradient
-                style={{ height: metrics.hp19 }}
-                colors={["#ffffff50", colors.white, colors.white]}
-            >
-                <View style={{ marginTop: metrics.hp9 }}>
-                    <GoButton
-                        colortrue={date}
-                        onPress={() =>
-                            !formattedDate
-                                ? toastAlert.showToastError("Please add your DOB")
-                                : setModalVisible(true)
-                        }
-                    />
-                </View>
-            </LinearGradient>
-
-            <Modal transparent animationType="fade" visible={modalVisible}>
-                <View style={styles.centeredView}>
-                    <View style={styles.confirmContainer}>
-                        <FastImage source={bdyBack} style={styles.bdyBack} />
-
-                        <AppText
-                            weight={SCHEHERAZADE_BOLD}
-                            style={{ fontSize: fontSize(30), textAlign: "center" }}
-                        >
-                            {date ? `You’re ${calculateAge(date)}` : ""}
-                        </AppText>
-
-                        <AppText style={{ textAlign: "center" }} type={TWELVE}>
-                            Born {formatDate(date)}
-                        </AppText>
-
-                        <View style={styles.actionRow}>
-                            <TouchableOpacityView
-                                style={styles.editButton}
-                                onPress={() => setModalVisible(false)}
-                            >
-                                <AppText weight={INTER_SEMI_BOLD}>Edit</AppText>
-                            </TouchableOpacityView>
-
-                            <TouchableOpacityView
-                                style={[styles.editButton, { backgroundColor: colors.purple }]}
-                                onPress={onSubmit}
-                            >
-                                <AppText color={WHITE} weight={INTER_SEMI_BOLD}>
-                                    Confirm
-                                </AppText>
-                            </TouchableOpacityView>
-                        </View>
-                    </View>
-                </View>
-            </Modal> */}
         </AppSafeAreaView>
     );
 };

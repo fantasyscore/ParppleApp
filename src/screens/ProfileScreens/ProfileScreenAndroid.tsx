@@ -1,18 +1,18 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Dimensions, FlatList, ImageBackground, Linking, Platform, ScrollView, StyleSheet, View, Modal, TextInput } from "react-native";
+import { Dimensions, FlatList, ImageBackground, Linking, Platform, ScrollView, StyleSheet, View, Modal, TextInput, Animated, ActivityIndicator, NativeModules, Alert } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
-import { bioBackground, biosToggla, dobIcon, editButtonBackground, heightIconWhiteNew, locationIconWhiteNew, ProfileBackGroundNew, pronounIcon, tabViewForLikes, trunOnBackground, uploadIcon, beingWatchIcon, bitingIcon, blinedFlodedIcon, dirtyTalks, fantasiesIcon, fotFetiesIcon, hairIcon, hugsIcon, massageIcon, musicIcons, oralIcon, rightSelectTrunOns, roomServiceIcon, scentsIcon, sextingIcon, smooheshIcon, TattosIcon, BottomLayer, danceNewIcon, rolePlayImageNew, choclateImageNew, touchNewIcon, dummyMaleProfile, dummyfemaleProfile } from "../../helper/ImageAssets";
+import { bioBackground, biosToggla, dobIcon, editButtonBackground, heightIconWhiteNew, locationIconWhiteNew, ProfileBackGroundNew, pronounIcon, tabViewForLikes, trunOnBackground, uploadIcon, beingWatchIcon, bitingIcon, blinedFlodedIcon, dirtyTalks, fantasiesIcon, fotFetiesIcon, hairIcon, hugsIcon, massageIcon, musicIcons, oralIcon, rightSelectTrunOns, roomServiceIcon, scentsIcon, sextingIcon, smooheshIcon, TattosIcon, BottomLayer, danceNewIcon, rolePlayImageNew, choclateImageNew, touchNewIcon, dummyMaleProfile, dummyfemaleProfile, sexualityIcon, applogo, modalBackground, verifiedBadgeIcon } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
 import { colors, newColor } from "../../theme/colors";
 import Svg, { Circle } from "react-native-svg";
 import FastImage from "react-native-fast-image";
-import { AppText, BLACK, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, NINE, OPECITY, OPECITY_DARK, PURPLE, RED, SCHEHERAZADE_BOLD, SIXTEEN, SKYBLUE, TEN, THIRTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
+import { AppText, BLACK, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, NINE, OPECITY, OPECITY_DARK, PURPLE, RED, SCHEHERAZADE_BOLD, SIXTEEN, SKYBLUE, TEN, THIRTEEN, TWELVE, TWENTY, TWENTY_TWO, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { premiumDetaiData, PurchaseCards, SafetyTips, TrustTransparency } from "../../common/UiltData";
 import { Screen } from "../../theme/dimens";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_EDIT_PROFILE_SCREEN, NAVIGATION_FILTER_SCREEN, NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN, NAVIGATION_SETTING_SCREEN, NAVIGATION_SUBSCRIPTION_ALL_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN, NAVIGATION_SUPERLIKE_PURCHESE_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_EDIT_PROFILE_SCREEN, NAVIGATION_FILTER_SCREEN, NAVIGATION_PROFILE_BOOST_PURCHASE_SCREEN, NAVIGATION_SETTING_SCREEN, NAVIGATION_SUBSCRIPTION_ALL_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN, NAVIGATION_SUPERLIKE_PURCHESE_SCREEN, NAVIGATION_FACE_LIVENESS_TEST_SCREEN } from "../../navigation/routes";
 import { useDispatch, useSelector } from "react-redux";
 import { getProfile, editProfile, deletePhotoAPI, publishProfileEveryone } from "../../actions/authActions";
 import { appOperation } from "../../appOperation";
@@ -24,6 +24,7 @@ import { setProfileHide } from "../../slices/loginServices/authSlice";
 import PhotoEditorModal from "../../components/PhotoEditor/PhotoEditorModal";
 import { usePhotoEditorUpload, UploadedPhoto } from "../../components/PhotoEditor/usePhotoEditorUpload";
 import { useIsFocused } from "@react-navigation/native";
+import { check, openSettings, PERMISSIONS, request, RESULTS } from "react-native-permissions";
 
 const TURN_ON_IMAGES: any = {
     "Smooches": smooheshIcon,
@@ -47,6 +48,49 @@ const TURN_ON_IMAGES: any = {
     "Chocolate": choclateImageNew,
     "Touch": touchNewIcon,
 };
+type FaceLivenessResult =
+    | { status?: string; message?: string }
+    | string
+    | null
+    | undefined;
+const { width, height } = Dimensions.get('window');
+
+const PremiumAnimatedModal = ({ visible, onClose, children }: any) => {
+    const [show, setShow] = useState(visible);
+    const translateY = useRef(new Animated.Value(metrics.hp5)).current;
+    const opacity = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            setShow(true);
+            Animated.parallel([
+                Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+                Animated.spring(translateY, { toValue: 0, friction: 8, tension: 50, useNativeDriver: true })
+            ]).start();
+        } else {
+            Animated.parallel([
+                Animated.timing(opacity, { toValue: 0, duration: 250, useNativeDriver: true }),
+                Animated.timing(translateY, { toValue: metrics.hp2, duration: 250, useNativeDriver: true })
+            ]).start(() => setShow(false));
+        }
+    }, [visible]);
+
+    if (!show) return null;
+
+    return (
+        <Modal transparent visible={show} onRequestClose={onClose} animationType="none">
+            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", paddingHorizontal: metrics.hp2 }}>
+                <Animated.View style={{ opacity, transform: [{ translateY }], width: "100%" }}>
+                    <ImageBackground style={{ width: "100%", shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 20, elevation: 15 }} source={modalBackground} resizeMode="stretch">
+                        <View style={{ padding: metrics.hp2 }}>
+                            {children}
+                        </View>
+                    </ImageBackground>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
 
 const ProfileScreenAndroid = () => {
     const dispatch = useDispatch();
@@ -64,6 +108,11 @@ const ProfileScreenAndroid = () => {
 
 
     const [selectedTurnOnIds, setSelectedTurnOnIds] = useState<any[]>([]);
+
+    const [verifyModalVisible, setVerifyModalVisible] = useState(false);
+    const [verifyStage, setVerifyStage] = useState<'prompt' | 'verifying' | 'success' | 'error'>('prompt');
+    const [verifyError, setVerifyError] = useState<string>('');
+    const [verifyResponse, setVerifyResponse] = useState<any>(null);
 
     useEffect(() => {
         if (userData?.turnOns) {
@@ -327,6 +376,127 @@ const ProfileScreenAndroid = () => {
             NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN);
         }
     };
+    const capitalizeFirstLetter = (text: string) => {
+        if (!text) return text;
+        return text.charAt(0).toUpperCase() + text.slice(1);
+    };
+
+    const FaceLiveness = (NativeModules as any)?.FaceLiveness as
+        | { startLiveness?: (sessionId: string) => Promise<FaceLivenessResult> }
+        | undefined;
+
+    const moduleAvailable = useMemo(() => {
+        return Boolean(FaceLiveness && typeof FaceLiveness.startLiveness === 'function');
+    }, [FaceLiveness]);
+    const getCameraPermissionType = useCallback(() => {
+        return Platform.OS === "ios" ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA;
+    }, []);
+    const ensureCameraPermission = useCallback(async (): Promise<boolean> => {
+        try {
+            const permissionType = getCameraPermissionType();
+            const currentStatus = await check(permissionType);
+
+            if (currentStatus === RESULTS.GRANTED) return true;
+
+            if (currentStatus === RESULTS.BLOCKED) {
+                Alert.alert(
+                    "Camera permission required",
+                    "Camera permission is disabled. Please enable it from Settings to continue face verification.",
+                    [
+                        { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
+                        { text: "Cancel", style: "cancel" },
+                    ]
+                );
+                return false;
+            }
+
+            const requestedStatus = await request(permissionType);
+            if (requestedStatus === RESULTS.GRANTED) return true;
+
+            Alert.alert(
+                "Camera permission denied",
+                "Face verification requires camera access. You can enable it from Settings.",
+                [
+                    { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
+                    { text: "Cancel", style: "cancel" },
+                ]
+            );
+            return false;
+        } catch (error) {
+            console.warn("Camera permission check failed:", error);
+            Alert.alert("Permission error", "Unable to check camera permission. Please try again.");
+            return false;
+        }
+    }, [getCameraPermissionType]);
+
+    const start = async () => {
+        if (!moduleAvailable) {
+            const msg =
+                'FaceLiveness native module not found. Make sure you rebuilt the app (not just Metro reload).';
+            console.warn('[FaceLivenessTest] ' + msg);
+            return;
+        }
+
+        // setLoading(true);
+
+        try {
+            const isCameraAllowed = await ensureCameraPermission();
+            if (!isCameraAllowed) {
+                return;
+            }
+
+            console.log('[FaceLivenessTest] Requesting session from /faceId/liveliness');
+            const sessionResp = await (appOperation.customer as any).createFaceLivenessSessionAPI();
+            const sessionId = sessionResp?.data
+            console.log(sessionId, "sessionResp");
+
+            if (!sessionId) {
+                throw new Error('Session API did not return a valid sessionId');
+            }
+
+            console.log('[FaceLivenessTest] Starting native liveness with sessionId:', sessionId);
+            if (!FaceLiveness || typeof FaceLiveness.startLiveness !== 'function') {
+                throw new Error('FaceLiveness native module is not available on this device.');
+            }
+            const res = await FaceLiveness.startLiveness(sessionId);
+            console.log('[FaceLivenessTest] Native result:', res);
+
+            // Normalize a few common shapes.
+            if (res && typeof res === 'object') {
+                const status = (res as any).status;
+                if (status === 'success') {
+                    console.log('[FaceLivenessTest] Verifying session via faceId/verifySessionResult');
+                    const verifyResp = await (appOperation.customer as any).verifyFaceLivenessSessionAPI({
+                        sessionId,
+                    });
+                    if (verifyResp?.data?.success) {
+                        dispatch(getProfile(true))
+                        setVerifyStage('success');
+                    } else {
+                        setVerifyError(verifyResp?.data?.message || "Verification failed. Please try again.");
+                        setVerifyStage('error');
+                    }
+                } else if (status === 'cancelled') {
+                    setVerifyError("Verification cancelled.");
+                    setVerifyStage('error');
+                } else {
+                    setVerifyError(`Result: ${JSON.stringify(res)}`);
+                    setVerifyStage('error');
+                }
+            } else {
+                setVerifyError("Liveness Success");
+                setVerifyStage('error');
+            }
+        } catch (e: any) {
+            const msg = e?.message ?? String(e);
+            console.error('[FaceLivenessTest] Error:', e);
+            setVerifyError(msg);
+            setVerifyStage('error');
+        } finally {
+            // setLoading(false);
+        }
+    };
+
     return (
         <AppSafeAreaView color={colors.transparent}>
             <LinearGradient style={{ flex: 1 }} colors={["#212123", "#555359"]}>
@@ -337,7 +507,17 @@ const ProfileScreenAndroid = () => {
                     <AppSafeAreaView
                         color="transparent"
                         style={{ flex: 1, backgroundColor: "transparent" }}>
-                        <NewHeader profile={"Profile"} onPress={() => NavigationService.goBack()} onPressTwo={() => NavigationService.navigate(NAVIGATION_SETTING_SCREEN)} />
+                        <NewHeader
+                            profile={"Profile"}
+                            onPress={() => NavigationService.goBack()}
+                            onPressTwo={() => NavigationService.navigate(NAVIGATION_SETTING_SCREEN)}
+                            isPublishButton={isPublishButton}
+                            onVerificationPress={() => {
+                                setVerifyError('');
+                                setVerifyStage('prompt' as any);
+                                setVerifyModalVisible(true);
+                            }}
+                        />
                         <View style={{ marginTop: metrics.hp2, paddingHorizontal: metrics.hp2, flexDirection: "row", alignItems: "center" }}>
                             <TouchableOpacityView activeOpacity={1} style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
                                 <FastImage
@@ -345,6 +525,9 @@ const ProfileScreenAndroid = () => {
                                     resizeMode="cover"
                                     style={[styles.imageContainer, { borderWidth: metrics.hp0_2, borderColor: "#E6B7A8" }]}
                                 />
+                                {userData?.faceVerified ?
+                                    <FastImage source={verifiedBadgeIcon} resizeMode='contain' style={{ height: metrics.hp4, width: metrics.hp4, position: "absolute", right: metrics.hp0_5, top: metrics.hp1 }} />
+                                    : <></>}
 
                             </TouchableOpacityView>
                             <AppText type={TWENTY} weight={SCHEHERAZADE_BOLD} style={{ color: "#E6B7A8" }}>
@@ -357,27 +540,44 @@ const ProfileScreenAndroid = () => {
                                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
                                     <FastImage source={pronounIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
                                     <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                        {"  "}{userData?.gender}
+                                        {"  "}{capitalizeFirstLetter(userData?.gender)}
                                     </AppText>
                                 </View>
+                                {userData?.sexualOrientation ?
+                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
+                                        <FastImage source={sexualityIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                        <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
+                                            {"  "}{capitalizeFirstLetter(userData?.sexualOrientation)}
+                                        </AppText>
+                                    </View> : <></>}
                                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
                                     <FastImage source={dobIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
                                     <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
                                         {"  "}{userData?.age} years
                                     </AppText>
                                 </View>
-                                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
-                                    <FastImage source={heightIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
-                                    <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                        {"  "}{userData?.height} ft
-                                    </AppText>
-                                </View>
+                                {userData?.sexualOrientation ? <></> :
+                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
+                                        <FastImage source={heightIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                        <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
+                                            {"  "}{(userData?.height || "")} ft
+                                        </AppText>
+                                    </View>
+                                }
                             </View>
                             <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
+                                {userData?.sexualOrientation ?
+                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
+                                        <FastImage source={heightIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                        <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
+                                            {"  "}{(userData?.height || "")} ft
+                                        </AppText>
+                                    </View>
+                                    : <></>}
                                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
                                     <FastImage source={locationIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
                                     <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                        {"  "}{userData?.city}
+                                        {"  "}{capitalizeFirstLetter(userData?.city)}
                                     </AppText>
                                 </View>
                             </View>
@@ -577,381 +777,158 @@ const ProfileScreenAndroid = () => {
                     </LinearGradient>
                 </TouchableOpacityView>
             </ImageBackground>
-            {/* <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
-                <TouchableOpacityView style={{ width: "100%", alignItems: "center", justifyContent: "center" }} onPress={() => userData?.gender === "female" ? hideUnHideProfile() : userData?.gender === "male" && planHai ? hideUnHideProfile() : NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN)}>
-                    <LinearGradient colors={userData?.gender === "male" && userData?.isPublish === false ? ["#D08FA9", "#FDD2C1"] : profileHide === "Hide" ? ["#D08FA9", "#FDD2C1"] : ["#151517", "#151517"]} style={{ height: metrics.hp7, width: "90%", alignItems: "center", justifyContent: "center", borderWidth: userData?.gender === "male" && userData.isPublish === false ? 0 : profileHide === "Hide" ? 0 : metrics.hp0_1, borderColor: userData?.gender === "male" && userData.isPublish === false ? colors.transparent : profileHide === "Hide" ? colors.transparent : colors.white }}>
-                        <AppText type={EIGHTEEN} weight={SCHEHERAZADE_BOLD} color={userData?.gender === "male" && userData?.isPublish === false ? BLACK : profileHide === "Hide" ? BLACK : WHITE}>
-                            {userData?.gender === "male" && userData?.isPublish === false ? "Publish Profile" : profileHide === "Hide" ? "Publish Profile" : "Hide Profile"}
-                        </AppText>
-                    </LinearGradient>
-                </TouchableOpacityView>
-            </ImageBackground> */}
-            {/* <ImageBackground
-                source={profilebackGround}
-                resizeMode="cover"
-                style={styles.imgaeContainer}>
-                <PeopleHeader profile={true} />
-
-                <View style={styles.inContainer}>
-                    <TouchableOpacityView onPress={onSubmit} style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
-                        <Svg height={size} width={size}>
-                            <Circle
-                                stroke={colors.persentageBorder}
-                                fill="none"
-                                cx={size / 2}
-                                cy={size / 2}
-                                r={radius}
-                                strokeWidth={strokeWidth}
-                            />
-                            <Circle
-                                stroke={colors.singleButtonGreen}
-                                fill="none"
-                                cx={size / 2}
-                                cy={size / 2}
-                                r={radius}
-                                strokeWidth={strokeWidth}
-                                strokeDasharray={circumference}
-                                strokeDashoffset={circumference - progress}
-                                strokeLinecap="round"
-                                rotation="90"
-                                originX={size / 2}
-                                originY={size / 2}
-                            />
-                        </Svg>
-                        <FastImage
-                            source={{ uri: userData?.gallery[0]?.url }}
-                            resizeMode="cover"
-                            style={styles.imageContainer}
-                        />
-                        <View style={styles.persentageContainer}>
-                            <AppText type={TEN} weight={INTER_BOLD} color={WHITE}>
-                                {Math.trunc(percentage)}%
-                            </AppText>
-                        </View>
-                    </TouchableOpacityView>
-                    <View>
-                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent:"center" }}>
-                            <AppText style={{ marginTop: metrics.hp2, textTransform: "capitalize", fontWeight: "700" }} type={EIGHTEEN} weight={INTER_BOLD}>{"    "}{userData?.firstName},<AppText type={EIGHTEEN} weight={INTER_MEDIUM}> {userData?.age}{"  "}</AppText>
-                            </AppText>
-                            {userData?.faceVerified == true && Platform.OS ==="ios" ? <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} /> :
-                            <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTikIcon} />}
-                        </View>
-                        <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_EDIT_PROFILE_SCREEN)} style={styles.completeContainer}>
-                            <FastImage source={pencilIcon} tintColor={colors.lightBlack} resizeMode="contain" style={styles.pencilIcon} />
-                            <AppText color={LIGHT_BLACK} type={ELEVEN} weight={INTER_MEDIUM}>
-                                {"  "}Complete profile
-                            </AppText>
-                        </TouchableOpacityView>
-                    </View>
-                </View>
-                <View style={styles.headerTabs}>
-                    <TouchableOpacityView onPress={() => setTabSelect("Premium")} style={styles.contaierTabs}>
-                        <AppText type={THIRTEEN} weight={tabSelect == "Premium" ? INTER_BOLD : INTER_MEDIUM} color={tabSelect == "Premium" ? PURPLE : OPECITY}>
-                            Premium
-                        </AppText>
-                        <View style={[styles.tabLine, { backgroundColor: tabSelect == "Premium" ? colors.purple : colors.transparent }]} />
-                    </TouchableOpacityView>
-                    <TouchableOpacityView onPress={() => setTabSelect("Safety")} style={styles.contaierTabs}>
-                        <AppText type={THIRTEEN} weight={tabSelect == "Safety" ? INTER_BOLD : INTER_MEDIUM} color={tabSelect == "Safety" ? PURPLE : OPECITY}>
-                            Safety
-                        </AppText>
-                        <View style={[styles.tabLine, { backgroundColor: tabSelect == "Safety" ? colors.purple : colors.transparent }]} />
-                    </TouchableOpacityView>
-                </View>
-                {tabSelect == "Premium" &&
-                    <View style={styles.bottomContainer}>
-                        <View style={styles.one}>
-                            {premiumDetaiData?.map((item, index) => {
-                                return userData?.subscription?.plan !== "FREE" && item.id === "3" ? (
-                                    <TouchableOpacityView onPress={() => navigateButton(item)}>
-                                        <ImageBackground source={userData?.subscription?.plan === "SILVER" ? sliverCardSmall :
-                                            userData?.subscription?.plan === "GOLD" ? goldCardSmall : platniumCardSmall
-                                        } resizeMode="contain" style={{
-                                            height: metrics.hp13,
-                                            width: metrics.hp13,
-                                        }}>
-                                            <View style={styles.getMoreContainer}>
-                                                <AppText style={{ marginTop: -metrics.hp0_1 }} weight={INTER_MEDIUM} color={WHITE} type={TEN}>
-                                                    {item.headLine}
-                                                </AppText>
-                                            </View>
-                                        </ImageBackground>
-                                    </TouchableOpacityView>
-                                ) : (
-                                    <TouchableOpacityView onPress={() => navigateButton(item)} key={index} style={[styles.subDetails, { marginLeft: item.id == "2" ? metrics.hp0_5 : 0 }]}>
-                                        <FastImage source={item.icon} resizeMode="contain" style={styles.icons} />
-                                        <AppText color={index == 0 ? SKYBLUE : index == 1 ? RED : PURPLE} style={{ marginTop: index == 2 ? metrics.hp2 : metrics.hp2 }} type={index == 2 ? TWELVE : FORTEEN} weight={INTER_BOLD}>
-                                            {item.numberText}
-                                        </AppText>
-                                        <AppText type={TEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                                            {item.title}
-                                        </AppText>
-                                        <View style={styles.getMoreContainer}>
-                                            <AppText style={{ marginTop: -metrics.hp0_1 }} weight={INTER_MEDIUM} color={WHITE} type={TEN}>
-                                                {item.headLine}
-                                            </AppText>
-                                        </View>
-                                    </TouchableOpacityView>
-                                )
-                            })}
-                        </View>
-                        <View style={styles.PremiumText}>
-                            <FastImage source={premiumIcon} resizeMode="contain" style={styles.pencilIcon} />
-                            <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>
-                                {"  "}Premium Plans
-                            </AppText>
-                        </View>
-                        <View style={{ flex:1 }}>
-                            <Carousel
-                                width={width}
-                                height={metrics.hp80}
-                                autoPlay={false}
-                                autoPlayInterval={4000}
-                                defaultIndex={0}
-                                loop={false}
-                                mode="parallax"
-                                data={PurchaseCards || []}
-                                scrollAnimationDuration={300}
-                                modeConfig={{
-                                    parallaxScrollingScale: 0.9,
-                                    parallaxAdjacentItemScale: 0.8,  // REQUIRED
-                                    parallaxScrollingOffset: Math.round(width / 10) + metrics.hp1,
-                                }}
-                                style={{ height: metrics.hp40, marginTop: -metrics.hp2, }}
-                                renderItem={({ item, index }: any) => (
-                                    <TouchableOpacityView key={index} activeOpacity={1} onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: item })} >
-                                        <ImageBackground
-                                            source={item.icon}
-                                            resizeMode="cover"
-                                            style={styles.purchaesCardContainer}
-                                            imageStyle={{ borderRadius: metrics.hp1_5 }}>
-                                        </ImageBackground>
-                                    </TouchableOpacityView>
-                                )}
-                            />
-                        </View>
-                    </View>
-                }
-                {tabSelect == "Safety" &&
-                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: metrics.hp5 }} style={[styles.bottomContainer, { paddingHorizontal: metrics.hp2, }]}>
-                        <View style={styles.safetyComesContainer}>
-                            <FastImage source={checkSafety} resizeMode="contain" style={styles.checkSafetyIcon} />
-                            <AppText weight={SCHEHERAZADE_BOLD} type={EIGHTEEN} color={BLACK}>
-                                Your Safety Comes First
-                            </AppText>
-                            <AppText style={{ textAlign: "center", marginTop: -metrics.hp1 }} weight={INTER_SEMI_BOLD} color={OPECITY_DARK}>
-                                We’re committed to keeping you safe — from your first swipe to your first date.
-                            </AppText>
-                            <View style={styles.flexContainer}>
-                                <TouchableOpacityView onPress={() => Linking.openURL("https://parpple.com/safety")} style={styles.learnContainer}>
-                                    <AppText weight={INTER_SEMI_BOLD} color={WHITE}>
-                                        Learn Safety Tips
-                                    </AppText>
-                                </TouchableOpacityView>
-                                <TouchableOpacityView onPress={() => Linking.openURL("https://parpple.com/contact-us")} style={styles.reportContainer}>
-                                    <AppText weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                        Report a Concern
-                                    </AppText>
-                                </TouchableOpacityView>
-                            </View>
-                        </View>
-                        <AppText style={{ marginTop: metrics.hp2 }} type={TWELVE} weight={INTER_SEMI_BOLD} color={BLACK}>
-                            Safety Tools
-                        </AppText>
-                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: metrics.hp1 }}>
-                            <TouchableOpacityView onPress={() => Linking.openURL("https://parpple.com/safety")} style={styles.boxes}>
-                                <FastImage source={blockPurppleIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} />
-                                <AppText style={{ marginTop: metrics.hp1 }} color={LIGHT_BLACK} type={TWELVE} weight={INTER_SEMI_BOLD}>
-                                    Block user{`\n`}
-                                    Instantly
-                                </AppText>
-                                <AppText style={{ marginTop: metrics.hp0_1 }} color={OPECITY_DARK} type={TEN} weight={INTER_MEDIUM}>
-                                    Stop unwanted chats with{`\n`}
-                                    one tap.
-                                </AppText>
-                                <AppText style={{ marginTop: metrics.hp0_5 }} color={PURPLE} type={TEN} weight={INTER_SEMI_BOLD}>
-                                    Learn How
-                                </AppText>
-                            </TouchableOpacityView>
-                            <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SETTING_SCREEN)} style={styles.boxes}>
-                                <FastImage source={locationPurppleIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} />
-                                <AppText style={{ marginTop: metrics.hp1 }} color={LIGHT_BLACK} type={TWELVE} weight={INTER_SEMI_BOLD}>
-                                    Profile{`\n`}
-                                    Discovery
-                                </AppText>
-                                <AppText style={{ marginTop: metrics.hp0_1 }} color={OPECITY_DARK} type={TEN} weight={INTER_MEDIUM}>
-                                    Choose whether you want to{`\n`}
-                                    show profile to other.
-                                </AppText>
-                                <AppText style={{ marginTop: metrics.hp0_5 }} color={PURPLE} type={TEN} weight={INTER_SEMI_BOLD}>
-                                    Change
-                                </AppText>
-                            </TouchableOpacityView>
-                        </View>
-                        <AppText style={{ marginTop: metrics.hp3 }} type={TWELVE} weight={INTER_SEMI_BOLD} color={BLACK}>
-                            Safety Tips
-                        </AppText>
-                        <TouchableOpacityView onPress={() => Linking.openURL("https://parpple.com/safety")} style={styles.sefetyContainer}>
-                            {SafetyTips?.map((item) => {
-                                return (
-                                    <View style={styles.innerLines}>
-                                        <FastImage source={stylesRightArrow} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} />
-                                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                                            {"  "}{item.line}
-                                        </AppText>
-                                    </View>
-                                )
-                            })}
-                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
-                                <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={PURPLE}>
-                                    Real All Tips{" "}
-                                </AppText>
-                                <FastImage source={arrowBackForSafety} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2_5, marginTop: metrics.hp0_5 }} />
-                            </View>
-                        </TouchableOpacityView>
-                        <AppText style={{ marginTop: metrics.hp2 }} type={TEN} weight={INTER_SEMI_BOLD} color={BLACK}>
-                            Reporting & Support
-                        </AppText>
-                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: metrics.hp1 }}>
-                            <TouchableOpacityView onPress={() => Linking.openURL("https://parpple.com/contact-us")} style={[styles.boxes, { height: metrics.hp13 }]}>
-                                <FastImage source={blockPurppleIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} />
-                                <AppText style={{ marginTop: metrics.hp1 }} color={LIGHT_BLACK} type={TWELVE} weight={INTER_SEMI_BOLD}>
-                                    Report a User
-                                </AppText>
-                                <AppText style={{ marginTop: metrics.hp0_1 }} color={OPECITY_DARK} type={TEN} weight={INTER_MEDIUM}>
-                                    Harassment / Fake Profile /{`\n`}
-                                    Scams
-                                </AppText>
-                                <AppText style={{ marginTop: metrics.hp0_5 }} color={PURPLE} type={TEN} weight={INTER_SEMI_BOLD}>
-                                    Report Now
-                                </AppText>
-                            </TouchableOpacityView>
-                            <TouchableOpacityView onPress={() => Linking.openURL("https://parpple.com/contact-us")} style={[styles.boxes, { height: metrics.hp13 }]}>
-                                <FastImage source={locationPurppleIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} />
-                                <AppText style={{ marginTop: metrics.hp1 }} color={LIGHT_BLACK} type={TWELVE} weight={INTER_SEMI_BOLD}>
-                                    Contact Support
-                                </AppText>
-                                <AppText style={{ marginTop: metrics.hp0_1 }} color={OPECITY_DARK} type={TEN} weight={INTER_MEDIUM}>
-                                    Write an email to our safety{`\n`}
-                                    team.
-                                </AppText>
-                                <AppText style={{ marginTop: metrics.hp0_5 }} color={PURPLE} type={TEN} weight={INTER_SEMI_BOLD}>
-                                    Write now
-                                </AppText>
-                            </TouchableOpacityView>
-                        </View>
-                        <AppText style={{ marginTop: metrics.hp3 }} type={TWELVE} weight={INTER_SEMI_BOLD} color={BLACK}>
-                            Trust & Transparency
-                        </AppText>
-                        <TouchableOpacityView onPress={() => Linking.openURL("https://parpple.com/safety")} style={[styles.sefetyContainer, { height: metrics.hp15 }]}>
-                            {TrustTransparency?.map((item) => {
-                                return (
-                                    <View style={styles.innerLines}>
-                                        <FastImage source={stylesRightArrow} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} />
-                                        <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK}>
-                                            {"  "}{item.line}
-                                        </AppText>
-                                    </View>
-                                )
-                            })}
-                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
-                                <AppText type={TEN} weight={INTER_SEMI_BOLD} color={PURPLE}>
-                                    Read Our Safety Policy
-                                </AppText>
-                            </View>
-                        </TouchableOpacityView>
-                        <AppText style={{ marginTop: metrics.hp2 }} type={TEN} weight={INTER_SEMI_BOLD} color={BLACK}>
-                            Resources & Partnerships
-                        </AppText>
-                        <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp2 }}>
-                            <FastImage source={callIcon} resizeMode="contain" style={{ height: metrics.hp1_5, width: metrics.hp1_5 }} />
-                            <AppText>
-                                {"  "}National Cyber Crime Helpline
-                            </AppText>
-                        </View>
-                        <TouchableOpacityView onPress={() => Linking.openURL("https://cybercrime.gov.in/Webform/Crime_NodalGrivanceList.aspx")} style={styles.visitBox}>
-                            <AppText type={ELEVEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                Visit Website
-                            </AppText>
-                        </TouchableOpacityView>
-                     
-                    </ScrollView>
-                }
-            </ImageBackground> */}
-            {/* Bio Edit Modal */}
-            <Modal
-                visible={isBioModalVisible}
-                transparent={true}
-                animationType="slide"
-                onRequestClose={() => setBioModalVisible(false)}
+            <PremiumAnimatedModal
+                visible={verifyModalVisible}
+                onClose={() => setVerifyModalVisible(false)}
             >
-                <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center" }}>
-                    <View style={{ width: "90%", backgroundColor: "#212123", borderRadius: metrics.hp2, padding: metrics.hp3 }}>
-                        <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE} style={{ marginBottom: metrics.hp2 }}>
-                            Edit Bio
+                {verifyStage === 'prompt' && (
+                    <View style={{ alignItems: "center" }}>
+                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={WHITE} style={{ textAlign: "center", marginBottom: metrics.hp1 }}>
+                            Verify Your Identity
                         </AppText>
-
-                        <View style={{ backgroundColor: "#5B6168", borderRadius: metrics.hp1_5, padding: metrics.hp1_5 }}>
-                            <TextInput
-                                style={{
-                                    color: colors.white,
-                                    fontSize: 14,
-                                    minHeight: metrics.hp10,
-                                    textAlignVertical: "top"
-                                }}
-                                multiline
-                                maxLength={200}
-                                autoFocus={true}
-                                blurOnSubmit={false}
-                                placeholder="Write something about yourself..."
-                                placeholderTextColor="#FAFAFA66"
-                                value={bioInput}
-                                onChangeText={(text) => {
-                                    setBioInput(text);
-                                    setBioError("");
-                                }}
-                            />
-                            <AppText type={TEN} color={bioInput.length >= 200 ? RED : WHITE} style={{ alignSelf: "flex-end", marginTop: metrics.hp1 }}>
-                                {bioInput.length} / 200
+                        <AppText type={TWELVE} weight={INTER_MEDIUM} color={OPECITY} style={{ textAlign: "center", marginBottom: metrics.hp3, marginTop: -metrics.hp2 }}>
+                            Complete a quick face verification to secure your account. This process takes only a few seconds.
+                        </AppText>
+                        <TouchableOpacityView
+                            onPress={start}
+                            style={{ backgroundColor: "#E6B7A8", height: metrics.hp6, alignItems: "center", justifyContent: "center", width: "100%", marginBottom: metrics.hp1_5 }}
+                        >
+                            <AppText color={BLACK} weight={INTER_BOLD} type={FORTEEN}>
+                                Start Verification
                             </AppText>
-                        </View>
-
-                        {bioError ? (
-                            <AppText type={TWELVE} color={RED} style={{ marginTop: metrics.hp1 }}>
-                                {bioError}
+                        </TouchableOpacityView>
+                        <TouchableOpacityView
+                            onPress={() => setVerifyModalVisible(false)}
+                            style={{ backgroundColor: "rgba(255,255,255,0.05)", height: metrics.hp6, alignItems: "center", justifyContent: "center", width: "100%", borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" }}
+                        >
+                            <AppText color={WHITE} weight={INTER_BOLD} type={FORTEEN}>
+                                Close
                             </AppText>
-                        ) : null}
-
-                        <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: metrics.hp3 }}>
-                            <TouchableOpacityView
-                                onPress={() => setBioModalVisible(false)}
-                                style={{ paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp1, marginRight: metrics.hp1 }}
-                            >
-                                <AppText type={FORTEEN} color={WHITE}>
-                                    Cancel
-                                </AppText>
-                            </TouchableOpacityView>
-                            <TouchableOpacityView
-                                onPress={() => {
-                                    const trimmed = bioInput.trim();
-                                    if (trimmed.length === 0) {
-                                        setBioError("Bio cannot be empty.");
-                                        return;
-                                    }
-                                    dispatch(editProfile({ bio: trimmed }, false));
-                                    // dispatch(getProfile(false, true)); // ensure UI syncs immediately
-                                    setBioModalVisible(false);
-                                }}
-                                style={{ backgroundColor: "#E6B7A8", paddingHorizontal: metrics.hp3, paddingVertical: metrics.hp1, borderRadius: metrics.hp4 }}
-                            >
-                                <AppText type={FORTEEN} weight={INTER_BOLD} color={BLACK}>
-                                    Update
-                                </AppText>
-                            </TouchableOpacityView>
-                        </View>
+                        </TouchableOpacityView>
                     </View>
+                )}
+
+                {verifyStage === 'success' && (
+                    <View style={{ alignItems: "center" }}>
+                        <View style={{ height: metrics.hp8, width: metrics.hp8, borderRadius: metrics.hp4, backgroundColor: '#73D673', alignItems: 'center', justifyContent: 'center', marginBottom: metrics.hp2, borderWidth: 1, borderColor: 'rgba(76, 175, 80, 0.3)' }}>
+                            <AppText color={WHITE} weight={INTER_BOLD} type={TWENTY_TWO}>✓</AppText>
+                        </View>
+                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={WHITE} style={{ textAlign: "center", marginBottom: metrics.hp1, marginTop: -metrics.hp2 }}>
+                            Verification Successful
+                        </AppText>
+                        <AppText type={TWELVE} weight={INTER_MEDIUM} color={OPECITY} style={{ textAlign: "center", marginBottom: metrics.hp3, marginTop: -metrics.hp2 }}>
+                            Your face verification has been completed successfully. Your account is now fully verified.
+                        </AppText>
+                        <TouchableOpacityView
+                            onPress={() => setVerifyModalVisible(false)}
+                            style={{ backgroundColor: "#E6B7A8", height: metrics.hp6, alignItems: "center", justifyContent: "center", width: "100%" }}
+                        >
+                            <AppText color={BLACK} weight={INTER_BOLD} type={FORTEEN}>
+                                Continue
+                            </AppText>
+                        </TouchableOpacityView>
+                    </View>
+                )}
+                {verifyStage === 'error' && (
+                    <View style={{ alignItems: "center" }}>
+                        <View style={{ height: metrics.hp8, width: metrics.hp8, borderRadius: metrics.hp4, backgroundColor: '#FF6483', alignItems: 'center', justifyContent: 'center', marginBottom: metrics.hp2, borderWidth: 1, borderColor: 'rgba(255,0,0,0.3)' }}>
+                            <AppText color={RED} weight={INTER_BOLD} type={TWENTY_TWO}>!</AppText>
+                        </View>
+                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={WHITE} style={{ textAlign: "center", marginBottom: metrics.hp1, marginTop: -metrics.hp2 }}>
+                            Verification Failed
+                        </AppText>
+                        <AppText type={TWELVE} weight={INTER_MEDIUM} color={OPECITY} style={{ textAlign: "center", marginBottom: metrics.hp3, marginTop: -metrics.hp2 }}>
+                            {verifyError || "We were unable to verify your identity. Please try again in a well-lit environment and ensure your face is clearly visible."}
+                        </AppText>
+                        <TouchableOpacityView
+                            onPress={() => {
+                                // setVerifyStage('prompt' as any);
+                                start();
+                            }}
+                            style={{ backgroundColor: "#E6B7A8", height: metrics.hp6, alignItems: "center", justifyContent: "center", width: "100%", marginBottom: metrics.hp1_5 }}
+                        >
+                            <AppText color={BLACK} weight={INTER_BOLD} type={FORTEEN}>
+                                Try Again
+                            </AppText>
+                        </TouchableOpacityView>
+                        <TouchableOpacityView
+                            onPress={() => setVerifyModalVisible(false)}
+                            style={{ backgroundColor: "rgba(255,255,255,0.05)", height: metrics.hp6, alignItems: "center", justifyContent: "center", width: "100%", borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" }}
+                        >
+                            <AppText color={WHITE} weight={INTER_BOLD} type={FORTEEN}>
+                                Cancel
+                            </AppText>
+                        </TouchableOpacityView>
+                    </View>
+                )}
+            </PremiumAnimatedModal>
+
+            <PremiumAnimatedModal
+                visible={isBioModalVisible}
+                onClose={() => setBioModalVisible(false)}
+            >
+                <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE} style={{ marginBottom: metrics.hp2 }}>
+                    Edit Bio
+                </AppText>
+
+                <View style={{ backgroundColor: "#151517", padding: metrics.hp1_5, borderWidth: 1, borderColor: "rgba(255,255,255,0.05)", marginTop: -metrics.hp2 }}>
+                    <TextInput
+                        style={{
+                            color: colors.white,
+                            fontSize: 14,
+                            minHeight: metrics.hp10,
+                            textAlignVertical: "top"
+                        }}
+                        multiline
+                        maxLength={200}
+                        autoFocus={true}
+                        blurOnSubmit={false}
+                        placeholder="Write something about yourself..."
+                        placeholderTextColor="#FAFAFA66"
+                        value={bioInput}
+                        onChangeText={(text) => {
+                            setBioInput(text);
+                            setBioError("");
+                        }}
+                    />
+                    <AppText type={TEN} color={bioInput.length >= 200 ? RED : OPECITY_DARK} style={{ alignSelf: "flex-end", marginTop: metrics.hp1 }}>
+                        {bioInput.length} / 200
+                    </AppText>
                 </View>
-            </Modal>
+
+                {bioError ? (
+                    <AppText type={TWELVE} color={RED} style={{ marginTop: metrics.hp1 }}>
+                        {bioError}
+                    </AppText>
+                ) : null}
+
+                <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: metrics.hp3 }}>
+                    <TouchableOpacityView
+                        onPress={() => setBioModalVisible(false)}
+                        style={{ flex: 1, backgroundColor: "rgba(255,255,255,0.05)", height: metrics.hp6, alignItems: "center", justifyContent: "center", marginRight: metrics.hp1, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" }}
+                    >
+                        <AppText type={FORTEEN} weight={INTER_BOLD} color={WHITE}>
+                            Cancel
+                        </AppText>
+                    </TouchableOpacityView>
+                    <TouchableOpacityView
+                        onPress={() => {
+                            const trimmed = bioInput.trim();
+                            if (trimmed.length === 0) {
+                                setBioError("Bio cannot be empty.");
+                                return;
+                            }
+                            dispatch(editProfile({ bio: trimmed }, false));
+                            setBioModalVisible(false);
+                        }}
+                        style={{ flex: 1, backgroundColor: "#E6B7A8", height: metrics.hp6, alignItems: "center", justifyContent: "center", marginLeft: metrics.hp1 }}
+                    >
+                        <AppText type={FORTEEN} weight={INTER_BOLD} color={BLACK}>
+                            Update
+                        </AppText>
+                    </TouchableOpacityView>
+                </View>
+            </PremiumAnimatedModal>
             {editorVisible && <PhotoEditorModal {...editorProps} />}
         </AppSafeAreaView>
     );
@@ -1235,6 +1212,5 @@ const styles = StyleSheet.create({
         paddingVertical: metrics.hp2,
         alignItems: "center",
         backgroundColor: "#555359",
-    },
-
+    }
 });
