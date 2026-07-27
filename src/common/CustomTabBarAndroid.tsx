@@ -8,11 +8,10 @@ import FastImage from "react-native-fast-image";
 import { AppText, THIRTEEN, INTER_MEDIUM, OPECITY, PURPLE, TWELVE, FORTEEN, WHITE, SCHEHERAZADE_BOLD, ELEVEN, SIXTEEN } from "./AppText";
 import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_CHATS_SCREEN, NAVIGATION_DISCOVER_SCREEN, NAVIGATION_LIKES_YOU_SCREEN, NAVIGATION_PEOPLE_SCREEN, NAVIGATION_PROFILE_SCREEN, NAVIGATION_VIEW_YOU_SCREEN_SCREEN } from "../navigation/routes";
-import { BottomLayer, boyProfileloakBackground, chatAmountBackgroungNew, chatTabNewNrml, chatTabNewNrmlColour, girlProfileLoakBackground, goToProifleIcon, likesYouNewNrml, likesYouNewNrmlColour, lockIconWhite, people, pepoleTab, pepoleTabNewNrml, pepoleTabNewNrmlColour, rightGoNewIcon, visiterNewNrml, visiterNewNrmlColour } from "../helper/ImageAssets";
+import { BottomLayer, boyProfileloakBackground, chatAmountBackgroungNew, chatTabNewNrml, chatTabNewNrmlColour, girlProfileLoakBackground, goToProifleIcon, likesYouNewNrml, likesYouNewNrmlColour, lockIconWhite, pepoleTabNewNrml, pepoleTabNewNrmlColour, rightGoNewIcon, visiterNewNrml, visiterNewNrmlColour } from "../helper/ImageAssets";
 import { useSelector } from "react-redux";
 import { Image } from "react-native";
 import { Screen } from "../theme/dimens";
-import { BlurView } from "@react-native-community/blur";
 
 // PERFORMANCE NOTES (UI unchanged):
 // - Selectors return PRIMITIVES (booleans/strings) instead of arrays, so the
@@ -30,8 +29,9 @@ const navigate = (route: any) => {
     if (route === 'NAVIGATION_CHATS_SCREEN') return NavigationService.navigate(NAVIGATION_CHATS_SCREEN)
 }
 const goToProfile = () => NavigationService.navigate(NAVIGATION_PROFILE_SCREEN);
-const HiddenProfileOverlay = memo((userData: any) => (
-    <ImageBackground source={userData?.gender == "male" ? girlProfileLoakBackground : boyProfileloakBackground} resizeMode="stretch" style={{ height: Screen.Height, width: Screen.Width, position: "absolute", zIndex: 1, alignItems: "center", justifyContent: "center" }}>
+const HiddenProfileOverlay = memo(({ userData }: any) => {
+    return (
+        <ImageBackground source={userData?.gender == "male" ? girlProfileLoakBackground : boyProfileloakBackground} resizeMode="stretch" style={{ height: Screen.Height, width: Screen.Width, position: "absolute", zIndex: 1, alignItems: "center", justifyContent: "center" }}>
         <FastImage source={lockIconWhite} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp4, marginTop: metrics.hp18 }} />
         <AppText style={{ marginTop: metrics.hp2 }} type={FORTEEN} weight={INTER_MEDIUM} color={WHITE}>
             Unlock the Profile
@@ -48,8 +48,8 @@ const HiddenProfileOverlay = memo((userData: any) => (
             </ImageBackground>
         </TouchableOpacityView>
     </ImageBackground>
-));
-
+    );
+}, (prev, next) => prev.useData === next.useData);
 // Full-screen "Unlock the Profile" banner: isolated + memoized so the blur
 // surface mounts once and is untouched by tab-bar re-renders.
 

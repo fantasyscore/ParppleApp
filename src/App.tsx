@@ -129,6 +129,6 @@ const App = () => {
     </SafeAreaProvider>
   );
 };
-// export default codePush(App);
-export default App;
+export default codePush(App);
+// export default App;
 

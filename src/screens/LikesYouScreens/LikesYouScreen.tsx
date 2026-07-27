@@ -1,6 +1,7 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
     Animated,
+    Alert,
     FlatList,
     Image,
     ImageBackground,
@@ -12,9 +13,10 @@ import {
     StyleSheet,
     TouchableOpacity,
     View,
+    NativeModules,
 } from 'react-native';
-import { AppText, INTER_MEDIUM, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, WHITE, BLACK, THIRTY, FORTEEN, TWENTY, fontSize, TWENTY_FOUR } from '../../common/AppText';
-import { directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, silverCard, straightenIcon, tabViewForLikes, likedYouNewIcon, youLikedNewIcon, whosWatchingYouWhitePurhces, youLikeEmptyNew, likeYouEmptyNew, dummyMaleProfile, dummyfemaleProfile, chatPurchaseColour, onlineProfileImage, scrollatthetopIcon, verifiedBadgeIcon } from '../../helper/ImageAssets';
+import { AppText, INTER_MEDIUM, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, WHITE, BLACK, THIRTY, FORTEEN, TWENTY, fontSize, TWENTY_FOUR, RED, EIGHTEEN, INTER_BOLD, THIRTEEN, INTER_REGULAR, TWENTY_TWO } from '../../common/AppText';
+import { directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, silverCard, straightenIcon, tabViewForLikes, likedYouNewIcon, youLikedNewIcon, whosWatchingYouWhitePurhces, youLikeEmptyNew, likeYouEmptyNew, dummyMaleProfile, dummyfemaleProfile, chatPurchaseColour, onlineProfileImage, scrollatthetopIcon, verifiedBadgeIcon, modalBackground } from '../../helper/ImageAssets';
 import metrics from '../../assets/Metrics';
 import FastImage from 'react-native-fast-image';
 import { colors, newColor } from '../../theme/colors';
@@ -31,7 +33,8 @@ import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_PEOPLE_SCREEN, NAVIGATION_
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SWIPES_PER_DAY_KEY, SWIPES_REMAINING_KEY, SUPER_LIKES_REMAINING_KEY } from '../../helper/Constants';
 import messaging from "@react-native-firebase/messaging";
-import { checkMultiple, PERMISSIONS, RESULTS } from "react-native-permissions";
+import { check, request, checkMultiple, openSettings, PERMISSIONS, RESULTS } from "react-native-permissions";
+import { appOperation } from '../../appOperation';
 import Geolocation from "react-native-geolocation-service";
 import NewHeaderAndroid from '../../common/NewHeaderAndroid';
 import { useLikeDislikeAnimation } from '../../hooks/useLikeDislikeAnimation';
@@ -57,6 +60,49 @@ const runAfterInitialInteractions = (callback: () => void, delay = 0) => {
         clearTimeout(timer);
         interactionHandle?.cancel?.();
     };
+};
+
+type FaceLivenessResult =
+    | { status?: string; message?: string }
+    | string
+    | null
+    | undefined;
+
+const PremiumAnimatedModal = ({ visible, onClose, children }: any) => {
+    const [show, setShow] = useState(visible);
+    const translateY = useRef(new Animated.Value(metrics.hp5)).current;
+    const opacity = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            setShow(true);
+            Animated.parallel([
+                Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+                Animated.spring(translateY, { toValue: 0, friction: 8, tension: 50, useNativeDriver: true })
+            ]).start();
+        } else {
+            Animated.parallel([
+                Animated.timing(opacity, { toValue: 0, duration: 250, useNativeDriver: true }),
+                Animated.timing(translateY, { toValue: metrics.hp2, duration: 250, useNativeDriver: true })
+            ]).start(() => setShow(false));
+        }
+    }, [visible]);
+
+    if (!show) return null;
+
+    return (
+        <Modal transparent visible={show} onRequestClose={onClose} animationType="none">
+            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", paddingHorizontal: metrics.hp2 }}>
+                <Animated.View style={{ opacity, transform: [{ translateY }], width: "100%" }}>
+                    <ImageBackground style={{ width: "100%", shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 20, elevation: 15 }} source={modalBackground} resizeMode="stretch">
+                        <View style={{ padding: metrics.hp2 }}>
+                            {children}
+                        </View>
+                    </ImageBackground>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
 };
 
 const PulsingCircle = memo(({ size }: { size: number }) => {
@@ -221,7 +267,6 @@ const LikesYouScreen = () => {
     const dispatch = useDispatch();
     const IsFocused = useIsFocused();
     const userData = useSelector((state: any) => state.auth.userData);
-
     const [tabSelect, setTabSelect] = useState('Likes');
     const [likeYoue, setlikeYou] = useState('Likes You');
     const [ViewYoue, setViewYou] = useState('Viewed You');
@@ -240,12 +285,66 @@ const LikesYouScreen = () => {
 
     const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
 
+    const [remainingSwipes, setRemainingSwipes] = useState<number>(0);
+    const [remainingSuperLikes, setRemainingSuperLikes] = useState<number>(0);
+    const [swipesPerDay, setSwipesPerDay] = useState<number>(0);
+    const [verifyModalVisible, setVerifyModalVisible] = useState(false);
+    const [verifyStage, setVerifyStage] = useState<'prompt' | 'success' | 'error'>('prompt');
+    const [verifyError, setVerifyError] = useState('');
+
     const userDataRef = useRef<any>(userData);
 
     useEffect(() => {
         dispatch(likeByOther());
         dispatch(likeYou());
     }, [IsFocused]);
+
+    const hasReadCacheRef = useRef(false);
+
+    // ---- Swipe counters: AsyncStorage persistence (read once, then sync) ----
+    useEffect(() => {
+        const userId = userData?._id;
+        if (!userId || hasReadCacheRef.current) return;
+        hasReadCacheRef.current = true;
+
+        (async () => {
+            try {
+                const [swipes, superLikes, perDay] = await Promise.all([
+                    AsyncStorage.getItem(`${SWIPES_REMAINING_KEY}_${userId}`),
+                    AsyncStorage.getItem(`${SUPER_LIKES_REMAINING_KEY}_${userId}`),
+                    AsyncStorage.getItem(`${SWIPES_PER_DAY_KEY}_${userId}`),
+                ]);
+
+                // If API data has already populated Redux, do NOT overwrite it!
+                if (userDataRef.current?.swipesRemaining !== undefined) return;
+
+                if (swipes !== null) setRemainingSwipes(parseInt(swipes, 10));
+                if (superLikes !== null) setRemainingSuperLikes(parseInt(superLikes, 10));
+                if (perDay !== null) setSwipesPerDay(parseInt(perDay, 10));
+            } catch (error) {
+                console.warn('Error loading stored values:', error);
+            }
+        })();
+    }, [userData?._id]);
+
+    useEffect(() => {
+        if (userData && (userData.swipesRemaining !== undefined || userData.superLikesRemaining !== undefined || userData.swipesPerDay !== undefined)) {
+            setRemainingSwipes(userData?.swipesRemaining ?? 0);
+            setRemainingSuperLikes(userData?.superLikesRemaining ?? 0);
+            setSwipesPerDay(userData?.swipesPerDay ?? 0);
+        }
+    }, [userData?.swipesRemaining, userData?.superLikesRemaining, userData?.swipesPerDay]);
+
+    useEffect(() => {
+        const userId = userData?._id;
+        if (!userId) return;
+
+        AsyncStorage.multiSet([
+            [`${SWIPES_REMAINING_KEY}_${userId}`, String(remainingSwipes)],
+            [`${SUPER_LIKES_REMAINING_KEY}_${userId}`, String(remainingSuperLikes)],
+            [`${SWIPES_PER_DAY_KEY}_${userId}`, String(swipesPerDay)],
+        ]).catch((error) => console.warn('Error saving stored values:', error));
+    }, [remainingSwipes, remainingSuperLikes, swipesPerDay, userData?._id]);
 
     // Scroll To Top Logic
     const flatListRef = useRef<FlatList>(null);
@@ -317,6 +416,14 @@ const LikesYouScreen = () => {
     // ---- Like / Dislike (same business logic as the old swiper flow) ----
     const handleListSwipe = useCallback((item: any, type: "like" | "dislike") => {
         if (!item?._id) return;
+
+        if (type === "like") {
+            const unlimitedLikes = userDataRef.current?.subscription?.perks?.unlimitedLikes;
+            if (unlimitedLikes !== true) {
+                setRemainingSwipes((prev: number) => Math.max((prev ?? 0) - 1, 0));
+            }
+        }
+
         const data = {
             swipedId: item.userId,
             type: "like"
@@ -337,10 +444,148 @@ const LikesYouScreen = () => {
         setModalVisible(false)
         if (isSwipeAnimatingRef.current) return;
 
+        const unlimitedLikes = userDataRef.current?.subscription?.perks?.unlimitedLikes;
+        if (unlimitedLikes !== true) {
+            const swipes = remainingSwipes ?? userDataRef.current?.swipesRemaining ?? 0;
+            if (swipes <= 0) {
+                if (userData?.gender == "female" && userData?.faceVerified === false && swipes === 0) {
+                    setVerifyModalVisible(true)
+                    return;
+                } else {
+                    NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN);
+                    return;
+                }
+            }
+        }
+
         runLikeAnimation(() => {
             handleListSwipe(item, "like");
         });
-    }, [handleListSwipe, isSwipeAnimatingRef, runLikeAnimation]);
+    }, [handleListSwipe, isSwipeAnimatingRef, runLikeAnimation, userData, remainingSwipes, IsFocused]);
+
+    const FaceLiveness = (NativeModules as any)?.FaceLiveness as
+        | { startLiveness?: (sessionId: string) => Promise<FaceLivenessResult> }
+        | undefined;
+
+    const moduleAvailable = React.useMemo(() => {
+        return Boolean(FaceLiveness && typeof FaceLiveness.startLiveness === 'function');
+    }, [FaceLiveness]);
+
+    const getCameraPermissionType = useCallback(() => {
+        return Platform.OS === "ios" ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA;
+    }, []);
+
+    const ensureCameraPermission = useCallback(async (): Promise<boolean> => {
+        try {
+            const permission = getCameraPermissionType();
+            const status = await check(permission);
+
+            if (status === RESULTS.GRANTED) {
+                return true;
+            }
+
+            const requestStatus = await request(permission);
+
+            if (requestStatus === RESULTS.GRANTED) {
+                return true;
+            }
+
+            if (requestStatus === RESULTS.DENIED) {
+                Alert.alert(
+                    "Camera Permission Required",
+                    "We need access to your camera for face verification.",
+                    [
+                        { text: "Cancel", style: "cancel" },
+                        { text: "Ask Again", onPress: () => ensureCameraPermission() }
+                    ]
+                );
+            } else if (requestStatus === RESULTS.BLOCKED) {
+                Alert.alert(
+                    "Camera Permission Blocked",
+                    "Camera access was previously blocked. Please enable it in your device settings to proceed with face verification.",
+                    [
+                        { text: "Cancel", style: "cancel" },
+                        { text: "Open Settings", onPress: () => openSettings() }
+                    ]
+                );
+            }
+
+            return false;
+        } catch (error) {
+            console.error("Permission check failed:", error);
+            return false;
+        }
+    }, [getCameraPermissionType]);
+
+    const start = async () => {
+        if (!moduleAvailable) {
+            const msg =
+                'FaceLiveness native module not found. Make sure you rebuilt the app (not just Metro reload).';
+            console.warn('[FaceLivenessTest] ' + msg);
+            return;
+        }
+
+        try {
+            setVerifyStage('prompt');
+            setVerifyError('');
+
+            const isCameraAllowed = await ensureCameraPermission();
+            if (!isCameraAllowed) {
+                return;
+            }
+
+            console.log('[FaceLivenessTest] Requesting session from /faceId/liveliness');
+            const sessionResp = await (appOperation.customer as any).createFaceLivenessSessionAPI();
+            const sessionId = sessionResp?.data
+            console.log(sessionId, "sessionResp");
+
+            if (!sessionId) {
+                throw new Error('Session API did not return a valid sessionId');
+            }
+
+            console.log('[FaceLivenessTest] Starting native liveness with sessionId:', sessionId);
+            if (!FaceLiveness || typeof FaceLiveness.startLiveness !== 'function') {
+                throw new Error('FaceLiveness native module is not available on this device.');
+            }
+            const res = await FaceLiveness.startLiveness(sessionId);
+            console.log('[FaceLivenessTest] Native result:', res);
+
+            // Normalize a few common shapes.
+            if (res && typeof res === 'object') {
+                const status = (res as any).status;
+                if (status === 'success') {
+                    console.log('[FaceLivenessTest] Verifying session via faceId/verifySessionResult');
+                    const verifyResp = await (appOperation.customer as any).verifyFaceLivenessSessionAPI({
+                        sessionId,
+                    });
+                    if (verifyResp?.data?.success) {
+                        dispatch(getProfile(true))
+                        setVerifyStage(verifyResp?.data?.message);
+                    } else {
+                        setVerifyError(verifyResp?.data?.message);
+                        setVerifyStage('error');
+                    }
+                } else if (status === 'cancelled') {
+                    setVerifyError("Verification cancelled.");
+                    setVerifyStage('error');
+                } else {
+                    setVerifyError(String((res as any).message ?? JSON.stringify(res)));
+                    setVerifyStage('error');
+                }
+            } else if (typeof res === 'string') {
+                // E.g., iOS might return just "success"
+                setVerifyError("Liveness Success");
+                setVerifyStage('error');
+            }
+        } catch (e: any) {
+            const msg = e?.message ?? String(e);
+            console.error('[FaceLivenessTest] Error:', e);
+            setVerifyError(msg);
+            setVerifyStage('error');
+        } finally {
+            // setLoading(false);
+        }
+    };
 
     const handleCrushNote = useCallback((item: any) => {
         if (userData?.gender === "male" && userData?.isPublish === false) {
@@ -649,6 +894,105 @@ const LikesYouScreen = () => {
                 onRequestClose={() => setMatchVisible(false)}>
                 {matchVisible ? <MatchScreen setMatchVisible={setMatchVisible} matchData={matchData} /> : null}
             </Modal>
+
+            <PremiumAnimatedModal visible={verifyModalVisible} onClose={() => setVerifyModalVisible(false)}>
+                {verifyStage === 'prompt' ? (
+                    <View style={{ alignItems: "center" }}>
+                        <PulsingCircle size={metrics.hp12} />
+                        <FastImage
+                            source={{ uri: userData?.gallery?.[0]?.url ?? dummyfemaleProfile }}
+                            resizeMode='cover'
+                            style={{
+                                height: metrics.hp12,
+                                width: metrics.hp12,
+                                borderRadius: metrics.hp12 / 2,
+                                marginTop: -metrics.hp16_5,
+                                borderWidth: metrics.hp0_1,
+                                borderColor: "#F69E82",
+                            }}
+                        />
+                        <AppText style={{ marginTop: metrics.hp4 }} type={EIGHTEEN} color={WHITE} weight={INTER_BOLD}>
+                            Verify Your Identity
+                        </AppText>
+                        <AppText style={{ textAlign: "center", marginTop: metrics.hp2, paddingHorizontal: metrics.hp2 }} type={THIRTEEN} color={WHITE} weight={INTER_REGULAR}>
+                            To keep our community safe, please complete a quick face verification to continue.
+                        </AppText>
+                        <TouchableOpacityView
+                            style={{
+                                backgroundColor: "#F69E82",
+                                paddingVertical: metrics.hp1_5,
+                                paddingHorizontal: metrics.hp4,
+                                borderRadius: metrics.hp2,
+                                marginTop: metrics.hp3,
+                                width: '100%',
+                                alignItems: 'center'
+                            }}
+                            onPress={start}
+                        >
+                            <AppText type={FORTEEN} color={BLACK} weight={INTER_SEMI_BOLD}>
+                                Verify Now
+                            </AppText>
+                        </TouchableOpacityView>
+                        <TouchableOpacityView
+                            style={{ marginTop: metrics.hp2 }}
+                            onPress={() => setVerifyModalVisible(false)}
+                        >
+                            <AppText type={THIRTEEN} color={"#F69E82"} weight={INTER_MEDIUM}>
+                                Cancel
+                            </AppText>
+                        </TouchableOpacityView>
+                    </View>
+                ) : verifyStage === 'success' ? (
+                    <View style={{ alignItems: "center", paddingVertical: metrics.hp2 }}>
+                        <View style={{ height: metrics.hp8, width: metrics.hp8, borderRadius: metrics.hp4, backgroundColor: '#4CAF50', justifyContent: 'center', alignItems: 'center', marginBottom: metrics.hp2 }}>
+                            <AppText type={TWENTY_TWO} color={WHITE} weight={INTER_BOLD}>✓</AppText>
+                        </View>
+                        <AppText type={EIGHTEEN} color={WHITE} weight={INTER_BOLD}>
+                            Verification Successful!
+                        </AppText>
+                        <AppText style={{ textAlign: "center", marginTop: metrics.hp1 }} type={THIRTEEN} color={WHITE} weight={INTER_REGULAR}>
+                            Thank you for verifying your identity.
+                        </AppText>
+                        <TouchableOpacityView
+                            style={{ backgroundColor: "#4CAF50", paddingVertical: metrics.hp1_5, paddingHorizontal: metrics.hp4, borderRadius: metrics.hp2, marginTop: metrics.hp3, width: '100%', alignItems: 'center' }}
+                            onPress={() => setVerifyModalVisible(false)}
+                        >
+                            <AppText type={FORTEEN} color={WHITE} weight={INTER_SEMI_BOLD}>
+                                Continue
+                            </AppText>
+                        </TouchableOpacityView>
+                    </View>
+                ) : (
+                    <View style={{ alignItems: "center", paddingVertical: metrics.hp2 }}>
+                        <View style={{ height: metrics.hp8, width: metrics.hp8, borderRadius: metrics.hp4, backgroundColor: RED, justifyContent: 'center', alignItems: 'center', marginBottom: metrics.hp2 }}>
+                            <AppText type={TWENTY_TWO} color={WHITE} weight={INTER_BOLD}>✕</AppText>
+                        </View>
+                        <AppText type={EIGHTEEN} color={WHITE} weight={INTER_BOLD}>
+                            Verification Failed
+                        </AppText>
+                        <AppText style={{ textAlign: "center", marginTop: metrics.hp1, paddingHorizontal: metrics.hp2 }} type={THIRTEEN} color={WHITE} weight={INTER_REGULAR}>
+                            {verifyError || "We couldn't verify your identity. Please try again in good lighting."}
+                        </AppText>
+                        <TouchableOpacityView
+                            style={{ backgroundColor: RED, paddingVertical: metrics.hp1_5, paddingHorizontal: metrics.hp4, borderRadius: metrics.hp2, marginTop: metrics.hp3, width: '100%', alignItems: 'center' }}
+                            onPress={start}
+                        >
+                            <AppText type={FORTEEN} color={WHITE} weight={INTER_SEMI_BOLD}>
+                                Try Again
+                            </AppText>
+                        </TouchableOpacityView>
+                        <TouchableOpacityView
+                            style={{ marginTop: metrics.hp2 }}
+                            onPress={() => setVerifyModalVisible(false)}
+                        >
+                            <AppText type={THIRTEEN} color={"#F69E82"} weight={INTER_MEDIUM}>
+                                Cancel
+                            </AppText>
+                        </TouchableOpacityView>
+                    </View>
+                )}
+            </PremiumAnimatedModal>
+
         </AppSafeAreaView>
     );
 };

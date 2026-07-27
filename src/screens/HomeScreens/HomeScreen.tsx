@@ -852,15 +852,10 @@ const PeopleScreen = () => {
                         sessionId,
                     });
                     if (verifyResp?.data?.success) {
-                        if (verifyResp?.data?.confidence >= 80) {
-                            dispatch(getProfile(true))
-                            setVerifyStage('success');
-                        } else {
-                            setVerifyError("Confidence too low. Please try again.");
-                            setVerifyStage('error');
-                        }
+                        dispatch(getProfile(true))
+                        setVerifyStage(verifyResp?.data?.message);
                     } else {
-                        setVerifyError(verifyResp?.message || "Verification failed. Please try again.");
+                        setVerifyError(verifyResp?.data?.message);
                         setVerifyStage('error');
                     }
                 } else if (status === 'cancelled') {
