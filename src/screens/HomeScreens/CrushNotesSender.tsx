@@ -18,7 +18,7 @@ import { getProfile, sendCrushNotesAPI } from "../../actions/authActions";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 import { toastAlert } from "../../actions/UploadImageActions";
-import { beingWatchIcon, bioBackground, biosToggla, bitingIcon, blinedFlodedIcon, BottomLayer, choclateImageNew, danceNewIcon, dirtyTalks, dobIcon, dummyfemaleProfile, dummyMaleProfile, fantasiesIcon, forProfileDetailsBack, fotFetiesIcon, hairIcon, heightIconWhiteNew, hugsIcon, locationIconWhiteNew, lockIconWhite, massageIcon, musicIcons, oralIcon, partnerheart, pronounIcon, rolePlayImageNew, roomServiceIcon, scentsIcon, sendMessageNewIcon, sendMessageText, sextingIcon, smooheshIcon, TattosIcon, touchNewIcon, trunOnBackground, trunOnIcon, unMatchProfileIcon } from "../../helper/ImageAssets";
+import { beingWatchIcon, bioBackground, biosToggla, bitingIcon, blinedFlodedIcon, BottomLayer, choclateImageNew, danceNewIcon, dirtyTalks, dobIcon, dummyfemaleProfile, dummyMaleProfile, fantasiesIcon, forProfileDetailsBack, fotFetiesIcon, hairIcon, heightIconWhiteNew, hugsIcon, locationIconWhiteNew, lockIconWhite, massageIcon, musicIcons, oralIcon, partnerheart, pronounIcon, rolePlayImageNew, roomServiceIcon, scentsIcon, sendMessageNewIcon, sendMessageText, sextingIcon, sexualityIcon, smooheshIcon, TattosIcon, touchNewIcon, trunOnBackground, trunOnIcon, unMatchProfileIcon } from "../../helper/ImageAssets";
 const ITEM_WIDTH = metrics.hp34;
 const SPACING = metrics.hp1;
 const TURN_ON_IMAGES: any = {
@@ -157,6 +157,10 @@ const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfil
             </TouchableOpacity>
         )
     };
+    const capitalizeFirstLetter = (text: string) => {
+        if (!text) return text;
+        return text.charAt(0).toUpperCase() + text.slice(1);
+    };
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? undefined : undefined}
@@ -226,35 +230,53 @@ const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfil
                                         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
                                             <FastImage source={pronounIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
                                             <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                                {"  "}{currentProfileData?.gender}
+                                                {"  "}{capitalizeFirstLetter(currentProfileData?.gender)}
                                             </AppText>
                                         </View>
+                                        {currentProfileData?.sexualOrientation ?
+                                            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
+                                                <FastImage source={sexualityIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                                <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
+                                                    {"  "}{capitalizeFirstLetter(currentProfileData?.sexualOrientation)}
+                                                </AppText>
+                                            </View> : <></>}
                                         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
                                             <FastImage source={dobIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
                                             <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                                {"  "}{currentProfileData?.age} years
+                                                {"  "}{(currentProfileData?.age || "")} years
                                             </AppText>
                                         </View>
-                                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168" }}>
-                                            <FastImage source={partnerheart} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
-                                            <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                                {"  "}{currentProfileData?.distanceInKm < 10 ? "Near You" : `${currentProfileData?.distanceInKm} Km`}
-                                            </AppText>
-                                        </View>
+                                        {currentProfileData?.sexualOrientation ? <></> :
+                                            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
+                                                <FastImage source={heightIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                                <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
+                                                    {"  "}{(currentProfileData?.height || "")} ft
+                                                </AppText>
+                                            </View>
+                                        }
+                                        {/* <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168" }}>
+                                    <FastImage source={partnerheart} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                    <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
+                                        {"  "}{("0")} Km
+                                    </AppText>
+                                </View> */}
                                     </View>
                                     <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
-                                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
-                                            <FastImage source={heightIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
-                                            <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                                {"  "}{currentProfileData?.height} ft
-                                            </AppText>
-                                        </View>
-                                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
-                                            <FastImage source={locationIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
-                                            <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                                {"  "}{currentProfileData?.city}
-                                            </AppText>
-                                        </View>
+                                        {currentProfileData?.sexualOrientation ?
+                                            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
+                                                <FastImage source={heightIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                                <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
+                                                    {"  "}{(currentProfileData?.height || "")} ft
+                                                </AppText>
+                                            </View>
+                                            : <></>}
+                                        {currentProfileData?.city || currentProfileData?.homeTown ?
+                                            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
+                                                <FastImage source={locationIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                                <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
+                                                    {"  "}{(capitalizeFirstLetter(currentProfileData?.city) || currentProfileData?.homeTown || "")}
+                                                </AppText>
+                                            </View> : <></>}
                                     </View>
                                     <ImageBackground source={bioBackground} resizeMode="stretch" style={{ height: metrics.hp9, width: "100%", marginTop: metrics.hp6, }}>
                                         <ImageBackground source={biosToggla} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp13, alignSelf: "center", marginTop: -metrics.hp2 }} >

@@ -206,7 +206,7 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData
                     <View style={styles.metaRow}>
                         <FastImage source={locIcon} resizeMode='contain' style={styles.metaIcon} />
                         <AppText color={WHITE} weight={INTER_SEMI_BOLD}>
-                            {" "}{item.distanceInKm < 10 ? "Near You" : `${item.distanceInKm} Km`}, {capitalizeFirstLetter(item.city)}
+                            {" "}{capitalizeFirstLetter(item.city)}
                         </AppText>
                     </View>
                     <View style={[styles.metaRow, { marginTop: metrics.hp0_5 }]}>
@@ -358,7 +358,7 @@ const PeopleScreen = () => {
 
     const handleResetFilter = () => {
         setAgeRange([18, 80]);
-        setLocationRadiusEnabled(true);
+        setLocationRadiusEnabled(false);
         setRadius([100]);
         setPhotosOnly(false);
     };
@@ -375,11 +375,20 @@ const PeopleScreen = () => {
                 preferredDistanceKm: radius[0],
                 onlyImage: photosOnly
             };
+            const filterData = {
+                preferredAgeRange: {
+                    min: ageRange[0],
+                    max: ageRange[1]
+                },
+                global: locationRadiusEnabled,
+                onlyImage: photosOnly,
+                city: userData?.city
+            };
             const response: any = await appOperation.customer.editFilterAPI(payload);
             if (response?.statusCode == 200 || response?.success || response?.status) {
                 toastAlert.showToastError('Filters updated successfully');
                 filterSheetRef.current?.close();
-                dispatch(listProfiles(true, 0, PROFILE_BATCH_LIMIT, false));
+                dispatch(listProfiles(true, 0, PROFILE_BATCH_LIMIT, false, filterData));
                 dispatch(getProfile(true));
             } else {
                 toastAlert.showToastError(response?.message || 'Failed to update filters');
@@ -736,7 +745,7 @@ const PeopleScreen = () => {
         <View style={styles.emptyContainer}>
             <PulsingCircle size={metrics.hp15} />
             <View style={styles.emptyAvatarRing}>
-                <FastImage resizeMode='cover' style={styles.emptyImage} source={{ uri: userData?.gallery?.[0]?.url }} />
+                <FastImage resizeMode='cover' style={styles.emptyImage} source={userData?.gallery?.[0]?.url ? { uri: userData?.gallery?.[0]?.url } : userData?.gander === "male" ? dummyfemaleProfile : dummyMaleProfile} />
             </View>
             <AppText style={styles.emptyText} type={TWELVE} color={WHITE} weight={INTER_MEDIUM}>
                 Searching people near you...
@@ -810,7 +819,27 @@ const PeopleScreen = () => {
             return false;
         }
     }, [getCameraPermissionType]);
+    // const fetchCity = async () => {
 
+    //     try {
+    //         const response = await fetch('https://ipinfo.io/json');
+    //         const data = await response.json();
+    //         console.log(data, "datadatadatadata");
+
+
+    //         console.log(data.city, "cityyyyyyyy");
+    //         console.log(data.region);
+    //         console.log(data.country_name);
+    //     } catch (error) {
+    //         console.log(error, "errorerrorerror")
+    //     }
+
+
+
+    // };
+    // useEffect(() => {
+    //     fetchCity()
+    // }, []);
     const start = async () => {
         if (!moduleAvailable) {
             const msg =
@@ -943,7 +972,8 @@ const PeopleScreen = () => {
                 onRequestClose={() => setModalVisible(false)}>
                 <ViewProfileAndroid currentProfileData={currentProfileData} setModalVisible={setModalVisible}
                     handleDislikePress={handleDislikePress}
-                    handleLikePress={handleLikePress} />
+                    handleLikePress={handleLikePress}
+                    handleCrushNote={handleCrushNote} />
             </Modal>
             <Modal
                 animationType="fade"
@@ -1026,7 +1056,7 @@ const PeopleScreen = () => {
                     {/* Location Radius */}
                     <View style={styles.filterRow}>
                         <AppText type={FORTEEN} weight={INTER_SEMI_BOLD} color={WHITE} style={{ fontSize: fontSize(14) }}>
-                            Location Radius
+                            Global Radius
                         </AppText>
                         <TouchableOpacityView onPress={() => setLocationRadiusEnabled(!locationRadiusEnabled)}>
                             <FastImage
@@ -1036,24 +1066,27 @@ const PeopleScreen = () => {
                             />
                         </TouchableOpacityView>
                     </View>
-                    <View style={styles.radiusLabels}>
-                        <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={WHITE}>{radius} Km</AppText>
-                        <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={WHITE}>200 km</AppText>
-                    </View>
-                    <View style={styles.sliderWrapper}>
-                        <MultiSlider
-                            values={[radius[0]]}
-                            sliderLength={metrics.wp80}
-                            onValuesChange={(values) => setRadius(values)}
-                            min={0}
-                            max={200}
-                            step={1}
-                            selectedStyle={{ backgroundColor: "#D08FA9" }}
-                            unselectedStyle={{ backgroundColor: "#555" }}
-                            markerStyle={{ backgroundColor: "#D08FA9", height: metrics.hp2_5, width: metrics.hp2_5, marginTop: metrics.hp0_5 }}
-                        />
-                    </View>
-
+                    {!locationRadiusEnabled ?
+                        <>
+                            <View style={styles.radiusLabels}>
+                                <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={WHITE}>{radius} Km</AppText>
+                                <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={WHITE}>200 km</AppText>
+                            </View>
+                            <View style={styles.sliderWrapper}>
+                                <MultiSlider
+                                    values={[radius[0]]}
+                                    sliderLength={metrics.wp80}
+                                    onValuesChange={(values) => setRadius(values)}
+                                    min={0}
+                                    max={200}
+                                    step={1}
+                                    selectedStyle={{ backgroundColor: "#D08FA9" }}
+                                    unselectedStyle={{ backgroundColor: "#555" }}
+                                    markerStyle={{ backgroundColor: "#D08FA9", height: metrics.hp2_5, width: metrics.hp2_5, marginTop: metrics.hp0_5 }}
+                                />
+                            </View>
+                        </> : <></>
+                    }
                     <View style={[styles.sheetSeparator, { marginTop: metrics.hp1 }]} />
 
                     {/* Photos Only */}
@@ -1073,23 +1106,24 @@ const PeopleScreen = () => {
                     <View style={[styles.sheetSeparator, { marginTop: metrics.hp2 }]} />
 
                     {/* Action Buttons */}
-                    <View style={styles.filterActionRow}>
-                        <TouchableOpacityView onPress={handleResetFilter}>
-                            <ImageBackground source={resetButtonNew} resizeMode="contain" style={styles.actionBtnImage} >
-                                <AppText color={WHITE} weight={SCHEHERAZADE_BOLD} type={EIGHTEEN}>
-                                    Reset
-                                </AppText>
-                            </ImageBackground>
-                        </TouchableOpacityView>
-                        <TouchableOpacityView onPress={isApplyingFilter ? undefined : handleSearchFilter}>
-                            <ImageBackground source={serachButtonNew} resizeMode="contain" style={[styles.actionBtnImage, isApplyingFilter && { opacity: 0.5 }]} >
-                                <AppText color={BLACK} weight={SCHEHERAZADE_BOLD} type={EIGHTEEN}>
-                                    {isApplyingFilter ? "Applying..." : "Search"}
-                                </AppText>
-                            </ImageBackground>
-                        </TouchableOpacityView>
-                    </View>
+
                 </ScrollView>
+                <View style={styles.filterActionRow}>
+                    <TouchableOpacityView onPress={handleResetFilter}>
+                        <ImageBackground source={resetButtonNew} resizeMode="contain" style={styles.actionBtnImage} >
+                            <AppText color={WHITE} weight={SCHEHERAZADE_BOLD} type={EIGHTEEN}>
+                                Reset
+                            </AppText>
+                        </ImageBackground>
+                    </TouchableOpacityView>
+                    <TouchableOpacityView onPress={isApplyingFilter ? undefined : handleSearchFilter}>
+                        <ImageBackground source={serachButtonNew} resizeMode="contain" style={[styles.actionBtnImage, isApplyingFilter && { opacity: 0.5 }]} >
+                            <AppText color={BLACK} weight={SCHEHERAZADE_BOLD} type={EIGHTEEN}>
+                                {isApplyingFilter ? "Applying..." : "Search"}
+                            </AppText>
+                        </ImageBackground>
+                    </TouchableOpacityView>
+                </View>
             </RBSheet>
             <PremiumAnimatedModal
                 visible={verifyModalVisible}
@@ -1241,6 +1275,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         marginTop: metrics.hp2,
+        paddingHorizontal:metrics.hp4
     },
     actionBtnImage: {
         height: metrics.hp6,

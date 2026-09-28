@@ -199,7 +199,7 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, likeYoue
                     <View style={styles.metaRow}>
                         <FastImage source={locIcon} resizeMode='contain' style={styles.metaIcon} />
                         <AppText color={WHITE} weight={INTER_SEMI_BOLD}>
-                            {" "}{item.distanceInKm < 10 ? "Near You" : `${item.distanceInKm} Km`}, {capitalizeFirstLetter(item.city)}
+                            {" "}{capitalizeFirstLetter(item.city)}
                         </AppText>
                     </View>
                     <View style={[styles.metaRow, { marginTop: metrics.hp0_5 }]}>
@@ -877,7 +877,8 @@ const LikesYouScreen = () => {
                 onRequestClose={() => setModalVisible(false)}>
                 <ViewProfileAndroid currentProfileData={currentProfileData} setModalVisible={setModalVisible}
                     handleDislikePress={handleDislikePress}
-                    handleLikePress={handleLikePress} likeYoue={likeYoue} />
+                    handleLikePress={handleLikePress} likeYoue={likeYoue} 
+                    handleCrushNote={handleCrushNote}/>
             </Modal>
             <Modal
                 animationType="fade"

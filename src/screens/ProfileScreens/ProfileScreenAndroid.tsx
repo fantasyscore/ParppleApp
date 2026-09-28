@@ -574,12 +574,13 @@ const ProfileScreenAndroid = () => {
                                         </AppText>
                                     </View>
                                     : <></>}
-                                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
-                                    <FastImage source={locationIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
-                                    <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                        {"  "}{capitalizeFirstLetter(userData?.city)}
-                                    </AppText>
-                                </View>
+                                {userData?.city ?
+                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
+                                        <FastImage source={locationIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                        <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
+                                            {"  "}{capitalizeFirstLetter(userData?.city)}
+                                        </AppText>
+                                    </View> : <></>}
                             </View>
 
                         </View>

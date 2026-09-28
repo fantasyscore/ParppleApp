@@ -106,7 +106,7 @@ export const addProfile: any = (data: any) => async (dispatch: any) => {
         return { statusCode: 500, message: String(error ?? "") };
     }
 };
-export const listProfiles: any = (navigate: any, skip?: number, limit?: number, merge?: boolean) => async (dispatch: any, getState: any) => {
+export const listProfiles: any = (navigate: any, skip?: number, limit?: number, merge?: boolean, filterData?: any) => async (dispatch: any, getState: any) => {
     // Prevent accidental rapid duplicate calls from multiple screens mounting.
     // (e.g. AuthLoading + Home focus effect)
     // Note: we only guard "in flight", not "already cached".
@@ -116,6 +116,11 @@ export const listProfiles: any = (navigate: any, skip?: number, limit?: number, 
         const payload: any = {};
         if (skip !== undefined) payload.skip = skip;
         if (limit !== undefined) payload.limit = limit;
+        if (filterData?.global === false) payload.city = filterData?.city;
+        payload.minAge = filterData?.preferredAgeRange?.min;
+        payload.maxAge = filterData?.preferredAgeRange?.max;
+        payload.photosOnly = filterData?.onlyImage;
+        payload.anywhere = filterData?.global
 
         const response: any = await appOperation.customer.datingProfileAPI(payload);
         if (response?.statusCode == 200) {
@@ -218,7 +223,7 @@ export const youView: any = () => async (dispatch: any) => {
         // toastAlert.showToastError(error);
     }
 };
-export const getOtherProfile: any = (data: any, setCurrentProfileData:any, setOtherUserProfile:any) => async (dispatch: any) => {
+export const getOtherProfile: any = (data: any, setCurrentProfileData: any, setOtherUserProfile: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.otherDataProfileAPI(data);
         if (response?.statusCode == 200) {
@@ -308,19 +313,19 @@ export const discoverProfile: any = () => async (dispatch: any) => {
 export const getNewMatches: any = () => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.newMatchesAPI();
-        console.log(response,"responseresponseresponseresponseresponseresponse");
-        
+        console.log(response, "responseresponseresponseresponseresponseresponse");
+
         if (response?.statusCode == 200) {
             dispatch(setNewMatches(response?.data))
         }
     } catch (error: any) {
     }
 };
-export const publishProfileEveryone: any = (data:any) => async (dispatch: any) => {
+export const publishProfileEveryone: any = (data: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.publishProfileAPI(data);
-        console.log(response,"responseresponse");
-        
+        console.log(response, "responseresponse");
+
         if (response?.statusCode == 200) {
             dispatch(getProfile(true) as any);
             // dispatch(setNewMatches(response?.data))
@@ -331,8 +336,8 @@ export const publishProfileEveryone: any = (data:any) => async (dispatch: any) =
 export const getRecentMatches: any = () => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.recentMatchesAPI();
-        console.log(response,"responseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponse");
-        
+        console.log(response, "responseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponse");
+
         if (response?.statusCode == 200) {
             dispatch(setRecentMatches(response?.data))
         }

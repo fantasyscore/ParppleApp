@@ -37,7 +37,7 @@ const TURN_ON_IMAGES: any = {
     "Chocolate": choclateImageNew,
     "Touch": touchNewIcon,
 };
-const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislikePress, handleLikePress, likeYoue, ViewYoue }: any) => {
+const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislikePress, handleLikePress, likeYoue, ViewYoue, handleCrushNote }: any) => {
 
     const scrollX = useRef(new Animated.Value(0)).current;
     const userData = useSelector((state: any) => state.auth.userData);
@@ -212,57 +212,45 @@ const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislike
                                         <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
                                             {"  "}{capitalizeFirstLetter(currentProfileData?.sexualOrientation)}
                                         </AppText>
-                                    </View>
-                                    : <></>}
+                                    </View> : <></>}
                                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
                                     <FastImage source={dobIcon} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
                                     <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                        {"  "}{currentProfileData?.age} years
+                                        {"  "}{(currentProfileData?.age || "")} years
                                     </AppText>
                                 </View>
                                 {currentProfileData?.sexualOrientation ? <></> :
-                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168" }}>
-                                        <FastImage source={partnerheart} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
+                                        <FastImage source={heightIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
                                         <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                            {"  "}{currentProfileData?.distanceInKm < 10 ? "Near You" : `${currentProfileData?.distanceInKm} Km`}
+                                            {"  "}{(currentProfileData?.height || "")} ft
                                         </AppText>
                                     </View>
                                 }
+                                {/* <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168" }}>
+                                    <FastImage source={partnerheart} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                    <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
+                                        {"  "}{("0")} Km
+                                    </AppText>
+                                </View> */}
                             </View>
                             <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
                                 {currentProfileData?.sexualOrientation ?
-                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168" }}>
-                                        <FastImage source={partnerheart} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
+                                        <FastImage source={heightIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
                                         <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                            {"  "}{currentProfileData?.distanceInKm < 10 ? "Near You" : `${currentProfileData?.distanceInKm} Km`}
+                                            {"  "}{(currentProfileData?.height || "")} ft
                                         </AppText>
-                                    </View> : <></>
-                                }
-                                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1, marginLeft: currentProfileData?.sexualOrientation ? metrics.hp1 : metrics.hp0 }}>
-                                    <FastImage source={heightIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
-                                    <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                        {"  "}{currentProfileData?.height} ft
-                                    </AppText>
-                                </View>
-                                {currentProfileData?.sexualOrientation ? <></> :
-                                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
-                                            <FastImage source={locationIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
-                                            <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                                {"  "}{capitalizeFirstLetter(currentProfileData?.city)}
-                                            </AppText>
-                                        </View>
-                                    </View>}
-                            </View>
-                            {currentProfileData?.sexualOrientation ?
-                                <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
+                                    </View>
+                                    : <></>}
+                                {currentProfileData?.city || currentProfileData?.homeTown ?
                                     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
                                         <FastImage source={locationIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
                                         <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                            {"  "}{capitalizeFirstLetter(currentProfileData?.city)}
+                                            {"  "}{(capitalizeFirstLetter(currentProfileData?.city) || currentProfileData?.homeTown || "")}
                                         </AppText>
-                                    </View>
-                                </View> : <></>}
+                                    </View> : <></>}
+                            </View>
                             <ImageBackground source={bioBackground} resizeMode="stretch" style={{ /* height: metrics.hp9, */ width: "100%", marginTop: metrics.hp6, }}>
                                 <ImageBackground source={biosToggla} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp13, alignSelf: "center", marginTop: -metrics.hp2 }} >
                                     <AppText style={{ textAlign: "center" }} type={FORTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE}>
@@ -306,7 +294,7 @@ const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislike
                         <FastImage source={newLikeIcon} resizeMode='contain' style={styles.likeButton} />
                     </TouchableOpacityView>
                 }
-                <TouchableOpacityView onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN)} activeOpacity={1} >
+                <TouchableOpacityView onPress={() => handleCrushNote(currentProfileData)} activeOpacity={1} >
                     <FastImage source={directChatIcon} resizeMode='contain' style={styles.chatButton} />
                 </TouchableOpacityView>
             </View>
