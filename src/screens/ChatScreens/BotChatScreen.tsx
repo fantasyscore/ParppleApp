@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { Bubble, GiftedChat, Time } from 'react-native-gifted-chat';
+import { Chat, Bubble, Time } from '@kesha-antonov/react-native-chat';
 import { AppIcon, backIcon, backIconNew, blackIcon, blockModalImage, blueTikeIcon, check, checks, emojiIcon, HeaderHomeBack, noccce, profileImage, rightBlack, sendButton, timeShowNewBackground, unmatchModalImage } from '../../helper/ImageAssets';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 import ChatHeader from '../../common/ChatHeader';
@@ -65,7 +65,7 @@ const BotChatScreen = () => {
 
   const renderBubble = useCallback((props: any) => {
     return (
-      <View style={styles.bubbleWrapperRight}>
+      // <View style={styles.bubbleWrapperRight}>
         <Bubble
           {...props}
           wrapperStyle={{
@@ -78,7 +78,7 @@ const BotChatScreen = () => {
           }}
         />
 
-      </View>
+      // </View>
     );
   }, []);
 
@@ -96,7 +96,7 @@ const BotChatScreen = () => {
     return (
       <View>
         {/* <Time {...props} timeTextStyle={{ left: { color: colors.darkOpecity }, right: { color: colors.darkOpecity } }} containerStyle={{ left: { marginTop: 2 }, right: { marginTop: 2 } }} /> */}
-        {props?.currentMessage?.isMine ?
+        {/* {props?.currentMessage?.isMine ?
           <FastImage source={noccce} resizeMode='contain' style={{
             height: metrics.hp2, width: metrics.hp2_3, position: 'absolute',
             bottom: -metrics.hp0_29,
@@ -110,7 +110,7 @@ const BotChatScreen = () => {
               alignItems: 'center',
               justifyContent: 'center',
             }} />
-        }
+        } */}
       </View>
     );
   };
@@ -133,9 +133,9 @@ const BotChatScreen = () => {
           </AppText>
         </TouchableOpacityView>
       </ImageBackground>
-      <View style={{ flex: 1 }}>
+      {/* <View style={{ flex: 1 }}> */}
         <View style={styles.containerChat}>
-          <GiftedChat
+          <Chat
             messages={ChatMessage}
             user={{ _id: USER_ID, name: 'Gurrent User', avatar: profileImage }}
             renderAvatar={renderAvatar}
@@ -143,10 +143,19 @@ const BotChatScreen = () => {
             renderDay={renderDay}
             renderTime={renderTime}
             renderInputToolbar={renderCustomInput}
-            showUserAvatar={false}
+            theme={{
+              colors: {
+                  background: newColor.blackNew,
+              }
+          }}
+            darkTheme={{
+              colors:{
+                  background: newColor.blackNew,
+              }
+          }}
           />
         </View>
-      </View>
+      {/* </View> */}
     </AppSafeAreaView>
   );
 };
@@ -183,7 +192,7 @@ const styles = StyleSheet.create({
   tabContainer: { backgroundColor: colors.white, height: metrics.hp5, justifyContent: 'flex-end' },
   selectLine: { height: metrics.hp0_3, width: metrics.hp11, borderTopRightRadius: metrics.hp1, borderTopLeftRadius: metrics.hp1 },
   inTabContainer: { alignItems: 'center', justifyContent: 'center', flex: 1 },
-  containerChat: { flex: 1, backgroundColor: newColor.blackNew, paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp5 },
+  containerChat: { flex: 1, backgroundColor: newColor.blackNew, /* paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp5 */ },
   inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: metrics.hp2, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e0e0e0', paddingVertical: metrics.hp2 },
   textInput: { minHeight: metrics.hp4, maxHeight: metrics.hp8, fontSize: fontSize(13), width: "83%", fontFamily: interMedium, marginLeft: metrics.hp1 },
   sendButton: { backgroundColor: '#6F13F2', borderRadius: metrics.hp50, marginLeft: 6, justifyContent: 'center', alignItems: 'center', height: metrics.hp5_5, width: metrics.hp5_5 },

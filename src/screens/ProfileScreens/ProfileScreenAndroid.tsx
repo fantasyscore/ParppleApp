@@ -213,6 +213,12 @@ const ProfileScreenAndroid = () => {
     const deleteImage = async (item: any) => {
         if (item.loading) return;
 
+        const validPhotosCount = localPhotosRef.current.filter(p => p.image && p.image !== "Unsupported").length;
+        if (validPhotosCount <= 2 && item.image && item.image !== "Unsupported") {
+            toastAlert.showToastError("You must have at least 2 photos on your profile.");
+            return;
+        }
+
         const imageId = item.imageId;
 
         if (!imageId) {

@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { Alert, PermissionsAndroid, Platform } from "react-native";
 import { launchImageLibrary } from "react-native-image-picker";
 import { Image as ImageCompressor } from "react-native-compressor";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { check, request, PERMISSIONS, RESULTS, openSettings } from "react-native-permissions";
 import { uploadImagesPhotoAPI } from "../../actions/authActions";
 import { analyzeFaceForMask, FaceMaskAnalysis } from "../../helper/faceMask";
@@ -121,6 +121,8 @@ interface Options {
  */
 export function usePhotoEditorUpload({ canStart, onUploaded }: Options) {
   const dispatch = useDispatch();
+  const userData = useSelector((state: any) => state.auth.userData);
+
   const [session, setSession] = useState<EditorSession>(CLOSED_SESSION);
   const [busy, setBusy] = useState(false);
   const isPickerOpenRef = useRef(false);
@@ -197,7 +199,7 @@ export function usePhotoEditorUpload({ canStart, onUploaded }: Options) {
         type: file.type,
         name: file.name,
       } as any);
-
+      formData.append("gender", userData?.gender);
       const response: any = await dispatch(uploadImagesPhotoAPI(formData));
       console.log("[PhotoEditorUpload] Upload response:", response);
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Animated, Dimensions, FlatList, Image, ImageBackground, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
+import { Animated, Dimensions, FlatList, Image, ImageBackground, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 import PeopleHeader from "../../common/PeopleHeader";
 import CrushNotesHeader from "../../common/CrushNotesHeader";
 import metrics from "../../assets/Metrics";
@@ -44,12 +44,13 @@ const TURN_ON_IMAGES: any = {
     "Touch": touchNewIcon,
 };
 const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfileData, handleCrushNotes }: any) => {
-    console.log(currentProfileData, "currentProfileDatacurrentProfileDatacurrentProfileData");
+
 
     const dispatch = useDispatch();
     const cardWidthRef = useRef(0);
     const [inputText, setInputText] = useState('');
     const [keyboardHeight, setKeyboardHeight] = useState(0);
+    const [crushNoteModal, setCrushNoteModal] = useState(false)
     const userData = useSelector((state: any) => state.auth.userData);
     const turnOnData = useSelector((state: any) => state?.auth?.turnOnData);
     const scrollX = useRef(new Animated.Value(0)).current;
@@ -73,14 +74,16 @@ const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfil
         };
     }, []);
     const selectedTurnOnList = React.useMemo(() => {
-        if (!turnOnData?.length || !currentProfileData?.attributes?.length) {
+        if (!turnOnData?.length || !currentProfileData?.turnOns?.length) {
             return [];
         }
 
         return turnOnData.filter((item: any) =>
-            currentProfileData.attributes.includes(item._id)
-        );
-    }, [turnOnData, currentProfileData?.attributes]);
+            currentProfileData.turnOns.some(
+              (turnOn: any) => String(turnOn._id) === String(item._id)
+            )
+          );
+    }, [turnOnData, currentProfileData?.turnOns]);
     const sendCrushNote = async () => {
         if (!inputText.trim()) return;
         const remaining = Number(userData?.crushNotesRemaining);
@@ -90,13 +93,14 @@ const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfil
             return;
         }
         const datasend = {
-            receiverId: currentProfileData?._id,
+            receiverId: currentProfileData?.userId,
             message: inputText
         };
+
         try {
             const response = await dispatch(sendCrushNotesAPI(datasend));
-
             if (response?.statusCode === 200) {
+                toastAlert.showToastError(response.message)
                 if (crushNoteVisible) {
                     setCrushNoteVisible(false);
                     handleCrushNotes(currentProfileData)
@@ -104,10 +108,14 @@ const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfil
                 dispatch(getProfile(true));
             }
         } catch (error) {
-            toastAlert.showToastError("You can only send one crush note to this user per 24 hours")
+            if (setCrushNoteVisible) setCrushNoteVisible(false);
+            setTimeout(() => {
+                toastAlert.showToastError("You can only send one crush note to this user per 24 hours");
+            }, 500);
             console.log("Error sending crush note:", error);
         }
     };
+
     const renderItem = ({ item, index }: any) => {
         const inputRange = [
             (index - 1) * (ITEM_WIDTH + SPACING),
@@ -161,6 +169,7 @@ const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfil
         if (!text) return text;
         return text.charAt(0).toUpperCase() + text.slice(1);
     };
+
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? undefined : undefined}
@@ -217,12 +226,12 @@ const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfil
                             }}>
                             <ImageBackground
                                 source={forProfileDetailsBack}
-                                resizeMode="contain"
+                                resizeMode="stretch"
                                 style={styles.detailsContainer}>
-                                <View style={{ paddingHorizontal: metrics.hp2 }}>
-                                    <View style={{ flexDirection: "row" }}>
-                                        <FastImage source={currentProfileData?.profilePicture?.legnth || currentProfileData?.gallery?.length ? { uri: currentProfileData?.profilePicture ? currentProfileData?.profilePicture[0]?.url : currentProfileData?.gallery[0]?.url } : currentProfileData?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={{ height: metrics.hp10, width: metrics.hp10, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: "#E6B7A8", marginTop: -metrics.hp2 }} />
-                                        <AppText type={TWENTY} weight={SCHEHERAZADE_BOLD} style={{ color: "#E6B7A8", marginTop: metrics.hp2 }}>
+                                <View style={{ paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp2 }}>
+                                    <View style={{ flexDirection: "row", marginTop: -metrics.hp2 }}>
+                                        <FastImage source={currentProfileData?.profilePicture || currentProfileData?.gallery ? { uri: currentProfileData?.profilePicture ? currentProfileData?.profilePicture[0]?.url : currentProfileData?.gallery[0]?.url } : currentProfileData?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={{ height: metrics.hp10, width: metrics.hp10, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: "#E6B7A8", marginTop: -metrics.hp2 }} />
+                                        <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} style={{ color: "#E6B7A8", marginTop: metrics.hp2 }}>
                                             {"   "}{currentProfileData?.username ? currentProfileData?.username : currentProfileData?.name}
                                         </AppText>
                                     </View>
@@ -278,13 +287,13 @@ const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfil
                                                 </AppText>
                                             </View> : <></>}
                                     </View>
-                                    <ImageBackground source={bioBackground} resizeMode="stretch" style={{ height: metrics.hp9, width: "100%", marginTop: metrics.hp6, }}>
+                                    <ImageBackground source={bioBackground} resizeMode="stretch" style={{ /* height: metrics.hp9, */ width: "100%", marginTop: metrics.hp6, }}>
                                         <ImageBackground source={biosToggla} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp13, alignSelf: "center", marginTop: -metrics.hp2 }} >
                                             <AppText style={{ textAlign: "center" }} type={FORTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE}>
                                                 " My bio
                                             </AppText>
                                         </ImageBackground>
-                                        <AppText style={{ marginHorizontal: metrics.hp2, textAlign: "center", marginVertical: metrics.hp1 }} type={TWELVE} color={WHITE}>
+                                        <AppText style={{ marginHorizontal: metrics.hp2, textAlign: "center", marginVertical: metrics.hp1, lineHeight: metrics.hp2 }} type={TWELVE} color={WHITE}>
                                             {currentProfileData.bio}
                                         </AppText>
                                     </ImageBackground>
@@ -329,13 +338,14 @@ const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfil
                     </TouchableOpacityView>
                 </ImageBackground>
             </AppSafeAreaView>
+           
         </KeyboardAvoidingView>
     )
 };
 export default CrushNotesSender;
 const styles = StyleSheet.create({
     detailsContainer: {
-        height: metrics.hp37,
+        // height: metrics.hp37,
         width: "100%",
     },
     container: {
@@ -392,4 +402,5 @@ const styles = StyleSheet.create({
         position: "absolute",
         top: -metrics.hp8
     },
+    
 })

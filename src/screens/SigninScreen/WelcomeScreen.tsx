@@ -102,8 +102,8 @@ const WelcomeScreen = () => {
                 fcmtoken: fcmtoken,
                 iosToken: null
             };
-            
             dispatch(userLogin(data, true))
+            console.log("i am hereeeeeee working after the login")
             return signInWithCredential(getAuth(), googleCredential);
         } catch (error: any) {
             // Handle user cancellation + play services issues gracefully

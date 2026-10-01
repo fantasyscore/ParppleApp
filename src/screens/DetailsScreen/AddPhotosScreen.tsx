@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { Alert, Dimensions, FlatList, ImageBackground, Modal, PermissionsAndroid, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
-import { AppText, EIGHTEEN, ELEVEN, fontSize, INTER_BOLD, INTER_MEDIUM, LIGHT_BLACK, OPECITY, OPECITY_DARK, RED, SCHEHERAZADE_BOLD, SCHEHERAZADE_SEMI_BOLD, SIXTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
+import { AppText, EIGHTEEN, ELEVEN, fontSize, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, OPECITY_DARK, RED, SCHEHERAZADE_BOLD, SCHEHERAZADE_SEMI_BOLD, SIXTEEN, THIRTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
 import metrics from "../../assets/Metrics";
 import { addPhotoImageTop, applogo, BottomLayer, trunOnBackground, uploadIcon } from "../../helper/ImageAssets";
 import { colors, newColor } from "../../theme/colors";
@@ -217,10 +217,8 @@ const AddPhotoScreen = () => {
         type: file.type,
         name: file.name,
       } as any);
-
+      formData.append("gender", addProfileData?.gender);
       const response: any = await dispatch(uploadImagesPhotoAPI(formData));
-      console.log("[AddPhotosScreen] Photo upload response:", response);
-
       if (response?.statusCode === 200 && response?.data && response?.data?.success !== false) {
         const imageUrl =
           typeof response.data === "string"
@@ -372,7 +370,7 @@ const AddPhotoScreen = () => {
   };
 
   const uploadedCount = photos.filter((p) => p.image !== "" && p.image !== "Unsupported").length;
-  const minRequired = 1;
+  const minRequired = 2;
   const remaining = Math.max(0, minRequired - uploadedCount);
 
   const renderItem = ({ item, index }: { item: any; index: number }) => (
@@ -487,13 +485,10 @@ const AddPhotoScreen = () => {
         contentContainerStyle={{ alignItems: "center", marginTop: metrics.hp13 }}
         columnWrapperStyle={{ columnGap: metrics.hp2 }}
       />
-      {remaining !== 0 ?
-        <TouchableOpacity onPress={() => onSkip()} style={{ width: metrics.hp10, alignSelf: "flex-end" }}>
-          <AppText style={styles.skipText} type={TWENTY} weight={SCHEHERAZADE_BOLD} color={WHITE}>
-            Skip
-          </AppText>
-        </TouchableOpacity>
-        : <></>}
+      <AppText style={styles.minimumText} color={RED} weight={INTER_SEMI_BOLD} type={THIRTEEN}>
+        Minimum 2 photos are required
+      </AppText>
+      {/* Skip button removed to enforce mandatory 2 photos flow */}
       {remaining === 0 ?
         <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
           <TouchableOpacity activeOpacity={1} onPress={() => onSubmit()} style={styles.phoneContainer}>
@@ -696,5 +691,10 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
     marginRight: metrics.hp3,
     marginBottom: metrics.hp5
+  },
+  minimumText: {
+    position: "absolute",
+    bottom: metrics.hp12,
+    left: metrics.hp10,
   }
 });

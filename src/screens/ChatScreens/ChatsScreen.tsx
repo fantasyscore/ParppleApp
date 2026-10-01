@@ -152,7 +152,6 @@ const ChatsScreen = () => {
 
 
     const renderItemChats = ({ item, index }: any) => {
-        console.log(item, "itemitemitem");
 
         const isBot = item?.__type === "BOT";
 
@@ -192,36 +191,21 @@ const ChatsScreen = () => {
             >
                 <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
                     <ImageBackground
-                        blurRadius={item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM" ? metrics.hp3 : 0}
                         source={isBot ? AppIcon : item?.profilePicture ? { uri: item?.profilePicture?.url } : item.gender == "male" ? dummyMaleProfile : dummyfemaleProfile}
                         resizeMode="cover"
                         style={styles.newMatchProfile}
                     />
                        {item.online && !isBot && 
                       <View style={{height:metrics.hp1,width:metrics.hp1, backgroundColor:"#26F600", borderRadius:metrics.hp50, position:"absolute", top:metrics.hp1, left:metrics.hp1}}/>}
-                   
-                    {/* {item?.lastMessage?.type == "crushNote" ?
-                        <View style={{ height: metrics.hp4, width: metrics.hp4, alignItems: "center", justifyContent: "center", position: "absolute", bottom: 0, left: metrics.hp5, backgroundColor: colors.white, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: colors.blackopcity }}>
-                            <FastImage source={shareRedIcon} resizeMode="contain" style={{ height: metrics.hp2_5, width: metrics.hp2_5, }} />
-                        </View>
-                        : <></>} */}
                     <View style={styles.messageContainer}>
-
                         <View style={{ flexDirection: "row" }}>
-
                             <AppText style={{ textTransform: "capitalize" }} type={SIXTEEN} weight={INTER_BOLD} color={WHITE}>
                                 {item.username ? item.username : item.name}{"  "}
                             </AppText>
                         </View>
-                        {item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM" ?
-                            <AppText style={{ marginTop: metrics.hp0_5 }} type={FORTEEN} numberOfLines={1} weight={item.unreadCount > 0 ? INTER_SEMI_BOLD : INTER_REGULAR} color={item.unreadCount > 0 ? WHITE : OPECITY}>
-                                Sent you a message
-                            </AppText>
-                            :
                             <AppText type={FORTEEN} numberOfLines={1} weight={item.unreadCount > 0 ? INTER_SEMI_BOLD : INTER_REGULAR} color={item.unreadCount > 0 ? WHITE : OPECITY}>
                                 {item?.lastMessage?.text ? truncateText(item?.lastMessage?.text) : "Send your first message"}
                             </AppText>
-                        }
                     </View>
                 </View>
                 <View style={{ alignItems: "flex-end", marginTop: metrics.hp2_3 }}>
@@ -393,7 +377,7 @@ const ChatsScreen = () => {
                     <SearchContainer editable={false} onChangeText={setSearch} value={search} placeholder={"Search matches"} style={{ height: metrics.hp7 }} />
                 }
             </ImageBackground>
-            {newMatches?.length === 0 ? (
+            {/* {newMatches?.length === 0 ? (
                 <FlatList
                     data={query ? (normalize(botChatItem.name).includes(query) ? [botChatItem] : []) : [botChatItem]}
                     renderItem={renderItemChats}
@@ -404,7 +388,7 @@ const ChatsScreen = () => {
                     contentContainerStyle={{ paddingBottom: metrics.hp5 }}
                     showsVerticalScrollIndicator={false}
                 />
-            ) : (
+            ) : ( */}
                 <FlatList
                     data={filteredChats}
                     renderItem={renderItemChats}
@@ -412,9 +396,8 @@ const ChatsScreen = () => {
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={noSearchFound}
                     ListHeaderComponent={ListHeaderComponent}
-                    contentContainerStyle={{ paddingBottom: metrics.hp5 }}
+                    contentContainerStyle={{ paddingBottom: metrics.hp20 }}
                 />
-            )}
             {/* <PeopleHeader profile={true} filter={true} setModalVisible={setModalVisible}/> */}
             {/* <View style={styles.singlelIne} /> */}
             {/* {newMatches?.length ? (

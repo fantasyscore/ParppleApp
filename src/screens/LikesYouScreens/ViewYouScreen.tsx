@@ -426,7 +426,7 @@ const ViewYouScreen = () => {
 
         const data = {
             swipedId: item.userId,
-            type: "like"
+            type: type
         }
         dispatch(swipeLikeDisLike(data));
         // dispatch(swipeLikeDisLike({ swipedId: item._id, type }));
@@ -622,15 +622,24 @@ const ViewYouScreen = () => {
     })();
 
     const socketRef = useRef<any>(null);
+    const isFocusedRef = useRef(IsFocused);
+    useEffect(() => {
+        isFocusedRef.current = IsFocused;
+    }, [IsFocused]);
+
     useEffect(() => {
         if (!socketUrl) return;
         const socket = createSocket(socketUrl);
         socketRef.current = socket;
 
         const handleNewMatch = (response: any) => {
+            console.log(response,"responseresponseresponseresponse");
+            
             if (!response) return;
-            setMatchVisible(true);
-            setMatchData(response?.matchData ?? []);
+            if (isFocusedRef.current) {
+                setMatchVisible(true);
+                setMatchData(response?.matchData ?? []);
+            }
         };
         const handleConnect = () => {
             console.log('✅ Socket connected:', socket.id);

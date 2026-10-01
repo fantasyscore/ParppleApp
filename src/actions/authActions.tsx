@@ -41,9 +41,11 @@ export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) =
                 }
             }
         } else {
+            console.log("i am here")
             // toastAlert.showToastError(response.message);
         }
     } catch (error: any) {
+        console.log(error,"errorerrorerrorerrorerror")
         // toastAlert.showToastError(error);
     }
 };
@@ -226,6 +228,8 @@ export const youView: any = () => async (dispatch: any) => {
 export const getOtherProfile: any = (data: any, setCurrentProfileData: any, setOtherUserProfile: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.otherDataProfileAPI(data);
+        console.log(response,"responseresponseresponse");
+        
         if (response?.statusCode == 200) {
             setCurrentProfileData(response?.data);
             setOtherUserProfile(true)
@@ -313,7 +317,6 @@ export const discoverProfile: any = () => async (dispatch: any) => {
 export const getNewMatches: any = () => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.newMatchesAPI();
-        console.log(response, "responseresponseresponseresponseresponseresponse");
 
         if (response?.statusCode == 200) {
             dispatch(setNewMatches(response?.data))
@@ -324,7 +327,6 @@ export const getNewMatches: any = () => async (dispatch: any) => {
 export const publishProfileEveryone: any = (data: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.publishProfileAPI(data);
-        console.log(response, "responseresponse");
 
         if (response?.statusCode == 200) {
             dispatch(getProfile(true) as any);
@@ -336,7 +338,6 @@ export const publishProfileEveryone: any = (data: any) => async (dispatch: any) 
 export const getRecentMatches: any = () => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.recentMatchesAPI();
-        console.log(response, "responseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponseresponse");
 
         if (response?.statusCode == 200) {
             dispatch(setRecentMatches(response?.data))
@@ -406,9 +407,11 @@ export const sendCrushNotesAPI: any = (data: any, params: any) => async (dispatc
     try {
         const response: any = await appOperation.customer.crushnotesSenderAPI(data);
         if (response?.statusCode == 200) {
+            toastAlert.showToastError(response.message)
         }
         return response;
     } catch (error: any) {
+        toastAlert.showToastError("You can only send one crush note to this user per 24 hours")
         throw error;
     }
 };

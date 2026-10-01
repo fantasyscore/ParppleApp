@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { AppState, AppStateStatus, ImageBackground, Platform } from 'react-native';
-import { Bubble, GiftedChat, Time } from 'react-native-gifted-chat';
+import { Chat, Bubble, Time } from '@kesha-antonov/react-native-chat';
 import { blackIcon, blockModalImage, BottomLayer, chatBottomBackgroundImage, dummyfemaleProfile, dummyMaleProfile, noccce, sendMessageNewIcon, timeShowNewBackground, unmatchModalImage } from '../../helper/ImageAssets';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 import ChatHeader from '../../common/ChatHeader';
@@ -342,7 +342,7 @@ const TakingScreen = () => {
                             avatar: matchChatUserDetailsRef.current?.profilePicture?.[0]?.url || matchChatUserDetails?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile,
                         },
                     };
-                    return GiftedChat.append(prevMessages, [typingMessage]);
+                    return Chat.append(prevMessages, [typingMessage]);
                 });
             } else {
                 setMessages((prevMessages) =>
@@ -433,7 +433,7 @@ const TakingScreen = () => {
                     });
                     setMessages((prevMessages) => {
                         const withoutTyping = prevMessages.filter((msg) => msg._id !== 'typing-indicator');
-                        const updated = GiftedChat.append(withoutTyping, [newMessage]);
+                        const updated = Chat.append(withoutTyping, [newMessage]);
                         const sorted = updated.sort((a, b) => {
                             const timeA = a.createdAt.getTime();
                             const timeB = b.createdAt.getTime();
@@ -691,7 +691,7 @@ const TakingScreen = () => {
     const onSend = useCallback((newMessages: ChatMessage[] = []) => {
         setMessagesOwnerMatchId(matchChatUserDetails?.matchId);
         setMessages(prev => {
-            const updated = GiftedChat.append(prev, newMessages);
+            const updated = Chat.append(prev, newMessages);
             return updated.sort((a, b) => {
                 const timeA = a.createdAt.getTime();
                 const timeB = b.createdAt.getTime();
@@ -728,42 +728,100 @@ const TakingScreen = () => {
         );
     }, []);
 
+    // const renderBubble = useCallback((props: any) => {
+    //     const isCurrentUser = props.currentMessage?.user?._id === userData?._id || props.currentMessage?.user?._id === USER_ID;
+    //     const isRead = props.currentMessage?.isRead === true;
+    //     const isTypingIndicator = props.currentMessage?._id === 'typing-indicator';
+
+    //     if (isTypingIndicator) {
+    //         return <TypingIndicatorBubble />;
+    //     }
+
+    //     return (
+    //         <Bubble
+    //             {...props}
+    //             wrapperStyle={{
+
+    //                 right: {
+    //                     backgroundColor: "#7A4E40", // Matching the purple sender bubble
+    //                     borderBottomRightRadius: 0,
+    //                     borderRadius: metrics.hp2,
+    //                     marginRight:metrics.hp0_2,
+    //                 },
+    //                 left: {
+    //                     backgroundColor: "#555359", // Matching the dark receiver bubble
+    //                     borderBottomLeftRadius: 0,
+    //                     borderRadius: metrics.hp2,
+    //                     marginLeft:metrics.hp0_2,
+    //                     // transform: [{ translateX: 50 }],
+    //                 }
+    //             }}
+    //             // wrapperStyle={{
+    //             //     left: { backgroundColor: '#7A4E40', borderRadius: metrics.hp0_5, padding: metrics.hp0_2, marginBottom: metrics.hp1_2 },
+    //             //     right: { backgroundColor: '#555359', borderRadius: metrics.hp0_5, padding: metrics.hp0_2,/*  paddingRight: metrics.hp3, */ marginBottom: metrics.hp1_2, marginRight: metrics.hp1, position: 'relative' },
+    //             // }}
+    //             textStyle={{
+    //                 left: { color: 'white', fontSize: fontSize(14), fontFamily: interSemiBold },
+    //                 right: { color: 'white', fontSize: fontSize(14), fontFamily: interSemiBold },
+    //             }}
+    //             timeTextStyle={{
+    //                 left: { color: colors.nanoOpecity, fontSize: 10 },
+    //                 right: { color: 'rgba(255,255,255,0.7)', fontSize: 10 }
+    //             }}
+    //         />
+
+    //     );
+    // }, [userData?._id]);
+
     const renderBubble = useCallback((props: any) => {
-        const isCurrentUser = props.currentMessage?.user?._id === userData?._id || props.currentMessage?.user?._id === USER_ID;
-        const isRead = props.currentMessage?.isRead === true;
-        const isTypingIndicator = props.currentMessage?._id === 'typing-indicator';
+        const isTypingIndicator =
+            props.currentMessage?._id === 'typing-indicator';
 
         if (isTypingIndicator) {
             return <TypingIndicatorBubble />;
         }
 
-        return (
-            <View style={isCurrentUser ? styles.bubbleWrapperRight : null}>
-                <Bubble
-                    {...props}
-                    wrapperStyle={{
-                        left: { backgroundColor: '#7A4E40', borderRadius: metrics.hp0_5, padding: metrics.hp0_2, marginBottom: metrics.hp1_2 },
-                        right: { backgroundColor: '#555359', borderRadius: metrics.hp0_5, padding: metrics.hp0_2,/*  paddingRight: metrics.hp3, */ marginBottom: metrics.hp1_2, marginRight: metrics.hp1, position: 'relative' },
-                    }}
-                    textStyle={{
-                        left: { color: 'white', fontSize: fontSize(14), fontFamily: interSemiBold },
-                        right: { color: 'white', fontSize: fontSize(14), fontFamily: interSemiBold },
-                    }}
-                />
-                {/* {isCurrentUser && (
-                    <View style={styles.readReceiptContainer}>
-                        <FastImage
-                            source={isRead ? checks : check}
-                            resizeMode="contain"
-                            tintColor={colors.white}
-                            style={[
-                                isRead ? styles.readReceiptIcon : styles.readReceiptIconUnread,
-                            ]}
-                        />
-                    </View>
-                )} */}
 
-            </View>
+        return (
+            <Bubble
+                {...props}
+                wrapperStyle={{
+                    right: {
+                        backgroundColor: "#7A4E40",
+                        borderBottomRightRadius: 0,
+                        borderRadius: metrics.hp2,
+                        marginRight: metrics.hp0_2,
+                    },
+
+                    left: {
+                        backgroundColor: "#555359",
+                        borderBottomLeftRadius: 0,
+                        borderRadius: metrics.hp2,
+                    },
+                }}
+                textStyle={{
+                    left: {
+                        color: 'white',
+                        fontSize: fontSize(14),
+                        fontFamily: interSemiBold,
+                    },
+                    right: {
+                        color: 'white',
+                        fontSize: fontSize(14),
+                        fontFamily: interSemiBold,
+                    },
+                }}
+                timeTextStyle={{
+                    left: {
+                        color: colors.nanoOpecity,
+                        fontSize: 10,
+                    },
+                    right: {
+                        color: 'rgba(255,255,255,0.7)',
+                        fontSize: 10,
+                    },
+                }}
+            />
         );
     }, [userData?._id]);
     const seeOtherProfile = () => {
@@ -808,7 +866,7 @@ const TakingScreen = () => {
         return (
             <View>
                 <Time {...props} timeTextStyle={{ left: { color: colors.white }, right: { color: colors.white } }} containerStyle={{ left: { marginTop: 2 }, right: { marginTop: 2 } }} />
-                {props?.currentMessage?.isMine ?
+                {/* {props?.currentMessage?.isMine ?
                     <FastImage source={noccce} resizeMode='contain' style={{
                         height: metrics.hp2, width: metrics.hp2_3, position: 'absolute',
                         bottom: -metrics.hp0_24,
@@ -822,7 +880,7 @@ const TakingScreen = () => {
                             alignItems: 'center',
                             justifyContent: 'center',
                         }} />
-                }
+                } */}
             </View>
         );
     };
@@ -1029,13 +1087,14 @@ const TakingScreen = () => {
         if (index == "1") refFilter?.current?.close(), NavigationService.navigate(NAVIGATION_REPORT_SCREEN, { reportedUserId: matchChatUserDetails?.userId })
         if (index == '2') refFilter?.current?.close(), setModalVisible(true), setSaveReportTitle("Block");
 
-    }
+    };
+
     return (
         <AppSafeAreaView color={newColor.blackNew}>
             <ChatHeader setTabSelect={setTabSelect} onPress={() => refFilter?.current?.open()} seeProfileOther={() => seeOtherProfile()} />
             <View style={{ flex: 1 }}>
                 <View style={styles.containerChat}>
-                    <GiftedChat
+                    <Chat
                         messages={displayedMessages}
                         onSend={onSend}
                         user={{ _id: USER_ID, name: 'Gurrent User', avatar: userData?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile }}
@@ -1044,11 +1103,30 @@ const TakingScreen = () => {
                         renderDay={renderDay}
                         renderTime={renderTime}
                         renderInputToolbar={renderCustomInput}
-                        showUserAvatar={false}
-                        onLoadEarlier={loadOlderMessages}
-                        loadEarlier={hasMoreMessages && !isLoadingMore}
-                        isLoadingEarlier={isLoadingMore}
-                        infiniteScroll={true}
+                        isUserAvatarVisible={false}
+                        loadEarlierMessagesProps={{
+                            isAvailable: hasMoreMessages,
+                            onPress: loadOlderMessages,
+                            isLoading: isLoadingMore,
+                            isInfiniteScrollEnabled: true,
+                            activityIndicatorColor: colors.purple,
+                            activityIndicatorSize: 'small',
+                        }}
+                        // showUserAvatar={false}
+                        // onLoadEarlier={loadOlderMessages}
+                        // loadEarlier={hasMoreMessages && !isLoadingMore}
+                        // isLoadingEarlier={isLoadingMore}
+                        // infiniteScroll={true}
+                        theme={{
+                            colors: {
+                                background: newColor.blackNew,
+                            }
+                        }}
+                        darkTheme={{
+                            colors: {
+                                background: newColor.blackNew,
+                            }
+                        }}
                         renderLoadEarlier={() => {
                             if (!hasMoreMessages) return null;
                             if (isLoadingMore) {
@@ -1166,8 +1244,8 @@ const styles = StyleSheet.create({
     containerChat: { flex: 1, backgroundColor: newColor.blackNew },
     inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: metrics.hp2, backgroundColor: colors.transparent, paddingVertical: metrics.hp3 },
     textInput: { minHeight: metrics.hp4, maxHeight: metrics.hp8, fontSize: fontSize(13), width: "83%", fontFamily: interMedium, marginLeft: metrics.hp1, marginTop: Platform.OS === "ios" ? metrics.hp1 : 0, color: colors.white },
-    sendButton: { /* backgroundColor: '#6F13F2', borderRadius: metrics.hp50, */ marginLeft: 6, /* justifyContent: 'center', alignItems: 'center', */ height: metrics.hp5_5, width: metrics.hp5_5 },
-    inputContainerType: { borderWidth: metrics.hp0_1, borderColor: "#C4C4C447", borderRadius: metrics.hp5, paddingHorizontal: metrics.hp1, alignItems: 'center', justifyContent: 'space-between', flexDirection: 'row', paddingVertical: metrics.hp0_5, backgroundColor: "#212123" },
+    sendButton: { /* backgroundColor: '#6F13F2', borderRadius: metrics.hp50, */ marginLeft: 6, /* justifyContent: 'center', alignItems: 'center', */ height: metrics.hp5_5, width: metrics.hp5_5, marginBottom: metrics.hp2 },
+    inputContainerType: { borderWidth: metrics.hp0_1, borderColor: "#C4C4C447", borderRadius: metrics.hp5, paddingHorizontal: metrics.hp1, alignItems: 'center', justifyContent: 'space-between', flexDirection: 'row', paddingVertical: metrics.hp0_5, backgroundColor: "#212123", marginBottom: metrics.hp2 },
     emojiIcon: { height: metrics.hp3, width: metrics.hp3 },
     containerRb: { paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp2 },
     containerViewRb: { paddingHorizontal: metrics.hp1, paddingVertical: metrics.hp2, flexDirection: "row", backgroundColor: "#212123", marginBottom: metrics.hp0_5, borderRadius: metrics.hp1_5 },

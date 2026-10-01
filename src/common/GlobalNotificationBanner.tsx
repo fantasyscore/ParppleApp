@@ -17,6 +17,7 @@ import { NAVIGATION_TAKING_SCREEN } from '../navigation/routes';
 import { useDispatch, useSelector } from 'react-redux';
 import { chatHistoryAPI, getNewMatches } from '../actions/authActions';
 import { chatHistoryDetails, matchChatDetails, setNewMatches } from '../slices/loginServices/authSlice';
+import { dummyfemaleProfile, dummyMaleProfile } from '../helper/ImageAssets';
 
 interface NotificationData {
     matchId: string;
@@ -36,10 +37,12 @@ const GlobalNotificationBanner: React.FC<GlobalNotificationBannerProps> = ({
     notification,
     onDismiss,
 }) => {
+    console.log(notification, "notificationnotificationnotification");
+
     const dispatch = useDispatch();
     const userData = useSelector((state: any) => state.auth.userData);
     const newMatches = useSelector((state: any) => state.auth.newMatches);
-    
+
     const translateY = useSharedValue(-100);
     const opacity = useSharedValue(0);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -120,14 +123,14 @@ const GlobalNotificationBanner: React.FC<GlobalNotificationBannerProps> = ({
 
     const showNotification = useCallback(() => {
         if (!notification) return;
-        
+
         isShowingRef.current = true;
         previousNotificationRef.current = notification;
 
         // Reset and animate in
         translateY.value = -100;
         opacity.value = 0;
-        
+
         // Immediate smooth animation
         translateY.value = withSpring(0, {
             damping: 25,
@@ -211,19 +214,19 @@ const GlobalNotificationBanner: React.FC<GlobalNotificationBannerProps> = ({
                 style={styles.banner}
             >
                 <View style={styles.content}>
-                    {notification.profilePicture ? (
+                    {/* {notification.profilePicture ? ( */}
                         <FastImage
-                            source={{ uri: notification.profilePicture }}
+                            source={notification.profilePicture ? { uri: notification.profilePicture } : notification?.gender == "female" ? dummyfemaleProfile : dummyMaleProfile}
                             style={styles.avatar}
                             resizeMode="cover"
                         />
-                    ) : (
+                    {/* ) : (
                         <View style={[styles.avatar, styles.avatarPlaceholder]}>
                             <AppText type={SIXTEEN} weight={INTER_MEDIUM} color={WHITE}>
                                 {notification.senderName?.charAt(0)?.toUpperCase() || 'U'}
                             </AppText>
                         </View>
-                    )}
+                    )} */}
                     <View style={styles.textContainer}>
                         <AppText type={SIXTEEN} weight={INTER_MEDIUM} color={WHITE} numberOfLines={1}>
                             {notification.senderName}
@@ -255,7 +258,7 @@ const styles = StyleSheet.create({
         pointerEvents: 'box-none',
     },
     banner: {
-        backgroundColor:"#555359" ,
+        backgroundColor: "#555359",
         borderRadius: metrics.hp1,
         shadowColor: '#000',
         shadowOffset: {

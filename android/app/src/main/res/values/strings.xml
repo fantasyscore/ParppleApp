@@ -2,4 +2,6 @@
     <string name="app_name">Parpple</string>
     <string moduleConfig="true" name="CodePushServerUrl">https://api.revopush.org</string>
     <string moduleConfig="true" name="CodePushDeploymentKey">_8_CvT6O5J_PDZUhEJFUGPKNMMp_419xRVnB7e</string>
+    <string name="facebook_app_id">1043446145349893</string>
+    <string name="facebook_client_token">d4dcbf361c7979e9920b107d7830da3f</string>
 </resources>

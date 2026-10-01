@@ -202,15 +202,49 @@ class LifecycleAwareSocket {
   }
 }
 
+let globalSocketInstance: LifecycleAwareSocket | null = null;
+let currentSocketUrl: string | null = null;
+let activeSubscribers = 0;
+let originalDisconnect: (() => void) | null = null;
+
 export const createSocket = (url: any) => {
   if (!url || typeof url !== 'string') {
     console.error('[Socket] Invalid URL provided to createSocket:', url);
     throw new Error('Invalid socket URL');
   }
 
+  if (globalSocketInstance && currentSocketUrl === url) {
+    activeSubscribers++;
+    return globalSocketInstance;
+  }
+
+  if (globalSocketInstance && originalDisconnect) {
+    originalDisconnect();
+    globalSocketInstance = null;
+    currentSocketUrl = null;
+    activeSubscribers = 0;
+  }
+
   try {
     const socket = new LifecycleAwareSocket(url);
     activeSockets.add(socket);
+    
+    globalSocketInstance = socket;
+    currentSocketUrl = url;
+    activeSubscribers = 1;
+    originalDisconnect = socket.disconnect.bind(socket);
+    
+    socket.disconnect = () => {
+      activeSubscribers--;
+      if (activeSubscribers <= 0) {
+        if (originalDisconnect) originalDisconnect();
+        globalSocketInstance = null;
+        currentSocketUrl = null;
+        activeSubscribers = 0;
+        originalDisconnect = null;
+      }
+    };
+
     return socket;
   } catch (error) {
     console.error('[Socket] Error creating socket:', error);

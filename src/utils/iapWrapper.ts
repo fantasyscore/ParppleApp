@@ -1,5 +1,6 @@
 import * as RNIap from 'react-native-iap';
 import { Platform } from 'react-native';
+import { logMetaEvent } from './MetaEvents';
 
 // Re-export everything from react-native-iap
 export * from 'react-native-iap';
@@ -56,6 +57,7 @@ export const requestPurchase = async (args: {
       if (!sku) {
         throw new Error('No product ID (sku) provided for purchase');
       }
+      logMetaEvent('InitiateCheckout', undefined, { content_id: sku, content_type: 'in-app' });
       return await RNIap.requestPurchase({
         type: 'in-app',
         request: {
@@ -71,6 +73,7 @@ export const requestPurchase = async (args: {
       if (!skus || skus.length === 0) {
         throw new Error('No product ID (skus) provided for purchase');
       }
+      logMetaEvent('InitiateCheckout', undefined, { content_id: skus[0], content_type: 'in-app' });
       return await RNIap.requestPurchase({
         type: 'in-app',
         request: {
@@ -98,6 +101,7 @@ export const requestSubscription = async (args: {
       if (!sku) {
         throw new Error('No subscription ID (sku) provided');
       }
+      logMetaEvent('InitiateCheckout', undefined, { content_id: sku, content_type: 'subs' });
       return await RNIap.requestPurchase({
         type: 'subs',
         request: {
@@ -115,6 +119,7 @@ export const requestSubscription = async (args: {
         if (!sku) {
           throw new Error('No subscription offers or sku provided');
         }
+        logMetaEvent('InitiateCheckout', undefined, { content_id: sku, content_type: 'subs' });
         // Fallback if subscriptionOffers wasn't passed directly
         return await RNIap.requestPurchase({
           type: 'subs',
@@ -126,6 +131,7 @@ export const requestSubscription = async (args: {
           },
         });
       }
+      logMetaEvent('InitiateCheckout', undefined, { content_id: offers[0].sku, content_type: 'subs' });
       return await RNIap.requestPurchase({
         type: 'subs',
         request: {

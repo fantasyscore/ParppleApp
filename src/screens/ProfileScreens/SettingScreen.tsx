@@ -14,6 +14,7 @@ import { AppText, FOURTEEN, BLACK, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LI
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { useDispatch, useSelector } from "react-redux";
 import { deleteAccountAPI, userLogout } from "../../actions/authActions";
+import { logMetaEvent } from "../../utils/MetaEvents";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_SUBSCRIPTION_ALL_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 import { disconnectAllSockets } from "../../common/Socket";
@@ -186,7 +187,10 @@ const SettingScreen = () => {
                     Contact Us
                 </AppText>
 
-                <TouchableOpacityView onPress={() => Linking.openURL("https://parpple.com/contact-us")}>
+                <TouchableOpacityView onPress={() => {
+                    // logMetaEvent('Contact');
+                    Linking.openURL("https://parpple.com/contact-us");
+                }}>
                     <ImageBackground source={ChatSearchIcon} style={styles.singleItemCard} imageStyle={styles.cardImageStyle}>
                         <View style={styles.rowContent}>
                             <FastImage source={helpAndSupportNewIcon} resizeMode="contain" style={[styles.leftIcon, { marginLeft: metrics.hp2 }]} tintColor={WHITE} />

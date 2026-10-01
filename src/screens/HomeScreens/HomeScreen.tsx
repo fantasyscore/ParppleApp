@@ -23,6 +23,7 @@ import { toggalOnButtonNew, toggalOffButtonNew, serachButtonNew, resetButtonNew,
 import metrics from '../../assets/Metrics';
 import FastImage from 'react-native-fast-image';
 import { colors, newColor } from '../../theme/colors';
+import { logMetaEvent } from "../../utils/MetaEvents";
 import { TouchableOpacityView } from '../../common/TouchableOpacityView';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
@@ -265,7 +266,7 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData
             </View>
         </ImageBackground>
     );
-}, (prev, next) => prev.item === next.item && prev.onLike === next.onLike && prev.onDislike === next.onDislike && prev.onOpenPreview === next.onOpenPreview && prev.userData === next.userData && prev.setCrushNoteVisible === next.setCrushNoteVisible && prev.handleCrushNote === next.handleCrushNote && prev.fullprofile === next.fullprofile);
+}, (prev, next) => prev.item === next.item && prev.onLike === next.onLike && prev.onDislike === next.onDislike && prev.onOpenPreview === next.onOpenPreview && prev.userData === next.userData && prev.setCrushNoteVisible === next.setCrushNoteVisible && prev.handleCrushNote === next.handleCrushNote);
 
 
 
@@ -386,6 +387,10 @@ const PeopleScreen = () => {
             };
             const response: any = await appOperation.customer.editFilterAPI(payload);
             if (response?.statusCode == 200 || response?.success || response?.status) {
+                logMetaEvent('Search', undefined, {
+                    search_string: 'Filter Applied',
+                    content_type: 'user_search'
+                });
                 toastAlert.showToastError('Filters updated successfully');
                 filterSheetRef.current?.close();
                 dispatch(listProfiles(true, 0, PROFILE_BATCH_LIMIT, false, filterData));
@@ -634,6 +639,11 @@ const PeopleScreen = () => {
     })();
 
     const socketRef = useRef<any>(null);
+    const isFocusedRef = useRef(IsFocused);
+    useEffect(() => {
+        isFocusedRef.current = IsFocused;
+    }, [IsFocused]);
+
     useEffect(() => {
         if (!socketUrl) return;
         const socket = createSocket(socketUrl);
@@ -641,8 +651,10 @@ const PeopleScreen = () => {
 
         const handleNewMatch = (response: any) => {
             if (!response) return;
-            setMatchVisible(true);
-            setMatchData(response?.matchData ?? []);
+            if (isFocusedRef.current) {
+                setMatchVisible(true);
+                setMatchData(response?.matchData ?? []);
+            }
         };
         const handleConnect = () => {
             console.log('✅ Socket connected:', socket.id);
@@ -819,6 +831,7 @@ const PeopleScreen = () => {
             return false;
         }
     }, [getCameraPermissionType]);
+   
     // const fetchCity = async () => {
 
     //     try {
@@ -1275,7 +1288,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         marginTop: metrics.hp2,
-        paddingHorizontal:metrics.hp4
+        paddingHorizontal: metrics.hp4
     },
     actionBtnImage: {
         height: metrics.hp6,

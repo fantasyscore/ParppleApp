@@ -2,6 +2,7 @@ import analytics from '@react-native-firebase/analytics';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as RNIap from '../utils/iapWrapper';
+import { logMetaEvent } from '../utils/MetaEvents';
 
 const TRACKED_ANALYTICS_IDS_KEY = '@parpple_tracked_analytics_transaction_ids';
 const PENDING_ANALYTICS_PURCHASES_KEY = '@parpple_pending_analytics_purchases';
@@ -183,6 +184,7 @@ export const logLogin = async (method: string): Promise<void> => {
 export const logSignUp = async (method: string): Promise<void> => {
   try {
     await analytics().logSignUp({ method });
+    await logMetaEvent('CompleteRegistration', undefined, { registration_method: method });
   } catch (error) {
     console.warn('[AnalyticsService] logSignUp failed:', error);
   }
@@ -321,6 +323,19 @@ export const trackSuccessfulPurchase = async (
         },
       ],
     });
+
+    await logMetaEvent('Purchase', price, {
+      content_id: productId,
+      content_type: type,
+      currency,
+    });
+
+    if (type === 'subs') {
+      await logMetaEvent('Subscribe', price, {
+        content_id: productId,
+        currency,
+      });
+    }
 
     console.log('[AnalyticsService] Logged purchase event:', {
       transaction_id: transactionId,

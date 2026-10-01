@@ -16,7 +16,7 @@ import { colors, newColor } from "../../theme/colors";
 import { editProfile } from "../../actions/authActions";
 import LinearGradient from "react-native-linear-gradient";
 import FastImage from "react-native-fast-image";
-import { AppText, EIGHTEEN, INTER_REGULAR, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SCHEHERAZADE_SEMI_BOLD, THIRTEEN, TWENTY, TWENTY_FOUR, WHITE } from "../../common/AppText";
+import { AppText, EIGHTEEN, FORTEEN, INTER_REGULAR, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SCHEHERAZADE_SEMI_BOLD, SIXTEEN, THIRTEEN, TWENTY, TWENTY_FOUR, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 
 const GanderScreen = ({ route }: any) => {
@@ -30,7 +30,7 @@ const GanderScreen = ({ route }: any) => {
     const [showProfile, setShowProfile] = useState(fieldVisibility ? fieldVisibility?.gender : true);
 
     const onSubmit = () => {
-        if (!selectPronoun) return 
+        if (!selectPronoun) return
         if (filter) {
             const dataToSave = {
                 gender: selectPronoun,
@@ -40,7 +40,7 @@ const GanderScreen = ({ route }: any) => {
         } else {
             const data = {
                 ...addProfileData,
-                gender: selectPronoun==="Male" ? "male": "female",
+                gender: selectPronoun === "Male" ? "male" : "female",
                 fieldVisibility: { gender: showProfile }
             };
             dispatch(setAddProfile(data))
@@ -57,11 +57,17 @@ const GanderScreen = ({ route }: any) => {
                 marginTop: metrics.hp10,
                 paddingHorizontal: metrics.hp4
             }}>
-                <TouchableOpacity style={{ width: "50%" }} activeOpacity={1} onPress={() => setSelectPronoun("Male")}>
+                <TouchableOpacity style={{ width: "50%", alignItems:"center", justifyContent:"center" }} activeOpacity={1} onPress={() => setSelectPronoun("Male")}>
                     <FastImage source={selectPronoun === "Male" ? malePersonSelected : malePerson} resizeMode="contain" style={styles.boyPerson} />
+                    <AppText style={{marginTop:-metrics.hp4}} type={SIXTEEN} weight={INTER_SEMI_BOLD} color={WHITE}>
+                        Male
+                    </AppText>
                 </TouchableOpacity>
-                <TouchableOpacity style={{ width: "50%" }} activeOpacity={1} onPress={() => setSelectPronoun("Female")}>
+                <TouchableOpacity style={{ width: "50%",alignItems:"center", justifyContent:"center" }} activeOpacity={1} onPress={() => setSelectPronoun("Female")}>
                     <FastImage source={selectPronoun === "Female" ? femaleGirlSelected : femaleGirl} resizeMode="contain" style={styles.femaleGirl} />
+                    <AppText style={{marginTop:-metrics.hp4}} type={SIXTEEN} weight={INTER_SEMI_BOLD} color={WHITE}>
+                        Female
+                    </AppText>
                 </TouchableOpacity>
             </View>
 

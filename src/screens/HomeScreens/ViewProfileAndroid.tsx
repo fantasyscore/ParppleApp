@@ -12,6 +12,7 @@ import { useSelector } from "react-redux";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 import FullScreenViewPhoto from "../../components/FullScreenViewPhoto";
+import { logMetaEvent } from "../../utils/MetaEvents";
 const ITEM_WIDTH = metrics.hp34;
 const SPACING = metrics.hp1;
 
@@ -39,6 +40,7 @@ const TURN_ON_IMAGES: any = {
 };
 const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislikePress, handleLikePress, likeYoue, ViewYoue, handleCrushNote }: any) => {
 
+
     const scrollX = useRef(new Animated.Value(0)).current;
     const userData = useSelector((state: any) => state.auth.userData);
 
@@ -47,6 +49,16 @@ const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislike
     const [selectedTurnOnIds, setSelectedTurnOnIds] = useState<any[]>([]);
     const [fullProfileShow, setFullProfileShow] = useState(false);
     const [fullProfileShowCurrentData, setFullProfileShowCurrentData] = useState<any>({});
+    
+    useEffect(() => {
+        if (currentProfileData && (currentProfileData.id || currentProfileData._id)) {
+            logMetaEvent('ViewContent', undefined, {
+                content_id: currentProfileData.id || currentProfileData._id,
+                content_type: 'profile'
+            });
+        }
+    }, [currentProfileData]);
+
     useEffect(() => {
         if (userData?.turnOns) {
             const initialTurnOnIds = userData.turnOns.map((t: any) => t._id || t.id);
@@ -119,15 +131,21 @@ const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislike
                 : [...prev, id] // Add
         );
     };
+    
+    
     const selectedTurnOnList = React.useMemo(() => {
-        if (!turnOnData?.length || !currentProfileData?.attributes?.length) {
+        if (!turnOnData?.length || !currentProfileData?.turnOns?.length) {
             return [];
         }
 
         return turnOnData.filter((item: any) =>
-            currentProfileData.attributes.includes(item._id)
-        );
-    }, [turnOnData, currentProfileData?.attributes]);
+            currentProfileData.turnOns.some(
+              (turnOn: any) => String(turnOn._id) === String(item._id)
+            )
+          );
+    }, [turnOnData, currentProfileData?.turnOns]);
+    // console.log(selectedTurnOnList,"selectedTurnOnList");
+    
     const renderItemTurns_ons = ({ item }: any) => {
         console.log(item, "itemitem");
 

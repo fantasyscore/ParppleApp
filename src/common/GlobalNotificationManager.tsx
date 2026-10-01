@@ -16,12 +16,13 @@ interface NotificationData {
     messagePreview: string;
     profilePicture?: string;
     timestamp: string;
+    gender?: string
 }
 
 const GlobalNotificationManager: React.FC = () => {
     const dispatch = useDispatch();
     const store = useStore();
-    
+
     const [notification, setNotification] = useState<NotificationData | null>(null);
 
     // Refs that stay up to date WITHOUT subscribing the component to redux re-renders
@@ -181,25 +182,28 @@ const GlobalNotificationManager: React.FC = () => {
                         return;
                     }
                     const chat = currentMatches.find((c: any) => c.matchId === matchId);
+                    console.log(chat, "chatchatchatchatchat");
+
                     console.log('[GlobalNotificationManager] Showing notification banner for matchId:', matchId);
                     setNotification({
                         matchId,
                         senderId,
-                        senderName,
+                        senderName: chat?.username,
                         messagePreview,
                         profilePicture: chat?.profilePicture?.url,
                         timestamp,
+                        gender: chat?.gender
                     });
                 }
             } else if (response?.type === 'crushNote') {
                 const { fromUserId, fromUserName, messagePreview, createdAt } = response;
-                
+
                 // Don't show notification if user is already in the same TakingScreen
                 if (activeChatMatchId && activeChatMatchId === fromUserId) {
                     console.log('[GlobalNotificationManager] Skipping crushNote notification - user is in same TakingScreen:', fromUserId);
                     return;
                 }
-                
+
                 if (fromUserId !== currentUserIdInner) {
                     console.log('[GlobalNotificationManager] Showing crushNote notification banner for fromUserId:', fromUserId);
                     setNotification({
@@ -258,7 +262,7 @@ const GlobalNotificationManager: React.FC = () => {
 
             // CRITICAL: Remove all existing listeners first to prevent duplicates
             socket.removeAllListeners?.();
-            
+
             // Attach notification handler
             socket.on('in_app_notification', createNotificationHandler());
         };
@@ -290,7 +294,7 @@ const GlobalNotificationManager: React.FC = () => {
     useEffect(() => {
         const handleAppStateChange = (nextAppState: AppStateStatus) => {
             console.log('[GlobalNotificationManager] App state changed:', nextAppState);
-            
+
             if (nextAppState === 'background' || nextAppState === 'inactive') {
                 // CRITICAL: App is going to background/recent apps - disconnect ALL sockets
                 // This prevents background socket events and memory leaks
@@ -346,7 +350,7 @@ const GlobalNotificationManager: React.FC = () => {
                         }
 
                         const url = `${config.BASE_URL}?userId=${currentUserId}`;
-                        
+
                         // Clean up old socket if exists
                         if (socketRef.current) {
                             try {
@@ -376,7 +380,7 @@ const GlobalNotificationManager: React.FC = () => {
 
                         // CRITICAL: Remove all existing listeners first to prevent duplicates
                         socket.removeAllListeners?.();
-                        
+
                         // Re-attach notification handler
                         socket.on('in_app_notification', createNotificationHandler());
                     } catch (e) {
