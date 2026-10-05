@@ -27,6 +27,7 @@ import { clearActiveChat, setActiveChatMatchId } from '../../slices/inAppNotific
 import { chatHistoryDetails, setNewMatches } from '../../slices/loginServices/authSlice';
 import { clearNotificationsByMatchId } from '../../notifications/pushNotifications';
 import SeeOtherUserProfile from './SeeOtherUserProfile';
+import FullScreenImage from '../HomeScreens/FullScreenImage';
 
 const USER_ID = 1;
 
@@ -78,7 +79,8 @@ const TakingScreen = () => {
     const matchChatUserDetailsRef = useRef<any>(matchChatUserDetails);
     const otherUserProfileRef = useRef<any>(otherUserProfile);
     const userDataRef = useRef<any>(userData);
-
+    const [fullImage, setFullImage] = useState<any>(false);
+    const [gallaryData, setGallaryData] = useState<any>([]);
     useEffect(() => {
         activeMatchIdRef.current = matchChatUserDetails?.matchId;
         activeOtherUserIdRef.current = matchChatUserDetails?.userId;
@@ -1088,7 +1090,10 @@ const TakingScreen = () => {
         if (index == '2') refFilter?.current?.close(), setModalVisible(true), setSaveReportTitle("Block");
 
     };
-
+    const showFullProfile = (item: any) => {
+        setGallaryData(item)
+        setFullImage(true)
+    }
     return (
         <AppSafeAreaView color={newColor.blackNew}>
             <ChatHeader setTabSelect={setTabSelect} onPress={() => refFilter?.current?.open()} seeProfileOther={() => seeOtherProfile()} />
@@ -1146,7 +1151,14 @@ const TakingScreen = () => {
                     )}
                 </View>
             </View>
-
+            <Modal
+                animationType="fade"
+                transparent
+                statusBarTranslucent
+                visible={fullImage}
+                onRequestClose={() => setFullImage(false)}>
+                <FullScreenImage gallaryData={gallaryData} setFullImage={setFullImage}/>
+            </Modal>
             <RBSheet ref={refFilter} openDuration={100}
                 height={Dimensions.get('window').height / 3.10}
                 customStyles={{
@@ -1229,7 +1241,8 @@ const TakingScreen = () => {
                 visible={otherUserProfie}
                 statusBarTranslucent
                 onRequestClose={() => setOtherUserProfile(false)}>
-                <SeeOtherUserProfile currentProfileData={currentProfileData} setModalVisible={setOtherUserProfile} />
+                <SeeOtherUserProfile currentProfileData={currentProfileData} setModalVisible={setOtherUserProfile} 
+                 showFullProfile={showFullProfile}/>
             </Modal>
         </AppSafeAreaView>
     );

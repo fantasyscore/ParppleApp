@@ -28,16 +28,18 @@ interface PermissionResult {
 async function requestGalleryPermission(): Promise<PermissionResult> {
   if (Platform.OS === "android") {
     try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES || PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-        {
-          title: "Gallery Permission",
-          message: "App needs access to your photos to upload them.",
-          buttonNeutral: "Ask Me Later",
-          buttonNegative: "Cancel",
-          buttonPositive: "OK",
-        }
-      );
+      const permission =
+        Number(Platform.Version) >= 33
+          ? PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
+          : PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE;
+
+      const granted = await PermissionsAndroid.request(permission, {
+        title: "Gallery Permission",
+        message: "App needs access to your photos to upload them.",
+        buttonNeutral: "Ask Me Later",
+        buttonNegative: "Cancel",
+        buttonPositive: "OK",
+      });
       const isGranted = granted === PermissionsAndroid.RESULTS.GRANTED;
       return { granted: isGranted, newlyGranted: false };
     } catch (err) {
@@ -143,20 +145,20 @@ const AddPhotoScreen = () => {
     }
 
     try {
-      const permissionResult = await requestGalleryPermission();
-      console.log("[AddPhotosScreen] pickImageForSlot permission result:", permissionResult);
+      // const permissionResult = await requestGalleryPermission();
+      // console.log("[AddPhotosScreen] pickImageForSlot permission result:", permissionResult);
 
-      if (!permissionResult.granted) {
-        return;
-      }
+      // if (!permissionResult.granted) {
+      //   return;
+      // }
 
       isPickerOpenRef.current = true;
 
       // Safe presentation buffer delay for first-time grants on iOS
-      if (Platform.OS === "ios" && permissionResult.newlyGranted) {
-        console.log("[AddPhotosScreen] Newly granted iOS photo permission. Deferring picker presentation by 800ms...");
-        await new Promise((resolve) => setTimeout(resolve, 800));
-      }
+      // if (Platform.OS === "ios" && permissionResult.newlyGranted) {
+      //   console.log("[AddPhotosScreen] Newly granted iOS photo permission. Deferring picker presentation by 800ms...");
+      //   await new Promise((resolve) => setTimeout(resolve, 800));
+      // }
 
       console.log("[AddPhotosScreen] Launching image library for single image selection...");
       launchImageLibrary(

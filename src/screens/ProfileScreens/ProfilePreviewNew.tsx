@@ -3,7 +3,7 @@ import { useSelector } from "react-redux";
 import NavigationService from "../../navigation/NavigationService";
 
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Animated, FlatList, Image, ImageBackground, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Animated, FlatList, Image, ImageBackground, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { colors, newColor } from "../../theme/colors";
 import NewHeader from "../../common/NewHeader";
 import metrics from "../../assets/Metrics";
@@ -11,6 +11,7 @@ import FastImage from "react-native-fast-image";
 import { bioBackground, biosToggla, directChatIcon, dobIcon, forProfileDetailsBack, heightIconWhiteNew, locationIconWhiteNew, locIcon, lockIconWhite, newCloseIcon, newLikeIcon, partnerheart, pronounIcon, straightenIcon, trunOnIcon, beingWatchIcon, bitingIcon, blinedFlodedIcon, BottomLayer, dirtyTalks, fantasiesIcon, fotFetiesIcon, hairIcon, hugsIcon, massageIcon, musicIcons, oralIcon, rightSelectTrunOns, roomServiceIcon, scentsIcon, sextingIcon, smooheshIcon, TattosIcon, trunOnBackground, dummyMaleProfile, danceNewIcon, rolePlayImageNew, choclateImageNew, touchNewIcon, dummyfemaleProfile, sexualityIcon, verifiedBadgeIcon } from "../../helper/ImageAssets";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { AppText, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
+import FullScreenImage from "../HomeScreens/FullScreenImage";
 const ITEM_WIDTH = metrics.hp34;
 const SPACING = metrics.hp1;
 const TURN_ON_IMAGES: any = {
@@ -40,7 +41,8 @@ const ProfilePreviewNew = () => {
     const userData = useSelector((state: any) => state?.auth?.userData);
     const turnOnData = useSelector((state: any) => state?.auth?.turnOnData);
     const [selectedTurnOnIds, setSelectedTurnOnIds] = useState<any[]>([]);
-
+    const [fullImage, setFullImage] = useState<any>(false);
+    const [gallaryData, setGallaryData] = useState<any>([]);
     const selectedIds = userData?.turnOn || userData?.turnOns || [];
 
     useEffect(() => {
@@ -49,6 +51,10 @@ const ProfilePreviewNew = () => {
             setSelectedTurnOnIds(initialTurnOnIds);
         }
     }, [userData?.turnOns]);
+    const showFullProfile = (item: any) => {
+        setGallaryData(item)
+        setFullImage(true)
+    }
     const renderItem = ({ item, index }: any) => {
         const inputRange = [
             (index - 1) * (ITEM_WIDTH + SPACING),
@@ -76,9 +82,11 @@ const ProfilePreviewNew = () => {
                     height: metrics.hp45,
                     width: metrics.hp34
                 }}>
+                            <TouchableOpacityView activeOpacity={1} onPress={() => showFullProfile(userData?.gallery)} key={item.url} style={styles.imageMain}>
+
                 <Image source={{ uri: item.url }} resizeMode="cover" style={styles.imageMain} />
                 <View style={styles.galleryDim} />
-
+</TouchableOpacityView>
             </Animated.View>
         )
     };
@@ -253,7 +261,14 @@ const ProfilePreviewNew = () => {
                     contentContainerStyle={{ paddingHorizontal: metrics.hp2, alignItems: "center", marginTop: metrics.hp0, paddingBottom: metrics.hp5 }}
                     columnWrapperStyle={{ columnGap: metrics.hp2, marginTop: metrics.hp6 }} />
             </ScrollView>
-
+            <Modal
+                animationType="fade"
+                transparent
+                statusBarTranslucent
+                visible={fullImage}
+                onRequestClose={() => setFullImage(false)}>
+                <FullScreenImage gallaryData={gallaryData} setFullImage={setFullImage}/>
+            </Modal>
         </AppSafeAreaView>
     )
 };

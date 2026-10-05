@@ -138,16 +138,16 @@ export function usePhotoEditorUpload({ canStart, onUploaded }: Options) {
     if (canStart && !canStart()) return;
 
     try {
-      const permissionResult = await requestGalleryPermission();
-      console.log("[PhotoEditorUpload] Permission result:", permissionResult);
-      if (!permissionResult.granted) return;
+      // const permissionResult = await requestGalleryPermission();
+      // console.log("[PhotoEditorUpload] Permission result:", permissionResult);
+      // if (!permissionResult.granted) return;
 
       isPickerOpenRef.current = true;
 
       // Safe presentation buffer delay for first-time grants on iOS
-      if (Platform.OS === "ios" && permissionResult.newlyGranted) {
-        await new Promise((resolve) => setTimeout(resolve, 800));
-      }
+      // if (Platform.OS === "ios" && permissionResult.newlyGranted) {
+      //   await new Promise((resolve) => setTimeout(resolve, 800));
+      // }
 
       launchImageLibrary(
         {

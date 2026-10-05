@@ -38,7 +38,7 @@ const TURN_ON_IMAGES: any = {
     "Chocolate": choclateImageNew,
     "Touch": touchNewIcon,
 };
-const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislikePress, handleLikePress, likeYoue, ViewYoue, handleCrushNote }: any) => {
+const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislikePress, handleLikePress, likeYoue, ViewYoue, handleCrushNote, showFullProfile }: any) => {
 
 
     const scrollX = useRef(new Animated.Value(0)).current;
@@ -109,7 +109,7 @@ const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislike
                     height: metrics.hp45,
                     width: metrics.hp34
                 }}>
-                <TouchableOpacity activeOpacity={1} onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : console.log()}>
+                <TouchableOpacity activeOpacity={1} onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : showFullProfile(currentProfileData?.profilePicture ? currentProfileData?.profilePicture : currentProfileData?.gallery)}>
                     <Image blurRadius={userData?.gender === "male" && userData?.isPublish === false ? 10 : 0} source={{ uri: item.url }} resizeMode="cover" style={styles.imageMain} />
                     {userData?.gender === "male" && userData?.isPublish === false ?
                         <>

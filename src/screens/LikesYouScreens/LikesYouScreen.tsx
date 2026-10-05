@@ -41,6 +41,7 @@ import { useLikeDislikeAnimation } from '../../hooks/useLikeDislikeAnimation';
 import { LikeDislikeOverlays } from '../../common/LikeDislikeOverlays';
 import ViewProfileAndroid from '../HomeScreens/ViewProfileAndroid';
 import CrushNotesSender from '../HomeScreens/CrushNotesSender';
+import FullScreenImage from '../HomeScreens/FullScreenImage';
 
 const PROFILE_BATCH_LIMIT = 10;
 const TOP_UP_TRIGGER_COUNT = 3; // fetch more when this few profiles remain
@@ -168,6 +169,7 @@ type ProfileListCardProps = {
     userData: any;
     setCrushNoteVisible: any;
     handleCrushNote: any;
+    showFullProfile?:any
 };
 
 // Memoized row: re-renders only when its own profile changes, not on every
@@ -176,7 +178,7 @@ const capitalizeFirstLetter = (text: string) => {
     if (!text) return text;
     return text.charAt(0).toUpperCase() + text.slice(1);
 };
-const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, likeYoue, userData, setCrushNoteVisible, handleCrushNote }: ProfileListCardProps) => {
+const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, likeYoue, userData, setCrushNoteVisible, handleCrushNote,showFullProfile }: ProfileListCardProps) => {
     return (
         <ImageBackground source={newProfileBackground} resizeMode='stretch' style={styles.cardBackground}>
             {item.online ?
@@ -196,13 +198,15 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, likeYoue
                     <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} style={styles.nameText}>
                         {item.username ? item.username : item.name}, {item.age} y
                     </AppText>
+                    {capitalizeFirstLetter(item.city) ? 
                     <View style={styles.metaRow}>
                         <FastImage source={locIcon} resizeMode='contain' style={styles.metaIcon} />
                         <AppText color={WHITE} weight={INTER_SEMI_BOLD}>
                             {" "}{capitalizeFirstLetter(item.city)}
                         </AppText>
                     </View>
-                    <View style={[styles.metaRow, { marginTop: metrics.hp0_5 }]}>
+                    :<></>}
+                    <View style={[styles.metaRow, { marginTop: capitalizeFirstLetter(item.city) ? metrics.hp0_5  : 0}]}>
                         <FastImage source={straightenIcon} resizeMode='contain' style={styles.metaIcon} />
                         <AppText color={WHITE} weight={INTER_SEMI_BOLD}>
                             {" "}{item.height} ft
@@ -216,7 +220,7 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, likeYoue
                 {item?.profilePicture?.length ?
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryContent}>
                         {item?.profilePicture?.map((img: any, idx: number) => (
-                            <View key={img?.url ?? idx} style={styles.galleryItem}>
+                            <TouchableOpacityView onPress={()=> showFullProfile(item?.profilePicture)} key={img?.url ?? idx} style={styles.galleryItem}>
                                 <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male" && userData?.isPublish === false ? 10 : 0} style={styles.galleryImage} />
                                 {userData?.gender === "male" && userData?.isPublish === false ?
                                     <>
@@ -226,7 +230,7 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, likeYoue
                                         </View>
                                     </>
                                     : <></>}
-                            </View>
+                            </TouchableOpacityView>
                         ))}
                     </ScrollView> :
                     <ImageBackground source={chatPurchaseColour} tintColor={"#555359"} resizeMode='stretch' style={{
@@ -261,7 +265,7 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, likeYoue
             </View>
         </ImageBackground>
     );
-}, (prev, next) => prev.item === next.item && prev.onLike === next.onLike && prev.onDislike === next.onDislike && prev.onOpenPreview === next.onOpenPreview && next.likeYoue === next.likeYoue && prev.userData === next.userData && prev.setCrushNoteVisible === next.setCrushNoteVisible && prev.handleCrushNote === next.handleCrushNote);
+}, (prev, next) => prev.item === next.item && prev.onLike === next.onLike && prev.onDislike === next.onDislike && prev.onOpenPreview === next.onOpenPreview && next.likeYoue === next.likeYoue && prev.userData === next.userData && prev.setCrushNoteVisible === next.setCrushNoteVisible && prev.handleCrushNote === next.handleCrushNote&& prev.showFullProfile === next.showFullProfile);
 
 const LikesYouScreen = () => {
     const dispatch = useDispatch();
@@ -291,7 +295,8 @@ const LikesYouScreen = () => {
     const [verifyModalVisible, setVerifyModalVisible] = useState(false);
     const [verifyStage, setVerifyStage] = useState<'prompt' | 'success' | 'error'>('prompt');
     const [verifyError, setVerifyError] = useState('');
-
+    const [fullImage, setFullImage] = useState<any>(false);
+    const [gallaryData, setGallaryData] = useState<any>([]);
     const userDataRef = useRef<any>(userData);
 
     useEffect(() => {
@@ -698,9 +703,13 @@ const LikesYouScreen = () => {
         setCurrentProfileData(item)
         setModalVisible(true);
     }, []);
+    const showFullProfile = (item: any) => {
+        setGallaryData(item)
+        setFullImage(true)
+    }
     const renderItem = useCallback(({ item }: any) => (
-        <ProfileListCard item={item} onLike={handleLikePress} onDislike={handleDislikePress} onOpenPreview={handleOpenPreview} likeYoue={likeYoue} userData={userData} setCrushNoteVisible={setCrushNoteVisible} handleCrushNote={handleCrushNote} />
-    ), [handleLikePress, handleDislikePress, handleOpenPreview, likeYoue, userData, setCrushNoteVisible, handleCrushNote]);
+        <ProfileListCard item={item} onLike={handleLikePress} onDislike={handleDislikePress} onOpenPreview={handleOpenPreview} likeYoue={likeYoue} userData={userData} setCrushNoteVisible={setCrushNoteVisible} handleCrushNote={handleCrushNote} showFullProfile={showFullProfile}/>
+    ), [handleLikePress, handleDislikePress, handleOpenPreview, likeYoue, userData, setCrushNoteVisible, handleCrushNote, showFullProfile]);
 
     const keyExtractor = useCallback((item: any, index: number) => item?._id ?? `profile-${index}`, []);
 
@@ -885,7 +894,8 @@ const LikesYouScreen = () => {
                 <ViewProfileAndroid currentProfileData={currentProfileData} setModalVisible={setModalVisible}
                     handleDislikePress={handleDislikePress}
                     handleLikePress={handleLikePress} likeYoue={likeYoue} 
-                    handleCrushNote={handleCrushNote}/>
+                    handleCrushNote={handleCrushNote}
+                    showFullProfile={showFullProfile}/>
             </Modal>
             <Modal
                 animationType="fade"
@@ -902,7 +912,14 @@ const LikesYouScreen = () => {
                 onRequestClose={() => setMatchVisible(false)}>
                 {matchVisible ? <MatchScreen setMatchVisible={setMatchVisible} matchData={matchData} /> : null}
             </Modal>
-
+            <Modal
+                animationType="fade"
+                transparent
+                statusBarTranslucent
+                visible={fullImage}
+                onRequestClose={() => setFullImage(false)}>
+                <FullScreenImage gallaryData={gallaryData} setFullImage={setFullImage}/>
+            </Modal>
             <PremiumAnimatedModal visible={verifyModalVisible} onClose={() => setVerifyModalVisible(false)}>
                 {verifyStage === 'prompt' ? (
                     <View style={{ alignItems: "center" }}>

@@ -17,6 +17,7 @@ import {
     StyleSheet,
     TouchableOpacity,
     View,
+    AppState, AppStateStatus
 } from 'react-native';
 import { AppText, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, WHITE, EIGHTEEN, fontSize, BLACK, THIRTEEN, FORTEEN, OPECITY, TWENTY_TWO, INTER_BOLD, RED } from '../../common/AppText';
 import { toggalOnButtonNew, toggalOffButtonNew, serachButtonNew, resetButtonNew, directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, straightenIcon, dummyMaleProfile, dummyfemaleProfile, chatPurchaseColour, chatAmountBackgroungNew, goToProifleIcon, onlineProfileImage, scrollatthetopIcon, trunOnBackground, modalBackground, closeNewWhiteIcon, verifiedBadgeIcon } from '../../helper/ImageAssets';
@@ -48,6 +49,7 @@ import ViewProfileAndroid from './ViewProfileAndroid';
 import CrushNotesSender from './CrushNotesSender';
 import { TouchEventType } from 'react-native-gesture-handler/lib/typescript/TouchEventType';
 import FullScreenViewPhoto from '../../components/FullScreenViewPhoto';
+import FullScreenImage from './FullScreenImage';
 
 const PROFILE_BATCH_LIMIT = 10;
 const TOP_UP_TRIGGER_COUNT = 3; // fetch more when this few profiles remain
@@ -174,6 +176,7 @@ type ProfileListCardProps = {
     userData: any;
     setCrushNoteVisible: any;
     handleCrushNote: any;
+    showFullProfile: any
 };
 
 // Memoized row: re-renders only when its own profile changes, not on every
@@ -183,7 +186,7 @@ const capitalizeFirstLetter = (text: string) => {
     return text.charAt(0).toUpperCase() + text.slice(1);
 };
 
-const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData, setCrushNoteVisible, handleCrushNote }: ProfileListCardProps) => {
+const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData, setCrushNoteVisible, handleCrushNote, showFullProfile }: ProfileListCardProps) => {
 
     return (
         <ImageBackground source={newProfileBackground} resizeMode='stretch' style={styles.cardBackground}>
@@ -204,13 +207,15 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData
                     <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} style={styles.nameText}>
                         {item.username ? item.username : item.name}, {item.age} y
                     </AppText>
+                    {capitalizeFirstLetter(item.city) ? 
                     <View style={styles.metaRow}>
                         <FastImage source={locIcon} resizeMode='contain' style={styles.metaIcon} />
                         <AppText color={WHITE} weight={INTER_SEMI_BOLD}>
                             {" "}{capitalizeFirstLetter(item.city)}
                         </AppText>
                     </View>
-                    <View style={[styles.metaRow, { marginTop: metrics.hp0_5 }]}>
+                    :<></>}
+                    <View style={[styles.metaRow, { marginTop: capitalizeFirstLetter(item.city) ? metrics.hp0_5 : 0}]}>
                         <FastImage source={straightenIcon} resizeMode='contain' style={styles.metaIcon} />
                         <AppText color={WHITE} weight={INTER_SEMI_BOLD}>
                             {" "}{item.height} ft
@@ -224,7 +229,7 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData
                 {item?.gallery?.length ?
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryContent}>
                         {item?.gallery?.map((img: any, idx: number) => (
-                            <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : console.log()} key={img?.url ?? idx} style={styles.galleryItem}>
+                            <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : showFullProfile(item?.gallery)} key={img?.url ?? idx} style={styles.galleryItem}>
                                 <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male" && userData?.isPublish === false ? 10 : 0} style={styles.galleryImage} />
                                 {userData?.gender === "male" && userData?.isPublish === false ? <>
                                     <View style={styles.galleryDim} />
@@ -266,7 +271,7 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData
             </View>
         </ImageBackground>
     );
-}, (prev, next) => prev.item === next.item && prev.onLike === next.onLike && prev.onDislike === next.onDislike && prev.onOpenPreview === next.onOpenPreview && prev.userData === next.userData && prev.setCrushNoteVisible === next.setCrushNoteVisible && prev.handleCrushNote === next.handleCrushNote);
+}, (prev, next) => prev.item === next.item && prev.onLike === next.onLike && prev.onDislike === next.onDislike && prev.onOpenPreview === next.onOpenPreview && prev.userData === next.userData && prev.setCrushNoteVisible === next.setCrushNoteVisible && prev.handleCrushNote === next.handleCrushNote && prev.showFullProfile === next.showFullProfile);
 
 
 
@@ -281,6 +286,7 @@ const PeopleScreen = () => {
     // NOTE: `profileHide` was subscribed here but never used — every
     // publish/hide toggle forced a full HomeScreen + FlatList re-render
     // during the navigation transition (visible lag). Removed.
+    console.log(listProfilesData, "listProfilesDatalistProfilesDatalistProfilesData");
 
     const [matchVisible, setMatchVisible] = useState(false);
     const [matchData, setMatchData] = useState([]);
@@ -301,6 +307,8 @@ const PeopleScreen = () => {
     const [verifyModalVisible, setVerifyModalVisible] = useState(false);
     const [fullProfileShow, setFullProfileShow] = useState(false);
     const [fullProfileShowCurrentData, setFullProfileShowCurrentData] = useState<any>({});
+    const [fullImage, setFullImage] = useState<any>(false);
+    const [gallaryData, setGallaryData] = useState<any>([]);
 
     const [verifyStage, setVerifyStage] = useState<'prompt' | 'verifying' | 'success' | 'error'>('prompt');
     const [verifyError, setVerifyError] = useState<string>('');
@@ -309,7 +317,28 @@ const PeopleScreen = () => {
     const [showScrollTop, setShowScrollTop] = useState(false);
     const showScrollTopRef = useRef(false);
     const scrollTopAnim = useRef(new Animated.Value(0)).current;
-
+    // const appState = useRef<AppStateStatus>(AppState.currentState);
+    // useEffect(() => {
+    //     const subscription = AppState.addEventListener('change', nextState => {
+    //       const wasInBackground =
+    //         appState.current === 'inactive' ||
+    //         appState.current === 'background';
+      
+    //       if (wasInBackground && nextState === 'active') {
+    //         if (profilesRef.current.length === 0) {
+    //           hasFetchedFeedOnceRef.current = false;
+    //           isFetchingMoreRef.current = false;
+    //           feedExhaustedRef.current = false;
+      
+    //           dispatch(listProfiles(true, 0, 10, false));
+    //         }
+    //       }
+      
+    //       appState.current = nextState;
+    //     });
+      
+    //     return () => subscription.remove();
+    //   }, [dispatch]);
     const handleScroll = useCallback((event: any) => {
         const offsetY = event.nativeEvent.contentOffset.y;
         if (offsetY > 100 && !showScrollTopRef.current) {
@@ -739,11 +768,14 @@ const PeopleScreen = () => {
     const canManagePublish =
         userData?.gender === "female" ||
         (userData?.gender === "male" && hasPublishPlan);
-
+    const showFullProfile = (item: any) => {
+        setGallaryData(item)
+        setFullImage(true)
+    }
 
     const renderItem = useCallback(({ item }: any) => (
-        <ProfileListCard item={item} onLike={handleLikePress} onDislike={handleDislikePress} onOpenPreview={handleOpenPreview} userData={userData} setCrushNoteVisible={setCrushNoteVisible} handleCrushNote={handleCrushNote} />
-    ), [handleLikePress, handleDislikePress, userData, setCrushNoteVisible, handleCrushNote]);
+        <ProfileListCard item={item} onLike={handleLikePress} onDislike={handleDislikePress} onOpenPreview={handleOpenPreview} userData={userData} setCrushNoteVisible={setCrushNoteVisible} handleCrushNote={handleCrushNote} showFullProfile={showFullProfile} />
+    ), [handleLikePress, handleDislikePress, userData, setCrushNoteVisible, handleCrushNote, showFullProfile]);
 
     const keyExtractor = useCallback((item: any, index: number) => item?._id ?? `profile-${index}`, []);
 
@@ -831,7 +863,7 @@ const PeopleScreen = () => {
             return false;
         }
     }, [getCameraPermissionType]);
-   
+
     // const fetchCity = async () => {
 
     //     try {
@@ -986,7 +1018,8 @@ const PeopleScreen = () => {
                 <ViewProfileAndroid currentProfileData={currentProfileData} setModalVisible={setModalVisible}
                     handleDislikePress={handleDislikePress}
                     handleLikePress={handleLikePress}
-                    handleCrushNote={handleCrushNote} />
+                    handleCrushNote={handleCrushNote}
+                    showFullProfile={showFullProfile} />
             </Modal>
             <Modal
                 animationType="fade"
@@ -1018,7 +1051,14 @@ const PeopleScreen = () => {
                 onRequestClose={() => setMatchVisible(false)}>
                 {matchVisible ? <MatchScreen setMatchVisible={setMatchVisible} matchData={matchData} /> : null}
             </Modal>
-
+            <Modal
+                animationType="fade"
+                transparent
+                statusBarTranslucent
+                visible={fullImage}
+                onRequestClose={() => setFullImage(false)}>
+                <FullScreenImage gallaryData={gallaryData} setFullImage={setFullImage} />
+            </Modal>
             {/* Filter RBSheet */}
             <RBSheet
                 ref={filterSheetRef}

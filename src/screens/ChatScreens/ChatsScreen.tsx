@@ -377,7 +377,7 @@ const ChatsScreen = () => {
                     <SearchContainer editable={false} onChangeText={setSearch} value={search} placeholder={"Search matches"} style={{ height: metrics.hp7 }} />
                 }
             </ImageBackground>
-            {/* {newMatches?.length === 0 ? (
+            {newMatches?.length === 0 ? (
                 <FlatList
                     data={query ? (normalize(botChatItem.name).includes(query) ? [botChatItem] : []) : [botChatItem]}
                     renderItem={renderItemChats}
@@ -388,7 +388,7 @@ const ChatsScreen = () => {
                     contentContainerStyle={{ paddingBottom: metrics.hp5 }}
                     showsVerticalScrollIndicator={false}
                 />
-            ) : ( */}
+            ) : (
                 <FlatList
                     data={filteredChats}
                     renderItem={renderItemChats}
@@ -398,6 +398,7 @@ const ChatsScreen = () => {
                     ListHeaderComponent={ListHeaderComponent}
                     contentContainerStyle={{ paddingBottom: metrics.hp20 }}
                 />
+            )}
             {/* <PeopleHeader profile={true} filter={true} setModalVisible={setModalVisible}/> */}
             {/* <View style={styles.singlelIne} /> */}
             {/* {newMatches?.length ? (

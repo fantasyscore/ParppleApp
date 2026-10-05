@@ -36,7 +36,7 @@ const TURN_ON_IMAGES: any = {
     "Chocolate": choclateImageNew,
     "Touch": touchNewIcon,
 };
-const SeeOtherUserProfile = ({ currentProfileData, setModalVisible }: any) => {
+const SeeOtherUserProfile = ({ currentProfileData, setModalVisible,showFullProfile }: any) => {
     const scrollX = useRef(new Animated.Value(0)).current;
     const userData = useSelector((state: any) => state.auth.userData);
     const [selectedIds, setSelectedIds] = useState([]);
@@ -76,7 +76,7 @@ const SeeOtherUserProfile = ({ currentProfileData, setModalVisible }: any) => {
                     height: metrics.hp45,
                     width: metrics.hp34
                 }}>
-                <TouchableOpacity activeOpacity={1} onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : console.log("")}>
+                <TouchableOpacity activeOpacity={1} onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) :showFullProfile(currentProfileData?.profilePicture ? currentProfileData?.profilePicture : currentProfileData?.gallery)}>
                     <Image blurRadius={userData?.gender === "male" && userData?.isPublish === false ? 10 : 0} source={{ uri: item.url }} resizeMode="cover" style={styles.imageMain} />
                     {userData?.gender === "male" && userData?.isPublish === false ?
                         <>

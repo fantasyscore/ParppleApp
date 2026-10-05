@@ -306,7 +306,7 @@ export const threeDotData = [
     {
         id: "1",
         icon: unMatchProfileIcon,
-        headLine: "Unmatched From",
+        headLine: "Unmatch From",
         disLine: "Not interested anymore? Remove them from your matches."
     },
     {
@@ -363,7 +363,7 @@ export const fakeProfileReport = [
     },
     {
         id: "4",
-        title: "Other (please describe)",
+        title: "Other",
     },
 ];
 export const InappropriatePhotosReport = [

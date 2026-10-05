@@ -41,6 +41,7 @@ import { useLikeDislikeAnimation } from '../../hooks/useLikeDislikeAnimation';
 import { LikeDislikeOverlays } from '../../common/LikeDislikeOverlays';
 import ViewProfileAndroid from '../HomeScreens/ViewProfileAndroid';
 import CrushNotesSender from '../HomeScreens/CrushNotesSender';
+import FullScreenImage from '../HomeScreens/FullScreenImage';
 
 const PROFILE_BATCH_LIMIT = 10;
 const TOP_UP_TRIGGER_COUNT = 3; // fetch more when this few profiles remain
@@ -168,6 +169,7 @@ type ProfileListCardProps = {
     userData: any;
     setCrushNoteVisible: any;
     handleCrushNote: any;
+    showFullProfile?:any
 };
 const capitalizeFirstLetter = (text: string) => {
     if (!text) return text;
@@ -175,7 +177,7 @@ const capitalizeFirstLetter = (text: string) => {
 };
 // Memoized row: re-renders only when its own profile changes, not on every
 // list update / swipe elsewhere.
-const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, ViewYoue, userData, setCrushNoteVisible, handleCrushNote }: ProfileListCardProps) => {
+const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, ViewYoue, userData, setCrushNoteVisible, handleCrushNote,showFullProfile }: ProfileListCardProps) => {
     return (
         <ImageBackground source={newProfileBackground} resizeMode='stretch' style={styles.cardBackground}>
             {item.online ?
@@ -195,13 +197,15 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, ViewYoue
                     <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} style={styles.nameText}>
                         {item.username ? item.username : item.name}, {item.age} y
                     </AppText>
+                    {capitalizeFirstLetter(item.city) ? 
                     <View style={styles.metaRow}>
                         <FastImage source={locIcon} resizeMode='contain' style={styles.metaIcon} />
                         <AppText color={WHITE} weight={INTER_SEMI_BOLD}>
                             {" "}{capitalizeFirstLetter(item.city)}
                         </AppText>
                     </View>
-                    <View style={[styles.metaRow, { marginTop: metrics.hp0_5 }]}>
+                    :<></>}
+                    <View style={[styles.metaRow, { marginTop: capitalizeFirstLetter(item.city) ?  metrics.hp0_5 : 0 }]}>
                         <FastImage source={straightenIcon} resizeMode='contain' style={styles.metaIcon} />
                         <AppText color={WHITE} weight={INTER_SEMI_BOLD}>
                             {" "}{item.height} ft
@@ -215,7 +219,7 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, ViewYoue
                 {item?.profilePicture?.length ?
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryContent}>
                         {item?.profilePicture?.map((img: any, idx: number) => (
-                            <View key={img?.url ?? idx} style={styles.galleryItem}>
+                            <TouchableOpacityView onPress={()=> showFullProfile(item?.profilePicture)} key={img?.url ?? idx} style={styles.galleryItem}>
                                 <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male" && userData?.isPublish === false ? 10 : 0} style={styles.galleryImage} />
                                 {userData?.gender === "male" && userData?.isPublish === false ? <>
                                     <View style={styles.galleryDim} />
@@ -223,7 +227,7 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, ViewYoue
                                         <FastImage source={lockIconWhite} resizeMode='contain' style={styles.lockIcon} />
                                     </View>
                                 </> : <></>}
-                            </View>
+                            </TouchableOpacityView>
 
                         ))}
                     </ScrollView>
@@ -289,7 +293,8 @@ const ViewYouScreen = () => {
     const [verifyModalVisible, setVerifyModalVisible] = useState(false);
     const [verifyStage, setVerifyStage] = useState<'prompt' | 'success' | 'error'>('prompt');
     const [verifyError, setVerifyError] = useState('');
-
+    const [fullImage, setFullImage] = useState<any>(false);
+    const [gallaryData, setGallaryData] = useState<any>([]);
     const userDataRef = useRef<any>(userData);
 
     useEffect(() => {
@@ -706,9 +711,13 @@ const ViewYouScreen = () => {
         setCurrentProfileData(item)
         setModalVisible(true);
     }, []);
+    const showFullProfile = (item: any) => {
+        setGallaryData(item)
+        setFullImage(true)
+    }
     const renderItem = useCallback(({ item }: any) => (
-        <ProfileListCard item={item} onLike={handleLikePress} onDislike={handleDislikePress} onOpenPreview={handleOpenPreview} ViewYoue={ViewYoue} userData={userData} setCrushNoteVisible={setCrushNoteVisible} handleCrushNote={handleCrushNote} />
-    ), [handleLikePress, handleDislikePress, handleOpenPreview, ViewYoue, userData, setCrushNoteVisible, handleCrushNote]);
+        <ProfileListCard item={item} onLike={handleLikePress} onDislike={handleDislikePress} onOpenPreview={handleOpenPreview} ViewYoue={ViewYoue} userData={userData} setCrushNoteVisible={setCrushNoteVisible} handleCrushNote={handleCrushNote} showFullProfile={showFullProfile}/>
+    ), [handleLikePress, handleDislikePress, handleOpenPreview, ViewYoue, userData, setCrushNoteVisible, handleCrushNote,showFullProfile]);
 
     const keyExtractor = useCallback((item: any, index: number) => item?._id ?? `profile-${index}`, []);
 
@@ -884,7 +893,9 @@ const ViewYouScreen = () => {
                 <ViewProfileAndroid currentProfileData={currentProfileData} setModalVisible={setModalVisible}
                     handleDislikePress={handleDislikePress}
                     handleLikePress={handleLikePress} likeYoue={likeYoue} ViewYoue={ViewYoue} 
-                    handleCrushNote={handleCrushNote}/>
+                    handleCrushNote={handleCrushNote}
+                    showFullProfile={showFullProfile}
+                    />
             </Modal>
             <Modal
                 animationType="fade"
@@ -901,7 +912,14 @@ const ViewYouScreen = () => {
                 onRequestClose={() => setMatchVisible(false)}>
                 {matchVisible ? <MatchScreen setMatchVisible={setMatchVisible} matchData={matchData} /> : null}
             </Modal>
-
+            <Modal
+                animationType="fade"
+                transparent
+                statusBarTranslucent
+                visible={fullImage}
+                onRequestClose={() => setFullImage(false)}>
+                <FullScreenImage gallaryData={gallaryData} setFullImage={setFullImage}/>
+            </Modal>
             <PremiumAnimatedModal visible={verifyModalVisible} onClose={() => setVerifyModalVisible(false)}>
                 {verifyStage === 'prompt' ? (
                     <View style={{ alignItems: "center" }}>
