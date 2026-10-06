@@ -36,7 +36,7 @@ const TURN_ON_IMAGES: any = {
     "Chocolate": choclateImageNew,
     "Touch": touchNewIcon,
 };
-const SeeOtherUserProfile = ({ currentProfileData, setModalVisible,showFullProfile }: any) => {
+const SeeOtherUserProfile = ({ currentProfileData, setModalVisible, showFullProfile }: any) => {
     const scrollX = useRef(new Animated.Value(0)).current;
     const userData = useSelector((state: any) => state.auth.userData);
     const [selectedIds, setSelectedIds] = useState([]);
@@ -76,7 +76,7 @@ const SeeOtherUserProfile = ({ currentProfileData, setModalVisible,showFullProfi
                     height: metrics.hp45,
                     width: metrics.hp34
                 }}>
-                <TouchableOpacity activeOpacity={1} onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) :showFullProfile(currentProfileData?.profilePicture ? currentProfileData?.profilePicture : currentProfileData?.gallery)}>
+                <TouchableOpacity activeOpacity={1} onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : showFullProfile(currentProfileData?.profilePicture ? currentProfileData?.profilePicture : currentProfileData?.gallery)}>
                     <Image blurRadius={userData?.gender === "male" && userData?.isPublish === false ? 10 : 0} source={{ uri: item.url }} resizeMode="cover" style={styles.imageMain} />
                     {userData?.gender === "male" && userData?.isPublish === false ?
                         <>
@@ -202,48 +202,33 @@ const SeeOtherUserProfile = ({ currentProfileData, setModalVisible,showFullProfi
                                     </AppText>
                                 </View>
                                 {currentProfileData?.sexualOrientation ? <></> :
-                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168" }}>
-                                        <FastImage source={partnerheart} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
+                                        <FastImage source={heightIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
                                         <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                            {"  "}{currentProfileData?.distanceInKm < 10 ? "Near You" : `${currentProfileData?.distanceInKm} Km`}
+                                            {"  "}{(currentProfileData?.height || "")} ft
                                         </AppText>
                                     </View>
                                 }
                             </View>
                             <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
+                             
                                 {currentProfileData?.sexualOrientation ?
-                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168" }}>
-                                        <FastImage source={partnerheart} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
+                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1}}>
+                                        <FastImage source={heightIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
                                         <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                            {"  "}{currentProfileData?.distanceInKm < 10 ? "Near You" : `${currentProfileData?.distanceInKm} Km`}
+                                            {"  "}{currentProfileData?.height} ft
                                         </AppText>
-                                    </View> : <></>
-                                }
-                                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1, marginLeft: currentProfileData?.sexualOrientation ? metrics.hp1 : 0 }}>
-                                    <FastImage source={heightIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
-                                    <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                        {"  "}{currentProfileData?.height} ft
-                                    </AppText>
-                                </View>
-                                {currentProfileData?.sexualOrientation ? <></> :
+                                    </View>
+                                    : <></>}
+                               {currentProfileData?.city || currentProfileData?.homeTown ?
                                     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
                                         <FastImage source={locationIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
                                         <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
                                             {"  "}{capitalizeFirstLetter(currentProfileData?.city)}
                                         </AppText>
                                     </View>
-                                }
+                        : <></>}
                             </View>
-                            {currentProfileData?.sexualOrientation ?
-                                <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
-                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp1_5, paddingVertical: metrics.hp0_5, borderRadius: metrics.hp4, backgroundColor: "#5B6168", marginRight: metrics.hp1 }}>
-                                        <FastImage source={locationIconWhiteNew} resizeMode="contain" style={{ height: metrics.hp2, width: metrics.hp2 }} tintColor={colors.white} />
-                                        <AppText color={WHITE} weight={INTER_BOLD} type={ELEVEN}>
-                                            {"  "}{capitalizeFirstLetter(currentProfileData?.city)}
-                                        </AppText>
-                                    </View>
-                                </View>
-                                : <></>}
                             <ImageBackground source={bioBackground} resizeMode="stretch" style={{ /* height: metrics.hp9, */ width: "100%", marginTop: metrics.hp6, }}>
                                 <ImageBackground source={biosToggla} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp13, alignSelf: "center", marginTop: -metrics.hp2 }} >
                                     <AppText style={{ textAlign: "center" }} type={FORTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE}>
