@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import NavigationService from "../../navigation/NavigationService";
 
@@ -43,6 +43,7 @@ const ProfilePreviewNew = () => {
     const [selectedTurnOnIds, setSelectedTurnOnIds] = useState<any[]>([]);
     const [fullImage, setFullImage] = useState<any>(false);
     const [gallaryData, setGallaryData] = useState<any>([]);
+    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
     const selectedIds = userData?.turnOn || userData?.turnOns || [];
 
     useEffect(() => {
@@ -51,10 +52,11 @@ const ProfilePreviewNew = () => {
             setSelectedTurnOnIds(initialTurnOnIds);
         }
     }, [userData?.turnOns]);
-    const showFullProfile = (item: any) => {
-        setGallaryData(item)
-        setFullImage(true)
-    }
+    const showFullProfile = useCallback((item: any, index: number = 0) => {
+        setGallaryData(item);
+        setSelectedImageIndex(index);
+        setFullImage(true);
+    }, []);
     const renderItem = ({ item, index }: any) => {
         const inputRange = [
             (index - 1) * (ITEM_WIDTH + SPACING),
@@ -82,11 +84,11 @@ const ProfilePreviewNew = () => {
                     height: metrics.hp45,
                     width: metrics.hp34
                 }}>
-                            <TouchableOpacityView activeOpacity={1} onPress={() => showFullProfile(userData?.gallery)} key={item.url} style={styles.imageMain}>
+                <TouchableOpacityView activeOpacity={1} onPress={() => showFullProfile(userData?.gallery, index)} key={item.url} style={styles.imageMain}>
 
-                <Image source={{ uri: item.url }} resizeMode="cover" style={styles.imageMain} />
-                <View style={styles.galleryDim} />
-</TouchableOpacityView>
+                    <Image source={{ uri: item.url }} resizeMode="cover" style={styles.imageMain} />
+                    <View style={styles.galleryDim} />
+                </TouchableOpacityView>
             </Animated.View>
         )
     };
@@ -267,7 +269,7 @@ const ProfilePreviewNew = () => {
                 statusBarTranslucent
                 visible={fullImage}
                 onRequestClose={() => setFullImage(false)}>
-                <FullScreenImage gallaryData={gallaryData} setFullImage={setFullImage}/>
+                <FullScreenImage gallaryData={gallaryData} setFullImage={setFullImage} initialIndex={selectedImageIndex} />
             </Modal>
         </AppSafeAreaView>
     )

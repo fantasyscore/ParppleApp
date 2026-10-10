@@ -329,7 +329,7 @@ const SettingScreen = () => {
                     <View style={styles.successCardDark}>
                         <FastImage source={applogo} resizeMode="contain" style={styles.appLogo} />
                         <AppText
-                            style={{ textAlign: "center", marginTop: metrics.hp2 }}
+                            style={{ textAlign: "center", marginTop: metrics.hp0 }}
                             type={TWELVE}
                             weight={INTER_MEDIUM}
                             color={OPECITY_DARK}>
@@ -480,8 +480,8 @@ const styles = StyleSheet.create({
         backgroundColor: colors.red,
     },
     appLogo: {
-        width: metrics.hp8,
-        height: metrics.hp8,
+        width: metrics.hp10,
+        height: metrics.hp10,
     },
     bottomLayer: {
         height: metrics.hp13,

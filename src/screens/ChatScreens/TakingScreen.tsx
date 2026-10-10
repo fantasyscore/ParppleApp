@@ -1,13 +1,13 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { AppState, AppStateStatus, ImageBackground, Platform } from 'react-native';
+import { Alert, AppState, AppStateStatus, ImageBackground, Platform, ScrollView } from 'react-native';
 import { Chat, Bubble, Time } from '@kesha-antonov/react-native-chat';
-import { blackIcon, blockModalImage, BottomLayer, chatBottomBackgroundImage, dummyfemaleProfile, dummyMaleProfile, noccce, sendMessageNewIcon, timeShowNewBackground, unmatchModalImage } from '../../helper/ImageAssets';
+import { addPhotoIcon, blackIcon, blockModalImage, BottomLayer, chatBackground, chatBottomBackgroundImage, dummyfemaleProfile, dummyMaleProfile, emptyTextImage, helloHand, noccce, sendMessageNewIcon, smlieIcon, timeShowNewBackground, unmatchModalImage } from '../../helper/ImageAssets';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 import ChatHeader from '../../common/ChatHeader';
 import { StyleSheet, View, TextInput, KeyboardAvoidingView, Keyboard, Dimensions, Modal, Animated } from 'react-native';
 import { colors, newColor } from '../../theme/colors';
 import metrics from '../../assets/Metrics';
-import { AppText, BLACK, fontSize, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, OPECITY_DARK, PURPLE, SCHEHERAZADE_BOLD, SIXTEEN, TEN, TWELVE, TWENTY_FOUR, WHITE } from '../../common/AppText';
+import { AppText, BLACK, fontSize, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, OPECITY_DARK, PURPLE, SCHEHERAZADE_BOLD, SIXTEEN, TEN, THIRTEEN, TWELVE, TWENTY_FOUR, WHITE } from '../../common/AppText';
 import { TouchableOpacityView } from '../../common/TouchableOpacityView';
 import FastImage from 'react-native-fast-image';
 import { interMedium, interSemiBold } from '../../theme/typography';
@@ -27,8 +27,8 @@ import { clearActiveChat, setActiveChatMatchId } from '../../slices/inAppNotific
 import { chatHistoryDetails, setNewMatches } from '../../slices/loginServices/authSlice';
 import { clearNotificationsByMatchId } from '../../notifications/pushNotifications';
 import SeeOtherUserProfile from './SeeOtherUserProfile';
-import FullScreenImage from '../HomeScreens/FullScreenImage';
-
+import FullScreenImage from '../HomeScreens/FullScreenImage'
+import { launchImageLibrary } from 'react-native-image-picker';
 const USER_ID = 1;
 
 type ChatMessage = {
@@ -46,7 +46,7 @@ type ChatMessage = {
 
 
 
-const TakingScreen = () => {
+const TakingScreen = ({ route }: any) => {
     const dispatch = useDispatch();
     const store = useStore();
     const matchChatUserDetails = useSelector((state: any) => state.auth.matchChatUserDetails);
@@ -81,6 +81,10 @@ const TakingScreen = () => {
     const userDataRef = useRef<any>(userData);
     const [fullImage, setFullImage] = useState<any>(false);
     const [gallaryData, setGallaryData] = useState<any>([]);
+    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+    const [isOpen, setIsOpen] = React.useState<boolean>(false)
+    const inputRef = useRef<TextInput>(null);
+
     useEffect(() => {
         activeMatchIdRef.current = matchChatUserDetails?.matchId;
         activeOtherUserIdRef.current = matchChatUserDetails?.userId;
@@ -112,22 +116,14 @@ const TakingScreen = () => {
         hasLoadedInitialMessages.current = false;
     }, [matchChatUserDetails?.matchId]);
 
-    // Set active chat matchId when screen is focused, clear when unfocused
-    // Also reset unread count for this chat when opened
-    // Clear all notifications for this chat when opened (WhatsApp-like behavior)
     useFocusEffect(
         useCallback(() => {
             const matchId = matchChatUserDetails?.matchId;
             if (matchId) {
                 dispatch(setActiveChatMatchId(matchId));
-
-                // CRITICAL: Clear all notifications for this chat when opened
-                // This mimics WhatsApp behavior - when user opens chat directly, all notifications for that chat are cleared
                 clearNotificationsByMatchId(matchId).catch((error) => {
                     console.error('[TakingScreen] Error clearing notifications:', error);
                 });
-
-                // CRITICAL: Reset unread count when chat is opened
                 const state: any = store?.getState?.();
                 const newMatches = state?.auth?.newMatches || [];
                 const updatedMatches = newMatches.map((chat: any) => {
@@ -502,19 +498,12 @@ const TakingScreen = () => {
         };
     }, [socket]);
 
-    // Handle app lifecycle: reconnect socket when app comes to foreground
-    // This ensures socket reconnects after being disconnected by GlobalNotificationManager
     useEffect(() => {
         const handleAppStateChange = (nextAppState: AppStateStatus) => {
             console.log('[TakingScreen] App state changed:', nextAppState);
-
             if (nextAppState === 'active') {
-                // App is coming to foreground - reconnect socket if needed
-                // Socket was disconnected by GlobalNotificationManager on background
                 if (socketUrl) {
                     console.log('[TakingScreen] Reconnecting socket - app coming to foreground');
-                    // Force socket recreation by updating state
-                    // This will trigger useMemo to create new socket and useEffect to attach listeners
                     setSocketReconnectKey((prev) => prev + 1);
                 }
             }
@@ -689,7 +678,7 @@ const TakingScreen = () => {
         });
         return () => showSubscription.remove();
     }, []);
-
+  
     const onSend = useCallback((newMessages: ChatMessage[] = []) => {
         setMessagesOwnerMatchId(matchChatUserDetails?.matchId);
         setMessages(prev => {
@@ -730,51 +719,6 @@ const TakingScreen = () => {
         );
     }, []);
 
-    // const renderBubble = useCallback((props: any) => {
-    //     const isCurrentUser = props.currentMessage?.user?._id === userData?._id || props.currentMessage?.user?._id === USER_ID;
-    //     const isRead = props.currentMessage?.isRead === true;
-    //     const isTypingIndicator = props.currentMessage?._id === 'typing-indicator';
-
-    //     if (isTypingIndicator) {
-    //         return <TypingIndicatorBubble />;
-    //     }
-
-    //     return (
-    //         <Bubble
-    //             {...props}
-    //             wrapperStyle={{
-
-    //                 right: {
-    //                     backgroundColor: "#7A4E40", // Matching the purple sender bubble
-    //                     borderBottomRightRadius: 0,
-    //                     borderRadius: metrics.hp2,
-    //                     marginRight:metrics.hp0_2,
-    //                 },
-    //                 left: {
-    //                     backgroundColor: "#555359", // Matching the dark receiver bubble
-    //                     borderBottomLeftRadius: 0,
-    //                     borderRadius: metrics.hp2,
-    //                     marginLeft:metrics.hp0_2,
-    //                     // transform: [{ translateX: 50 }],
-    //                 }
-    //             }}
-    //             // wrapperStyle={{
-    //             //     left: { backgroundColor: '#7A4E40', borderRadius: metrics.hp0_5, padding: metrics.hp0_2, marginBottom: metrics.hp1_2 },
-    //             //     right: { backgroundColor: '#555359', borderRadius: metrics.hp0_5, padding: metrics.hp0_2,/*  paddingRight: metrics.hp3, */ marginBottom: metrics.hp1_2, marginRight: metrics.hp1, position: 'relative' },
-    //             // }}
-    //             textStyle={{
-    //                 left: { color: 'white', fontSize: fontSize(14), fontFamily: interSemiBold },
-    //                 right: { color: 'white', fontSize: fontSize(14), fontFamily: interSemiBold },
-    //             }}
-    //             timeTextStyle={{
-    //                 left: { color: colors.nanoOpecity, fontSize: 10 },
-    //                 right: { color: 'rgba(255,255,255,0.7)', fontSize: 10 }
-    //             }}
-    //         />
-
-    //     );
-    // }, [userData?._id]);
-
     const renderBubble = useCallback((props: any) => {
         const isTypingIndicator =
             props.currentMessage?._id === 'typing-indicator';
@@ -789,16 +733,17 @@ const TakingScreen = () => {
                 {...props}
                 wrapperStyle={{
                     right: {
-                        backgroundColor: "#7A4E40",
+                        backgroundColor: "#555359",
                         borderBottomRightRadius: 0,
-                        borderRadius: metrics.hp2,
-                        marginRight: metrics.hp0_2,
+                        borderRadius: metrics.hp1,
+                        marginRight: metrics.hp0_3,
                     },
 
                     left: {
-                        backgroundColor: "#555359",
+                        backgroundColor: "#7A4E40",
                         borderBottomLeftRadius: 0,
-                        borderRadius: metrics.hp2,
+                        borderRadius: metrics.hp1,
+                        marginLeft: 0,
                     },
                 }}
                 textStyle={{
@@ -857,7 +802,8 @@ const TakingScreen = () => {
     }
     const unBlockButton = () => {
         const data = {
-            matchId: matchChatUserDetails?.matchId
+            matchId: matchChatUserDetails?.matchId,
+       
         };
         dispatch(userBlockAPI(data))
         setModalVisible(false);
@@ -868,21 +814,6 @@ const TakingScreen = () => {
         return (
             <View>
                 <Time {...props} timeTextStyle={{ left: { color: colors.white }, right: { color: colors.white } }} containerStyle={{ left: { marginTop: 2 }, right: { marginTop: 2 } }} />
-                {/* {props?.currentMessage?.isMine ?
-                    <FastImage source={noccce} resizeMode='contain' style={{
-                        height: metrics.hp2, width: metrics.hp2_3, position: 'absolute',
-                        bottom: -metrics.hp0_24,
-                        right: -metrics.hp1,
-                    }} tintColor={"#555359"} /> :
-                    <FastImage
-                        source={noccce} tintColor={"#7A4E40"} resizeMode='contain' style={{
-                            height: metrics.hp2, width: metrics.hp2_3, position: 'absolute',
-                            bottom: -metrics.hp0_29,
-                            left: -metrics.hp1,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }} />
-                } */}
             </View>
         );
     };
@@ -977,16 +908,29 @@ const TakingScreen = () => {
             </View>
         );
     };
+   
+    const openGallary = () => {
+        launchImageLibrary(
+            {
+                mediaType: "photo",
+                selectionLimit: 1,
+                quality: 1,
+                ...(Platform.OS === 'ios' && { presentationStyle: 'pageSheet' })
+            },
+        )
+    };
 
     const renderCustomInput = () => (
-        <KeyboardAvoidingView keyboardVerticalOffset={80} style={{ backgroundColor: newColor.blackNew }} /* style={styles.inputContainer} */>
-            <ImageBackground source={chatBottomBackgroundImage} resizeMode="stretch" style={styles.inputContainer}>
+        // <KeyboardAvoidingView keyboardVerticalOffset={80}>
+            <View style={styles.inputContainer}>
                 <View style={styles.inputContainerType}>
                     <TextInput
+                        ref={inputRef}
                         style={styles.textInput}
                         value={inputText}
                         onChangeText={(text) => {
                             setInputText(text);
+
                             if (text.length > 0) {
                                 handleTypingStart();
                                 handleTypingStop();
@@ -995,6 +939,7 @@ const TakingScreen = () => {
                                     clearTimeout(typingTimeoutRef.current);
                                     typingTimeoutRef.current = null;
                                 }
+
                                 emitTypingStatus(false);
                             }
                         }}
@@ -1008,81 +953,54 @@ const TakingScreen = () => {
                                 clearTimeout(typingTimeoutRef.current);
                                 typingTimeoutRef.current = null;
                             }
+
                             emitTypingStatus(false);
                         }}
                         placeholder="Type a message..."
                         placeholderTextColor={colors.white}
                         multiline
                     />
+                    {/* <TouchableOpacityView
+                        activeOpacity={1}
+                        onPress={openGallary}
+                        style={styles.smlieIcon}>
+                        <FastImage
+                            source={addPhotoIcon}
+                            resizeMode="contain"
+                            style={styles.smlieIcon}
+                        />
+                    </TouchableOpacityView> */}
                 </View>
-                <TouchableOpacityView
-                    style={styles.sendButton}
-                    onPress={() => {
-                        if (inputText.trim().length > 0) {
-                            console.log("Hello")
-                            onSend([{
-                                _id: Math.random(),
-                                text: inputText,
-                                createdAt: new Date(),
-                                isMine: true,
-                                user: { _id: USER_ID, name: 'Gurrent User', avatar: dummyMaleProfile }
-                            }]);
-                        }
-                    }}>
-                    <FastImage source={sendMessageNewIcon} resizeMode='contain' style={{ height: metrics.hp5_5, width: metrics.hp5_5 }} />
-                </TouchableOpacityView>
-            </ImageBackground>
-            {/* <View style={styles.inputContainerType}>
-                <TextInput
-                    style={styles.textInput}
-                    value={inputText}
-                    onChangeText={(text) => {
-                        setInputText(text);
-                        if (text.length > 0) {
-                            handleTypingStart();
-                            handleTypingStop();
-                        } else {
-                            if (typingTimeoutRef.current) {
-                                clearTimeout(typingTimeoutRef.current);
-                                typingTimeoutRef.current = null;
+                    <TouchableOpacityView
+                        style={styles.sendButton}
+                        onPress={() => {
+                            if (inputText.trim().length > 0) {
+                                onSend([
+                                    {
+                                        _id: Math.random(),
+                                        text: inputText,
+                                        createdAt: new Date(),
+                                        isMine: true,
+                                        user: {
+                                            _id: USER_ID,
+                                            name: 'Gurrent User',
+                                            avatar: dummyMaleProfile,
+                                        },
+                                    },
+                                ]);
                             }
-                            emitTypingStatus(false);
-                        }
-                    }}
-                    onFocus={() => {
-                        if (inputText.length > 0) {
-                            handleTypingStart();
-                        }
-                    }}
-                    onBlur={() => {
-                        if (typingTimeoutRef.current) {
-                            clearTimeout(typingTimeoutRef.current);
-                            typingTimeoutRef.current = null;
-                        }
-                        emitTypingStatus(false);
-                    }}
-                    placeholder="Type a message..."
-                    placeholderTextColor={colors.black}
-                    multiline
-                />
+                        }}>
+                        <FastImage
+                            source={sendMessageNewIcon}
+                            resizeMode="contain"
+                            style={{
+                                height: metrics.hp5_5,
+                                width: metrics.hp5_5,
+                            }}
+                        />
+                    </TouchableOpacityView>
             </View>
-            <TouchableOpacityView
-                style={styles.sendButton}
-                onPress={() => {
-                    if (inputText.trim().length > 0) {
-                        console.log("Hello")
-                        onSend([{
-                            _id: Math.random(),
-                            text: inputText,
-                            createdAt: new Date(),
-                            isMine: true,
-                            user: { _id: USER_ID, name: 'Gurrent User', avatar: profileImage }
-                        }]);
-                    }
-                }}>
-                <FastImage source={sendButton} resizeMode='contain' style={{ height: metrics.hp3, width: metrics.hp3 }} />
-            </TouchableOpacityView> */}
-        </KeyboardAvoidingView>
+        // </KeyboardAvoidingView>
     );
     const onthreedot = (index: any) => {
         if (index == "0") refFilter?.current?.close(), setModalVisible(true), setSaveReportTitle("unMatch");
@@ -1090,74 +1008,135 @@ const TakingScreen = () => {
         if (index == '2') refFilter?.current?.close(), setModalVisible(true), setSaveReportTitle("Block");
 
     };
-    const showFullProfile = (item: any) => {
-        setGallaryData(item)
-        setFullImage(true)
+    const showFullProfile = useCallback((item: any, index: number = 0) => {
+        setGallaryData(item);
+        setSelectedImageIndex(index);
+        setFullImage(true);
+    }, []);
+    const EmptyDataText = [
+        {
+            id: 1,
+            text: "Hello!🤗"
+        },
+        {
+            id: 2,
+            text: "What's Up!"
+        },
+        {
+            id: 3,
+            text: "How are you?"
+        },
+    ];
+    const sendEmptyMessage = (text: string) => {
+        if (!text?.trim()) return;
+        onSend([
+            {
+                _id: Math.random(),
+                text: text.trim(),
+                createdAt: new Date(),
+                isMine: true,
+                user: {
+                    _id: USER_ID,
+                    name: 'Gurrent User',
+                    avatar: dummyMaleProfile,
+                },
+            },
+        ]);
     }
+    const chatEmptyRender = () => {
+        if (!route?.params?.forEmptyChat) return null
+        return (
+            <View style={{ transform: [{ rotate: "180deg" }], }}>
+                <TouchableOpacityView activeOpacity={0.7} onPress={() => sendEmptyMessage("Hi")} style={{ alignItems: "center", justifyContent: "center" }}>
+                    <FastImage source={helloHand} resizeMode='contain' style={{ height: metrics.hp18, width: metrics.hp18, }} />
+                    <TouchableOpacityView activeOpacity={0.7} onPress={() => sendEmptyMessage("Hi")}>
+                        <ImageBackground source={emptyTextImage} resizeMode='stretch' style={{ paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp1, alignItems: "center", justifyContent: "center" }}>
+                            <AppText color={WHITE} type={THIRTEEN} weight={INTER_SEMI_BOLD}>
+                                Say Hi!
+                            </AppText>
+                        </ImageBackground>
+                    </TouchableOpacityView>
+                </TouchableOpacityView>
+                <ScrollView showsHorizontalScrollIndicator={false} horizontal={true} contentContainerStyle={{ marginTop: metrics.hp25 }}>
+                    {EmptyDataText?.map((item, index: any) => {
+                        return (
+                            <TouchableOpacityView key={item.id} activeOpacity={0.7} onPress={() => sendEmptyMessage(item.text)} style={{ marginLeft: metrics.hp1 }}>
+                                <ImageBackground key={item.id} source={emptyTextImage} resizeMode='stretch' style={{ paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp1, alignItems: "center", justifyContent: "center", }}>
+                                    <AppText color={WHITE} type={THIRTEEN} weight={INTER_SEMI_BOLD}>
+                                        {item.text}
+                                    </AppText>
+                                </ImageBackground>
+                            </TouchableOpacityView>
+                        )
+                    })}
+                </ScrollView>
+            </View>
+        )
+    };
+    
     return (
         <AppSafeAreaView color={newColor.blackNew}>
             <ChatHeader setTabSelect={setTabSelect} onPress={() => refFilter?.current?.open()} seeProfileOther={() => seeOtherProfile()} />
-            <View style={{ flex: 1 }}>
-                <View style={styles.containerChat}>
-                    <Chat
-                        messages={displayedMessages}
-                        onSend={onSend}
-                        user={{ _id: USER_ID, name: 'Gurrent User', avatar: userData?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile }}
-                        renderAvatar={renderAvatar}
-                        renderBubble={renderBubble}
-                        renderDay={renderDay}
-                        renderTime={renderTime}
-                        renderInputToolbar={renderCustomInput}
-                        isUserAvatarVisible={false}
-                        loadEarlierMessagesProps={{
-                            isAvailable: hasMoreMessages,
-                            onPress: loadOlderMessages,
-                            isLoading: isLoadingMore,
-                            isInfiniteScrollEnabled: true,
-                            activityIndicatorColor: colors.purple,
-                            activityIndicatorSize: 'small',
-                        }}
-                        // showUserAvatar={false}
-                        // onLoadEarlier={loadOlderMessages}
-                        // loadEarlier={hasMoreMessages && !isLoadingMore}
-                        // isLoadingEarlier={isLoadingMore}
-                        // infiniteScroll={true}
-                        theme={{
-                            colors: {
-                                background: newColor.blackNew,
-                            }
-                        }}
-                        darkTheme={{
-                            colors: {
-                                background: newColor.blackNew,
-                            }
-                        }}
-                        renderLoadEarlier={() => {
-                            if (!hasMoreMessages) return null;
-                            if (isLoadingMore) {
-                                return (
-                                    <View style={{ paddingVertical: 10, alignItems: 'center' }}>
-                                        <ActivityIndicator size="small" color={colors.purple} />
-                                    </View>
-                                );
-                            }
-                            return null;
-                        }}
-                    />
-                    {isChatTransitioning && (
-                        <View style={styles.loaderContainer}>
-                            <ActivityIndicator size="large" color={colors.purple} />
-                        </View>
-                    )}
-                </View>
-            </View>
+            <ImageBackground
+                source={chatBackground}
+                resizeMode="cover"
+                style={styles.containerChat}>
+                <Chat
+                    messages={displayedMessages}
+                    onSend={onSend}
+                    user={{ _id: USER_ID, name: 'Gurrent User', avatar: userData?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile }}
+                    renderAvatar={renderAvatar}
+                    renderBubble={renderBubble}
+                    renderDay={renderDay}
+                    renderTime={renderTime}
+                    renderInputToolbar={renderCustomInput}
+                    renderChatEmpty={chatEmptyRender}
+                    isUserAvatarVisible={false}
+                    // enableKeyboardProvider={false}
+                    loadEarlierMessagesProps={{
+                        isAvailable: hasMoreMessages,
+                        onPress: loadOlderMessages,
+                        isLoading: isLoadingMore,
+                        isInfiniteScrollEnabled: true,
+                        activityIndicatorColor: colors.purple,
+                        activityIndicatorSize: 'small',
+                    }}
+                    theme={{
+                        colors: {
+                            background: colors.transparent,
+                        }
+                    }}
+                    darkTheme={{
+                        colors: {
+                            background: colors.transparent,
+                        }
+                    }}
+                    renderLoadEarlier={() => {
+                        if (!hasMoreMessages) return null;
+                        if (isLoadingMore) {
+                            return (
+                                <View style={{ paddingVertical: 10, alignItems: 'center' }}>
+                                    <ActivityIndicator size="small" color={colors.purple} />
+                                </View>
+                            );
+                        }
+                        return null;
+                    }}
+                />
+                {isChatTransitioning && (
+                    <View style={styles.loaderContainer}>
+                        <ActivityIndicator size="large" color={colors.purple} />
+                    </View>
+                )}
+            </ImageBackground>
+            
             <Modal
                 animationType="fade"
                 transparent
                 statusBarTranslucent
                 visible={fullImage}
                 onRequestClose={() => setFullImage(false)}>
-                <FullScreenImage gallaryData={gallaryData} setFullImage={setFullImage}/>
+                <FullScreenImage gallaryData={gallaryData} setFullImage={setFullImage} initialIndex={selectedImageIndex} />
             </Modal>
             <RBSheet ref={refFilter} openDuration={100}
                 height={Dimensions.get('window').height / 3.10}
@@ -1241,8 +1220,8 @@ const TakingScreen = () => {
                 visible={otherUserProfie}
                 statusBarTranslucent
                 onRequestClose={() => setOtherUserProfile(false)}>
-                <SeeOtherUserProfile currentProfileData={currentProfileData} setModalVisible={setOtherUserProfile} 
-                 showFullProfile={showFullProfile}/>
+                <SeeOtherUserProfile currentProfileData={currentProfileData} setModalVisible={setOtherUserProfile}
+                    showFullProfile={showFullProfile} />
             </Modal>
         </AppSafeAreaView>
     );
@@ -1255,10 +1234,10 @@ const styles = StyleSheet.create({
     selectLine: { height: metrics.hp0_3, width: "80%", borderTopRightRadius: metrics.hp1, borderTopLeftRadius: metrics.hp1, },
     inTabContainer: { alignItems: 'center', justifyContent: 'center', flex: 1 },
     containerChat: { flex: 1, backgroundColor: newColor.blackNew },
-    inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: metrics.hp2, backgroundColor: colors.transparent, paddingVertical: metrics.hp3 },
-    textInput: { minHeight: metrics.hp4, maxHeight: metrics.hp8, fontSize: fontSize(13), width: "83%", fontFamily: interMedium, marginLeft: metrics.hp1, marginTop: Platform.OS === "ios" ? metrics.hp1 : 0, color: colors.white },
+    inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: metrics.hp2, backgroundColor: colors.transparent, paddingVertical: metrics.hp3, },
+    textInput: { minHeight: metrics.hp4, maxHeight: metrics.hp8, fontSize: fontSize(13), /* width: "68%", */ flex: 1, fontFamily: interMedium, marginLeft: metrics.hp1, marginTop: Platform.OS === "ios" ? metrics.hp1 : 0, color: colors.white },
     sendButton: { /* backgroundColor: '#6F13F2', borderRadius: metrics.hp50, */ marginLeft: 6, /* justifyContent: 'center', alignItems: 'center', */ height: metrics.hp5_5, width: metrics.hp5_5, marginBottom: metrics.hp2 },
-    inputContainerType: { borderWidth: metrics.hp0_1, borderColor: "#C4C4C447", borderRadius: metrics.hp5, paddingHorizontal: metrics.hp1, alignItems: 'center', justifyContent: 'space-between', flexDirection: 'row', paddingVertical: metrics.hp0_5, backgroundColor: "#212123", marginBottom: metrics.hp2 },
+    inputContainerType: { borderRadius: metrics.hp5, paddingHorizontal: metrics.hp1, alignItems: 'center', justifyContent: 'space-between', flexDirection: 'row', paddingVertical: metrics.hp0_5, backgroundColor: "#1F272A", marginBottom: metrics.hp2, width: "85%" },
     emojiIcon: { height: metrics.hp3, width: metrics.hp3 },
     containerRb: { paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp2 },
     containerViewRb: { paddingHorizontal: metrics.hp1, paddingVertical: metrics.hp2, flexDirection: "row", backgroundColor: "#212123", marginBottom: metrics.hp0_5, borderRadius: metrics.hp1_5 },
@@ -1348,4 +1327,8 @@ const styles = StyleSheet.create({
         backgroundColor: colors.darkOpecity,
         borderRadius: metrics.hp0_5,
     },
+    smlieIcon: {
+        height: metrics.hp3,
+        width: metrics.hp3
+    }
 });

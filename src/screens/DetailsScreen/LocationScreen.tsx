@@ -289,7 +289,7 @@ export default LocationScreen;
 const styles = StyleSheet.create({
   logo: {
     height: metrics.hp7,
-    width: metrics.hp25,
+    width: metrics.hp20,
     alignSelf: "center",
     marginTop: metrics.hp8,
   },

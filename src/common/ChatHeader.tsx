@@ -3,7 +3,7 @@ import { ImageBackground, Platform, StyleSheet, View } from "react-native";
 import metrics from "../assets/Metrics";
 import FastImage from "react-native-fast-image";
 import { backIconNew, dummyfemaleProfile, dummyMaleProfile, HeaderHomeBack, threeDotNewIcon, } from "../helper/ImageAssets";
-import { colors } from "../theme/colors";
+import { colors, newColor } from "../theme/colors";
 import { AppText, BLACK, EIGHTEEN, ELEVEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, TEN, THIRTEEN, TWELVE, WHITE } from "./AppText";
 import { TouchableOpacityView } from "./TouchableOpacityView";
 import NavigationService from "../navigation/NavigationService";
@@ -15,7 +15,7 @@ const ChatHeader = ({ onPress, setTabSelect, seeProfileOther }: any) => {
     console.log(matchChatUserDetails, "matchChatUserDetails");
 
     return (
-        <ImageBackground source={HeaderHomeBack} resizeMode="stretch" style={[styles.bottomLayer]}>
+        <View style={[styles.bottomLayer]}>
             <View style={styles.container}>
                 <TouchableOpacityView style={{ flexDirection: "row", alignItems: "center" }} onPress={() => NavigationService.goBack()}>
                     <FastImage source={backIconNew} resizeMode="contain" style={styles.backIcon} />
@@ -38,7 +38,7 @@ const ChatHeader = ({ onPress, setTabSelect, seeProfileOther }: any) => {
                 </TouchableOpacityView>
             </View>
 
-        </ImageBackground>
+        </View>
 
     )
 };
@@ -48,6 +48,9 @@ const styles = StyleSheet.create({
         height: metrics.hp13,
         width: "100%",
         paddingVertical: metrics.hp2,
+        backgroundColor:"#151517",
+        borderBottomWidth:metrics.hp0_1,
+        borderBottomColor:"#FAFAFA0D"
     },
     container: {
         paddingHorizontal: metrics.hp2,

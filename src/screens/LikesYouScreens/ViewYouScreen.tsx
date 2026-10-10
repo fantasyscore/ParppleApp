@@ -15,8 +15,8 @@ import {
     View,
     NativeModules,
 } from 'react-native';
-import { AppText, INTER_MEDIUM, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, WHITE, BLACK, TWENTY_FOUR, THIRTY, fontSize, TWENTY, FORTEEN, RED, EIGHTEEN, INTER_BOLD, THIRTEEN, INTER_REGULAR, TWENTY_TWO } from '../../common/AppText';
-import { directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, silverCard, straightenIcon, tabViewForLikes, likedYouNewIcon, youLikedNewIcon, viewedYouNewIcon, youViewednewIcon, whoVisitYourProfileWithOutPurches, viewedYouEmptyNew, youViewEmptuNew, dummyMaleProfile, dummyfemaleProfile, chatPurchaseColour, onlineProfileImage, scrollatthetopIcon, verifiedBadgeIcon, modalBackground } from '../../helper/ImageAssets';
+import { AppText, INTER_MEDIUM, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, WHITE, BLACK, TWENTY_FOUR, THIRTY, fontSize, TWENTY, FORTEEN, RED, EIGHTEEN, INTER_BOLD, THIRTEEN, INTER_REGULAR, TWENTY_TWO, ELEVEN } from '../../common/AppText';
+import { directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, silverCard, straightenIcon, tabViewForLikes, likedYouNewIcon, youLikedNewIcon, viewedYouNewIcon, youViewednewIcon, whoVisitYourProfileWithOutPurches, viewedYouEmptyNew, youViewEmptuNew, dummyMaleProfile, dummyfemaleProfile, chatPurchaseColour, onlineProfileImage, scrollatthetopIcon, verifiedBadgeIcon, modalBackground, verifedBadge, blurCountIcon, gallaryICon, trunOnIcon, rightArrowIcon, trunOnsBack, middleOfList, HomeBackground } from '../../helper/ImageAssets';
 import metrics from '../../assets/Metrics';
 import FastImage from 'react-native-fast-image';
 import { colors, newColor } from '../../theme/colors';
@@ -45,7 +45,7 @@ import FullScreenImage from '../HomeScreens/FullScreenImage';
 
 const PROFILE_BATCH_LIMIT = 10;
 const TOP_UP_TRIGGER_COUNT = 3; // fetch more when this few profiles remain
-const CARD_HEIGHT = metrics.hp57;
+const CARD_HEIGHT = metrics.hp56;
 const CARD_MARGIN_BOTTOM = metrics.hp6;
 const ITEM_HEIGHT = CARD_HEIGHT + CARD_MARGIN_BOTTOM;
 const LIST_TOP_PADDING = metrics.hp3;
@@ -169,7 +169,8 @@ type ProfileListCardProps = {
     userData: any;
     setCrushNoteVisible: any;
     handleCrushNote: any;
-    showFullProfile?:any
+    showFullProfile?: any
+    turnOnData?: any
 };
 const capitalizeFirstLetter = (text: string) => {
     if (!text) return text;
@@ -177,11 +178,22 @@ const capitalizeFirstLetter = (text: string) => {
 };
 // Memoized row: re-renders only when its own profile changes, not on every
 // list update / swipe elsewhere.
-const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, ViewYoue, userData, setCrushNoteVisible, handleCrushNote,showFullProfile }: ProfileListCardProps) => {
+const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, ViewYoue, userData, setCrushNoteVisible, handleCrushNote, showFullProfile, turnOnData }: ProfileListCardProps) => {
+    const name = item.username || item.name || '';
+    const displayName =
+        name.length > 20 ? `${name.substring(0, 20)}...` : name;
+    const city = item.city;
+    const cityName =
+        city.length > 25 ? `${city.substring(0, 25)}...` : city;
+    const profileTurnOns = item?.turnOns ?? [];
+    const turnOns = turnOnData?.filter((turnOnItem: any) =>
+        profileTurnOns.some(
+            (profileTurnOn: any) =>
+                String(profileTurnOn?._id) === String(turnOnItem?._id)
+        )
+    ) ?? [];
     return (
-        <ImageBackground source={newProfileBackground} resizeMode='stretch' style={styles.cardBackground}>
-            {item.online ?
-                <FastImage source={onlineProfileImage} resizeMode='contain' style={{ height: metrics.hp8, width: metrics.hp15, position: "absolute", top: -metrics.hp2, left: -metrics.hp5_3 }} /> : <></>}
+        <View style={styles.cardBackground}>
             <TouchableOpacityView activeOpacity={1} onPress={() => onOpenPreview(item)} style={styles.cardHeaderRow}>
                 <View>
                     <FastImage
@@ -189,37 +201,47 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, ViewYoue
                         resizeMode='cover'
                         style={styles.avatar}
                     />
-                    {item?.faceVerified ?
-                        <FastImage source={verifiedBadgeIcon} resizeMode='contain' style={{ height: metrics.hp4, width: metrics.hp4, position: "absolute", right: -metrics.hp0_5, top: metrics.hp0_5 }} />
-                        : <></>}
+                    {item.online ?
+                        <View style={styles.onlineUserDot} /> : <></>}
                 </View>
                 <View style={styles.headerInfo}>
-                    <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} style={styles.nameText}>
-                        {item.username ? item.username : item.name}, {item.age} y
-                    </AppText>
-                    {capitalizeFirstLetter(item.city) ? 
-                    <View style={styles.metaRow}>
-                        <FastImage source={locIcon} resizeMode='contain' style={styles.metaIcon} />
-                        <AppText color={WHITE} weight={INTER_SEMI_BOLD}>
-                            {" "}{capitalizeFirstLetter(item.city)}
+                    <View style={styles.nameContainer}>
+                        <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} style={styles.nameText}>
+                            {displayName}, {item.age} y
                         </AppText>
+                        {item?.faceVerified ?
+                            <FastImage source={verifedBadge} resizeMode='contain' style={{ height: metrics.hp2_4, width: metrics.hp2_4, marginLeft: metrics.hp1 }} />
+                            : <></>}
                     </View>
-                    :<></>}
-                    <View style={[styles.metaRow, { marginTop: capitalizeFirstLetter(item.city) ?  metrics.hp0_5 : 0 }]}>
-                        <FastImage source={straightenIcon} resizeMode='contain' style={styles.metaIcon} />
-                        <AppText color={WHITE} weight={INTER_SEMI_BOLD}>
-                            {" "}{item.height} ft
-                        </AppText>
+                    <View style={styles.nameRowContainer}>
+                        <FastImage source={newIcon} resizeMode='contain' style={styles.newBadge} />
+                        {capitalizeFirstLetter(cityName) ?
+                            <>
+                                <View style={styles.lineHeight} />
+                                <View style={styles.metaRow}>
+                                    <FastImage source={locIcon} resizeMode='contain' style={styles.metaIcon} />
+                                    <AppText color={WHITE} weight={INTER_SEMI_BOLD}>
+                                        {" "}{capitalizeFirstLetter(cityName)}
+                                    </AppText>
+                                </View>
+                            </>
+                            : <></>}
+                        <View style={styles.lineHeight} />
+                        <View style={[styles.metaRow]}>
+                            <FastImage source={straightenIcon} resizeMode='contain' style={styles.metaIcon} />
+                            <AppText color={WHITE} weight={INTER_SEMI_BOLD}>
+                                {" "}{item.height} ft
+                            </AppText>
+                        </View>
                     </View>
                 </View>
-                <FastImage source={newIcon} resizeMode='contain' style={styles.newBadge} />
             </TouchableOpacityView>
 
             <View style={styles.galleryWrap}>
                 {item?.profilePicture?.length ?
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryContent}>
                         {item?.profilePicture?.map((img: any, idx: number) => (
-                            <TouchableOpacityView onPress={()=> showFullProfile(item?.profilePicture)} key={img?.url ?? idx} style={styles.galleryItem}>
+                            <TouchableOpacityView onPress={() => showFullProfile(item?.profilePicture, idx)} key={img?.url ?? idx} style={styles.galleryItem}>
                                 <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male" && userData?.isPublish === false ? 10 : 0} style={styles.galleryImage} />
                                 {userData?.gender === "male" && userData?.isPublish === false ? <>
                                     <View style={styles.galleryDim} />
@@ -227,9 +249,20 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, ViewYoue
                                         <FastImage source={lockIconWhite} resizeMode='contain' style={styles.lockIcon} />
                                     </View>
                                 </> : <></>}
+                                <ImageBackground source={blurCountIcon} resizeMode='contain' style={styles.blurCounter}>
+                                    <FastImage source={gallaryICon} resizeMode='contain' style={styles.gallaryIcon} />
+                                    <AppText type={ELEVEN} color={WHITE} weight={INTER_SEMI_BOLD}>
+                                        {" "}{idx + 1} / {item.profilePicture?.length}
+                                    </AppText>
+                                </ImageBackground>
                             </TouchableOpacityView>
 
                         ))}
+                        <TouchableOpacityView onPress={() => console.log("")} style={[styles.galleryItem, { alignItems: "center", justifyContent: "center", paddingHorizontal: metrics.hp5 }]}>
+                            <AppText style={{ textAlign: "center", lineHeight: metrics.hp2_5 }} color={WHITE} type={TWELVE} weight={SCHEHERAZADE_BOLD}>
+                                {item.bio}
+                            </AppText>
+                        </TouchableOpacityView>
                     </ScrollView>
                     :
                     <ImageBackground source={chatPurchaseColour} tintColor={"#555359"} resizeMode='stretch' style={{
@@ -260,9 +293,42 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, ViewYoue
                     <FastImage source={directChatIcon} resizeMode='contain' style={styles.chatButton} />
                 </TouchableOpacityView>
             </View>
-        </ImageBackground>
+            <TouchableOpacityView activeOpacity={1} onPress={() => onOpenPreview(item)} style={{ flexDirection: "row", alignItems: "center" }}>
+                <FastImage source={trunOnIcon} resizeMode='contain' style={styles.trunOns} />
+                <AppText color={WHITE} type={FORTEEN} weight={INTER_SEMI_BOLD}>
+                    {"  "}{item.turnOns?.length} turn-ons{"    "}
+                </AppText>
+                <FastImage source={rightArrowIcon} resizeMode='contain' style={{ height: metrics.hp1_9, width: metrics.hp1_9, marginTop: metrics.hp0_5 }} />
+            </TouchableOpacityView>
+            <TouchableOpacityView activeOpacity={1} onPress={() => onOpenPreview(item)} style={styles.turnOnsContainer}>
+                {turnOns?.slice(0, 3).map((turnOn: any, index: number) => (
+                    <ImageBackground key={item.id} source={trunOnsBack} resizeMode='stretch' style={styles.turnOnBox}>
+                        <AppText
+                            type={THIRTEEN}
+                            weight={INTER_MEDIUM}
+                            color={WHITE}
+                        >
+                            {turnOn?.value}
+                        </AppText>
+                    </ImageBackground>
+                ))}
+
+                {turnOns?.length > 3 && (
+                    <ImageBackground key={item.id} source={trunOnsBack} resizeMode='stretch' style={styles.turnOnBox}>
+                        <AppText
+                            type={THIRTEEN}
+                            weight={INTER_MEDIUM}
+                            color={WHITE}
+                        >
+                            +{item.turnOns.length - 3}
+                        </AppText>
+                    </ImageBackground>
+                )}
+            </TouchableOpacityView>
+            <FastImage source={middleOfList} resizeMode='stretch' style={styles.middleOflist} />
+        </View>
     );
-}, (prev, next) => prev.item === next.item && prev.onLike === next.onLike && prev.onDislike === next.onDislike && prev.onOpenPreview === next.onOpenPreview && next.ViewYoue === next.ViewYoue && prev.userData === next.userData && prev.setCrushNoteVisible === next.setCrushNoteVisible && prev.handleCrushNote === next.handleCrushNote);
+}, (prev, next) => prev.item === next.item && prev.onLike === next.onLike && prev.onDislike === next.onDislike && prev.onOpenPreview === next.onOpenPreview && next.ViewYoue === next.ViewYoue && prev.userData === next.userData && prev.setCrushNoteVisible === next.setCrushNoteVisible && prev.handleCrushNote === next.handleCrushNote && next.turnOnData === prev.turnOnData);
 
 const ViewYouScreen = () => {
     const dispatch = useDispatch();
@@ -272,7 +338,7 @@ const ViewYouScreen = () => {
     const [tabSelect, setTabSelect] = useState('Views');
     const [likeYoue, setlikeYou] = useState('Likes You');
     const [ViewYoue, setViewYou] = useState('Viewed You');
-
+    const turnOnData = useSelector((state: any) => state?.auth?.turnOnData);
     const likeByOtherData = useSelector((state: any) => state.auth.likeByOtherData);
     const likeYouData = useSelector((state: any) => state.auth.likeYouData);
     const viewByOtherData = useSelector((state: any) => state.auth.viewByOtherData);
@@ -295,6 +361,7 @@ const ViewYouScreen = () => {
     const [verifyError, setVerifyError] = useState('');
     const [fullImage, setFullImage] = useState<any>(false);
     const [gallaryData, setGallaryData] = useState<any>([]);
+    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
     const userDataRef = useRef<any>(userData);
 
     useEffect(() => {
@@ -638,8 +705,8 @@ const ViewYouScreen = () => {
         socketRef.current = socket;
 
         const handleNewMatch = (response: any) => {
-            console.log(response,"responseresponseresponseresponse");
-            
+            console.log(response, "responseresponseresponseresponse");
+
             if (!response) return;
             if (isFocusedRef.current) {
                 setMatchVisible(true);
@@ -711,13 +778,14 @@ const ViewYouScreen = () => {
         setCurrentProfileData(item)
         setModalVisible(true);
     }, []);
-    const showFullProfile = (item: any) => {
-        setGallaryData(item)
-        setFullImage(true)
-    }
+    const showFullProfile = useCallback((item: any, index: number = 0) => {
+        setGallaryData(item);
+        setSelectedImageIndex(index);
+        setFullImage(true);
+    }, []);
     const renderItem = useCallback(({ item }: any) => (
-        <ProfileListCard item={item} onLike={handleLikePress} onDislike={handleDislikePress} onOpenPreview={handleOpenPreview} ViewYoue={ViewYoue} userData={userData} setCrushNoteVisible={setCrushNoteVisible} handleCrushNote={handleCrushNote} showFullProfile={showFullProfile}/>
-    ), [handleLikePress, handleDislikePress, handleOpenPreview, ViewYoue, userData, setCrushNoteVisible, handleCrushNote,showFullProfile]);
+        <ProfileListCard item={item} onLike={handleLikePress} onDislike={handleDislikePress} onOpenPreview={handleOpenPreview} ViewYoue={ViewYoue} userData={userData} setCrushNoteVisible={setCrushNoteVisible} handleCrushNote={handleCrushNote} showFullProfile={showFullProfile} turnOnData={turnOnData} />
+    ), [handleLikePress, handleDislikePress, handleOpenPreview, ViewYoue, userData, setCrushNoteVisible, handleCrushNote, showFullProfile, turnOnData]);
 
     const keyExtractor = useCallback((item: any, index: number) => item?._id ?? `profile-${index}`, []);
 
@@ -756,135 +824,136 @@ const ViewYouScreen = () => {
     }
     return (
         <AppSafeAreaView style={{ flexGrow: 1 }} color={newColor.blackNew}>
-            <View style={{ zIndex: 1 }}>
-                <View
-                    style={{
-                        position: "absolute",
-                        top: metrics.hp11,
-                        alignSelf: "center",
-                        flexDirection: "row",
-                        zIndex: 0,
-                    }}>
-                    <TouchableOpacityView
-                        onPress={() => setViewYou("Viewed You")}
-                        activeOpacity={1}
+            <ImageBackground source={HomeBackground} resizeMode='contain' style={{ flex: 1 }}>
+                <View style={{ zIndex: 1 }}>
+                    <View
                         style={{
-                            zIndex: ViewYoue === "Viewed You" ? 2 : 1,
-                            elevation: ViewYoue === "Viewed You" ? 2 : 1,
+                            position: "absolute",
+                            top: metrics.hp11,
+                            alignSelf: "center",
+                            flexDirection: "row",
+                            zIndex: 0,
                         }}>
-                        <ImageBackground
-                            source={tabViewForLikes}
-                            resizeMode="stretch"
+                        <TouchableOpacityView
+                            onPress={() => setViewYou("Viewed You")}
+                            activeOpacity={1}
                             style={{
-                                height: metrics.hp6,
-                                width: metrics.hp22,
-                                justifyContent: "center",
-                                alignItems: "center",
-                            }}
-                            imageStyle={{
-                                tintColor: ViewYoue === "Viewed You" ? "#E6B7A8" : "#555359",
+                                zIndex: ViewYoue === "Viewed You" ? 2 : 1,
+                                elevation: ViewYoue === "Viewed You" ? 2 : 1,
                             }}>
-                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
-                                <FastImage
-                                    source={viewedYouNewIcon}
-                                    tintColor={ViewYoue === "Viewed You" ? "black" : "#FAFAFA66"}
-                                    resizeMode="contain"
-                                    style={{
-                                        width: metrics.hp3,
-                                        height: metrics.hp3,
-                                    }}
-                                />
-                                <AppText style={{ marginTop: -metrics.hp0_5, color: ViewYoue === "Viewed You" ? "black" : "#FAFAFA66" }} weight={SCHEHERAZADE_BOLD} type={SIXTEEN}>
-                                    {" "}Viewed You
-                                </AppText>
-                            </View>
-                        </ImageBackground>
-                    </TouchableOpacityView>
+                            <ImageBackground
+                                source={tabViewForLikes}
+                                resizeMode="stretch"
+                                style={{
+                                    height: metrics.hp6,
+                                    width: metrics.hp22,
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                }}
+                                imageStyle={{
+                                    tintColor: ViewYoue === "Viewed You" ? "#E6B7A8" : "#555359",
+                                }}>
+                                <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
+                                    <FastImage
+                                        source={viewedYouNewIcon}
+                                        tintColor={ViewYoue === "Viewed You" ? "black" : "#FAFAFA66"}
+                                        resizeMode="contain"
+                                        style={{
+                                            width: metrics.hp3,
+                                            height: metrics.hp3,
+                                        }}
+                                    />
+                                    <AppText style={{ marginTop: -metrics.hp0_5, color: ViewYoue === "Viewed You" ? "black" : "#FAFAFA66" }} weight={SCHEHERAZADE_BOLD} type={SIXTEEN}>
+                                        {" "}Viewed You
+                                    </AppText>
+                                </View>
+                            </ImageBackground>
+                        </TouchableOpacityView>
 
-                    <TouchableOpacityView
-                        onPress={() => setViewYou("You Viewed")}
-                        activeOpacity={1}
-                        style={{
-                            marginLeft: -metrics.hp4,
-                            zIndex: ViewYoue === "You Viewed" ? 2 : 1,
-                            elevation: ViewYoue === "You Viewed" ? 2 : 1,
-                        }}>
-                        <ImageBackground
-                            source={tabViewForLikes}
-                            resizeMode="contain"
+                        <TouchableOpacityView
+                            onPress={() => setViewYou("You Viewed")}
+                            activeOpacity={1}
                             style={{
-                                height: metrics.hp6,
-                                width: metrics.hp22,
-                                justifyContent: "center",
-                                alignItems: "center",
-                            }}
-                            imageStyle={{
-                                tintColor: ViewYoue === "You Viewed" ? "#E6B7A8" : "#555359",
+                                marginLeft: -metrics.hp4,
+                                zIndex: ViewYoue === "You Viewed" ? 2 : 1,
+                                elevation: ViewYoue === "You Viewed" ? 2 : 1,
                             }}>
-                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
-                                <FastImage tintColor={ViewYoue === "You Viewed" ? "black" : "#FAFAFA66"} source={youViewednewIcon} resizeMode="contain" style={{ height: metrics.hp3, width: metrics.hp3 }} />
-                                <AppText style={{ marginTop: -metrics.hp0_5, color: ViewYoue === "You Viewed" ? "black" : "#FAFAFA66" }} weight={SCHEHERAZADE_BOLD} type={SIXTEEN}>
-                                    {" "}You Viewed
-                                </AppText>
-                            </View>
-                        </ImageBackground>
-                    </TouchableOpacityView>
+                            <ImageBackground
+                                source={tabViewForLikes}
+                                resizeMode="contain"
+                                style={{
+                                    height: metrics.hp6,
+                                    width: metrics.hp22,
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                }}
+                                imageStyle={{
+                                    tintColor: ViewYoue === "You Viewed" ? "#E6B7A8" : "#555359",
+                                }}>
+                                <View style={{ flexDirection: "row", alignItems: "center", marginTop: metrics.hp1 }}>
+                                    <FastImage tintColor={ViewYoue === "You Viewed" ? "black" : "#FAFAFA66"} source={youViewednewIcon} resizeMode="contain" style={{ height: metrics.hp3, width: metrics.hp3 }} />
+                                    <AppText style={{ marginTop: -metrics.hp0_5, color: ViewYoue === "You Viewed" ? "black" : "#FAFAFA66" }} weight={SCHEHERAZADE_BOLD} type={SIXTEEN}>
+                                        {" "}You Viewed
+                                    </AppText>
+                                </View>
+                            </ImageBackground>
+                        </TouchableOpacityView>
+                    </View>
+                    <NewHeaderAndroid filterShow={false} />
                 </View>
-                <NewHeaderAndroid filterShow={false} />
-            </View>
-            {filteredData?.length === 0 ?
-                <ImageBackground source={ViewYoue === "You Viewed" ? youViewEmptuNew : viewedYouEmptyNew} resizeMode='stretch' style={{ flex: 1, alignItems: "center" }} >
-                    {ViewYoue === "You Viewed" ? <></> :
-                        <TouchableOpacity activeOpacity={1} onPress={() => NavigationService.navigate(NAVIGATION_PEOPLE_SCREEN)} style={{ height: metrics.hp7, position: "absolute", bottom: metrics.hp13, borderWidth: metrics.hp0_1, borderColor: "#D08FA9", width: "95%", backgroundColor: "#00000050" }}>
-                            <AppText type={TWENTY} weight={SCHEHERAZADE_BOLD} style={{ color: "#D08FA9", marginTop: metrics.hp0_5, textAlign: "center" }}>
-                                Visit Now
-                            </AppText>
-                        </TouchableOpacity>
-                    }
-                </ImageBackground> :
-                <FlatList
-                    ref={flatListRef}
-                    onScroll={handleScroll}
-                    scrollEventThrottle={16}
-                    data={filteredData}
-                    renderItem={renderItem}
-                    keyExtractor={keyExtractor}
-                    getItemLayout={getItemLayout}
-                    contentContainerStyle={styles.listContent}
-                    initialNumToRender={4}
-                    maxToRenderPerBatch={6}
-                    windowSize={7}
-                    updateCellsBatchingPeriod={50}
-                    removeClippedSubviews={Platform.OS === 'android'}
-                    showsVerticalScrollIndicator={false}
+                {filteredData?.length === 0 ?
+                    <ImageBackground source={ViewYoue === "You Viewed" ? youViewEmptuNew : viewedYouEmptyNew} resizeMode='stretch' style={{ flex: 1, alignItems: "center" }} >
+                        {ViewYoue === "You Viewed" ? <></> :
+                            <TouchableOpacity activeOpacity={1} onPress={() => NavigationService.navigate(NAVIGATION_PEOPLE_SCREEN)} style={{ height: metrics.hp7, position: "absolute", bottom: metrics.hp13, borderWidth: metrics.hp0_1, borderColor: "#D08FA9", width: "95%", backgroundColor: "#00000050" }}>
+                                <AppText type={TWENTY} weight={SCHEHERAZADE_BOLD} style={{ color: "#D08FA9", marginTop: metrics.hp0_5, textAlign: "center" }}>
+                                    Visit Now
+                                </AppText>
+                            </TouchableOpacity>
+                        }
+                    </ImageBackground> :
+                    <FlatList
+                        ref={flatListRef}
+                        onScroll={handleScroll}
+                        scrollEventThrottle={16}
+                        data={filteredData}
+                        renderItem={renderItem}
+                        keyExtractor={keyExtractor}
+                        getItemLayout={getItemLayout}
+                        contentContainerStyle={styles.listContent}
+                        initialNumToRender={10}
+                        maxToRenderPerBatch={10}
+                        windowSize={10}
+                        updateCellsBatchingPeriod={50}
+                        removeClippedSubviews={Platform.OS === 'android'}
+                        showsVerticalScrollIndicator={false}
+                    />
+                }
+
+                {showScrollTop && (
+                    <Animated.View style={[styles.scrollTopContainer, {
+                        opacity: scrollTopAnim,
+                        transform: [{
+                            translateY: scrollTopAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [50, 0]
+                            })
+                        }]
+                    }]}>
+                        <TouchableOpacityView activeOpacity={1} onPress={handleScrollToTop} style={styles.scrollTopButton}>
+                            <FastImage source={scrollatthetopIcon} resizeMode='contain' style={styles.scrollTopIcon} />
+                        </TouchableOpacityView>
+                    </Animated.View>
+                )}
+            </ImageBackground>
+
+                <LikeDislikeOverlays
+                    likeOverlayStyle={likeOverlayStyle}
+                    likeIconAnimatedStyle={likeIconAnimatedStyle}
+                    dislikeOverlayStyle={dislikeOverlayStyle}
+                    dislikeIconAnimatedStyle={dislikeIconAnimatedStyle}
+                    crushlikeOverlayStyle={crushlikeOverlayStyle}
+                    crushlikeIconAnimatedStyle={crushlikeIconAnimatedStyle}
                 />
-            }
-
-            {showScrollTop && (
-                <Animated.View style={[styles.scrollTopContainer, {
-                    opacity: scrollTopAnim,
-                    transform: [{
-                        translateY: scrollTopAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [50, 0]
-                        })
-                    }]
-                }]}>
-                    <TouchableOpacityView activeOpacity={1} onPress={handleScrollToTop} style={styles.scrollTopButton}>
-                        <FastImage source={scrollatthetopIcon} resizeMode='contain' style={styles.scrollTopIcon} />
-                    </TouchableOpacityView>
-                </Animated.View>
-            )}
-
-            <LikeDislikeOverlays
-                likeOverlayStyle={likeOverlayStyle}
-                likeIconAnimatedStyle={likeIconAnimatedStyle}
-                dislikeOverlayStyle={dislikeOverlayStyle}
-                dislikeIconAnimatedStyle={dislikeIconAnimatedStyle}
-                crushlikeOverlayStyle={crushlikeOverlayStyle}
-                crushlikeIconAnimatedStyle={crushlikeIconAnimatedStyle}
-            />
-
             <Modal
                 animationType="fade"
                 visible={modalVisible}
@@ -892,10 +961,10 @@ const ViewYouScreen = () => {
                 onRequestClose={() => setModalVisible(false)}>
                 <ViewProfileAndroid currentProfileData={currentProfileData} setModalVisible={setModalVisible}
                     handleDislikePress={handleDislikePress}
-                    handleLikePress={handleLikePress} likeYoue={likeYoue} ViewYoue={ViewYoue} 
+                    handleLikePress={handleLikePress} likeYoue={likeYoue} ViewYoue={ViewYoue}
                     handleCrushNote={handleCrushNote}
                     showFullProfile={showFullProfile}
-                    />
+                />
             </Modal>
             <Modal
                 animationType="fade"
@@ -918,7 +987,7 @@ const ViewYouScreen = () => {
                 statusBarTranslucent
                 visible={fullImage}
                 onRequestClose={() => setFullImage(false)}>
-                <FullScreenImage gallaryData={gallaryData} setFullImage={setFullImage}/>
+                <FullScreenImage gallaryData={gallaryData} setFullImage={setFullImage} initialIndex={selectedImageIndex} />
             </Modal>
             <PremiumAnimatedModal visible={verifyModalVisible} onClose={() => setVerifyModalVisible(false)}>
                 {verifyStage === 'prompt' ? (
@@ -1031,7 +1100,6 @@ const styles = StyleSheet.create({
         paddingTop: LIST_TOP_PADDING,
         paddingBottom: metrics.hp15,
         flexGrow: 1,
-        marginTop: metrics.hp4,
 
     },
     scrollTopContainer: {
@@ -1054,7 +1122,6 @@ const styles = StyleSheet.create({
         marginBottom: CARD_MARGIN_BOTTOM,
     },
     cardHeaderRow: {
-        paddingHorizontal: metrics.hp2,
         marginTop: metrics.hp2,
         flexDirection: "row",
         alignItems: "center",
@@ -1083,28 +1150,27 @@ const styles = StyleSheet.create({
     newBadge: {
         height: metrics.hp3_7,
         width: metrics.hp4_5,
-        position: "absolute",
-        right: -metrics.hp0_4,
-        top: -metrics.hp0_2,
+
     },
     galleryWrap: {
-        width: "95%",
-        paddingHorizontal: metrics.hp1,
+        width: "100%",
         alignSelf: "center",
     },
     galleryContent: {
         overflow: "hidden",
-        marginTop: metrics.hp3,
+        marginTop: metrics.hp2,
         gap: metrics.hp0_5,
     },
     galleryItem: {
-        width: metrics.hp30,
-        height: metrics.hp37,
+        width: metrics.hp27,
+        height: metrics.hp32,
         overflow: "hidden",
     },
     galleryImage: {
         width: "100%",
         height: "100%",
+        borderWidth: metrics.hp0_1,
+        borderColor: "#FFFFFF80"
     },
     galleryDim: {
         ...StyleSheet.absoluteFillObject,
@@ -1168,4 +1234,62 @@ const styles = StyleSheet.create({
     emptyText: {
         marginTop: metrics.hp2,
     },
+    onlineUserDot: {
+        height: metrics.hp2,
+        width: metrics.hp2,
+        borderRadius: metrics.hp50,
+        backgroundColor: "#39E75F",
+        borderWidth: metrics.hp0_5,
+        borderColor: "#2A2A2C",
+        position: "absolute",
+        right: metrics.hp0,
+        bottom: metrics.hp0_5
+    },
+    nameRowContainer: {
+        flexDirection: "row",
+        alignItems: "center"
+    },
+    lineHeight: {
+        height: metrics.hp2,
+        width: metrics.hp0_1,
+        backgroundColor: colors.white,
+        marginRight: metrics.hp1,
+        marginLeft: metrics.hp1
+    },
+    nameContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between"
+    },
+    blurCounter: {
+        height: metrics.hp3_5,
+        width: metrics.hp6_5,
+        position: "absolute",
+        bottom: metrics.hp1,
+        left: metrics.hp1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center"
+    },
+    gallaryIcon: {
+        height: metrics.hp1_8,
+        width: metrics.hp1_8
+    },
+    trunOns: {
+        height: metrics.hp3_2,
+        width: metrics.hp3_2
+    },
+    turnOnsContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: metrics.hp0_8,
+        marginTop: metrics.hp1
+    },
+
+    turnOnBox: { paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp1, alignItems: "center", justifyContent: "center", },
+    middleOflist: {
+        height: metrics.hp1_9,
+        width: "100%",
+        marginTop: metrics.hp2
+    }
 });

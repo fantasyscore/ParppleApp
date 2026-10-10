@@ -5,7 +5,7 @@ import PeopleHeader from "../../common/PeopleHeader";
 import metrics from "../../assets/Metrics";
 import { colors, newColor } from "../../theme/colors";
 import FastImage from "react-native-fast-image";
-import { ChatSearchIcon, dummyfemaleProfile, dummyMaleProfile, } from "../../helper/ImageAssets";
+import { ChatSearchIcon, dummyfemaleProfile, dummyMaleProfile, HomeBackground, } from "../../helper/ImageAssets";
 import { AppText, BLACK, DARK_GREEN, DARKGREEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, LIGHT_GREEN, OPECITY, OPECITY_DARK, PURPLE, SCHEHERAZADE_BOLD, SIXTEEN, TEN, THIRTEEN, TWELVE, TWENTY_FOUR, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { chatData, newMatchData } from "../../common/UiltData";
@@ -134,6 +134,8 @@ const ChatsScreen = () => {
         };
     }, []);
     const onSubmit = (item: any) => {
+        console.log(item,"itemitemitemitem");
+        let forEmptyChat = item?.lastMessage === null ? true :false
         const data = {
             otherUserId: item.userId,
             matchId: item.matchId,
@@ -144,7 +146,7 @@ const ChatsScreen = () => {
         };
         dispatch(chatHistoryDetails([]));
         dispatch(matchChatDetails(item));
-        NavigationService.navigate(NAVIGATION_TAKING_SCREEN);
+        NavigationService.navigate(NAVIGATION_TAKING_SCREEN,{forEmptyChat:forEmptyChat});
         dispatch(chatHistoryAPI(data, params, false));
     };
 
@@ -260,34 +262,7 @@ const ChatsScreen = () => {
 
     const HeaderListChats = () => {
         return recentPreviewData?.length === 0 ? (
-            <View>
-                <View style={{ paddingHorizontal: metrics.hp2 }}>
-                    <View style={styles.newMatchTextContainer}>
-                        <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={WHITE}>
-                            New Matches{"  "}
-                        </AppText>
-                    </View>
-                </View>
-                <FlatList
-                    data={dataempty}
-                    horizontal
-                    keyExtractor={(item: any, idx: number) => item.id}
-                    showsHorizontalScrollIndicator={false}
-                    renderItem={({ item, index }: any) => {
-                        return (
-                            <TouchableOpacityView style={[styles.newmatchContainer, {
-                                marginLeft: index === 0 ? metrics.hp2 : metrics.hp0,
-                                marginRight: metrics.hp2,
-                                height: metrics.hp9,
-                                width: metrics.hp9,
-                                borderRadius: metrics.hp50,
-                                backgroundColor: "#555359"
-                            }]}>
-                            </TouchableOpacityView>
-                        )
-                    }}
-                />
-            </View>
+            <></>
         ) : (
             <View>
                 <View style={{ paddingHorizontal: metrics.hp2 }}>
@@ -370,6 +345,7 @@ const ChatsScreen = () => {
 
     return (
         <AppSafeAreaView color={newColor.blackNew}>
+             <ImageBackground source={HomeBackground} resizeMode='contain' style={{ flex: 1 }}>
             <NewHeaderAndroid message={true} filterShow={false} />
             <ImageBackground source={ChatSearchIcon} resizeMode="stretch" style={{ height: metrics.hp7, width: "95%", alignSelf: "center", marginLeft: metrics.hp2, marginTop: metrics.hp2, justifyContent: "center" }}>
                 {newMatches?.length ?
@@ -399,6 +375,7 @@ const ChatsScreen = () => {
                     contentContainerStyle={{ paddingBottom: metrics.hp20 }}
                 />
             )}
+            </ImageBackground>
             {/* <PeopleHeader profile={true} filter={true} setModalVisible={setModalVisible}/> */}
             {/* <View style={styles.singlelIne} /> */}
             {/* {newMatches?.length ? (

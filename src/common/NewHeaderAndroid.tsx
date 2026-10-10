@@ -13,7 +13,7 @@ const NewHeaderAndroid = ({ style, onFilterPress, filterShow = true, message }: 
     return (
         <ImageBackground source={HeaderHomeBack} resizeMode="stretch" style={[styles.bottomLayer, style]}>
             <View style={styles.container}>
-                <FastImage source={message ? messagesText : applogo} resizeMode="contain" style={styles.headerLogo} />
+                <FastImage source={message ? messagesText : applogo} resizeMode="contain" style={message? styles.headerLogo : styles.headerLogoTwo} />
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                     {filterShow ?
                         <TouchableOpacity activeOpacity={1} onPress={onFilterPress}>
@@ -49,6 +49,10 @@ const styles = StyleSheet.create({
     headerLogo: {
         height: metrics.hp4,
         width: metrics.hp14
+    },
+    headerLogoTwo: {
+        height: metrics.hp3,
+        width: metrics.hp10
     },
     filterIcon: {
         height: metrics.hp3_5,

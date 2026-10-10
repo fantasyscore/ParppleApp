@@ -322,6 +322,20 @@ export const threeDotData = [
         disLine: "You both won’t see each other again."
     },
 ];
+export const threeDotDataHome = [
+    {
+        id: "1",
+        icon: reportProfileIcon,
+        headLine: "Report",
+        disLine: "We won’t let them know you’ve reported."
+    },
+    // {
+    //     id: "2",
+    //     icon: blackIcon,
+    //     headLine: "Block",
+    //     disLine: "You both won’t see each other again."
+    // },
+];
 export const reportData = [
     {
         id: "1",

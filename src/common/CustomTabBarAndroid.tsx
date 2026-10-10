@@ -8,7 +8,7 @@ import FastImage from "react-native-fast-image";
 import { AppText, THIRTEEN, INTER_MEDIUM, OPECITY, PURPLE, TWELVE, FORTEEN, WHITE, SCHEHERAZADE_BOLD, ELEVEN, SIXTEEN } from "./AppText";
 import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_CHATS_SCREEN, NAVIGATION_DISCOVER_SCREEN, NAVIGATION_LIKES_YOU_SCREEN, NAVIGATION_PEOPLE_SCREEN, NAVIGATION_PROFILE_SCREEN, NAVIGATION_VIEW_YOU_SCREEN_SCREEN } from "../navigation/routes";
-import { BottomLayer, boyProfileloakBackground, chatAmountBackgroungNew, chatTabNewNrml, chatTabNewNrmlColour, girlProfileLoakBackground, goToProifleIcon, likesYouNewNrml, likesYouNewNrmlColour, lockIconWhite, pepoleTabNewNrml, pepoleTabNewNrmlColour, rightGoNewIcon, visiterNewNrml, visiterNewNrmlColour } from "../helper/ImageAssets";
+import { BottomLayer, boyProfileloakBackground, chatAmountBackgroungNew, chatTabNewNrml, chatTabNewNrmlColour, girlProfileLoakBackground, goToProifleIcon, likesYouNewNrml, likesYouNewNrmlColour, lockIconWhite, navBarBottom, pepoleTabNewNrml, pepoleTabNewNrmlColour, rightGoNewIcon, visiterNewNrml, visiterNewNrmlColour } from "../helper/ImageAssets";
 import { useSelector } from "react-redux";
 import { Image } from "react-native";
 import { Screen } from "../theme/dimens";
@@ -111,7 +111,7 @@ const CustomTabBarAndroid = ({ state }: BottomTabBarProps) => {
     return (
         <>
             {shouldShowOverlay ? <HiddenProfileOverlay userData={userData} /> :
-                <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
+                <ImageBackground source={navBarBottom} resizeMode="cover" style={styles.bottomLayer}>
                     <View style={styles.flowContainer}>
                         {state?.routes?.map((route, index) => {
                             const isFocused = state.index === index;
@@ -130,10 +130,10 @@ const CustomTabBarAndroid = ({ state }: BottomTabBarProps) => {
 export default memo(CustomTabBarAndroid);
 const styles = StyleSheet.create({
     bottomLayer: {
-        height: metrics.hp11,
+        height: metrics.hp13,
         width: "100%",
         paddingVertical: metrics.hp2,
-        position: "absolute", bottom: 0,
+        position: "absolute", bottom: -metrics.hp1,
 
     },
     count: {

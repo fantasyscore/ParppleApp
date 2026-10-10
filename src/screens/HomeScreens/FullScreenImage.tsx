@@ -16,7 +16,8 @@ import FastImage from "react-native-fast-image";
 import { closeNewWhiteIcon } from "../../helper/ImageAssets";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { Screen } from "../../theme/dimens";
-
+import { Zoomable } from "@likashefqet/react-native-image-zoom";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 const { width } = Dimensions.get("window");
 
 interface GalleryItem {
@@ -26,16 +27,17 @@ interface GalleryItem {
 
 interface FullScreenImageProps {
     gallaryData?: any;
-    setFullImage?:any
+    setFullImage?: any;
+    initialIndex?: number;
 }
 
-const FullScreenImage = ({ gallaryData = [], setFullImage }: FullScreenImageProps) => {
-    const [currentIndex, setCurrentIndex] = useState(0);
+const FullScreenImage = ({ gallaryData = [], setFullImage, initialIndex = 0 }: FullScreenImageProps) => {
+    const [currentIndex, setCurrentIndex] = useState(initialIndex || 0);
     const slideAnim = useRef(new Animated.Value(0)).current;
     const fadeAnim = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
-        if (!gallaryData|| gallaryData?.length <= 1) return;
+        if (!gallaryData || gallaryData?.length <= 1) return;
 
         // Subtle swipe hint animation
         const hintAnimation = Animated.loop(
@@ -81,19 +83,42 @@ const FullScreenImage = ({ gallaryData = [], setFullImage }: FullScreenImageProp
         itemVisiblePercentThreshold: 50
     }).current;
 
+    const getItemLayout = useCallback(
+        (data: any, index: number) => ({
+            length: width,
+            offset: width * index,
+            index,
+        }),
+        []
+    );
+
     const renderItem = ({ item }: { item: GalleryItem }) => {
         return (
-            <View style={{ width, flex: 1, backgroundColor: newColor.blackNew }}>
-                <ImageBackground
-                    source={{ uri: item?.url }}
-                    resizeMode="cover"
-                    style={{ flex:1 }}
+            <View style={styles.imageSlide}>
+                 <Zoomable
+                minScale={1}
+                maxScale={4}
+                doubleTapScale={2.5}
+                isPanEnabled={true}
+                isPinchEnabled={true}
+                isDoubleTapEnabled={true}
+                style={styles.zoomContainer}
+            >
+                <FastImage
+                    source={{
+                        uri: item?.url,
+                        priority: FastImage.priority.high,
+                        cache: FastImage.cacheControl.immutable,
+                    }}
+                    resizeMode={FastImage.resizeMode.cover}
+                    style={styles.fullImage}
                 />
+                </Zoomable>
             </View>
         );
     };
 
-    if (!gallaryData|| gallaryData?.length === 0) {
+    if (!gallaryData || gallaryData?.length === 0) {
         return (
             <AppSafeAreaView style={{ flexGrow: 1 }} color={newColor.blackNew}>
                 <View style={styles.emptyContainer}>
@@ -104,6 +129,7 @@ const FullScreenImage = ({ gallaryData = [], setFullImage }: FullScreenImageProp
     }
 
     return (
+        <GestureHandlerRootView style={{ flex: 1 }}>
         <AppSafeAreaView style={{ flexGrow: 1 }} color={newColor.blackNew}>
 
             <View style={styles.container}>
@@ -116,9 +142,11 @@ const FullScreenImage = ({ gallaryData = [], setFullImage }: FullScreenImageProp
                     showsHorizontalScrollIndicator={false}
                     onViewableItemsChanged={onViewableItemsChanged}
                     viewabilityConfig={viewabilityConfig}
+                    initialScrollIndex={initialIndex || 0}
+                    getItemLayout={getItemLayout}
                     bounces={false}
                 />
-                <TouchableOpacityView onPress={()=>setFullImage(false)} style={{ position: "absolute", top: metrics.hp7, right: metrics.hp1, height: metrics.hp5, width: metrics.hp5 }}>
+                <TouchableOpacityView onPress={() => setFullImage(false)} style={{ position: "absolute", top: metrics.hp7, right: metrics.hp1, height: metrics.hp5, width: metrics.hp5 }}>
                     <FastImage source={closeNewWhiteIcon} resizeMode="contain" style={{
                         height: metrics.hp3, width: metrics.hp3
                     }} />
@@ -149,6 +177,7 @@ const FullScreenImage = ({ gallaryData = [], setFullImage }: FullScreenImageProp
                 )}
             </View>
         </AppSafeAreaView>
+        </GestureHandlerRootView>
     );
 };
 
@@ -193,5 +222,27 @@ const styles = StyleSheet.create({
         paddingVertical: metrics.hp0_8,
         borderRadius: metrics.hp2,
     },
+    imageSlide: {
+        width: width,
+        height: metrics.hp50,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: newColor.blackNew,
+        alignSelf:"center"
+    },
 
+    fullImage: {
+        width: "100%",
+        height: "100%",
+    },
+    zoomContainer: {
+        width: "100%",
+        height: "100%",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    image: {
+        width: width,
+        height: metrics.hp50,
+    },
 });

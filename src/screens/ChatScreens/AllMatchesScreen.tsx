@@ -50,9 +50,10 @@ const AllMatchesScreen = () => {
         matchId: item.matchId,
       };
       const params = { page: 1, limit: 50 };
+      let forEmptyChat = item?.lastMessage === null ? true :false
       dispatch(chatHistoryDetails([]));
       dispatch(matchChatDetails(item));
-      NavigationService.navigate(NAVIGATION_TAKING_SCREEN);
+      NavigationService.navigate(NAVIGATION_TAKING_SCREEN,{forEmptyChat:forEmptyChat});
       dispatch(chatHistoryAPI(data, params, false));
     },
     [dispatch]
