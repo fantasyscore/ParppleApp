@@ -31,7 +31,8 @@ import MatchScreen from '../HomeScreens/MatchScreen';
 import NavigationService from '../../navigation/NavigationService';
 import { NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_PEOPLE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from '../../navigation/routes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SWIPES_PER_DAY_KEY, SWIPES_REMAINING_KEY, SUPER_LIKES_REMAINING_KEY } from '../../helper/Constants';
+import { PHOTO_ASPECT_RATIO, SWIPES_PER_DAY_KEY, SWIPES_REMAINING_KEY, SUPER_LIKES_REMAINING_KEY } from '../../helper/Constants';
+import PortraitAvatar from '../../common/PortraitAvatar';
 import messaging from "@react-native-firebase/messaging";
 import { check, request, checkMultiple, openSettings, PERMISSIONS, RESULTS } from "react-native-permissions";
 import { appOperation } from '../../appOperation';
@@ -196,11 +197,7 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, ViewYoue
         <View style={styles.cardBackground}>
             <TouchableOpacityView activeOpacity={1} onPress={() => onOpenPreview(item)} style={styles.cardHeaderRow}>
                 <View>
-                    <FastImage
-                        source={item?.profilePicture?.length ? { uri: item?.profilePicture?.[0]?.url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable } : item?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile}
-                        resizeMode='cover'
-                        style={styles.avatar}
-                    />
+                    <PortraitAvatar source={item?.profilePicture?.length ? { uri: item?.profilePicture?.[0]?.url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable } : item?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile} style={styles.avatar} />
                     {item.online ?
                         <View style={styles.onlineUserDot} /> : <></>}
                 </View>
@@ -242,7 +239,11 @@ const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, ViewYoue
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryContent}>
                         {item?.profilePicture?.map((img: any, idx: number) => (
                             <TouchableOpacityView onPress={() => showFullProfile(item?.profilePicture, idx)} key={img?.url ?? idx} style={styles.galleryItem}>
-                                <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male" && userData?.isPublish === false ? 10 : 0} style={styles.galleryImage} />
+                                {userData?.gender === "male" && userData?.isPublish === false ? (
+                                    <Image source={{ uri: img.url }} blurRadius={10} style={styles.galleryImage} />
+                                ) : (
+                                    <FastImage source={{ uri: img.url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }} style={styles.galleryImage} />
+                                )}
                                 {userData?.gender === "male" && userData?.isPublish === false ? <>
                                     <View style={styles.galleryDim} />
                                     <View style={styles.lockOverlay}>
@@ -993,18 +994,14 @@ const ViewYouScreen = () => {
                 {verifyStage === 'prompt' ? (
                     <View style={{ alignItems: "center" }}>
                         <PulsingCircle size={metrics.hp12} />
-                        <FastImage
-                            source={{ uri: userData?.gallery?.[0]?.url ?? dummyfemaleProfile }}
-                            resizeMode='cover'
-                            style={{
+                        <PortraitAvatar source={userData?.gallery?.[0]?.url ? { uri: userData.gallery[0].url } : dummyfemaleProfile} style={{
                                 height: metrics.hp12,
                                 width: metrics.hp12,
                                 borderRadius: metrics.hp12 / 2,
                                 marginTop: -metrics.hp16_5,
                                 borderWidth: metrics.hp0_1,
                                 borderColor: "#F69E82",
-                            }}
-                        />
+                            }} />
                         <AppText style={{ marginTop: metrics.hp4 }} type={EIGHTEEN} color={WHITE} weight={INTER_BOLD}>
                             Verify Your Identity
                         </AppText>
@@ -1162,7 +1159,8 @@ const styles = StyleSheet.create({
         gap: metrics.hp0_5,
     },
     galleryItem: {
-        width: metrics.hp27,
+        // 3:4 portrait tile, same ratio the photos are cropped to on upload
+        width: metrics.hp32 * PHOTO_ASPECT_RATIO,
         height: metrics.hp32,
         overflow: "hidden",
     },

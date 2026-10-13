@@ -29,7 +29,8 @@ import {
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import metrics from "../../assets/Metrics";
 import { colors, newColor } from "../../theme/colors";
-import { FACE_MASKS, FaceMaskAnalysis, FaceMaskOption } from "../../helper/faceMask";
+import { analyzeFaceForMask, FACE_MASKS, FaceMaskAnalysis, FaceMaskOption } from "../../helper/faceMask";
+import PhotoCropper, { PhotoCropperHandle } from "./PhotoCropper";
 import Sticker, { StickerItem } from "./Sticker";
 
 const EMOJIS = ["😷", "😎", "🎭", "🤐", "❤️", "👑"];
@@ -47,15 +48,22 @@ interface PhotoEditorModalProps {
   visible: boolean;
   /** Original, full-quality local image URI */
   imageUri: string;
-  /** Face geometry when auto-detection succeeded, null for the manual fallback */
-  analysis: FaceMaskAnalysis | null;
   busy: boolean;
   /** Status label shown while busy (e.g. "Uploading...") */
   busyLabel?: string;
   onCancel: () => void;
   onDone: (result: PhotoEditorResult) => void;
-  /** Upload the original photo untouched — no editing, no flattening */
-  onSkip: () => void;
+  /** Skip the stickers: hands back the cropped 3:4 photo without any edits on top */
+  onSkip: (result: PhotoEditorResult) => void;
+}
+
+/** crop: choose the 3:4 framing of the original; edit: stickers on the cropped photo */
+type EditorPhase = "crop" | "edit";
+
+interface CroppedPhoto {
+  uri: string;
+  /** Face geometry of the cropped photo when detection succeeded, null for the manual fallback */
+  analysis: FaceMaskAnalysis | null;
 }
 
 interface FitRect {
@@ -69,21 +77,24 @@ let stickerSeq = 0;
 const nextStickerId = () => `sticker_${++stickerSeq}`;
 
 /**
- * Full-screen, Stories-style editor. The photo is shown at its contain-fit
- * size; masks and emojis are free-transform stickers on top. Done flattens
- * the canvas with react-native-view-shot and hands back a file URI — nothing
- * is uploaded from here, so the caller stays in charge of the network flow.
+ * Full-screen, Stories-style editor in two steps. First the user frames the
+ * photo inside a fixed 3:4 crop frame. Then the cropped photo is shown at its
+ * contain-fit size, with masks and emojis as free-transform stickers on top.
+ * Both steps flatten with react-native-view-shot and hand back a file URI —
+ * nothing is uploaded from here, so the caller stays in charge of the network flow.
  */
 const PhotoEditorModal = ({
   visible,
-  imageUri,
-  analysis,
+  imageUri: sourceUri,
   busy,
   busyLabel,
   onCancel,
   onDone,
   onSkip,
 }: PhotoEditorModalProps) => {
+  const [phase, setPhase] = useState<EditorPhase>("crop");
+  const [cropped, setCropped] = useState<CroppedPhoto | null>(null);
+  const cropperRef = useRef<PhotoCropperHandle>(null);
   const [canvasSize, setCanvasSize] = useState<{ width: number; height: number } | null>(null);
   const [fit, setFit] = useState<FitRect | null>(null);
   const [stickers, setStickers] = useState<StickerItem[]>([]);
@@ -98,9 +109,15 @@ const PhotoEditorModal = ({
     return asset?.width && asset?.height ? asset.height / asset.width : 1;
   }, []);
 
+  // The sticker step works on the cropped photo
+  const imageUri = cropped?.uri ?? "";
+  const analysis = cropped?.analysis ?? null;
+
   // Reset per photo
   useEffect(() => {
     if (visible) {
+      setPhase("crop");
+      setCropped(null);
       autoPlacedRef.current = false;
       zRef.current = 1;
       setStickers([]);
@@ -108,11 +125,11 @@ const PhotoEditorModal = ({
       setFit(null);
       setCapturing(false);
     }
-  }, [visible, imageUri]);
+  }, [visible, sourceUri]);
 
-  // Contain-fit the image inside the measured canvas
+  // Contain-fit the cropped image inside the measured canvas
   useEffect(() => {
-    if (!visible || !canvasSize || !imageUri) return;
+    if (!visible || phase !== "edit" || !canvasSize || !imageUri) return;
     let cancelled = false;
     Image.getSize(
       imageUri,
@@ -131,7 +148,7 @@ const PhotoEditorModal = ({
     return () => {
       cancelled = true;
     };
-  }, [visible, canvasSize, imageUri]);
+  }, [visible, phase, canvasSize, imageUri]);
 
   const maskBaseSize = fit ? fit.width * 0.6 : 0;
   const emojiBaseSize = fit ? fit.width * 0.35 : 0;
@@ -228,6 +245,22 @@ const PhotoEditorModal = ({
     setSelectedId(id);
   }, [visible, fit, analysis, maskBaseSize, maskAspect]);
 
+  /** Crop step done: flatten the 3:4 frame, detect the face on the result, move on to stickers. */
+  const handleCropNext = async () => {
+    if (busy || capturing || !cropperRef.current) return;
+    try {
+      setCapturing(true);
+      const uri = await cropperRef.current.capture();
+      const detected = await analyzeFaceForMask(uri);
+      setCropped({ uri, analysis: detected });
+      setPhase("edit");
+    } catch (err) {
+      console.error("[PhotoEditor] Crop failed:", err);
+    } finally {
+      setCapturing(false);
+    }
+  };
+
   const handleDone = async () => {
     if (busy || capturing || !fit || !shotRef.current) return;
     try {
@@ -265,15 +298,17 @@ const PhotoEditorModal = ({
           <TouchableOpacityView style={styles.closeButton} onPress={onCancel} disabled={busy}>
             <AppText color={WHITE} weight={INTER_BOLD} style={styles.closeText}>×</AppText>
           </TouchableOpacityView>
-          <TouchableOpacityView
-            style={styles.skipButton}
-            onPress={onSkip}
-            disabled={busy || capturing}
-          >
-            <AppText weight={SCHEHERAZADE_BOLD} color={WHITE} type={EIGHTEEN} style={styles.skipText}>
-              Skip
-            </AppText>
-          </TouchableOpacityView>
+          {phase === "edit" && (
+            <TouchableOpacityView
+              style={styles.skipButton}
+              onPress={() => cropped && onSkip({ uri: cropped.uri })}
+              disabled={busy || capturing}
+            >
+              <AppText weight={SCHEHERAZADE_BOLD} color={WHITE} type={EIGHTEEN} style={styles.skipText}>
+                Skip
+              </AppText>
+            </TouchableOpacityView>
+          )}
         </View>
         <View
           style={styles.canvasArea}
@@ -281,7 +316,15 @@ const PhotoEditorModal = ({
             setCanvasSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })
           }
         >
-          {fit && (
+          {phase === "crop" && canvasSize && (
+            <PhotoCropper
+              ref={cropperRef}
+              imageUri={sourceUri}
+              areaWidth={canvasSize.width}
+              areaHeight={canvasSize.height}
+            />
+          )}
+          {phase === "edit" && fit && (
             <View
               ref={shotRef}
               collapsable={false}
@@ -308,9 +351,21 @@ const PhotoEditorModal = ({
               ))}
             </View>
           )}
-          {!fit && <ActivityIndicator color={colors.white} />}
+          {phase === "edit" && !fit && <ActivityIndicator color={colors.white} />}
         </View>
 
+        {phase === "crop" ? (
+          <View style={styles.tray}>
+            <AppText type={TWELVE} weight={INTER_MEDIUM} color={OPECITY} style={styles.trayHint}>
+              Drag and pinch to fit your photo in the 3:4 frame
+            </AppText>
+            <TouchableOpacityView style={styles.doneButton} onPress={handleCropNext} disabled={busy || capturing}>
+              <AppText weight={SCHEHERAZADE_BOLD} color={WHITE} type={TWENTY}>
+                Next
+              </AppText>
+            </TouchableOpacityView>
+          </View>
+        ) : (
         <View style={styles.tray}>
           <AppText type={TWELVE} weight={INTER_MEDIUM} color={OPECITY} style={styles.trayHint}>
             {selectedId
@@ -352,6 +407,7 @@ const PhotoEditorModal = ({
           </TouchableOpacityView>
 
         </View>
+        )}
 
         {(busy || capturing) && (
           <View style={styles.busyOverlay}>

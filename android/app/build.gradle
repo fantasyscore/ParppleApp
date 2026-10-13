@@ -27,9 +27,6 @@ android {
         }
 
         // Exclude problematic libraries if needed
-        exclude "lib/x86_64/libandroidlame.so"
-        exclude "lib/x86_64/libucrop.so"
-        exclude "lib/arm64-v8a/libandroidlame.so"
         exclude "lib/**/libmodpdfium.so"
         exclude "lib/**/libmodft2.so"
         exclude "lib/**/libmodpng.so"

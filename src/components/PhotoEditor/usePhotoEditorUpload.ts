@@ -1,11 +1,9 @@
 import { useRef, useState } from "react";
 import { Alert, PermissionsAndroid, Platform } from "react-native";
 import { launchImageLibrary } from "react-native-image-picker";
-import { Image as ImageCompressor } from "react-native-compressor";
 import { useDispatch, useSelector } from "react-redux";
 import { check, request, PERMISSIONS, RESULTS, openSettings } from "react-native-permissions";
 import { uploadImagesPhotoAPI } from "../../actions/authActions";
-import { analyzeFaceForMask, FaceMaskAnalysis } from "../../helper/faceMask";
 import { PhotoEditorResult } from "./PhotoEditorModal";
 
 export interface PermissionResult {
@@ -85,7 +83,6 @@ interface EditorSession {
   /** Opaque caller value passed to pickAndEdit, handed back on success */
   context: any;
   imageUri: string;
-  analysis: FaceMaskAnalysis | null;
   fileName: string;
 }
 
@@ -93,13 +90,8 @@ const CLOSED_SESSION: EditorSession = {
   visible: false,
   context: null,
   imageUri: "",
-  analysis: null,
   fileName: "",
 };
-
-// Long-edge cap shared by the Done export and the Skip transcode; keeps
-// payloads within server limits (raw camera files 413 otherwise)
-const MAX_UPLOAD_DIMENSION = 2160;
 
 interface Options {
   /** Return false (optionally after showing a toast) to block picking */
@@ -112,11 +104,11 @@ interface Options {
 }
 
 /**
- * The shared pick → face-detect → edit → upload pipeline behind every profile
- * photo entry point. Screens call pickAndEdit(context) from their Upload tile
+ * The shared pick → crop (3:4) → face-detect → edit → upload pipeline behind
+ * every profile photo entry point. Screens call pickAndEdit(context) from their Upload tile
  * and spread `editorProps` onto a PhotoEditorModal; everything else — gallery
- * permission, single-photo picker, ML Kit analysis, the Done flatten upload,
- * the Skip transcode upload, and Retry/Cancel error handling — lives here so
+ * permission, single-photo picker, the Done flatten upload, the Skip upload,
+ * and Retry/Cancel error handling — lives here so
  * the flow stays identical on every screen.
  */
 export function usePhotoEditorUpload({ canStart, onUploaded }: Options) {
@@ -169,15 +161,11 @@ export function usePhotoEditorUpload({ canStart, onUploaded }: Options) {
           const asset = res.assets?.[0];
           if (!asset?.uri) return;
 
-          // Automatic face detection; the editor opens either way. A valid
-          // analysis auto-places the mask, null falls back to the manual
-          // emoji/sticker editor.
-          const analysis = await analyzeFaceForMask(asset.uri);
+          // The editor crops to 3:4 first, then runs face detection on the cropped photo
           setSession({
             visible: true,
             context,
             imageUri: asset.uri,
-            analysis,
             fileName: asset.fileName || `image_${Date.now()}.jpg`,
           });
         }
@@ -271,31 +259,16 @@ export function usePhotoEditorUpload({ canStart, onUploaded }: Options) {
     });
 
   /**
-   * Skip: upload the photo without any edits. The raw gallery file can be
-   * 10MB+ (and HEIC), which the server rejects with 413 Payload Too Large —
-   * so transcode it to a JPEG capped at the same long edge the Done path
-   * exports at. Visually identical pipeline, bounded payload.
+   * Skip: upload the cropped 3:4 photo without stickers. The editor already
+   * flattened it to a bounded JPEG (long edge <= 2160), so unlike the raw
+   * gallery file it can't trip the server's 413 Payload Too Large limit.
    */
-  const onEditorSkip = async () => {
-    setBusy(true);
-    let uploadUri = sessionRef.current.imageUri;
-    try {
-      uploadUri = await ImageCompressor.compress(sessionRef.current.imageUri, {
-        compressionMethod: "manual",
-        maxWidth: MAX_UPLOAD_DIMENSION,
-        maxHeight: MAX_UPLOAD_DIMENSION,
-        quality: 0.92,
-        output: "jpg",
-      });
-    } catch (err) {
-      console.warn("[PhotoEditorUpload] Skip transcode failed, uploading original:", err);
-    }
-    await uploadFromEditor({
-      uri: uploadUri,
+  const onEditorSkip = (result: PhotoEditorResult) =>
+    uploadFromEditor({
+      uri: result.uri,
       name: sessionRef.current.fileName.replace(/\.[^.]+$/, "") + ".jpg",
       type: "image/jpeg",
     });
-  };
 
   const onEditorCancel = () => {
     if (busy) return;
@@ -311,7 +284,6 @@ export function usePhotoEditorUpload({ canStart, onUploaded }: Options) {
     editorProps: {
       visible: session.visible,
       imageUri: session.imageUri,
-      analysis: session.analysis,
       busy,
       busyLabel: "Uploading...",
       onCancel: onEditorCancel,

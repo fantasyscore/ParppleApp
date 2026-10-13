@@ -77,7 +77,11 @@ const SeeOtherUserProfile = ({ currentProfileData, setModalVisible, showFullProf
                     width: metrics.hp34
                 }}>
                 <TouchableOpacity activeOpacity={1} onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : showFullProfile(currentProfileData?.profilePicture ? currentProfileData?.profilePicture : currentProfileData?.gallery, index)}>
-                    <Image blurRadius={userData?.gender === "male" && userData?.isPublish === false ? 10 : 0} source={{ uri: item.url }} resizeMode="cover" style={styles.imageMain} />
+                    {userData?.gender === "male" && userData?.isPublish === false ? (
+                        <Image blurRadius={10} source={{ uri: item.url }} resizeMode="cover" style={styles.imageMain} />
+                    ) : (
+                        <FastImage source={{ uri: item.url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }} resizeMode="cover" style={styles.imageMain} />
+                    )}
                     {userData?.gender === "male" && userData?.isPublish === false ?
                         <>
                             <View style={styles.galleryDim} />

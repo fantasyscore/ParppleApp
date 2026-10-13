@@ -1,6 +1,7 @@
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React, { memo } from "react";
 import { ImageBackground, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, newColor } from "../theme/colors";
 import metrics from "../assets/Metrics";
 import { TouchableOpacityView } from "./TouchableOpacityView";
@@ -65,6 +66,7 @@ const badgeDotStyle = {
 };
 
 const CustomTabBarAndroid = ({ state }: BottomTabBarProps) => {
+    const insets = useSafeAreaInsets();
     const userData = useSelector((state: any) => state.auth.userData);
     const hasLikesBadge = useSelector((state: any) =>
         Boolean(state.auth.likeByOtherData?.length || state.auth.likeYouData?.length));
@@ -111,7 +113,7 @@ const CustomTabBarAndroid = ({ state }: BottomTabBarProps) => {
     return (
         <>
             {shouldShowOverlay ? <HiddenProfileOverlay userData={userData} /> :
-                <ImageBackground source={navBarBottom} resizeMode="cover" style={styles.bottomLayer}>
+                <ImageBackground source={navBarBottom} resizeMode="cover" style={[styles.bottomLayer, { height: metrics.hp13 + insets.bottom, paddingBottom: insets.bottom }]}>
                     <View style={styles.flowContainer}>
                         {state?.routes?.map((route, index) => {
                             const isFocused = state.index === index;

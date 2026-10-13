@@ -1,17 +1,17 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { Alert, AppState, AppStateStatus, ImageBackground, Platform, ScrollView } from 'react-native';
+import { AppState, AppStateStatus, ImageBackground, Platform, ScrollView } from 'react-native';
 import { Chat, Bubble, Time } from '@kesha-antonov/react-native-chat';
-import { addPhotoIcon, blackIcon, blockModalImage, BottomLayer, chatBackground, chatBottomBackgroundImage, dummyfemaleProfile, dummyMaleProfile, emptyTextImage, helloHand, noccce, sendMessageNewIcon, smlieIcon, timeShowNewBackground, unmatchModalImage } from '../../helper/ImageAssets';
+import { blockModalImage, chatBackground, dummyfemaleProfile, dummyMaleProfile, emptyTextImage, helloHand, sendMessageNewIcon, timeShowNewBackground, unmatchModalImage } from '../../helper/ImageAssets';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 import ChatHeader from '../../common/ChatHeader';
-import { StyleSheet, View, TextInput, KeyboardAvoidingView, Keyboard, Dimensions, Modal, Animated } from 'react-native';
+import { StyleSheet, View, TextInput, Keyboard, Dimensions, Modal, Animated } from 'react-native';
 import { colors, newColor } from '../../theme/colors';
 import metrics from '../../assets/Metrics';
-import { AppText, BLACK, fontSize, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, OPECITY_DARK, PURPLE, SCHEHERAZADE_BOLD, SIXTEEN, TEN, THIRTEEN, TWELVE, TWENTY_FOUR, WHITE } from '../../common/AppText';
+import { AppText, BLACK, fontSize, FORTEEN, INTER_MEDIUM, INTER_SEMI_BOLD, OPECITY, SCHEHERAZADE_BOLD, TEN, THIRTEEN, TWELVE, TWENTY_FOUR, WHITE } from '../../common/AppText';
 import { TouchableOpacityView } from '../../common/TouchableOpacityView';
 import FastImage from 'react-native-fast-image';
+import PortraitAvatar from '../../common/PortraitAvatar';
 import { interMedium, interSemiBold } from '../../theme/typography';
-import EmojiSelector, { Categories } from 'react-native-emoji-selector';
 import { Screen } from '../../theme/dimens';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import { threeDotData } from '../../common/UiltData';
@@ -28,8 +28,9 @@ import { chatHistoryDetails, setNewMatches } from '../../slices/loginServices/au
 import { clearNotificationsByMatchId } from '../../notifications/pushNotifications';
 import SeeOtherUserProfile from './SeeOtherUserProfile';
 import FullScreenImage from '../HomeScreens/FullScreenImage'
-import { launchImageLibrary } from 'react-native-image-picker';
 const USER_ID = 1;
+const OTHER_USER_ID = 2;
+const TYPING_INDICATOR_ID = 'typing-indicator';
 
 type ChatMessage = {
     _id: number | string;
@@ -44,7 +45,82 @@ type ChatMessage = {
     isRead?: boolean; // Read receipt status
 }
 
+/** Newest message first (the order the chat list expects). */
+const sortNewestFirst = (a: ChatMessage, b: ChatMessage) => b.createdAt.getTime() - a.createdAt.getTime();
 
+/** Message payloads arrive in several shapes (REST history vs. socket events); normalise to a string. */
+const extractMessageText = (item: any): string => {
+    const candidates = [item?.message, item?.text, item?.content];
+    for (const value of candidates) {
+        if (typeof value === 'string') return value;
+    }
+    for (const value of candidates) {
+        if (value && typeof value === 'object') {
+            return value.text || value.content || JSON.stringify(value);
+        }
+    }
+    return '';
+};
+
+const parseCreatedAt = (item: any): Date => {
+    const raw = item?.createdAt || item?.timestamp;
+    return raw ? new Date(raw) : new Date();
+};
+
+const buildOutgoingMessage = (text: string): ChatMessage => ({
+    _id: Math.random(),
+    text,
+    createdAt: new Date(),
+    isMine: true,
+    user: {
+        _id: USER_ID,
+        name: 'Current User',
+        avatar: dummyMaleProfile,
+    },
+});
+
+// Defined at module level so React keeps one component identity (and one running animation)
+// instead of remounting it on every TakingScreen render.
+const TypingIndicatorBubble = () => {
+    const dots = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+
+    useEffect(() => {
+        const animations = dots.map((dot, index) =>
+            Animated.loop(
+                Animated.sequence([
+                    Animated.delay(index * 200),
+                    Animated.timing(dot, { toValue: 1, duration: 400, useNativeDriver: true }),
+                    Animated.timing(dot, { toValue: 0, duration: 400, useNativeDriver: true }),
+                ])
+            )
+        );
+        animations.forEach((anim) => anim.start());
+        return () => animations.forEach((anim) => anim.stop());
+    }, [dots]);
+
+    const dotSize = metrics.hp0_8;
+    return (
+        <View style={styles.typingBubbleWrapper}>
+            <View style={styles.typingBubble}>
+                <View style={styles.typingDotsContainer}>
+                    {dots.map((dot, index) => (
+                        <Animated.View
+                            key={index}
+                            style={[
+                                styles.typingDot,
+                                {
+                                    width: dotSize,
+                                    height: dotSize,
+                                    opacity: dot.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }),
+                                },
+                            ]}
+                        />
+                    ))}
+                </View>
+            </View>
+        </View>
+    );
+};
 
 const TakingScreen = ({ route }: any) => {
     const dispatch = useDispatch();
@@ -59,16 +135,16 @@ const TakingScreen = ({ route }: any) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const seenMessageKeysRef = useRef<Set<string>>(new Set());
     const [messagesOwnerMatchId, setMessagesOwnerMatchId] = useState<string | undefined>(matchChatUserDetails?.matchId);
-    const [tabSelect, setTabSelect] = useState('Chat');
+    const [, setTabSelect] = useState('Chat');
     const [inputText, setInputText] = useState('');
-    const [emojiVisible, setEmojiVisible] = useState(false);
+    const [, setEmojiVisible] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [otherUserProfie, setOtherUserProfile] = useState(false);
 
     const [saveReportTitle, setSaveReportTitle] = useState("");
-    const [profileData, setProfileData] = useState();
-    const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
-    const [typingUserName, setTypingUserName] = useState('');
+    const [, setProfileData] = useState();
+    const [, setIsOtherUserTyping] = useState(false);
+    const [, setTypingUserName] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
@@ -82,7 +158,6 @@ const TakingScreen = ({ route }: any) => {
     const [fullImage, setFullImage] = useState<any>(false);
     const [gallaryData, setGallaryData] = useState<any>([]);
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-    const [isOpen, setIsOpen] = React.useState<boolean>(false)
     const inputRef = useRef<TextInput>(null);
 
     useEffect(() => {
@@ -150,16 +225,7 @@ const TakingScreen = ({ route }: any) => {
         }
 
         const transformedRaw = history.map((item: any) => {
-            let messageText = '';
-            if (typeof item.message === 'string') {
-                messageText = item.message;
-            } else if (typeof item.text === 'string') {
-                messageText = item.text;
-            } else if (item.message && typeof item.message === 'object') {
-                messageText = item.message.text || item.message.content || JSON.stringify(item.message);
-            } else if (item.text && typeof item.text === 'object') {
-                messageText = item.text.text || item.text.content || JSON.stringify(item.text);
-            }
+            const messageText = extractMessageText(item);
 
             const messageId = item._id || item.messageId || item.id;
             const isMine = item.isMine === true || item.isMine === 'true';
@@ -167,16 +233,9 @@ const TakingScreen = ({ route }: any) => {
                 ? (userData?.profilePicture?.[0]?.url || userData?.gallery?.[0]?.url || userData?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile)
                 : (otherUserProfile?.profilePicture?.[0]?.url || matchChatUserDetails?.profilePicture?.[0]?.url || matchChatUserDetails?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile);
 
-            let createdAt: Date;
-            if (item.createdAt) {
-                createdAt = typeof item.createdAt === 'string'
-                    ? new Date(item.createdAt)
-                    : new Date(item.createdAt);
-            } else {
-                createdAt = new Date();
-            }
+            const createdAt = parseCreatedAt(item);
             const isRead = item.isRead === true || item.isRead === 'true';
-            const userId = isMine ? 1 : 2;
+            const userId = isMine ? USER_ID : OTHER_USER_ID;
             const createdAtKey =
                 item.createdAt || item.timestamp || item.created_at || item.time || createdAt.toISOString();
             const senderIdKey =
@@ -207,11 +266,8 @@ const TakingScreen = ({ route }: any) => {
             return true;
         });
 
-        transformed.sort((a, b) => {
-            const timeA = a.createdAt.getTime();
-            const timeB = b.createdAt.getTime();
-            return timeA - timeB;
-        });
+        // Oldest -> newest first so same-timestamp messages keep server order, then flip for the list.
+        transformed.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
         return transformed.reverse();
     }, [userData, otherUserProfile, matchChatUserDetails]);
@@ -272,26 +328,12 @@ const TakingScreen = ({ route }: any) => {
         const handleConnected = (data: any) => {
             console.log('Socket connected:', data);
         };
-        const handleNewMatch = (response: any) => {
-            console.log('New match received:', response);
-        };
-        const handleSuperLike = (response: any) => {
-            console.log('Super like received:', response);
-        };
-        const handleMessageSent = (response: any) => {
-            console.log('Message sent confirmation:', response);
-        };
-        const handleMessagesRead = (response: any) => {
-            console.log('Messages read confirmation:', response);
+        const handleMessagesRead = () => {
             setMessages((prevMessages) =>
                 prevMessages.map((msg) => ({ ...msg, isRead: true }))
             );
         };
-        const handleMessageMarkedRead = (response: any) => {
-            console.log('Message marked read event received:', response);
-        };
         const handleUserTyping = (response: any) => {
-            console.log('User typing event received:', response);
             if (!response) return;
             const myUserId = userDataRef.current?._id;
             const activeOtherUserId = activeOtherUserIdRef.current;
@@ -325,12 +367,12 @@ const TakingScreen = ({ route }: any) => {
             setTypingUserName(senderName);
             if (isTyping) {
                 setMessages((prevMessages) => {
-                    const hasTypingIndicator = prevMessages.some((msg) => msg._id === 'typing-indicator');
+                    const hasTypingIndicator = prevMessages.some((msg) => msg._id === TYPING_INDICATOR_ID);
                     if (hasTypingIndicator) {
                         return prevMessages;
                     }
                     const typingMessage: ChatMessage = {
-                        _id: 'typing-indicator',
+                        _id: TYPING_INDICATOR_ID,
                         text: '',
                         createdAt: new Date(),
                         isMine: false,
@@ -344,18 +386,14 @@ const TakingScreen = ({ route }: any) => {
                 });
             } else {
                 setMessages((prevMessages) =>
-                    prevMessages.filter((msg) => msg._id !== 'typing-indicator')
+                    prevMessages.filter((msg) => msg._id !== TYPING_INDICATOR_ID)
                 );
             }
         };
 
 
         const handleIncomingMessage = (response: any) => {
-            console.log('[TakingScreen] Incoming message received:', response);
-            if (!response) {
-                console.log('[TakingScreen] Empty response, ignoring');
-                return;
-            }
+            if (!response) return;
             try {
                 const activeMatchId = activeMatchIdRef.current;
                 const activeOtherUserId = activeOtherUserIdRef.current;
@@ -364,35 +402,13 @@ const TakingScreen = ({ route }: any) => {
                     return;
                 }
 
-                let messageText = '';
-                if (typeof response.message === 'string') {
-                    messageText = response.message;
-                } else if (typeof response.text === 'string') {
-                    messageText = response.text;
-                } else if (typeof response.content === 'string') {
-                    messageText = response.content;
-                } else if (response.message && typeof response.message === 'object') {
-                    messageText = response.message.text || response.message.content || JSON.stringify(response.message);
-                } else if (response.text && typeof response.text === 'object') {
-                    messageText = response.text.text || response.text.content || JSON.stringify(response.text);
-                }
+                const messageText = extractMessageText(response);
 
                 const isMine = response.isMine === true || response.isMine === 'true';
                 const avatar = isMine
                     ? (userDataRef.current?.profilePicture?.[0]?.url || userDataRef.current?.gallery?.[0]?.url || userDataRef.current?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile)
                     : (otherUserProfileRef.current?.profilePicture?.[0]?.url || matchChatUserDetailsRef.current?.profilePicture?.[0]?.url || matchChatUserDetailsRef.current?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile);
-                let createdAt: Date;
-                if (response.createdAt) {
-                    createdAt = typeof response.createdAt === 'string'
-                        ? new Date(response.createdAt)
-                        : new Date(response.createdAt);
-                } else if (response.timestamp) {
-                    createdAt = typeof response.timestamp === 'string'
-                        ? new Date(response.timestamp)
-                        : new Date(response.timestamp);
-                } else {
-                    createdAt = new Date();
-                }
+                const createdAt = parseCreatedAt(response);
                 const messageId = response._id || response.messageId || response.id || Date.now() + Math.random();
                 const createdAtKey =
                     response.createdAt || response.timestamp || response.created_at || createdAt.toISOString();
@@ -424,21 +440,9 @@ const TakingScreen = ({ route }: any) => {
                             avatar: avatar,
                         },
                     };
-                    console.log('[TakingScreen] Adding new message to chat:', {
-                        messageId,
-                        text: messageText,
-                        senderId: userId,
-                    });
                     setMessages((prevMessages) => {
-                        const withoutTyping = prevMessages.filter((msg) => msg._id !== 'typing-indicator');
-                        const updated = Chat.append(withoutTyping, [newMessage]);
-                        const sorted = updated.sort((a, b) => {
-                            const timeA = a.createdAt.getTime();
-                            const timeB = b.createdAt.getTime();
-                            return timeB - timeA;
-                        });
-                        console.log('[TakingScreen] Messages updated, total count:', sorted.length);
-                        return sorted;
+                        const withoutTyping = prevMessages.filter((msg) => msg._id !== TYPING_INDICATOR_ID);
+                        return Chat.append(withoutTyping, [newMessage]).sort(sortNewestFirst);
                     });
                     if (socket && matchChatUserDetailsRef.current?.userId) {
                         const payload = {
@@ -470,12 +474,8 @@ const TakingScreen = ({ route }: any) => {
         socket.removeAllListeners?.();
 
         socket.on('connected', handleConnected);
-        socket.on('newMatch', handleNewMatch);
-        socket.on('superLike', handleSuperLike);
-        socket.on('messageSent', handleMessageSent);
         socket.on('messagesRead', handleMessagesRead);
         socket.on('newMessage', handleIncomingMessage);
-        socket.on('message_marked_read', handleMessageMarkedRead);
         socket.on('user_typing', handleUserTyping);
 
         return () => {
@@ -485,12 +485,8 @@ const TakingScreen = ({ route }: any) => {
                 socket.off('disconnect');
                 socket.off('connect_error');
                 socket.off('connected', handleConnected);
-                socket.off('newMatch', handleNewMatch);
-                socket.off('superLike', handleSuperLike);
-                socket.off('messageSent', handleMessageSent);
                 socket.off('messagesRead', handleMessagesRead);
                 socket.off('newMessage', handleIncomingMessage);
-                socket.off('message_marked_read', handleMessageMarkedRead);
                 socket.off('user_typing', handleUserTyping);
             } catch (e) {
                 console.error('[TakingScreen] Error removing socket listeners:', e);
@@ -548,7 +544,6 @@ const TakingScreen = ({ route }: any) => {
             messageType: messageType,
         };
 
-        console.log('Sending message via socket:', payload);
         socket.emit('send_message', payload);
     }, [socket, matchChatUserDetails?.userId]);
 
@@ -560,7 +555,6 @@ const TakingScreen = ({ route }: any) => {
             otherUserId: matchChatUserDetails.userId,
             isTyping: isTyping,
         };
-        console.log(payload, "asdasdsaad");
 
         socket.emit('typing', payload);
     }, [socket, matchChatUserDetails?.userId]);
@@ -586,9 +580,7 @@ const TakingScreen = ({ route }: any) => {
     }, [emitTypingStatus]);
 
     const loadOlderMessages = useCallback(async () => {
-        console.log('loadOlderMessages called', { isLoadingMore, hasMoreMessages, currentPage, userId: matchChatUserDetails?.userId });
         if (isLoadingMore || !hasMoreMessages || !matchChatUserDetails?.userId) {
-            console.log('loadOlderMessages early return', { isLoadingMore, hasMoreMessages, userId: matchChatUserDetails?.userId });
             return;
         }
         setIsLoadingMore(true);
@@ -615,14 +607,7 @@ const TakingScreen = ({ route }: any) => {
                     const transformedOlderMessages = transformChatHistoryToMessages(olderMessages);
                     console.log('Transformed older messages:', transformedOlderMessages.length);
                     setMessages((prevMessages) => {
-                        const combined = [...transformedOlderMessages, ...prevMessages];
-                        combined.sort((a, b) => {
-                            const timeA = a.createdAt.getTime();
-                            const timeB = b.createdAt.getTime();
-                            return timeB - timeA;
-                        });
-                        console.log('Total messages after prepend:', combined.length);
-                        return combined;
+                        return [...transformedOlderMessages, ...prevMessages].sort(sortNewestFirst);
                     });
 
                     setCurrentPage(nextPage);
@@ -643,7 +628,7 @@ const TakingScreen = ({ route }: any) => {
         } finally {
             setIsLoadingMore(false);
         }
-    }, [currentPage, isLoadingMore, hasMoreMessages, matchChatUserDetails?.userId, transformChatHistoryToMessages]);
+    }, [currentPage, isLoadingMore, hasMoreMessages, matchChatUserDetails?.userId, matchChatUserDetails?.matchId, transformChatHistoryToMessages]);
 
     useEffect(() => {
         if (transformedMessages.length > 0) {
@@ -682,12 +667,7 @@ const TakingScreen = ({ route }: any) => {
     const onSend = useCallback((newMessages: ChatMessage[] = []) => {
         setMessagesOwnerMatchId(matchChatUserDetails?.matchId);
         setMessages(prev => {
-            const updated = Chat.append(prev, newMessages);
-            return updated.sort((a, b) => {
-                const timeA = a.createdAt.getTime();
-                const timeB = b.createdAt.getTime();
-                return timeB - timeA;
-            });
+            return Chat.append(prev, newMessages).sort(sortNewestFirst);
         });
         setInputText('');
         if (typingTimeoutRef.current) {
@@ -698,7 +678,7 @@ const TakingScreen = ({ route }: any) => {
         if (newMessages.length > 0 && newMessages[0].text) {
             sendMessageViaSocket(newMessages[0].text, 'text');
         }
-    }, [sendMessageViaSocket, emitTypingStatus]);
+    }, [sendMessageViaSocket, emitTypingStatus, matchChatUserDetails?.matchId]);
 
     const renderDay = useCallback((props: any) => {
         if (props.currentMessage?._id === 'typing-indicator') return null;
@@ -770,13 +750,11 @@ const TakingScreen = ({ route }: any) => {
                 }}
             />
         );
-    }, [userData?._id]);
-    const seeOtherProfile = () => {
-        let data = {
-            "userId": matchChatUserDetails?.userId
-        };
+    }, []);
+    const seeOtherProfile = useCallback(() => {
+        const data = { userId: matchChatUserDetails?.userId };
         dispatch(getOtherProfile(data, setCurrentProfileData, setOtherUserProfile));
-    }
+    }, [dispatch, matchChatUserDetails?.userId]);
     const renderAvatar = useCallback((props: any) => {
         if (props.currentMessage.user._id === USER_ID) return null;
         if (props.currentMessage._id === 'typing-indicator' || props.currentMessage.user._id === 'typing-indicator-user') {
@@ -784,14 +762,13 @@ const TakingScreen = ({ route }: any) => {
         }
         return (
             <TouchableOpacityView onPress={() => seeOtherProfile()}>
-                <FastImage
+                <PortraitAvatar
                     source={matchChatUserDetails?.profilePicture?.url ? { uri: matchChatUserDetails?.profilePicture?.url } : matchChatUserDetails?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile}
-                    resizeMode='cover'
                     style={{ width: metrics.hp4, height: metrics.hp4, borderRadius: metrics.hp2, marginBottom: metrics.hp1_5 }}
                 />
             </TouchableOpacityView>
         );
-    }, [matchChatUserDetails?.profilePicture]);
+    }, [matchChatUserDetails?.profilePicture, matchChatUserDetails?.gender, seeOtherProfile]);
     const unMatchButton = () => {
         const data = {
             matchId: matchChatUserDetails?.matchId
@@ -816,108 +793,6 @@ const TakingScreen = ({ route }: any) => {
                 <Time {...props} timeTextStyle={{ left: { color: colors.white }, right: { color: colors.white } }} containerStyle={{ left: { marginTop: 2 }, right: { marginTop: 2 } }} />
             </View>
         );
-    };
-
-    const TypingIndicatorBubble = () => {
-        const dot1 = useRef(new Animated.Value(0)).current;
-        const dot2 = useRef(new Animated.Value(0)).current;
-        const dot3 = useRef(new Animated.Value(0)).current;
-
-        useEffect(() => {
-            const animateDot = (dot: Animated.Value, delay: number) => {
-                return Animated.loop(
-                    Animated.sequence([
-                        Animated.delay(delay),
-                        Animated.timing(dot, {
-                            toValue: 1,
-                            duration: 400,
-                            useNativeDriver: true,
-                        }),
-                        Animated.timing(dot, {
-                            toValue: 0,
-                            duration: 400,
-                            useNativeDriver: true,
-                        }),
-                    ])
-                );
-            };
-
-            const animations = [
-                animateDot(dot1, 0),
-                animateDot(dot2, 200),
-                animateDot(dot3, 400),
-            ];
-
-            animations.forEach((anim) => anim.start());
-
-            return () => {
-                animations.forEach((anim) => anim.stop());
-            };
-        }, [dot1, dot2, dot3]);
-
-        const dotSize = metrics.hp0_8;
-        const dotOpacity1 = dot1.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0.3, 1],
-        });
-        const dotOpacity2 = dot2.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0.3, 1],
-        });
-        const dotOpacity3 = dot3.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0.3, 1],
-        });
-
-        return (
-            <View style={styles.typingBubbleWrapper}>
-                <View style={styles.typingBubble}>
-                    <View style={styles.typingDotsContainer}>
-                        <Animated.View
-                            style={[
-                                styles.typingDot,
-                                {
-                                    width: dotSize,
-                                    height: dotSize,
-                                    opacity: dotOpacity1,
-                                },
-                            ]}
-                        />
-                        <Animated.View
-                            style={[
-                                styles.typingDot,
-                                {
-                                    width: dotSize,
-                                    height: dotSize,
-                                    opacity: dotOpacity2,
-                                },
-                            ]}
-                        />
-                        <Animated.View
-                            style={[
-                                styles.typingDot,
-                                {
-                                    width: dotSize,
-                                    height: dotSize,
-                                    opacity: dotOpacity3,
-                                },
-                            ]}
-                        />
-                    </View>
-                </View>
-            </View>
-        );
-    };
-   
-    const openGallary = () => {
-        launchImageLibrary(
-            {
-                mediaType: "photo",
-                selectionLimit: 1,
-                quality: 1,
-                ...(Platform.OS === 'ios' && { presentationStyle: 'pageSheet' })
-            },
-        )
     };
 
     const renderCustomInput = () => (
@@ -975,19 +850,7 @@ const TakingScreen = ({ route }: any) => {
                         style={styles.sendButton}
                         onPress={() => {
                             if (inputText.trim().length > 0) {
-                                onSend([
-                                    {
-                                        _id: Math.random(),
-                                        text: inputText,
-                                        createdAt: new Date(),
-                                        isMine: true,
-                                        user: {
-                                            _id: USER_ID,
-                                            name: 'Gurrent User',
-                                            avatar: dummyMaleProfile,
-                                        },
-                                    },
-                                ]);
+                                onSend([buildOutgoingMessage(inputText)]);
                             }
                         }}>
                         <FastImage
@@ -1029,19 +892,7 @@ const TakingScreen = ({ route }: any) => {
     ];
     const sendEmptyMessage = (text: string) => {
         if (!text?.trim()) return;
-        onSend([
-            {
-                _id: Math.random(),
-                text: text.trim(),
-                createdAt: new Date(),
-                isMine: true,
-                user: {
-                    _id: USER_ID,
-                    name: 'Gurrent User',
-                    avatar: dummyMaleProfile,
-                },
-            },
-        ]);
+        onSend([buildOutgoingMessage(text.trim())]);
     }
     const chatEmptyRender = () => {
         if (!route?.params?.forEmptyChat) return null
@@ -1058,7 +909,7 @@ const TakingScreen = ({ route }: any) => {
                     </TouchableOpacityView>
                 </TouchableOpacityView>
                 <ScrollView showsHorizontalScrollIndicator={false} horizontal={true} contentContainerStyle={{ marginTop: metrics.hp25 }}>
-                    {EmptyDataText?.map((item, index: any) => {
+                    {EmptyDataText?.map((item) => {
                         return (
                             <TouchableOpacityView key={item.id} activeOpacity={0.7} onPress={() => sendEmptyMessage(item.text)} style={{ marginLeft: metrics.hp1 }}>
                                 <ImageBackground key={item.id} source={emptyTextImage} resizeMode='stretch' style={{ paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp1, alignItems: "center", justifyContent: "center", }}>

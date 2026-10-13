@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { ActivityIndicator, Alert, Animated, FlatList, ImageBackground, Modal, Platform, StyleSheet, View } from "react-native";
 import OneTimeProductHeader from "../../common/OneTimeProductHeader";
-import { BottomLayer, chatAmountBackgroungNew, chatPurchaseBlack, chatPurchaseColour, chatsPurchesNewBackground, closeNewWhiteIcon, crushParBack, flasIcon, goldCard, logoBlue, orBottomIcon, Platinum, platinumUpgrade, popularBackground, premiumIcon, purchaseImageNew, superlIkeBackGround, timeShowNewBackground, upgradPlan } from "../../helper/ImageAssets";
+import { applogo, BottomLayer, chatAmountBackgroungNew, chatPurchaseBlack, chatPurchaseColour, chatsPurchesNewBackground, closeNewWhiteIcon, crushParBack, flasIcon, goldCard, logoBlue, orBottomIcon, Platinum, platinumUpgrade, popularBackground, premiumIcon, purchaseImageNew, superlIkeBackGround, timeShowNewBackground, upgradPlan } from "../../helper/ImageAssets";
 import LinearGradient from "react-native-linear-gradient";
 import { AppText, BLACK, EIGHT, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, OPECITY_DARK, SCHEHERAZADE_BOLD, SIXTEEN, TEN, THIRTEEN, TWELVE, TWENTY, TWENTY_FOUR, TWENTY_TWO, WHITE } from "../../common/AppText";
 import metrics from "../../assets/Metrics";
@@ -151,6 +151,12 @@ const CrushNotePurchase = () => {
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
             let isInitiated = false;
             try {
+                // Pending (e.g. slow payment method): not paid yet. Don't verify or consume it, and keep
+                // purchaseInitiatedRef so the later 'purchased' update still shows the verify modal.
+                if (purchase?.purchaseState === 'pending') {
+                    console.log('[Crush Note] Purchase pending, waiting for completion');
+                    return;
+                }
                 const key = getPurchaseTransactionId(purchase);
 
                 // Duplicate protection check
@@ -441,7 +447,7 @@ const CrushNotePurchase = () => {
                 </View>
             </ImageBackground> */}
 
-            {/* <Modal
+            <Modal
                 visible={verifyModalVisible}
                 transparent
                 animationType="fade"
@@ -453,7 +459,7 @@ const CrushNotePurchase = () => {
                     <Animated.View style={[styles.payCard, { opacity: payModalOpacity, transform: [{ scale: payModalScale }] }]}>
                         <View style={styles.payContent}>
                             <View style={styles.payIconRing}>
-                                <FastImage source={logoBlue} resizeMode="contain" style={styles.payIcon} />
+                                <FastImage source={applogo} resizeMode="contain" style={styles.payIcon} tintColor={colors.black}/>
                             </View>
 
                             <AppText
@@ -543,7 +549,7 @@ const CrushNotePurchase = () => {
                         </View>
                     </Animated.View>
                 </View>
-            </Modal> */}
+            </Modal>
         </AppSafeAreaView>
     )
 };

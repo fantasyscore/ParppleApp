@@ -1,1702 +1,259 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import RBSheet from 'react-native-raw-bottom-sheet';
-import MultiSlider from '@ptomasroos/react-native-multi-slider';
-import {
-    Alert,
-    Animated,
-    FlatList,
-    Image,
-    ImageBackground,
-    InteractionManager,
-    Modal,
-    NativeModules,
-    PermissionsAndroid,
-    Platform,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
-    AppState, AppStateStatus,
-    Dimensions
-} from 'react-native';
-import { AppText, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, WHITE, EIGHTEEN, fontSize, BLACK, THIRTEEN, FORTEEN, OPECITY, TWENTY_TWO, INTER_BOLD, RED, ELEVEN, TEN, TWENTY_FOUR } from '../../common/AppText';
-import { toggalOnButtonNew, toggalOffButtonNew, serachButtonNew, resetButtonNew, directChatIcon, locIcon, lockIconWhite, newCloseIcon, newIcon, newLikeIcon, newProfileBackground, straightenIcon, dummyMaleProfile, dummyfemaleProfile, chatPurchaseColour, chatAmountBackgroungNew, goToProifleIcon, onlineProfileImage, scrollatthetopIcon, trunOnBackground, modalBackground, closeNewWhiteIcon, verifiedBadgeIcon, HomeBackground, verifedBadge, blurCountIcon, gallaryICon, trunOnIcon, rightArrowIcon, emptyTextImage, trunOnsBack, middleOfList, threeDotNewIcon, tranperntThreeDot, blockModalImage } from '../../helper/ImageAssets';
-import metrics from '../../assets/Metrics';
-import FastImage from 'react-native-fast-image';
-import { colors, newColor } from '../../theme/colors';
-import { logMetaEvent } from "../../utils/MetaEvents";
-import { TouchableOpacityView } from '../../common/TouchableOpacityView';
-import { useDispatch, useSelector } from 'react-redux';
-import { AppSafeAreaView } from '../../common/AppSafeAreaView';
-import { getProfile, listProfiles, swipeLikeDisLike, userBlockAPI } from '../../actions/authActions';
-import { appOperation } from '../../appOperation';
-import { toastAlert } from '../../actions/UploadImageActions';
-import { useIsFocused } from '@react-navigation/native';
-import { setListProfiles } from '../../slices/loginServices/authSlice';
-import { createSocket } from '../../common/Socket';
-import MatchScreen from './MatchScreen';
-import NavigationService from '../../navigation/NavigationService';
-import { NAVIGATION_CRUSH_NOTE_SENDER_SCREEN, NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_PROFILE_SCREEN, NAVIGATION_REPORT_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from '../../navigation/routes';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SWIPES_PER_DAY_KEY, SWIPES_REMAINING_KEY, SUPER_LIKES_REMAINING_KEY } from '../../helper/Constants';
-import messaging from "@react-native-firebase/messaging";
-import { check, checkMultiple, openSettings, PERMISSIONS, request, RESULTS } from "react-native-permissions";
-import Geolocation from "react-native-geolocation-service";
-import NewHeaderAndroid from '../../common/NewHeaderAndroid';
-import { useLikeDislikeAnimation } from '../../hooks/useLikeDislikeAnimation';
-import { LikeDislikeOverlays } from '../../common/LikeDislikeOverlays';
-import ViewProfileAndroid from './ViewProfileAndroid';
-import CrushNotesSender from './CrushNotesSender';
-import { TouchEventType } from 'react-native-gesture-handler/lib/typescript/TouchEventType';
-import FullScreenViewPhoto from '../../components/FullScreenViewPhoto';
-import FullScreenImage from './FullScreenImage';
-import { threeDotDataHome } from '../../common/UiltData';
-import { Screen } from '../../theme/dimens';
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { FlatList, ImageBackground, Modal, Platform, RefreshControl, StyleSheet } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
+import { useSelector } from "react-redux";
+import metrics from "../../assets/Metrics";
+import { newColor } from "../../theme/colors";
+import { HomeBackground } from "../../helper/ImageAssets";
+import { AppSafeAreaView } from "../../common/AppSafeAreaView";
+import NewHeaderAndroid from "../../common/NewHeaderAndroid";
+import { LikeDislikeOverlays } from "../../common/LikeDislikeOverlays";
+import NavigationService from "../../navigation/NavigationService";
+import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
+import { useLatest } from "../../hooks/useLatest";
+import { useFaceVerification } from "../../hooks/useFaceVerification";
+import MatchScreen from "./MatchScreen";
+import ViewProfileAndroid from "./ViewProfileAndroid";
+import CrushNotesSender from "./CrushNotesSender";
+import FullScreenImage from "./FullScreenImage";
+import { ITEM_HEIGHT, LIST_TOP_PADDING, SHOW_PROFILE_ACTIONS } from "./home/constants";
+import { isPublishLocked } from "./home/utils";
+import { useProfileFeed } from "./home/hooks/useProfileFeed";
+import { useSwipeCounters } from "./home/hooks/useSwipeCounters";
+import { useSwipeActions } from "./home/hooks/useSwipeActions";
+import { useSearchFilters } from "./home/hooks/useSearchFilters";
+import { useMatchSocket } from "./home/hooks/useMatchSocket";
+import { useScrollToTopButton } from "./home/hooks/useScrollToTopButton";
+import { usePushPermissionPrompt } from "./home/hooks/usePushPermissionPrompt";
+import ProfileListCard from "./home/components/ProfileListCard";
+import ProfileActionsSheet, { ProfileActionsSheetHandle } from "./home/components/ProfileActionsSheet";
+import FeedEmptyState from "./home/components/FeedEmptyState";
+import FilterSheet from "./home/components/FilterSheet";
+import LikeLimitModal from "./home/components/LikeLimitModal";
+import ScrollToTopButton from "./home/components/ScrollToTopButton";
 
-const PROFILE_BATCH_LIMIT = 10;
-const TOP_UP_TRIGGER_COUNT = 3; // fetch more when this few profiles remain
-const CARD_HEIGHT = metrics.hp56;
-const CARD_MARGIN_BOTTOM = metrics.hp6;
-const ITEM_HEIGHT = CARD_HEIGHT + CARD_MARGIN_BOTTOM;
-const LIST_TOP_PADDING = metrics.hp0;
-const AVATAR_PRELOAD_CACHE_LIMIT = 120;
-const ITEM_WIDTH = metrics.hp30;
-const SPACING = metrics.hp1;
+const keyExtractor = (item: any, index: number) => item?._id ?? `profile-${index}`;
 
-type FaceLivenessResult =
-    | { status?: string; message?: string }
-    | string
-    | null
-    | undefined;
-const runAfterInitialInteractions = (callback: () => void, delay = 0) => {
-    let interactionHandle: { cancel?: () => void } | null = null;
-    const timer = setTimeout(() => {
-        interactionHandle = InteractionManager.runAfterInteractions(callback);
-    }, delay);
-
-    return () => {
-        clearTimeout(timer);
-        interactionHandle?.cancel?.();
-    };
-};
-const PremiumAnimatedModal = ({ visible, onClose, children }: any) => {
-    const [show, setShow] = useState(visible);
-    const translateY = useRef(new Animated.Value(metrics.hp5)).current;
-    const opacity = useRef(new Animated.Value(0)).current;
-
-    useEffect(() => {
-        if (visible) {
-            setShow(true);
-            Animated.parallel([
-                Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-                Animated.spring(translateY, { toValue: 0, friction: 8, tension: 50, useNativeDriver: true })
-            ]).start();
-        } else {
-            Animated.parallel([
-                Animated.timing(opacity, { toValue: 0, duration: 250, useNativeDriver: true }),
-                Animated.timing(translateY, { toValue: metrics.hp2, duration: 250, useNativeDriver: true })
-            ]).start(() => setShow(false));
-        }
-    }, [visible]);
-
-    if (!show) return null;
-
-    return (
-        <Modal transparent visible={show} onRequestClose={onClose} animationType="none">
-            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", paddingHorizontal: metrics.hp2 }}>
-                <Animated.View style={{ opacity, transform: [{ translateY }], width: "100%" }}>
-                    <ImageBackground style={{ width: "100%", shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 20, elevation: 15 }} source={modalBackground} resizeMode="stretch">
-                        <View style={{ padding: metrics.hp2 }}>
-                            {children}
-                        </View>
-                    </ImageBackground>
-                </Animated.View>
-            </View>
-        </Modal>
-    );
-};
-
-const PulsingCircle = memo(({ size }: { size: number }) => {
-    const anim = useRef(new Animated.Value(0)).current;
-    const animTwo = useRef(new Animated.Value(0)).current;
-
-    useEffect(() => {
-        let isMounted = true;
-        let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-        const loop = (value: Animated.Value) => {
-            value.setValue(0);
-            Animated.timing(value, {
-                toValue: 1,
-                duration: 3000,
-                useNativeDriver: true,
-            }).start(() => {
-                if (isMounted) loop(value);
-            });
-        };
-
-        loop(anim);
-        timeoutId = setTimeout(() => {
-            if (isMounted) loop(animTwo);
-        }, 1500);
-
-        return () => {
-            isMounted = false;
-            if (timeoutId) clearTimeout(timeoutId);
-            anim.stopAnimation();
-            animTwo.stopAnimation();
-        };
-    }, [anim, animTwo]);
-
-    const pulseStyle = (value: Animated.Value) => ({
-        transform: [{ scale: value.interpolate({ inputRange: [0, 1], outputRange: [1, 3] }) }],
-        opacity: value.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
-    });
-
-    const sizeStyle = {
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        borderWidth: metrics.hp0_1,
-        borderColor: "#F69E8250",
-        marginTop: -metrics.hp4_5
-    };
-
-    return (
-        <>
-            <Animated.View style={[styles.pulse, sizeStyle, pulseStyle(anim)]} />
-            <Animated.View style={[styles.pulse, sizeStyle, pulseStyle(animTwo)]} />
-        </>
-    );
+const getItemLayout = (_: any, index: number) => ({
+  length: ITEM_HEIGHT,
+  offset: LIST_TOP_PADDING + ITEM_HEIGHT * index,
+  index,
 });
 
-type ProfileListCardProps = {
-    item: any;
-    onLike: (item: any) => void;
-    onDislike: (item: any) => void;
-    onOpenPreview: (item: any) => void;
-    userData: any;
-    setCrushNoteVisible: any;
-    handleCrushNote: any;
-    showFullProfile: any;
-    onThreeDot?: any;
-};
-
-// Memoized row: re-renders only when its own profile changes, not on every
-// list update / swipe elsewhere.
-const capitalizeFirstLetter = (text: string) => {
-    if (!text) return text;
-    return text.charAt(0).toUpperCase() + text.slice(1);
-};
-
-const ProfileListCard = memo(({ item, onLike, onDislike, onOpenPreview, userData, setCrushNoteVisible, handleCrushNote, showFullProfile, onThreeDot }: ProfileListCardProps) => {
-    const name = item.username || item.name || '';
-    const displayName =
-        name.length > 20 ? `${name.substring(0, 20)}...` : name;
-    const city = item.city;
-    const cityName =
-        city.length > 25 ? `${city.substring(0, 25)}...` : city;
-    return (
-        <View style={styles.cardBackground}>
-            <TouchableOpacityView activeOpacity={1} onPress={() => onOpenPreview(item)} style={styles.cardHeaderRow}>
-                <View>
-                    <FastImage
-                        source={item?.gallery?.length ? { uri: item?.gallery?.[0]?.url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable } : item?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile}
-                        resizeMode='cover'
-                        style={styles.avatar}
-                    />
-
-                    {item.online ?
-                        <View style={styles.onlineUserDot} /> : <></>}
-                </View>
-                <View style={styles.headerInfo}>
-                    <View style={[styles.nameContainer]}>
-                        <View style={{ flexDirection: "row", alignItems: "center" }}>
-                            <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} style={styles.nameText}>
-                                {displayName}, {item.age} y
-                            </AppText>
-                            {item?.faceVerified ?
-                                <FastImage source={verifedBadge} resizeMode='contain' style={{ height: metrics.hp2_4, width: metrics.hp2_4, marginLeft: metrics.hp1 }} />
-                                : <></>
-                            }
-                        </View>
-                        {/* <TouchableOpacityView onPress={() => onThreeDot(item)}>
-                            <FastImage source={tranperntThreeDot} resizeMode='contain' style={{ height: metrics.hp4, width: metrics.hp4 }} />
-                        </TouchableOpacityView> */}
-                    </View>
-                    <View style={styles.nameRowContainer}>
-                        <FastImage source={newIcon} resizeMode='contain' style={styles.newBadge} />
-
-                        {capitalizeFirstLetter(cityName) ?
-                            <>
-                                <View style={styles.lineHeight} />
-                                <View style={styles.metaRow}>
-                                    <FastImage source={locIcon} resizeMode='contain' style={styles.metaIcon} />
-                                    <AppText color={WHITE} weight={INTER_SEMI_BOLD}>
-                                        {" "}{capitalizeFirstLetter(cityName)}
-                                    </AppText>
-                                </View>
-                            </>
-                            : <></>}
-                        <View style={styles.lineHeight} />
-                        <View style={styles.metaRow}>
-                            <FastImage source={straightenIcon} resizeMode='contain' style={styles.metaIcon} />
-                            <AppText color={WHITE} weight={INTER_SEMI_BOLD}>
-                                {" "}{item.height} ft
-                            </AppText>
-                        </View>
-                    </View>
-                </View>
-            </TouchableOpacityView>
-
-            <View style={styles.galleryWrap}>
-                {item?.gallery?.length ?
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryContent}>
-                        {item?.gallery?.map((img: any, idx: number) => (
-                            <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : showFullProfile(item?.gallery, idx)} key={img?.url ?? idx} style={styles.galleryItem}>
-                                <Image source={{ uri: img.url }} blurRadius={userData?.gender === "male" && userData?.isPublish === false ? 10 : 0} style={styles.galleryImage} />
-                                {userData?.gender === "male" && userData?.isPublish === false ? <>
-                                    <View style={styles.galleryDim} />
-                                    <View style={styles.lockOverlay}>
-                                        <FastImage source={lockIconWhite} resizeMode='contain' style={styles.lockIcon} />
-                                    </View>
-                                </> : <></>
-                                }
-                                <ImageBackground source={blurCountIcon} resizeMode='contain' style={styles.blurCounter}>
-                                    <FastImage source={gallaryICon} resizeMode='contain' style={styles.gallaryIcon} />
-                                    <AppText type={ELEVEN} color={WHITE} weight={INTER_SEMI_BOLD}>
-                                        {" "}{idx + 1} / {item.gallery?.length}
-                                    </AppText>
-                                </ImageBackground>
-                            </TouchableOpacityView>
-                        ))}
-                        <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : console.log()} style={[styles.galleryItem,{alignItems:"center",justifyContent:"center", paddingHorizontal:metrics.hp5}]}>
-                            <AppText style={{ textAlign: "center", lineHeight: metrics.hp2_5, }} color={WHITE} type={TWELVE} weight={SCHEHERAZADE_BOLD}>
-                                {item.bio}
-                            </AppText>
-                        </TouchableOpacityView>
-                    </ScrollView>
-                    :
-                    <ImageBackground source={chatPurchaseColour} tintColor={"#555359"} resizeMode='stretch' style={{
-                        width: metrics.hp30,
-                        height: metrics.hp37, marginTop: metrics.hp3,
-                        paddingHorizontal: metrics.hp2,
-                        paddingVertical: metrics.hp2,
-                        alignItems: "center",
-                        justifyContent: "center"
-                    }}>
-                        <AppText style={{ textAlign: "center", lineHeight: metrics.hp2 }} color={WHITE} type={TWELVE} weight={SCHEHERAZADE_BOLD}>
-                            {item.bio}
-                        </AppText>
-                    </ImageBackground>
-                }
-
-            </View>
-
-            <View style={styles.actionsRow}>
-                <TouchableOpacityView activeOpacity={1} onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : onDislike(item)}>
-                    <FastImage source={newCloseIcon} resizeMode='contain' style={styles.dislikeButton} />
-                </TouchableOpacityView>
-                <TouchableOpacityView activeOpacity={1} onPress={() =>/*  userData?.gender === "male" || userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : */ onLike(item)}>
-                    <FastImage source={newLikeIcon} resizeMode='contain' style={styles.likeButton} />
-                </TouchableOpacityView>
-                <TouchableOpacityView activeOpacity={1} onPress={() => handleCrushNote(item)}>
-                    <FastImage source={directChatIcon} resizeMode='contain' style={styles.chatButton} />
-                </TouchableOpacityView>
-            </View>
-            <TouchableOpacityView activeOpacity={1} onPress={() => onOpenPreview(item)} style={{ flexDirection: "row", alignItems: "center" }}>
-                <FastImage source={trunOnIcon} resizeMode='contain' style={styles.trunOns} />
-                <AppText color={WHITE} type={FORTEEN} weight={INTER_SEMI_BOLD}>
-                    {"  "}{item.turnOns?.length} turn-ons{"    "}
-                </AppText>
-                <FastImage source={rightArrowIcon} resizeMode='contain' style={{ height: metrics.hp1_9, width: metrics.hp1_9, marginTop: metrics.hp0_5 }} />
-            </TouchableOpacityView>
-            <TouchableOpacityView activeOpacity={1} onPress={() => onOpenPreview(item)} style={styles.turnOnsContainer}>
-                {item?.turnOns?.slice(0, 3).map((turnOn: any, index: number) => (
-                    <ImageBackground key={item.id} source={trunOnsBack} resizeMode='stretch' style={styles.turnOnBox}>
-                        <AppText
-                            type={THIRTEEN}
-                            weight={INTER_MEDIUM}
-                            color={WHITE}
-                        >
-                            {turnOn?.value}
-                        </AppText>
-                    </ImageBackground>
-                ))}
-
-                {item?.turnOns?.length > 3 && (
-                    <ImageBackground key={item.id} source={trunOnsBack} resizeMode='stretch' style={styles.turnOnBox}>
-                        <AppText
-                            type={THIRTEEN}
-                            weight={INTER_MEDIUM}
-                            color={WHITE}
-                        >
-                            +{item.turnOns.length - 3}
-                        </AppText>
-                    </ImageBackground>
-                )}
-            </TouchableOpacityView>
-            <FastImage source={middleOfList} resizeMode='stretch' style={styles.middleOflist} />
-        </View>
-    );
-}, (prev, next) => prev.item === next.item && prev.onLike === next.onLike && prev.onDislike === next.onDislike && prev.onOpenPreview === next.onOpenPreview && prev.userData === next.userData && prev.setCrushNoteVisible === next.setCrushNoteVisible && prev.handleCrushNote === next.handleCrushNote && prev.showFullProfile === next.showFullProfile && prev.onThreeDot === next.onThreeDot);
-
-
-
-
-const PeopleScreen = () => {
-    const dispatch = useDispatch();
-    const IsFocused = useIsFocused();
-    const listProfilesData = useSelector((state: any) => state.auth.listProfiles ?? []);
-    const profileHide = useSelector((state: any) => state.auth.profileHide);
-    const userData = useSelector((state: any) => state.auth.userData);
-    const scrollX = useRef(new Animated.Value(0)).current;
-    // NOTE: `profileHide` was subscribed here but never used — every
-    // publish/hide toggle forced a full HomeScreen + FlatList re-render
-    // during the navigation transition (visible lag). Removed.
-    console.log(listProfilesData, "listProfilesDatalistProfilesDatalistProfilesData");
-
-    const [matchVisible, setMatchVisible] = useState(false);
-    const [matchData, setMatchData] = useState([]);
-    const [remainingSwipes, setRemainingSwipes] = useState(0);
-    const [remainingSuperLikes, setRemainingSuperLikes] = useState(0);
-    const [swipesPerDay, setSwipesPerDay] = useState(0);
-    const [currentLocation, setCurrentLocation] = useState<{ lat: string; long: string }>({ lat: '', long: '' });
-    const [modalVisible, setModalVisible] = useState(false);
-    const [crushNoteVisible, setCrushNoteVisible] = useState(false);
-    const [currentProfileData, setCurrentProfileData] = useState({})
-    const [ageRange, setAgeRange] = useState([18, 80]);
-    const [locationRadiusEnabled, setLocationRadiusEnabled] = useState(true);
-    const [radius, setRadius] = useState([100]);
-    const [photosOnly, setPhotosOnly] = useState(false);
-    const [isApplyingFilter, setIsApplyingFilter] = useState(false);
-    const [refreshing, setRefreshing] = useState(false);
-    const [limitReachlike, setLimitReachlike] = useState(false)
-    const [verifyModalVisible, setVerifyModalVisible] = useState(false);
-    const [fullProfileShow, setFullProfileShow] = useState(false);
-    const [fullProfileShowCurrentData, setFullProfileShowCurrentData] = useState<any>({});
-    const [fullImage, setFullImage] = useState<any>(false);
-    const [gallaryData, setGallaryData] = useState<any>([]);
-    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-    const [saveReportTitle, setSaveReportTitle] = useState("");
-    const [verifyStage, setVerifyStage] = useState<'prompt' | 'verifying' | 'success' | 'error'>('prompt');
-    const [verifyError, setVerifyError] = useState<string>('');
-    const [threeDotData, setThreeDotData] = useState<any>({})
-    // Scroll To Top Logic
-    const flatListRef = useRef<FlatList>(null);
-    const [showScrollTop, setShowScrollTop] = useState(false);
-    const showScrollTopRef = useRef(false);
-    const scrollTopAnim = useRef(new Animated.Value(0)).current;
-    const refFilter: any = useRef(null);
-    const [modalBlockVisible, setModalBlockVisible] = useState(false);
-    // const appState = useRef<AppStateStatus>(AppState.currentState);
-    // useEffect(() => {
-    //     const subscription = AppState.addEventListener('change', nextState => {
-    //       const wasInBackground =
-    //         appState.current === 'inactive' ||
-    //         appState.current === 'background';
-
-    //       if (wasInBackground && nextState === 'active') {
-    //         if (profilesRef.current.length === 0) {
-    //           hasFetchedFeedOnceRef.current = false;
-    //           isFetchingMoreRef.current = false;
-    //           feedExhaustedRef.current = false;
-
-    //           dispatch(listProfiles(true, 0, 10, false));
-    //         }
-    //       }
-
-    //       appState.current = nextState;
-    //     });
-
-    //     return () => subscription.remove();
-    //   }, [dispatch]);
-    const handleScroll = useCallback((event: any) => {
-        const offsetY = event.nativeEvent.contentOffset.y;
-        if (offsetY > 100 && !showScrollTopRef.current) {
-            showScrollTopRef.current = true;
-            setShowScrollTop(true);
-            Animated.timing(scrollTopAnim, {
-                toValue: 1,
-                duration: 250,
-                useNativeDriver: true,
-            }).start();
-        } else if (offsetY <= 100 && showScrollTopRef.current) {
-            showScrollTopRef.current = false;
-            Animated.timing(scrollTopAnim, {
-                toValue: 0,
-                duration: 250,
-                useNativeDriver: true,
-            }).start(() => setShowScrollTop(false));
-        }
-    }, [scrollTopAnim]);
-
-    const handleScrollToTop = useCallback(() => {
-        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-    }, []);
-
-    useEffect(() => {
-        if (userData) {
-            if (userData.preferredAgeRange) {
-                setAgeRange([userData.preferredAgeRange.min ?? 18, userData.preferredAgeRange.max ?? 80]);
-            }
-            if (userData.preferredDistanceKm !== undefined) {
-                setRadius([userData.preferredDistanceKm]);
-            }
-            if (userData.onlyImage !== undefined) {
-                setPhotosOnly(userData.onlyImage);
-            }
-        }
-    }, [userData?.preferredAgeRange, userData?.preferredDistanceKm, userData?.onlyImage]);
-    const filterSheetRef = useRef<any>(null);
-
-    const onFilterPress = useCallback(() => {
-        if (userData?.gender === "male" && userData?.isPublish === false) {
-            NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN)
-        } else {
-            filterSheetRef.current?.open();
-        }
-    }, [userData]);
-
-    const handleResetFilter = () => {
-        setAgeRange([18, 80]);
-        setLocationRadiusEnabled(false);
-        setRadius([100]);
-        setPhotosOnly(false);
-    };
-
-    const handleSearchFilter = async () => {
-        if (isApplyingFilter) return;
-        setIsApplyingFilter(true);
-        try {
-            const payload = {
-                preferredAgeRange: {
-                    min: ageRange[0],
-                    max: ageRange[1]
-                },
-                preferredDistanceKm: radius[0],
-                onlyImage: photosOnly
-            };
-            const filterData = {
-                preferredAgeRange: {
-                    min: ageRange[0],
-                    max: ageRange[1]
-                },
-                global: locationRadiusEnabled,
-                onlyImage: photosOnly,
-                city: userData?.city
-            };
-            const response: any = await appOperation.customer.editFilterAPI(payload);
-            if (response?.statusCode == 200 || response?.success || response?.status) {
-                logMetaEvent('Search', undefined, {
-                    search_string: 'Filter Applied',
-                    content_type: 'user_search'
-                });
-                toastAlert.showToastError('Filters updated successfully');
-                filterSheetRef.current?.close();
-                dispatch(listProfiles(true, 0, PROFILE_BATCH_LIMIT, false, filterData));
-                dispatch(getProfile(true));
-            } else {
-                toastAlert.showToastError(response?.message || 'Failed to update filters');
-            }
-        } catch (error: any) {
-            toastAlert.showToastError(error?.message || 'Something went wrong');
-        } finally {
-            setIsApplyingFilter(false);
-        }
-    };
-
-    // Refs mirror frequently-changing values so swipe handlers stay stable
-    // (stable handlers = memoized rows never re-render unnecessarily).
-    const profilesRef = useRef<any[]>(listProfilesData);
-    const remainingSwipesRef = useRef(0);
-    const userDataRef = useRef<any>(userData);
-    const hasFetchedFeedOnceRef = useRef(false);
-    const isFetchingMoreRef = useRef(false);
-    const feedExhaustedRef = useRef(false);
-    const prevListLengthRef = useRef(0);
-    const preloadedAvatarUrlsRef = useRef<Set<string>>(new Set());
-
-    const {
-        runLikeAnimation,
-        runDislikeAnimation,
-        crushLikeAnimation,
-        likeOverlayStyle,
-        likeIconAnimatedStyle,
-        dislikeOverlayStyle,
-        dislikeIconAnimatedStyle,
-        crushlikeOverlayStyle,
-        crushlikeIconAnimatedStyle,
-        isSwipeAnimatingRef,
-    } = useLikeDislikeAnimation();
-
-    useEffect(() => {
-        profilesRef.current = Array.isArray(listProfilesData) ? listProfilesData : [];
-    }, [listProfilesData]);
-
-    useEffect(() => {
-        remainingSwipesRef.current = remainingSwipes;
-    }, [remainingSwipes]);
-
-    useEffect(() => {
-        userDataRef.current = userData;
-    }, [userData]);
-
-    const hasReadCacheRef = useRef(false);
-
-    // ---- Swipe counters: AsyncStorage persistence (read once, then sync) ----
-    useEffect(() => {
-        const userId = userData?._id;
-        if (!userId || hasReadCacheRef.current) return;
-        hasReadCacheRef.current = true;
-
-        (async () => {
-            try {
-                const [swipes, superLikes, perDay] = await Promise.all([
-                    AsyncStorage.getItem(`${SWIPES_REMAINING_KEY}_${userId}`),
-                    AsyncStorage.getItem(`${SUPER_LIKES_REMAINING_KEY}_${userId}`),
-                    AsyncStorage.getItem(`${SWIPES_PER_DAY_KEY}_${userId}`),
-                ]);
-
-                // If API data has already populated Redux, do NOT overwrite it!
-                if (userDataRef.current?.swipesRemaining !== undefined) return;
-
-                if (swipes !== null) setRemainingSwipes(parseInt(swipes, 10));
-                if (superLikes !== null) setRemainingSuperLikes(parseInt(superLikes, 10));
-                if (perDay !== null) setSwipesPerDay(parseInt(perDay, 10));
-            } catch (error) {
-                console.warn('Error loading stored values:', error);
-            }
-        })();
-    }, [userData?._id]);
-
-    useEffect(() => {
-        if (userData && (userData.swipesRemaining !== undefined || userData.superLikesRemaining !== undefined || userData.swipesPerDay !== undefined)) {
-            setRemainingSwipes(userData?.swipesRemaining ?? 0);
-            setRemainingSuperLikes(userData?.superLikesRemaining ?? 0);
-            setSwipesPerDay(userData?.swipesPerDay ?? 0);
-        }
-    }, [userData?.swipesRemaining, userData?.superLikesRemaining, userData?.swipesPerDay]);
-
-    useEffect(() => {
-        const userId = userData?._id;
-        if (!userId) return;
-
-        AsyncStorage.multiSet([
-            [`${SWIPES_REMAINING_KEY}_${userId}`, String(remainingSwipes)],
-            [`${SUPER_LIKES_REMAINING_KEY}_${userId}`, String(remainingSuperLikes)],
-            [`${SWIPES_PER_DAY_KEY}_${userId}`, String(swipesPerDay)],
-        ]).catch((error) => console.warn('Error saving stored values:', error));
-    }, [remainingSwipes, remainingSuperLikes, swipesPerDay, userData?._id]);
-
-    // ---- Initial data: profile + first feed batch ----
-    useEffect(() => {
-        if (!IsFocused) return;
-        if (!userDataRef.current?._id) {
-            dispatch(getProfile(true));
-        }
-        if (!hasFetchedFeedOnceRef.current && profilesRef.current.length === 0) {
-            hasFetchedFeedOnceRef.current = true;
-            dispatch(listProfiles(true, 0, PROFILE_BATCH_LIMIT, false));
-        }
-    }, [IsFocused, dispatch]);
-
-    // ---- Infinite feed: append the next batch, stop when the server runs dry ----
-    const fetchMoreProfiles = useCallback(async () => {
-        if (isFetchingMoreRef.current || feedExhaustedRef.current) return;
-        isFetchingMoreRef.current = true;
-        try {
-            const skip = profilesRef.current.length;
-            const result: any = await dispatch(listProfiles(true, skip, PROFILE_BATCH_LIMIT, true));
-            if (result?.skipped) return;
-            const newCount = Array.isArray(result?.newProfiles) ? result.newProfiles.length : 0;
-            if (newCount === 0) {
-                feedExhaustedRef.current = true;
-            }
-        } catch (error) {
-            console.warn('[HomeScreen] Feed top-up failed:', error);
-        } finally {
-            isFetchingMoreRef.current = false;
-        }
-    }, [dispatch]);
-
-    // A fresh/replaced list (filter change, refresh) re-opens the feed.
-    useEffect(() => {
-        const length = listProfilesData.length;
-        if (length > prevListLengthRef.current) {
-            feedExhaustedRef.current = false;
-        }
-        prevListLengthRef.current = length;
-    }, [listProfilesData.length]);
-
-    // Low-water refill: swiping shrinks the list without scrolling, so
-    // onEndReached alone isn't enough to keep the feed topped up.
-    useEffect(() => {
-        if (!IsFocused) return;
-        if (listProfilesData.length > TOP_UP_TRIGGER_COUNT) return;
-
-        const timer = setTimeout(() => {
-            fetchMoreProfiles();
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [IsFocused, listProfilesData.length, fetchMoreProfiles]);
-
-    const handleEndReached = useCallback(() => {
-        fetchMoreProfiles();
-    }, [fetchMoreProfiles]);
-
-    // ---- Image preloading: warm the cache for upcoming avatars ----
-    useEffect(() => {
-        if (!listProfilesData.length) return;
-        return runAfterInitialInteractions(() => {
-            const cache = preloadedAvatarUrlsRef.current;
-            const sources: any[] = [];
-            listProfilesData.forEach((profile: any) => {
-                const url = profile?.gallery?.[0]?.url;
-                if (!url || cache.has(url)) return;
-                cache.add(url);
-                if (cache.size > AVATAR_PRELOAD_CACHE_LIMIT) {
-                    const oldest = cache.values().next().value;
-                    if (oldest) cache.delete(oldest);
-                }
-                sources.push({ uri: url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable });
-            });
-            if (sources.length > 0) {
-                FastImage.preload(sources);
-            }
-        }, 300);
-    }, [listProfilesData]);
-
-    // ---- Like / Dislike (same business logic as the old swiper flow) ----
-    const handleListSwipe = useCallback((item: any, type: "like" | "dislike") => {
-        if (!item?._id) return;
-
-        if (type === "like") {
-            const unlimitedLikes = userDataRef.current?.subscription?.perks?.unlimitedLikes;
-            if (unlimitedLikes !== true) {
-                setRemainingSwipes((prev: number) => Math.max((prev ?? 0) - 1, 0));
-            }
-        }
-
-        dispatch(swipeLikeDisLike({ swipedId: item._id, type }));
-
-        // Remove the swiped card (same effect as the card leaving the deck);
-        // the low-water effect above refills the feed.
-        dispatch(setListProfiles(profilesRef.current.filter((p: any) => p._id !== item._id)));
-    }, [dispatch]);
-    const handleListCrushNotes = useCallback((item: any, type: "like" | "dislike") => {
-        if (!item?._id) return;
-        dispatch(setListProfiles(profilesRef.current.filter((p: any) => p._id !== item._id)));
-    }, [dispatch]);
-
-
-    const handleDislikePress = useCallback((item: any) => {
-        setModalVisible(false)
-        if (isSwipeAnimatingRef.current) return;
-        runDislikeAnimation(() => {
-            handleListSwipe(item, "dislike");
-        });
-    }, [handleListSwipe, isSwipeAnimatingRef, runDislikeAnimation]);
-
-    const handleLikePress = useCallback((item: any) => {
-        setModalVisible(false)
-        if (isSwipeAnimatingRef.current) return;
-
-        const unlimitedLikes = userDataRef.current?.subscription?.perks?.unlimitedLikes;
-        if (unlimitedLikes !== true) {
-            const swipes = remainingSwipesRef.current ?? userDataRef.current?.swipesRemaining ?? 0;
-            if (swipes <= 0) {
-                if (userData?.gender == "female" && userData?.faceVerified === false && swipes === 0) {
-                    setVerifyModalVisible(true)
-                    return;
-                } else {
-                    NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN);
-                    return;
-                }
-            }
-        }
-
-        runLikeAnimation(() => {
-            handleListSwipe(item, "like");
-        });
-    }, [handleListSwipe, isSwipeAnimatingRef, runLikeAnimation, userData, IsFocused]);
-    const handleCrushNotes = useCallback((item: any) => {
-        setModalVisible(false)
-        if (isSwipeAnimatingRef.current) return;
-        crushLikeAnimation(() => {
-            console.log("Crush Note sended")
-            handleListCrushNotes(item, "like");
-        });
-    }, [handleListSwipe, isSwipeAnimatingRef, crushLikeAnimation]);
-
-    // ---- Socket: live match notifications ----
-    const socketUrl = (() => {
-        const currentUserId = userData?._id;
-        if (!currentUserId) return null;
-        const { config } = require('../../config/config');
-        return `${config.BASE_URL}?userId=${encodeURIComponent(String(currentUserId))}&lat=${encodeURIComponent(
-            currentLocation.lat
-        )}&long=${encodeURIComponent(currentLocation.long)}`;
-    })();
-
-    const socketRef = useRef<any>(null);
-    const isFocusedRef = useRef(IsFocused);
-    useEffect(() => {
-        isFocusedRef.current = IsFocused;
-    }, [IsFocused]);
-
-    useEffect(() => {
-        if (!socketUrl) return;
-        const socket = createSocket(socketUrl);
-        socketRef.current = socket;
-
-        const handleNewMatch = (response: any) => {
-            if (!response) return;
-            if (isFocusedRef.current) {
-                setMatchVisible(true);
-                setMatchData(response?.matchData ?? []);
-            }
-        };
-        const handleConnect = () => {
-            console.log('✅ Socket connected:', socket.id);
-        };
-        socket.on('connect', handleConnect);
-        socket.on('newMatch', handleNewMatch);
-
-        return () => {
-            socket.off?.('connect', handleConnect);
-            socket.off?.('newMatch', handleNewMatch);
-            socket.disconnect?.();
-            socketRef.current = null;
-        };
-    }, [socketUrl]);
-
-    // Silent location for the socket only: no prompts, no gating — the app
-    // already requested permission during onboarding (LocationScreen).
-    useEffect(() => {
-        (async () => {
-            try {
-                const permissions = Platform.OS === "ios"
-                    ? [PERMISSIONS.IOS.LOCATION_WHEN_IN_USE]
-                    : [PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION, PERMISSIONS.ANDROID.ACCESS_COARSE_LOCATION];
-                const statuses = await checkMultiple(permissions);
-                const granted = Object.values(statuses).some((s) => s === RESULTS.GRANTED);
-                if (!granted) return;
-
-                Geolocation.getCurrentPosition(
-                    (position) => {
-                        setCurrentLocation({
-                            lat: String(position?.coords?.latitude ?? ''),
-                            long: String(position?.coords?.longitude ?? ''),
-                        });
-                    },
-                    (error) => console.warn("Location fetch failed:", error),
-                    { enableHighAccuracy: false, timeout: 20000, maximumAge: 60000, forceRequestLocation: true }
-                );
-            } catch (error) {
-                console.warn("Location permission check failed:", error);
-            }
-        })();
-    }, []);
-
-    // ---- Push notification permission (deferred so it never blocks startup) ----
-    useEffect(() => {
-        return runAfterInitialInteractions(async () => {
-            try {
-                await messaging().registerDeviceForRemoteMessages();
-                if (Platform.OS === 'android' && Platform.Version >= 33) {
-                    await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
-                }
-                await messaging().requestPermission();
-            } catch (e) {
-                console.warn('Notification permission request failed:', e);
-            }
-        }, 3000);
-    }, []);
-
-    // ---- List rendering ----
-    const handleOpenPreview = useCallback((item: any) => {
-        setCurrentProfileData(item)
-        setModalVisible(true);
-    }, []);
-
-
-    const handleCrushNote = useCallback((item: any) => {
-        if (userData?.gender === "male" && userData?.isPublish === false) {
-            NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN)
-        } else if (userData?.crushNotesRemaining === 0) {
-            NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN)
-        } else {
-            setCurrentProfileData(item)
-            setCrushNoteVisible(true)
-        }
-
-    }, [userData])
-    const hasPublishPlan =
-        userData?.subscription?.plan === "publish_one_week" ||
-        userData?.subscription?.plan === "publish_one_month" ||
-        userData?.subscription?.plan === "publish_six_months";
-
-    const canManagePublish =
-        userData?.gender === "female" ||
-        (userData?.gender === "male" && hasPublishPlan);
-    const showFullProfile = useCallback((item: any, index: number = 0) => {
-        setGallaryData(item);
-        setSelectedImageIndex(index);
-        setFullImage(true);
-    }, []);
-    const onThreeDot = (item: any) => {
-        setThreeDotData(item)
-        refFilter?.current?.open();
-    }
-    const renderItem = useCallback(({ item }: any) => (
-        <ProfileListCard item={item} onLike={handleLikePress} onDislike={handleDislikePress} onOpenPreview={handleOpenPreview} userData={userData} setCrushNoteVisible={setCrushNoteVisible} handleCrushNote={handleCrushNote} showFullProfile={showFullProfile} onThreeDot={onThreeDot} />
-    ), [handleLikePress, handleDislikePress, userData, setCrushNoteVisible, handleCrushNote, showFullProfile, onThreeDot]);
-
-    const keyExtractor = useCallback((item: any, index: number) => item?._id ?? `profile-${index}`, []);
-
-    const getItemLayout = useCallback((_: any, index: number) => ({
-        length: ITEM_HEIGHT,
-        offset: LIST_TOP_PADDING + ITEM_HEIGHT * index,
-        index,
-    }), []);
-
-    const listEmptyComponent = useCallback(() => (
-        <View style={styles.emptyContainer}>
-            <PulsingCircle size={metrics.hp15} />
-            <View style={styles.emptyAvatarRing}>
-                <FastImage resizeMode='cover' style={styles.emptyImage} source={userData?.gallery?.[0]?.url ? { uri: userData?.gallery?.[0]?.url } : userData?.gander === "male" ? dummyfemaleProfile : dummyMaleProfile} />
-            </View>
-            <AppText style={styles.emptyText} type={TWELVE} color={WHITE} weight={INTER_MEDIUM}>
-                Searching people near you...
-            </AppText>
-        </View>
-    ), [userData?.gallery]);
-    const onRefresh = useCallback(async () => {
-        if (refreshing) return;
-        setRefreshing(true);
-        try {
-            // Reset pagination
-            feedExhaustedRef.current = false;
-            isFetchingMoreRef.current = false;
-            prevListLengthRef.current = 0;
-            dispatch(setListProfiles([]));
-            await dispatch(
-                listProfiles(true, 0, PROFILE_BATCH_LIMIT, false)
-            );
-        } catch (error) {
-            console.log("Refresh Error:", error);
-        } finally {
-            setRefreshing(false);
-        }
-    }, [dispatch, refreshing]);
-
-
-    const FaceLiveness = (NativeModules as any)?.FaceLiveness as
-        | { startLiveness?: (sessionId: string) => Promise<FaceLivenessResult> }
-        | undefined;
-
-    const moduleAvailable = useMemo(() => {
-        return Boolean(FaceLiveness && typeof FaceLiveness.startLiveness === 'function');
-    }, [FaceLiveness]);
-    const getCameraPermissionType = useCallback(() => {
-        return Platform.OS === "ios" ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA;
-    }, []);
-    const ensureCameraPermission = useCallback(async (): Promise<boolean> => {
-        try {
-            const permissionType = getCameraPermissionType();
-            const currentStatus = await check(permissionType);
-
-            if (currentStatus === RESULTS.GRANTED) return true;
-
-            if (currentStatus === RESULTS.BLOCKED) {
-                Alert.alert(
-                    "Camera permission required",
-                    "Camera permission is disabled. Please enable it from Settings to continue face verification.",
-                    [
-                        { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
-                        { text: "Cancel", style: "cancel" },
-                    ]
-                );
-                return false;
-            }
-
-            const requestedStatus = await request(permissionType);
-            if (requestedStatus === RESULTS.GRANTED) return true;
-
-            Alert.alert(
-                "Camera permission denied",
-                "Face verification requires camera access. You can enable it from Settings.",
-                [
-                    { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
-                    { text: "Cancel", style: "cancel" },
-                ]
-            );
-            return false;
-        } catch (error) {
-            console.warn("Camera permission check failed:", error);
-            Alert.alert("Permission error", "Unable to check camera permission. Please try again.");
-            return false;
-        }
-    }, [getCameraPermissionType]);
-
-    // const fetchCity = async () => {
-
-    //     try {
-    //         const response = await fetch('https://ipinfo.io/json');
-    //         const data = await response.json();
-    //         console.log(data, "datadatadatadata");
-
-
-    //         console.log(data.city, "cityyyyyyyy");
-    //         console.log(data.region);
-    //         console.log(data.country_name);
-    //     } catch (error) {
-    //         console.log(error, "errorerrorerror")
-    //     }
-
-
-
-    // };
-    // useEffect(() => {
-    //     fetchCity()
-    // }, []);
-    const start = async () => {
-        if (!moduleAvailable) {
-            const msg =
-                'FaceLiveness native module not found. Make sure you rebuilt the app (not just Metro reload).';
-            console.warn('[FaceLivenessTest] ' + msg);
-            return;
-        }
-
-        // setLoading(true);
-
-        try {
-            const isCameraAllowed = await ensureCameraPermission();
-            if (!isCameraAllowed) {
-                return;
-            }
-
-            console.log('[FaceLivenessTest] Requesting session from /faceId/liveliness');
-            const sessionResp = await (appOperation.customer as any).createFaceLivenessSessionAPI();
-            const sessionId = sessionResp?.data
-            console.log(sessionId, "sessionResp");
-
-            if (!sessionId) {
-                throw new Error('Session API did not return a valid sessionId');
-            }
-
-            console.log('[FaceLivenessTest] Starting native liveness with sessionId:', sessionId);
-            if (!FaceLiveness || typeof FaceLiveness.startLiveness !== 'function') {
-                throw new Error('FaceLiveness native module is not available on this device.');
-            }
-            const res = await FaceLiveness.startLiveness(sessionId);
-            console.log('[FaceLivenessTest] Native result:', res);
-
-            // Normalize a few common shapes.
-            if (res && typeof res === 'object') {
-                const status = (res as any).status;
-                if (status === 'success') {
-                    console.log('[FaceLivenessTest] Verifying session via faceId/verifySessionResult');
-                    const verifyResp = await (appOperation.customer as any).verifyFaceLivenessSessionAPI({
-                        sessionId,
-                    });
-                    if (verifyResp?.data?.success) {
-                        dispatch(getProfile(true))
-                        setVerifyStage(verifyResp?.data?.message);
-                    } else {
-                        setVerifyError(verifyResp?.data?.message);
-                        setVerifyStage('error');
-                    }
-                } else if (status === 'cancelled') {
-                    setVerifyError("Verification cancelled.");
-                    setVerifyStage('error');
-                } else {
-                    setVerifyError(`Result: ${JSON.stringify(res)}`);
-                    setVerifyStage('error');
-                }
-            } else {
-                setVerifyError("Liveness Success");
-                setVerifyStage('error');
-            }
-        } catch (e: any) {
-            const msg = e?.message ?? String(e);
-            console.error('[FaceLivenessTest] Error:', e);
-            setVerifyError(msg);
-            setVerifyStage('error');
-        } finally {
-            // setLoading(false);
-        }
-    };
-    const onthreedot = (index: any) => {
-        if (index == "0") refFilter?.current?.close(), NavigationService.navigate(NAVIGATION_REPORT_SCREEN, { reportedUserId: threeDotData?.userId })
-        if (index == '1') refFilter?.current?.close(), setModalBlockVisible(true), setSaveReportTitle("Block");
-
-    };
-    const unBlockButton = () => {
-        const data = {
-            matchId: threeDotData?.userId,
-        };
-        dispatch(userBlockAPI(data))
-        setModalBlockVisible(false);
-        // NavigationService.goBack();
-    }
-    return (
-        <AppSafeAreaView style={{ flexGrow: 1 }} color={newColor.blackNew}>
-            <ImageBackground source={HomeBackground} resizeMode='contain' style={{ flex: 1 }}>
-
-                <NewHeaderAndroid onFilterPress={onFilterPress} />
-                <FlatList
-                    ref={flatListRef}
-                    onScroll={handleScroll}
-                    scrollEventThrottle={16}
-                    data={listProfilesData}
-                    renderItem={renderItem}
-                    keyExtractor={keyExtractor}
-                    getItemLayout={getItemLayout}
-                    contentContainerStyle={styles.listContent}
-                    ListEmptyComponent={listEmptyComponent}
-                    onEndReached={handleEndReached}
-                    onEndReachedThreshold={0.5}
-                    initialNumToRender={10}
-                    maxToRenderPerBatch={10}
-                    windowSize={10}
-                    updateCellsBatchingPeriod={50}
-                    removeClippedSubviews={Platform.OS === 'android'}
-                    showsVerticalScrollIndicator={false}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={refreshing}
-                            onRefresh={onRefresh}
-                            colors={["#E6B7A8"]}      // Android
-                            tintColor="#E6B7A8"       // iOS
-                            progressBackgroundColor="#212123"
-                        />
-                    }
-                />
-
-                {showScrollTop && (
-                    <Animated.View style={[styles.scrollTopContainer, {
-                        opacity: scrollTopAnim,
-                        transform: [{
-                            translateY: scrollTopAnim.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [50, 0]
-                            })
-                        }]
-                    }]}>
-                        <TouchableOpacityView activeOpacity={1} onPress={handleScrollToTop} style={styles.scrollTopButton}>
-                            <FastImage source={scrollatthetopIcon} resizeMode='contain' style={styles.scrollTopIcon} />
-                        </TouchableOpacityView>
-                    </Animated.View>
-                )}
-            </ImageBackground>
-
-            <LikeDislikeOverlays
-                likeOverlayStyle={likeOverlayStyle}
-                likeIconAnimatedStyle={likeIconAnimatedStyle}
-                dislikeOverlayStyle={dislikeOverlayStyle}
-                dislikeIconAnimatedStyle={dislikeIconAnimatedStyle}
-                crushlikeOverlayStyle={crushlikeOverlayStyle}
-                crushlikeIconAnimatedStyle={crushlikeIconAnimatedStyle}
+/**
+ * Discovery feed. This component only wires things together: data and
+ * behaviour live in ./home/hooks, UI pieces in ./home/components.
+ */
+const HomeScreen = () => {
+  const isFocused = useIsFocused();
+  const userData = useSelector((state: any) => state.auth.userData);
+  const userDataRef = useLatest(userData);
+  const isLocked = isPublishLocked(userData);
+
+  // ---- Feed + list chrome ----
+  const feed = useProfileFeed(isFocused);
+  const scrollTop = useScrollToTopButton();
+  usePushPermissionPrompt();
+
+  // ---- Modals ----
+  const [selectedProfile, setSelectedProfile] = useState<any>({});
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [crushNoteVisible, setCrushNoteVisible] = useState(false);
+  const [galleryViewer, setGalleryViewer] = useState<{ visible: boolean; items: any[]; index: number }>({
+    visible: false,
+    items: [],
+    index: 0,
+  });
+  const [likeLimitVisible, setLikeLimitVisible] = useState(false);
+  const faceVerification = useFaceVerification();
+  const { reset: resetFaceVerification } = faceVerification;
+  const actionsSheetRef = useRef<ProfileActionsSheetHandle>(null);
+
+  const closePreview = useCallback(() => setPreviewVisible(false), []);
+  const openLikeLimit = useCallback(() => {
+    resetFaceVerification();
+    setLikeLimitVisible(true);
+  }, [resetFaceVerification]);
+  const closeLikeLimit = useCallback(() => setLikeLimitVisible(false), []);
+
+  // ---- Swiping ----
+  const { remainingSwipesRef, consumeSwipe } = useSwipeCounters(userData);
+  const { like, dislike, crushNoteSent, animation } = useSwipeActions({
+    userData,
+    remainingSwipesRef,
+    consumeSwipe,
+    removeProfile: feed.removeProfile,
+    onActionStart: closePreview,
+    onVerifyForMoreLikes: openLikeLimit,
+  });
+
+  // ---- Filters + live matches ----
+  const filters = useSearchFilters(userData);
+  const match = useMatchSocket(userData?._id, isFocused);
+
+  // ---- Card handlers (stable so memoized rows don't re-render) ----
+  const openPreview = useCallback((profile: any) => {
+    setSelectedProfile(profile);
+    setPreviewVisible(true);
+  }, []);
+
+  const openCrushNote = useCallback(
+    (profile: any) => {
+      const user = userDataRef.current;
+      if (isPublishLocked(user)) {
+        NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN);
+      } else if (user?.crushNotesRemaining === 0) {
+        NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN);
+      } else {
+        setSelectedProfile(profile);
+        setCrushNoteVisible(true);
+      }
+    },
+    [userDataRef]
+  );
+
+  const openGallery = useCallback((items: any[], index: number = 0) => {
+    setGalleryViewer({ visible: true, items, index });
+  }, []);
+  const closeGallery = useCallback((visible: boolean) => setGalleryViewer((viewer) => ({ ...viewer, visible })), []);
+  const openProfileActions = useCallback((profile: any) => actionsSheetRef.current?.open(profile), []);
+
+  const renderItem = useCallback(
+    ({ item }: any) => (
+      <ProfileListCard
+        item={item}
+        isLocked={isLocked}
+        onLike={like}
+        onDislike={dislike}
+        onOpenPreview={openPreview}
+        onCrushNote={openCrushNote}
+        onOpenGallery={openGallery}
+        onOpenActions={SHOW_PROFILE_ACTIONS ? openProfileActions : undefined}
+      />
+    ),
+    [isLocked, like, dislike, openPreview, openCrushNote, openGallery, openProfileActions]
+  );
+
+  const emptyState = useMemo(
+    () => <FeedEmptyState userData={userData} />,
+    // Only the user's photo and gender change what it renders
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [userData?.gallery, userData?.gender]
+  );
+
+  return (
+    <AppSafeAreaView style={styles.safeArea} color={newColor.blackNew}>
+      <ImageBackground source={HomeBackground} resizeMode="contain" style={styles.background}>
+        <NewHeaderAndroid onFilterPress={filters.open} />
+        <FlatList
+          key={feed.listMountKey}
+          ref={scrollTop.listRef}
+          onScroll={scrollTop.onScroll}
+          scrollEventThrottle={16}
+          data={feed.profiles}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          getItemLayout={getItemLayout}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={emptyState}
+          onEndReached={feed.loadMore}
+          onEndReachedThreshold={0.5}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          updateCellsBatchingPeriod={50}
+          removeClippedSubviews={Platform.OS === "android"}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={feed.refreshing}
+              onRefresh={feed.onRefresh}
+              colors={["#E6B7A8"]} // Android
+              tintColor="#E6B7A8" // iOS
+              progressBackgroundColor="#212123"
             />
+          }
+        />
+        <ScrollToTopButton visible={scrollTop.visible} anim={scrollTop.anim} onPress={scrollTop.scrollToTop} />
+      </ImageBackground>
 
-            <Modal
-                animationType="fade"
-                visible={modalVisible}
-                statusBarTranslucent
-                onRequestClose={() => setModalVisible(false)}>
-                <ViewProfileAndroid currentProfileData={currentProfileData} setModalVisible={setModalVisible}
-                    handleDislikePress={handleDislikePress}
-                    handleLikePress={handleLikePress}
-                    handleCrushNote={handleCrushNote}
-                    showFullProfile={showFullProfile} />
-            </Modal>
-            <Modal
-                animationType="fade"
-                visible={crushNoteVisible}
-                statusBarTranslucent
-                onRequestClose={() => setCrushNoteVisible(false)}>
-                <CrushNotesSender setCrushNoteVisible={setCrushNoteVisible} crushNoteVisible={crushNoteVisible} currentProfileData={currentProfileData} handleCrushNotes={handleCrushNotes} />
-            </Modal>
-            {/* <Modal animationType="fade"
-                visible={true}
-                statusBarTranslucent onRequestClose={() => setLimitReachlike(false)}>
-                <View style={{
-                    flex: 1,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    backgroundColor: colors.transparentBlack,
-                    paddingHorizontal: metrics.hp2
-                }}>
-                    <ImageBackground source={trunOnBackground} resizeMode='contain' style={{ height: metrics.hp20, width: "90%" }}>
+      <LikeDislikeOverlays
+        likeOverlayStyle={animation.likeOverlayStyle}
+        likeIconAnimatedStyle={animation.likeIconAnimatedStyle}
+        dislikeOverlayStyle={animation.dislikeOverlayStyle}
+        dislikeIconAnimatedStyle={animation.dislikeIconAnimatedStyle}
+        crushlikeOverlayStyle={animation.crushlikeOverlayStyle}
+        crushlikeIconAnimatedStyle={animation.crushlikeIconAnimatedStyle}
+      />
 
-                    </ImageBackground>
-                </View>
-            </Modal> */}
-            <Modal
-                animationType="fade"
-                transparent
-                statusBarTranslucent
-                visible={matchVisible}
-                onRequestClose={() => setMatchVisible(false)}>
-                {matchVisible ? <MatchScreen setMatchVisible={setMatchVisible} matchData={matchData} /> : null}
-            </Modal>
-            <Modal
-                animationType="fade"
-                transparent
-                statusBarTranslucent
-                visible={fullImage}
-                onRequestClose={() => setFullImage(false)}>
-                <FullScreenImage gallaryData={gallaryData} setFullImage={setFullImage} initialIndex={selectedImageIndex} />
-            </Modal>
-            {/* Filter RBSheet */}
-            <RBSheet
-                ref={filterSheetRef}
-                draggable={true}
-                height={metrics.hp60}
-                customStyles={{
-                    wrapper: {
-                        backgroundColor: "rgba(0,0,0,0.5)"
-                    },
-                    draggableIcon: {
-                        backgroundColor: "#E6B7A8"
-                    },
-                    container: {
-                        backgroundColor: newColor.blackNew,
-                        borderTopLeftRadius: metrics.hp3,
-                        borderTopRightRadius: metrics.hp3,
-                        paddingBottom: metrics.hp4
-                    }
-                }}
-            >
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetContent}>
-                    <AppText type={EIGHTEEN} weight={SCHEHERAZADE_BOLD} style={[styles.sheetTitle, { color: "#E6B7A8" }]}>
-                        Search Preferences
-                    </AppText>
+      <Modal animationType="fade" visible={previewVisible} statusBarTranslucent onRequestClose={closePreview}>
+        <ViewProfileAndroid
+          currentProfileData={selectedProfile}
+          setModalVisible={setPreviewVisible}
+          handleDislikePress={dislike}
+          handleLikePress={like}
+          handleCrushNote={openCrushNote}
+          showFullProfile={openGallery}
+        />
+      </Modal>
+      <Modal
+        animationType="fade"
+        visible={crushNoteVisible}
+        statusBarTranslucent
+        onRequestClose={() => setCrushNoteVisible(false)}
+      >
+        <CrushNotesSender
+          setCrushNoteVisible={setCrushNoteVisible}
+          crushNoteVisible={crushNoteVisible}
+          currentProfileData={selectedProfile}
+          handleCrushNotes={crushNoteSent}
+        />
+      </Modal>
+      <Modal
+        animationType="fade"
+        transparent
+        statusBarTranslucent
+        visible={match.matchVisible}
+        onRequestClose={match.closeMatch}
+      >
+        {match.matchVisible ? <MatchScreen setMatchVisible={match.closeMatch} matchData={match.matchData} /> : null}
+      </Modal>
+      <Modal
+        animationType="fade"
+        transparent
+        statusBarTranslucent
+        visible={galleryViewer.visible}
+        onRequestClose={() => closeGallery(false)}
+      >
+        <FullScreenImage gallaryData={galleryViewer.items} setFullImage={closeGallery} initialIndex={galleryViewer.index} />
+      </Modal>
 
-                    <View style={styles.sheetSeparator} />
-
-                    {/* Age Range */}
-                    <AppText weight={INTER_SEMI_BOLD} color={WHITE} style={[styles.filterLabel, { fontSize: fontSize(14) }]}>
-                        Age range {ageRange[0]} - {ageRange[1]}
-                    </AppText>
-                    <View style={styles.sliderWrapper}>
-                        <MultiSlider
-                            values={[ageRange[0], ageRange[1]]}
-                            sliderLength={metrics.wp80}
-                            onValuesChange={(values) => setAgeRange(values)}
-                            min={18}
-                            max={80}
-                            step={1}
-                            selectedStyle={{ backgroundColor: "#D08FA9" }}
-                            unselectedStyle={{ backgroundColor: "#555" }}
-                            markerStyle={{ backgroundColor: "#D08FA9", height: metrics.hp2_5, width: metrics.hp2_5, marginTop: metrics.hp0_5 }}
-                        />
-                    </View>
-
-                    <View style={[styles.sheetSeparator, { marginTop: metrics.hp1 }]} />
-
-                    {/* Location Radius */}
-                    <View style={styles.filterRow}>
-                        <AppText type={FORTEEN} weight={INTER_SEMI_BOLD} color={WHITE} style={{ fontSize: fontSize(14) }}>
-                            Global Radius
-                        </AppText>
-                        <TouchableOpacityView onPress={() => setLocationRadiusEnabled(!locationRadiusEnabled)}>
-                            <FastImage
-                                source={locationRadiusEnabled ? toggalOnButtonNew : toggalOffButtonNew}
-                                resizeMode="contain"
-                                style={styles.toggleIcon}
-                            />
-                        </TouchableOpacityView>
-                    </View>
-                    {!locationRadiusEnabled ?
-                        <>
-                            <View style={styles.radiusLabels}>
-                                <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={WHITE}>{radius} Km</AppText>
-                                <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={WHITE}>200 km</AppText>
-                            </View>
-                            <View style={styles.sliderWrapper}>
-                                <MultiSlider
-                                    values={[radius[0]]}
-                                    sliderLength={metrics.wp80}
-                                    onValuesChange={(values) => setRadius(values)}
-                                    min={0}
-                                    max={200}
-                                    step={1}
-                                    selectedStyle={{ backgroundColor: "#D08FA9" }}
-                                    unselectedStyle={{ backgroundColor: "#555" }}
-                                    markerStyle={{ backgroundColor: "#D08FA9", height: metrics.hp2_5, width: metrics.hp2_5, marginTop: metrics.hp0_5 }}
-                                />
-                            </View>
-                        </> : <></>
-                    }
-                    <View style={[styles.sheetSeparator, { marginTop: metrics.hp1 }]} />
-
-                    {/* Photos Only */}
-                    <View style={styles.filterRow}>
-                        <AppText weight={INTER_SEMI_BOLD} color={WHITE} style={{ fontSize: fontSize(14) }}>
-                            Photos Only
-                        </AppText>
-                        <TouchableOpacityView onPress={() => setPhotosOnly(!photosOnly)}>
-                            <FastImage
-                                source={photosOnly ? toggalOnButtonNew : toggalOffButtonNew}
-                                resizeMode="contain"
-                                style={styles.toggleIcon}
-                            />
-                        </TouchableOpacityView>
-                    </View>
-
-                    <View style={[styles.sheetSeparator, { marginTop: metrics.hp2 }]} />
-
-                    {/* Action Buttons */}
-
-                </ScrollView>
-                <View style={styles.filterActionRow}>
-                    <TouchableOpacityView onPress={handleResetFilter}>
-                        <ImageBackground source={resetButtonNew} resizeMode="contain" style={styles.actionBtnImage} >
-                            <AppText color={WHITE} weight={SCHEHERAZADE_BOLD} type={EIGHTEEN}>
-                                Reset
-                            </AppText>
-                        </ImageBackground>
-                    </TouchableOpacityView>
-                    <TouchableOpacityView onPress={isApplyingFilter ? undefined : handleSearchFilter}>
-                        <ImageBackground source={serachButtonNew} resizeMode="contain" style={[styles.actionBtnImage, isApplyingFilter && { opacity: 0.5 }]} >
-                            <AppText color={BLACK} weight={SCHEHERAZADE_BOLD} type={EIGHTEEN}>
-                                {isApplyingFilter ? "Applying..." : "Search"}
-                            </AppText>
-                        </ImageBackground>
-                    </TouchableOpacityView>
-                </View>
-            </RBSheet>
-            <PremiumAnimatedModal
-                visible={verifyModalVisible}
-                onClose={() => setVerifyModalVisible(false)}>
-                {verifyStage === 'prompt' &&
-                    <View style={{ alignItems: "center" }}>
-                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={WHITE} style={{ textAlign: "center", marginBottom: metrics.hp1 }}>
-                            Like Limit Reached
-                        </AppText>
-                        <AppText type={TWELVE} weight={INTER_MEDIUM} color={OPECITY} style={{ textAlign: "center", marginBottom: metrics.hp3, marginTop: -metrics.hp2 }}>
-                            Keep the likes flowing. You get 5 free likes every 24 hours - or unlimited likes when you verify your profile. Your verification selfie is completely private and never shown to anyone.
-                        </AppText>
-                        <TouchableOpacityView
-                            onPress={start}
-                            style={{ backgroundColor: "#E6B7A8", height: metrics.hp6, alignItems: "center", justifyContent: "center", width: "100%", marginBottom: metrics.hp1_5 }}
-                        >
-                            <AppText color={BLACK} weight={INTER_BOLD} type={FORTEEN}>
-                                Continue
-                            </AppText>
-                        </TouchableOpacityView>
-                        <TouchableOpacityView
-                            onPress={() => setVerifyModalVisible(false)}
-                            style={{ backgroundColor: "rgba(255,255,255,0.05)", height: metrics.hp6, alignItems: "center", justifyContent: "center", width: "100%", borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" }}
-                        >
-                            <AppText color={WHITE} weight={INTER_BOLD} type={FORTEEN}>
-                                Close
-                            </AppText>
-                        </TouchableOpacityView>
-                    </View>}
-                {verifyStage === 'success' && (
-                    <View style={{ alignItems: "center" }}>
-                        <View style={{ height: metrics.hp8, width: metrics.hp8, borderRadius: metrics.hp4, backgroundColor: '#73D673', alignItems: 'center', justifyContent: 'center', marginBottom: metrics.hp2, borderWidth: 1, borderColor: 'rgba(76, 175, 80, 0.3)' }}>
-                            <AppText color={WHITE} weight={INTER_BOLD} type={TWENTY_TWO}>✓</AppText>
-                        </View>
-                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={WHITE} style={{ textAlign: "center", marginBottom: metrics.hp1, marginTop: -metrics.hp2 }}>
-                            Verification Successful
-                        </AppText>
-                        <AppText type={TWELVE} weight={INTER_MEDIUM} color={OPECITY} style={{ textAlign: "center", marginBottom: metrics.hp3, marginTop: -metrics.hp2 }}>
-                            Your face verification has been completed successfully. Your account is now fully verified.
-                        </AppText>
-                        <TouchableOpacityView
-                            onPress={() => setVerifyModalVisible(false)}
-                            style={{ backgroundColor: "#E6B7A8", height: metrics.hp6, alignItems: "center", justifyContent: "center", width: "100%" }}
-                        >
-                            <AppText color={BLACK} weight={INTER_BOLD} type={FORTEEN}>
-                                Continue
-                            </AppText>
-                        </TouchableOpacityView>
-                    </View>
-                )}
-                {verifyStage === 'error' && (
-                    <View style={{ alignItems: "center" }}>
-                        <View style={{ height: metrics.hp8, width: metrics.hp8, borderRadius: metrics.hp4, backgroundColor: '#FF6483', alignItems: 'center', justifyContent: 'center', marginBottom: metrics.hp2, borderWidth: 1, borderColor: 'rgba(255,0,0,0.3)' }}>
-                            <AppText color={RED} weight={INTER_BOLD} type={TWENTY_TWO}>!</AppText>
-                        </View>
-                        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={WHITE} style={{ textAlign: "center", marginBottom: metrics.hp1, marginTop: -metrics.hp2 }}>
-                            Verification Failed
-                        </AppText>
-                        <AppText type={TWELVE} weight={INTER_MEDIUM} color={OPECITY} style={{ textAlign: "center", marginBottom: metrics.hp3, marginTop: -metrics.hp2 }}>
-                            {verifyError || "We were unable to verify your identity. Please try again in a well-lit environment and ensure your face is clearly visible."}
-                        </AppText>
-                        <TouchableOpacityView
-                            onPress={() => {
-                                // setVerifyStage('prompt' as any);
-                                start();
-                            }}
-                            style={{ backgroundColor: "#E6B7A8", height: metrics.hp6, alignItems: "center", justifyContent: "center", width: "100%", marginBottom: metrics.hp1_5 }}
-                        >
-                            <AppText color={BLACK} weight={INTER_BOLD} type={FORTEEN}>
-                                Try Again
-                            </AppText>
-                        </TouchableOpacityView>
-                        <TouchableOpacityView
-                            onPress={() => { setVerifyStage('prompt' as any); setVerifyModalVisible(false) }}
-                            style={{ backgroundColor: "rgba(255,255,255,0.05)", height: metrics.hp6, alignItems: "center", justifyContent: "center", width: "100%", borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" }}
-                        >
-                            <AppText color={WHITE} weight={INTER_BOLD} type={FORTEEN}>
-                                Cancel
-                            </AppText>
-                        </TouchableOpacityView>
-                    </View>
-                )}
-            </PremiumAnimatedModal>
-            <RBSheet ref={refFilter} openDuration={100}
-                height={Dimensions.get('window').height / 4.10}
-                customStyles={{
-                    wrapper: {
-                        backgroundColor: "#00000020",
-                    },
-                    container: {
-                        backgroundColor: "#151517",
-                        borderTopLeftRadius: metrics.hp2,
-                        borderTopRightRadius: metrics.hp2
-                    }
-                }}>
-                <View style={styles.containerRb}>
-                    {threeDotDataHome?.map((item, index) => {
-                        return (
-                            <TouchableOpacityView onPress={() => onthreedot(index)} key={index} style={styles.containerViewRb}>
-                                <FastImage source={item.icon} resizeMode='contain' style={styles.rbIcon} />
-                                <View style={styles.textContainerRb}>
-                                    <AppText type={FORTEEN} weight={INTER_SEMI_BOLD} color={WHITE}>
-                                        {item.headLine}{" "}{threeDotData?.username ? threeDotData?.username : threeDotData?.name}
-                                    </AppText>
-                                    <AppText type={TEN} weight={INTER_MEDIUM} color={WHITE}>
-                                        {item.disLine}
-                                    </AppText>
-                                </View>
-                            </TouchableOpacityView>
-                        )
-                    })}
-                </View>
-            </RBSheet>
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={modalBlockVisible}
-                onRequestClose={() => setModalBlockVisible(false)}>
-                {saveReportTitle == "Block" &&
-                    <View style={styles.centeredView}>
-                        <View style={[styles.confirmContainer, { height: metrics.hp42, }]}>
-                            <FastImage source={blockModalImage} resizeMode="stretch" style={[styles.bdyBack, { height: metrics.hp18 }]} />
-                            <AppText style={{ textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={WHITE}>
-                                Block {threeDotData?.name}?
-                            </AppText>
-                            <AppText style={{ marginTop: -metrics.hp2, textAlign: "center" }} type={TWELVE} weight={INTER_MEDIUM} color={OPECITY}>
-                                You won’t be able to undo this. You sure{'\n'} to continue?
-                            </AppText>
-                            <TouchableOpacityView onPress={() => unBlockButton()} style={[styles.ediButton, { backgroundColor: "#E6B7A8", marginTop: metrics.hp2 }]}>
-                                <AppText color={BLACK} weight={INTER_SEMI_BOLD} type={TWELVE}>
-                                    Yes, Block
-                                </AppText>
-                            </TouchableOpacityView>
-                            <AppText onPress={() => setModalBlockVisible(false)} weight={INTER_SEMI_BOLD} type={TWELVE} style={{ textAlign: "center", marginTop: metrics.hp2 }} color={WHITE}>
-                                No, cancel
-                            </AppText>
-                        </View>
-                    </View>}
-            </Modal>
-            {/* <FullScreenViewPhoto fullProfileShow={fullProfileShow} setFullProfileShow={setFullProfileShow} fullProfileShowCurrentDat={fullProfileShowCurrentData} /> */}
-        </AppSafeAreaView>
-    );
+      <FilterSheet filters={filters} />
+      <LikeLimitModal
+        visible={likeLimitVisible}
+        stage={faceVerification.stage}
+        error={faceVerification.error}
+        onStart={faceVerification.start}
+        onClose={closeLikeLimit}
+      />
+      <ProfileActionsSheet ref={actionsSheetRef} />
+    </AppSafeAreaView>
+  );
 };
 
-export default PeopleScreen;
+export default HomeScreen;
 
 const styles = StyleSheet.create({
-    centeredView: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: colors.transparentBlack,
-        paddingHorizontal: metrics.hp2
-    },
-    sheetContent: {
-        paddingHorizontal: metrics.hp3,
-        paddingTop: metrics.hp1,
-    },
-    scrollTopContainer: {
-        position: 'absolute',
-        bottom: metrics.hp12,
-        right: metrics.hp2,
-        zIndex: 999,
-    },
-    scrollTopButton: {
-        height: metrics.hp8,
-        width: metrics.hp8,
-    },
-    scrollTopIcon: {
-        height: metrics.hp8,
-        width: metrics.hp8,
-    },
-    sheetTitle: {
-        textAlign: "center",
-        marginBottom: metrics.hp2,
-    },
-    sheetSeparator: {
-        height: StyleSheet.hairlineWidth,
-        backgroundColor: "rgba(255,255,255,0.1)",
-        marginVertical: metrics.hp2,
-        marginTop: -metrics.hp1
-    },
-    filterLabel: {
-        marginBottom: metrics.hp1,
-    },
-    sliderWrapper: {
-        alignItems: "center",
-        marginTop: -metrics.hp1,
-    },
-    filterRow: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-    },
-    toggleIcon: {
-        height: metrics.hp3_5,
-        width: metrics.hp6,
-    },
-    radiusLabels: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        marginTop: metrics.hp2,
-    },
-    filterActionRow: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        marginTop: metrics.hp2,
-        paddingHorizontal: metrics.hp4
-    },
-    actionBtnImage: {
-        height: metrics.hp6,
-        width: metrics.hp18,
-        alignItems: "center",
-        justifyContent: "center"
-    },
-    listContent: {
-        paddingHorizontal: metrics.hp2,
-        paddingTop: LIST_TOP_PADDING,
-        paddingBottom: metrics.hp15,
-        flexGrow: 1,
-    },
-    cardBackground: {
-        height: CARD_HEIGHT,
-        width: "100%",
-        marginBottom: CARD_MARGIN_BOTTOM,
-    },
-    cardHeaderRow: {
-        marginTop: metrics.hp2,
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    avatar: {
-        height: metrics.hp8,
-        width: metrics.hp8,
-        borderRadius: metrics.hp50,
-        marginTop: metrics.hp1,
-    },
-    headerInfo: {
-        marginLeft: metrics.hp2,
-    },
-    nameText: {
-        color: "#E6B7A8",
-    },
-    metaRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginTop: -metrics.hp0_5,
-    },
-    metaIcon: {
-        height: metrics.hp2,
-        width: metrics.hp2,
-    },
-    newBadge: {
-        height: metrics.hp3_7,
-        width: metrics.hp4_5,
-        // position: "absolute",
-        // right: -metrics.hp0_4,
-        // top: -metrics.hp0_2,
-    },
-    galleryWrap: {
-        width: "100%",
-        alignSelf: "center",
-    },
-    galleryContent: {
-        overflow: "hidden",
-        marginTop: metrics.hp2,
-        gap: metrics.hp0_5,
-    },
-    galleryItem: {
-        width: metrics.hp27,
-        height: metrics.hp32,
-        overflow: "hidden",
-    },
-    galleryImage: {
-        width: "100%",
-        height: "100%",
-        borderWidth: metrics.hp0_1,
-        borderColor: "#FFFFFF80"
-    },
-    galleryDim: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: "rgba(0,0,0,0.2)",
-    },
-    lockOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    lockIcon: {
-        height: metrics.hp3,
-        width: metrics.hp3,
-    },
-    actionsRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        marginTop: -metrics.hp3,
-    },
-    dislikeButton: {
-        height: metrics.hp8,
-        width: metrics.hp8,
-        marginRight: metrics.hp1_5,
-    },
-    likeButton: {
-        height: metrics.hp9,
-        width: metrics.hp9,
-    },
-    chatButton: {
-        height: metrics.hp8,
-        width: metrics.hp8,
-        marginLeft: metrics.hp1_5,
-    },
-    pulse: {
-        position: 'absolute',
-        backgroundColor: "#F69E8225",
-    },
-    emptyContainer: {
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        marginTop: metrics.hp10,
-    },
-    emptyAvatarRing: {
-        height: metrics.hp15,
-        width: metrics.hp15,
-        borderRadius: metrics.hp50,
-        borderWidth: metrics.hp0_3,
-        borderColor: "#F69E8250",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    emptyImage: {
-        height: metrics.hp14,
-        width: metrics.hp14,
-        borderRadius: metrics.hp50,
-        borderWidth: metrics.hp0_1,
-        borderColor: colors.white,
-    },
-    emptyText: {
-        marginTop: metrics.hp2,
-
-    },
-    imageMain: {
-        height: metrics.hp45,
-        width: metrics.hp30
-    },
-    onlineUserDot: {
-        height: metrics.hp2,
-        width: metrics.hp2,
-        borderRadius: metrics.hp50,
-        backgroundColor: "#39E75F",
-        borderWidth: metrics.hp0_5,
-        borderColor: "#2A2A2C",
-        position: "absolute",
-        right: metrics.hp0,
-        bottom: metrics.hp0_5
-    },
-    nameRowContainer: {
-        flexDirection: "row",
-        alignItems: "center"
-    },
-    lineHeight: {
-        height: metrics.hp2,
-        width: metrics.hp0_1,
-        backgroundColor: colors.white,
-        marginRight: metrics.hp1,
-        marginLeft: metrics.hp1
-    },
-    nameContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between"
-    },
-    blurCounter: {
-        height: metrics.hp3_5,
-        width: metrics.hp6_5,
-        position: "absolute",
-        bottom: metrics.hp1,
-        left: metrics.hp1,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center"
-    },
-    gallaryIcon: {
-        height: metrics.hp1_8,
-        width: metrics.hp1_8
-    },
-    trunOns: {
-        height: metrics.hp3_2,
-        width: metrics.hp3_2
-    },
-    turnOnsContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: metrics.hp0_8,
-        marginTop: metrics.hp1
-    },
-
-    turnOnBox: { paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp1, alignItems: "center", justifyContent: "center", },
-    middleOflist: {
-        height: metrics.hp1_9,
-        width: "100%",
-        marginTop: metrics.hp2
-    },
-    containerRb: { paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp2 },
-    containerViewRb: { paddingHorizontal: metrics.hp1, paddingVertical: metrics.hp2, flexDirection: "row", backgroundColor: "#212123", marginBottom: metrics.hp0_5, borderRadius: metrics.hp1_5 },
-    rbIcon: { height: metrics.hp2_5, width: metrics.hp2_5, marginTop: metrics.hp0_5, marginLeft: metrics.hp1 },
-    textContainerRb: { paddingLeft: metrics.hp2, paddingRight: metrics.hp5 },
-    confirmContainer: {
-        height: metrics.hp40,
-        backgroundColor: "#212123",
-        width: Screen.Width / 1.20,
-        borderRadius: metrics.hp2,
-    },
-    bdyBack: {
-        height: metrics.hp17,
-        borderTopRightRadius: metrics.hp2,
-        borderTopLeftRadius: metrics.hp2,
-
-    },
-    ediButton: {
-        height: metrics.hp5,
-        borderWidth: 1,
-        borderColor: "#E6B7A810",
-        borderRadius: metrics.hp4,
-        alignItems: "center",
-        justifyContent: "center",
-        width: "40%",
-        alignSelf: "center",
-    },
+  safeArea: {
+    flexGrow: 1,
+  },
+  background: {
+    flex: 1,
+  },
+  listContent: {
+    paddingHorizontal: metrics.hp2,
+    paddingTop: LIST_TOP_PADDING,
+    paddingBottom: metrics.hp15,
+    flexGrow: 1,
+  },
 });

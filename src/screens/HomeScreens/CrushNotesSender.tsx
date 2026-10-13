@@ -19,7 +19,11 @@ import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 import { toastAlert } from "../../actions/UploadImageActions";
 import { beingWatchIcon, bioBackground, biosToggla, bitingIcon, blinedFlodedIcon, BottomLayer, choclateImageNew, danceNewIcon, dirtyTalks, dobIcon, dummyfemaleProfile, dummyMaleProfile, fantasiesIcon, forProfileDetailsBack, fotFetiesIcon, hairIcon, heightIconWhiteNew, hugsIcon, locationIconWhiteNew, lockIconWhite, massageIcon, musicIcons, oralIcon, partnerheart, pronounIcon, rolePlayImageNew, roomServiceIcon, scentsIcon, sendMessageNewIcon, sendMessageText, sextingIcon, sexualityIcon, smooheshIcon, TattosIcon, touchNewIcon, trunOnBackground, trunOnIcon, unMatchProfileIcon } from "../../helper/ImageAssets";
+import PortraitAvatar from "../../common/PortraitAvatar";
+import { PHOTO_ASPECT_RATIO } from "../../helper/Constants";
 const ITEM_WIDTH = metrics.hp34;
+// Carousel photos are shown at their stored 3:4 portrait ratio
+const ITEM_HEIGHT = ITEM_WIDTH / PHOTO_ASPECT_RATIO;
 const SPACING = metrics.hp1;
 const TURN_ON_IMAGES: any = {
     "Smooches": smooheshIcon,
@@ -140,7 +144,7 @@ const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfil
                     opacity,
                     marginLeft: index === 0 ? metrics.hp2_5 : 0,
                     marginRight: SPACING,
-                    height: metrics.hp45,
+                    height: ITEM_HEIGHT,
                     width: metrics.hp34
                 }}>
                 <Image source={{ uri: item.url }} resizeMode="cover" style={styles.imageMain} />
@@ -230,7 +234,7 @@ const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfil
                                 style={styles.detailsContainer}>
                                 <View style={{ paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp2 }}>
                                     <View style={{ flexDirection: "row", marginTop: -metrics.hp2 }}>
-                                        <FastImage source={currentProfileData?.profilePicture || currentProfileData?.gallery ? { uri: currentProfileData?.profilePicture ? currentProfileData?.profilePicture[0]?.url : currentProfileData?.gallery[0]?.url } : currentProfileData?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={{ height: metrics.hp10, width: metrics.hp10, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: "#E6B7A8", marginTop: -metrics.hp2 }} />
+                                        <PortraitAvatar source={currentProfileData?.profilePicture || currentProfileData?.gallery ? { uri: currentProfileData?.profilePicture ? currentProfileData?.profilePicture[0]?.url : currentProfileData?.gallery[0]?.url } : currentProfileData?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile} style={{ height: metrics.hp10, width: metrics.hp10, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: "#E6B7A8", marginTop: -metrics.hp2 }} />
                                         <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} style={{ color: "#E6B7A8", marginTop: metrics.hp2 }}>
                                             {"   "}{currentProfileData?.username ? currentProfileData?.username : currentProfileData?.name}
                                         </AppText>
@@ -382,7 +386,7 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp10
     },
     imageMain: {
-        height: metrics.hp45,
+        height: ITEM_HEIGHT,
         width: metrics.hp34
     },
     inputContainer: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center', paddingHorizontal: metrics.hp2, backgroundColor: newColor.blackNew, paddingVertical: metrics.hp3 },

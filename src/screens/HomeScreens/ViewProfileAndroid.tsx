@@ -13,7 +13,11 @@ import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 import FullScreenViewPhoto from "../../components/FullScreenViewPhoto";
 import { logMetaEvent } from "../../utils/MetaEvents";
+import PortraitAvatar from "../../common/PortraitAvatar";
+import { PHOTO_ASPECT_RATIO } from "../../helper/Constants";
 const ITEM_WIDTH = metrics.hp34;
+// Carousel photos are shown at their stored 3:4 portrait ratio
+const ITEM_HEIGHT = ITEM_WIDTH / PHOTO_ASPECT_RATIO;
 const SPACING = metrics.hp1;
 
 const TURN_ON_IMAGES: any = {
@@ -106,11 +110,15 @@ const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislike
                     opacity,
                     marginLeft: index === 0 ? metrics.hp2_5 : 0,
                     marginRight: SPACING,
-                    height: metrics.hp45,
+                    height: ITEM_HEIGHT,
                     width: metrics.hp34
                 }}>
                 <TouchableOpacity activeOpacity={1} onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : showFullProfile(currentProfileData?.profilePicture ? currentProfileData?.profilePicture : currentProfileData?.gallery, index)}>
-                    <Image blurRadius={userData?.gender === "male" && userData?.isPublish === false ? 10 : 0} source={{ uri: item.url }} resizeMode="cover" style={styles.imageMain} />
+                    {userData?.gender === "male" && userData?.isPublish === false ? (
+                        <Image blurRadius={10} source={{ uri: item.url }} resizeMode="cover" style={styles.imageMain} />
+                    ) : (
+                        <FastImage source={{ uri: item.url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }} resizeMode="cover" style={styles.imageMain} />
+                    )}
                     {userData?.gender === "male" && userData?.isPublish === false ?
                         <>
                             <View style={styles.galleryDim} />
@@ -208,7 +216,7 @@ const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislike
                         <View style={{ paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp2 }}>
                             <View style={{ flexDirection: "row" }}>
                                 <View>
-                                    <FastImage source={currentProfileData?.profilePicture?.length || currentProfileData?.gallery?.length ? { uri: currentProfileData?.profilePicture ? currentProfileData?.profilePicture[0]?.url : currentProfileData?.gallery[0]?.url } : currentProfileData?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={{ height: metrics.hp10, width: metrics.hp10, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: "#E6B7A8", marginTop: -metrics.hp4 }} />
+                                    <PortraitAvatar source={currentProfileData?.profilePicture?.length || currentProfileData?.gallery?.length ? { uri: currentProfileData?.profilePicture ? currentProfileData?.profilePicture[0]?.url : currentProfileData?.gallery[0]?.url } : currentProfileData?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile} style={{ height: metrics.hp10, width: metrics.hp10, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: "#E6B7A8", marginTop: -metrics.hp4 }} />
                                     {currentProfileData?.faceVerified ?
                                         <FastImage source={verifiedBadgeIcon} resizeMode='contain' style={{ height: metrics.hp4, width: metrics.hp4, position: "absolute", right: -metrics.hp0_5, top: -metrics.hp4 }} />
                                         : <></>}
@@ -272,7 +280,7 @@ const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislike
                             <ImageBackground source={bioBackground} resizeMode="stretch" style={{ /* height: metrics.hp9, */ width: "100%", marginTop: metrics.hp6, }}>
                                 <ImageBackground source={biosToggla} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp13, alignSelf: "center", marginTop: -metrics.hp2 }} >
                                     <AppText style={{ textAlign: "center" }} type={FORTEEN} weight={SCHEHERAZADE_BOLD} color={WHITE}>
-                                        " My bio
+                                        " Bio "
                                     </AppText>
                                 </ImageBackground>
                                 <AppText style={{ marginHorizontal: metrics.hp2, textAlign: "center", marginVertical: metrics.hp1, lineHeight: metrics.hp2 }} type={TWELVE} weight={SCHEHERAZADE_BOLD} color={WHITE}>
@@ -323,7 +331,7 @@ const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislike
 export default ViewProfileAndroid;
 const styles = StyleSheet.create({
     imageMain: {
-        height: metrics.hp45,
+        height: ITEM_HEIGHT,
         width: metrics.hp34
     },
     galleryDim: {

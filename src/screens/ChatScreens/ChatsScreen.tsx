@@ -1,25 +1,20 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { FlatList, ImageBackground, Platform, StyleSheet, View } from "react-native";
-import PeopleHeader from "../../common/PeopleHeader";
+import { ActivityIndicator, FlatList, ImageBackground, Platform, StyleSheet, View } from "react-native";
 import metrics from "../../assets/Metrics";
 import { colors, newColor } from "../../theme/colors";
-import FastImage from "react-native-fast-image";
 import { ChatSearchIcon, dummyfemaleProfile, dummyMaleProfile, HomeBackground, } from "../../helper/ImageAssets";
-import { AppText, BLACK, DARK_GREEN, DARKGREEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, LIGHT_GREEN, OPECITY, OPECITY_DARK, PURPLE, SCHEHERAZADE_BOLD, SIXTEEN, TEN, THIRTEEN, TWELVE, TWENTY_FOUR, WHITE } from "../../common/AppText";
+import { AppText, BLACK, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, SIXTEEN, TEN, TWELVE, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
-import { chatData, newMatchData } from "../../common/UiltData";
 import SearchContainer from "../../common/SearchContainer";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_ALL_MATCHES_SCREEN, NAVIGATION_BOT_CHAT_SCREEN, NAVIGATION_TAKING_SCREEN } from "../../navigation/routes";
-import { Screen } from "../../theme/dimens";
+import { NAVIGATION_ALL_MATCHES_SCREEN, NAVIGATION_BOT_CHAT_SCREEN } from "../../navigation/routes";
 import { useDispatch, useSelector } from "react-redux";
-import { chatHistoryAPI, getNewMatches, getOtherProfile, getRecentMatches } from "../../actions/authActions";
-import { chatHistoryDetails, matchChatDetails, setNewMatches } from "../../slices/loginServices/authSlice";
+import { getNewMatches, getRecentMatches, openMatchChat } from "../../actions/authActions";
 import { useIsFocused } from "@react-navigation/native";
 import { AppIcon } from "../../helper/ImageAssets";
-import { Modal } from "react-native";
 import NewHeaderAndroid from "../../common/NewHeaderAndroid";
+import PortraitAvatar from "../../common/PortraitAvatar";
 export const formatChatTime = (utcDate: any) => {
     const date = new Date(utcDate);
     const now = new Date();
@@ -65,12 +60,20 @@ const ChatsScreen = () => {
     const recentMatches = useSelector((state: any) => state.auth.recentMatches);
     const userData = useSelector((state: any) => state.auth.userData);
     const dispatch = useDispatch();
-    const [profileData, setProfileData] = useState();
-    const [modalVisible, setModalVisible] = useState(false);
+    // Only the very first visit has nothing cached to show; later visits refresh silently in the background.
+    const [isFirstLoad, setIsFirstLoad] = useState(
+        () => !(newMatches?.length || recentMatches?.length)
+    );
     useEffect(() => {
-        dispatch(getNewMatches())
-        dispatch(getRecentMatches())
-    }, [isFoucse])
+        if (!isFoucse) return;
+        let cancelled = false;
+        Promise.all([dispatch(getNewMatches()), dispatch(getRecentMatches())]).finally(() => {
+            if (!cancelled) setIsFirstLoad(false);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [isFoucse, dispatch]);
     
     const normalize = useCallback((v: any) => String(v ?? "").toLowerCase(), []);
     const query = useMemo(() => normalize(search).trim(), [normalize, search]);
@@ -87,7 +90,8 @@ const ChatsScreen = () => {
     }, [newMatches, normalize, query]);
 
     const recentPreviewData = useMemo(() => {
-        const list = recentMatches?.reverse() || [];
+        // Copy before reversing: Array.reverse() mutates in place, which would silently flip the Redux state.
+        const list = [...(recentMatches ?? [])].reverse();
         if (list.length <= 3) return list;
 
         const remaining = list.length - 3;
@@ -97,6 +101,7 @@ const ChatsScreen = () => {
                 __type: "MORE",
                 remaining,
                 avatarUrl: fourth?.profilePicture?.url,
+                gender: fourth?.gender,
                 name: fourth?.name,
             },
             list[0],
@@ -133,68 +138,24 @@ const ChatsScreen = () => {
             },
         };
     }, []);
-    const onSubmit = (item: any) => {
-        console.log(item,"itemitemitemitem");
-        let forEmptyChat = item?.lastMessage === null ? true :false
-        const data = {
-            otherUserId: item.userId,
-            matchId: item.matchId,
-        };
-        const params = {
-            page: 1,
-            limit: 50,
-        };
-        dispatch(chatHistoryDetails([]));
-        dispatch(matchChatDetails(item));
-        NavigationService.navigate(NAVIGATION_TAKING_SCREEN,{forEmptyChat:forEmptyChat});
-        dispatch(chatHistoryAPI(data, params, false));
-    };
+    const onSubmit = useCallback((item: any) => {
+        dispatch(openMatchChat(item));
+    }, [dispatch]);
 
-
-
-
-    const renderItemChats = ({ item, index }: any) => {
-
+    const renderItemChats = ({ item }: any) => {
         const isBot = item?.__type === "BOT";
 
-        let messageText = '';
-        if (typeof item.message === 'string') {
-            messageText = item.message;
-        } else if (item.message && typeof item.message === 'object') {
-            messageText = item.message.text || item.message.content || '';
-        }
-        let lastMessageText = '';
-        if (typeof item.lastMessage === 'string') {
-            lastMessageText = item.lastMessage;
-        } else if (item.lastMessage && typeof item.lastMessage === 'object') {
-            lastMessageText = item.lastMessage.text || item.lastMessage.content || '';
-        };
+        const rawTime = formatChatTime(item?.lastMessage?.createdAt);
+        const timeLabel = rawTime === "Invalid Date" ? "" : rawTime;
 
         return (
             <TouchableOpacityView
-                key={item?.userId}
-                onPress={() => isBot ? NavigationService.navigate(NAVIGATION_BOT_CHAT_SCREEN) : onSubmit(item)/* () => {
-                    let data = {
-                        "userId": item?.userId
-                    };
-                    let from = "Chat"
-                    dispatch(getOtherProfile(data, false, setProfileData, true, from));
-                    dispatch(matchChatDetails(item)); */
-                    // if (item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM") { NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: navigateITems }); return; }
-
-                    // if (isBot) {
-                    //     NavigationService.navigate(NAVIGATION_BOT_CHAT_SCREEN);
-                    //     return;
-                    // }
-                    // onSubmit(item);
-                    // }
-                }
+                onPress={() => (isBot ? NavigationService.navigate(NAVIGATION_BOT_CHAT_SCREEN) : onSubmit(item))}
                 style={styles.chatListContainer}
             >
                 <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-                    <ImageBackground
-                        source={isBot ? AppIcon : item?.profilePicture ? { uri: item?.profilePicture?.url } : item.gender == "male" ? dummyMaleProfile : dummyfemaleProfile}
-                        resizeMode="cover"
+                    <PortraitAvatar
+                        source={isBot ? AppIcon : item?.profilePicture?.url ? { uri: item.profilePicture.url } : item.gender == "male" ? dummyMaleProfile : dummyfemaleProfile}
                         style={styles.newMatchProfile}
                     />
                        {item.online && !isBot && 
@@ -212,7 +173,7 @@ const ChatsScreen = () => {
                 </View>
                 <View style={{ alignItems: "flex-end", marginTop: metrics.hp2_3 }}>
                     <AppText type={TEN} weight={item.unreadCount > 0 ? INTER_SEMI_BOLD : INTER_MEDIUM} style={{ color: "#E6B7A8" }} color={item.unreadCount > 0 ? WHITE : OPECITY}>
-                        {isBot ? (formatChatTime(item?.lastMessage?.createdAt)) : (formatChatTime(item?.lastMessage?.createdAt) == "Invalid Date" ? "" : formatChatTime(item?.lastMessage?.createdAt))}
+                        {timeLabel}
                     </AppText>
                     {item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM" ?
                         <View style={[styles.numberCount, { marginTop: metrics.hp1, backgroundColor: "#E6B7A8" }]}>
@@ -245,22 +206,9 @@ const ChatsScreen = () => {
             </TouchableOpacityView>
         )
     };
-    const dataempty = [
-        {
-            id: "1"
-        },
-        {
-            id: "2"
-        },
-        {
-            id: "3"
-        },
-        {
-            id: "4"
-        },
-    ]
-
-    const HeaderListChats = () => {
+    // Rendered as an element (not passed as a component) so the horizontal strip keeps its scroll position
+    // and state when the search text changes.
+    const renderRecentMatches = () => {
         return recentPreviewData?.length === 0 ? (
             <></>
         ) : (
@@ -277,18 +225,16 @@ const ChatsScreen = () => {
                     horizontal
                     keyExtractor={(item: any, idx: number) => item?.__type === "MORE" ? `more-${idx}` : String(item?.userId || item?._id || idx)}
                     showsHorizontalScrollIndicator={false}
-                    renderItem={({ item, index }: any) => {
+                    renderItem={({ item }: any) => {
                         if (item?.__type === "MORE") {
                             return (
                                 <TouchableOpacityView onPress={openAllMatches} style={[styles.newmatchContainer, {
-                                    marginLeft: index === 0 ? metrics.hp2 : metrics.hp2,
+                                    marginLeft: metrics.hp2,
                                     marginRight: metrics.hp2,
                                 }]}>
-                                    <ImageBackground
+                                    <PortraitAvatar
                                         source={item?.avatarUrl ? { uri: item?.avatarUrl } : item?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile}
-                                        resizeMode="cover"
                                         style={styles.newMatchProfile}
-                                        imageStyle={{ borderRadius: metrics.hp50 }}
                                     >
                                         {item.online? 
                                      <View style={{height:metrics.hp1,width:metrics.hp1, backgroundColor:"#26F600", borderRadius:metrics.hp50, position:"absolute", top:metrics.hp1, left:metrics.hp1}}/>:<></>}
@@ -297,7 +243,7 @@ const ChatsScreen = () => {
                                                 +{item.remaining}
                                             </AppText>
                                         </View>
-                                    </ImageBackground>
+                                    </PortraitAvatar>
                                     <AppText style={{ marginTop: metrics.hp0_3, color: colors.white }} type={TWELVE} weight={INTER_SEMI_BOLD}>
                                         {item.username ? item.username : item.name}
                                     </AppText>
@@ -309,9 +255,7 @@ const ChatsScreen = () => {
                                 marginLeft: recentPreviewData?.length <= 3 ? metrics.hp2 : 0,
                                 marginRight: recentPreviewData?.length > 3 ? metrics.hp2 : 0
                             }]}>
-                                <ImageBackground source={item?.profilePicture?.url? { uri: item?.profilePicture?.url }: item?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={styles.newMatchProfile}>
-                                    {/* Match avatar */}
-                                </ImageBackground>
+                                <PortraitAvatar source={item?.profilePicture?.url ? { uri: item?.profilePicture?.url } : item?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile} style={styles.newMatchProfile} />
                                 <AppText style={{ marginTop: metrics.hp1, color: colors.white, }} type={TWELVE} weight={INTER_SEMI_BOLD}>
                                     {item.username ? item.username : item.name}
 
@@ -327,9 +271,9 @@ const ChatsScreen = () => {
 
 
 
-    const ListHeaderComponent = () => (
+    const listHeader = (
         <>
-            {HeaderListChats()}
+            {renderRecentMatches()}
             <View style={[styles.newMatchTextContainer, {
                 paddingHorizontal: metrics.hp2,
                 marginTop: metrics.hp4
@@ -353,14 +297,17 @@ const ChatsScreen = () => {
                     <SearchContainer editable={false} onChangeText={setSearch} value={search} placeholder={"Search matches"} style={{ height: metrics.hp7 }} />
                 }
             </ImageBackground>
-            {newMatches?.length === 0 ? (
+            {isFirstLoad && !newMatches?.length ? (
+                <View style={styles.firstLoadContainer}>
+                    <ActivityIndicator size="small" color={colors.white} />
+                </View>
+            ) : newMatches?.length === 0 ? (
                 <FlatList
                     data={query ? (normalize(botChatItem.name).includes(query) ? [botChatItem] : []) : [botChatItem]}
                     renderItem={renderItemChats}
                     keyExtractor={(item: any) => item.matchId || item.userId || 'bot'}
                     ListEmptyComponent={query ? noSearchFound : null}
-                    ListHeaderComponent={ListHeaderComponent}
-                    // ListFooterComponent={ListFooterComponent}
+                    ListHeaderComponent={listHeader}
                     contentContainerStyle={{ paddingBottom: metrics.hp5 }}
                     showsVerticalScrollIndicator={false}
                 />
@@ -371,49 +318,21 @@ const ChatsScreen = () => {
                     keyExtractor={(item) => item.matchId}
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={noSearchFound}
-                    ListHeaderComponent={ListHeaderComponent}
+                    ListHeaderComponent={listHeader}
                     contentContainerStyle={{ paddingBottom: metrics.hp20 }}
                 />
             )}
             </ImageBackground>
-            {/* <PeopleHeader profile={true} filter={true} setModalVisible={setModalVisible}/> */}
-            {/* <View style={styles.singlelIne} /> */}
-            {/* {newMatches?.length ? (
-                <View style={{ paddingHorizontal: metrics.hp2, marginTop: Platform.OS === "ios" ? metrics.hp0_7 : 0 }}>
-                    <SearchContainer onChangeText={setSearch} value={search} placeholder={"Search matches"} style={{ height: metrics.hp7, marginTop: Platform.OS === "ios" ? metrics.hp0_7 : 0 }} />
-                </View>
-            ) : (
-                <View style={{ paddingHorizontal: metrics.hp2 }}>
-                    <SearchContainer editable={false} onChangeText={setSearch} value={search} placeholder={"Search matches"} style={{ height: metrics.hp7 }} />
-                </View>
-            )} */}
-            {/* {newMatches?.length === 0 ? (
-                <FlatList
-                    data={query ? (normalize(botChatItem.name).includes(query) ? [botChatItem] : []) : [botChatItem]}
-                    renderItem={renderItemChats}
-                    keyExtractor={(item: any) => item.matchId || item.userId || 'bot'}
-                    ListEmptyComponent={query ? noSearchFound : null}
-                    ListHeaderComponent={ListHeaderComponent}
-                    // ListFooterComponent={ListFooterComponent}
-                    contentContainerStyle={{ paddingBottom: metrics.hp5 }}
-                    showsVerticalScrollIndicator={false}
-                />
-            ) : (
-                <FlatList
-                    data={filteredChats}
-                    renderItem={renderItemChats}
-                    keyExtractor={(item) => item.matchId}
-                    showsVerticalScrollIndicator={false}
-                    ListEmptyComponent={noSearchFound}
-                    ListHeaderComponent={ListHeaderComponent}
-                    contentContainerStyle={{ paddingBottom: metrics.hp5 }}
-                />
-            )} */}
         </AppSafeAreaView>
     )
 };
 export default ChatsScreen;
 const styles = StyleSheet.create({
+    firstLoadContainer: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+    },
     singlelIne: {
         height: metrics.hp0_1,
         backgroundColor: colors.borderfifty,

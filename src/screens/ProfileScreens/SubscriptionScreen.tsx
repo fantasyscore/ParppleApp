@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { ActivityIndicator, Alert, Animated, Dimensions, ImageBackground, Modal, NativeModules, Platform, ScrollView, StyleSheet, View, Linking } from "react-native";
-import { benifitsIconNew, BottomLayer, closeNewWhiteIcon, goldHeader, GoldSubscriptionImage, infinityICon, legalBackgroundSettin, logoBlue, platinumHeader, PlatiumSubscriptionImage, premiumIcon, purchaseImageNew, silverHeader, stylesRightArrow, subScriptionBackgroundNew, subscriptionSelectedNew, timeShowNewBackground } from "../../helper/ImageAssets";
+import { benifitsIconNew, BottomLayer, closeNewWhiteIcon, legalBackgroundSettin, applogo, purchaseImageNew, subScriptionBackgroundNew, subscriptionSelectedNew, timeShowNewBackground } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import NavigationService from "../../navigation/NavigationService";
@@ -54,13 +54,31 @@ type FaceLivenessResult =
     | null
     | undefined;
 const { width, height } = Dimensions.get('window');
+// Pick the plain base-plan offer (no promo offerId, single infinitely-recurring phase).
+// Never blindly use subscriptionOfferDetails[0]: Play returns every base plan/offer of the
+// product, so [0] may be a different billing period or a trial/intro offer.
+const selectBaseOffer = (subscription: any): any | null => {
+    const offers: any[] = subscription?.subscriptionOfferDetails ?? [];
+    if (offers.length === 0) return null;
+    const isPlainBasePlan = (o: any) => {
+        const phases = o?.pricingPhases?.pricingPhaseList ?? [];
+        return !o?.offerId && phases.length === 1 && phases[0]?.recurrenceMode === 1;
+    };
+    const candidates = offers.filter(isPlainBasePlan);
+    if (candidates.length === 0) return offers[0];
+    // Prefer the weekly/monthly/etc. period implied by the SKU when several base plans exist
+    const productId = (subscription.id || subscription.productId || '').toString().toLowerCase();
+    const expected = productId.includes('6month') ? 'P6M' : productId.includes('month') ? 'P1M' : productId.includes('week') ? 'P1W' : null;
+    return candidates.find(o => o.pricingPhases.pricingPhaseList[0].billingPeriod === expected) ?? candidates[0];
+};
+
 // Helper to extract subscription period and order
 const extractSubscriptionPeriod = (subscription: any): { planOf: string; ofPu: string; periodOrder: number; weeksCount: number } => {
     const productId = (subscription.id || subscription.productId || subscription.productIdentifier || '').toString();
 
     // Try to get period from subscription offer details (Android)
-    if (subscription.subscriptionOfferDetails && subscription.subscriptionOfferDetails.length > 0) {
-        const offerDetails = subscription.subscriptionOfferDetails[0];
+    const offerDetails = selectBaseOffer(subscription);
+    if (offerDetails) {
         if (offerDetails.pricingPhases && offerDetails.pricingPhases.pricingPhaseList) {
             const phase = offerDetails.pricingPhases.pricingPhaseList[0];
             const billingPeriod = phase.billingPeriod || '';
@@ -118,8 +136,8 @@ const extractPrice = (subscription: any): string => {
     if (subscription.displayPrice) return subscription.displayPrice;
     if (subscription.localizedPrice) return subscription.localizedPrice;
 
-    if (subscription.subscriptionOfferDetails && subscription.subscriptionOfferDetails.length > 0) {
-        const offerDetails = subscription.subscriptionOfferDetails[0];
+    const offerDetails = selectBaseOffer(subscription);
+    if (offerDetails) {
         if (offerDetails.pricingPhases && offerDetails.pricingPhases.pricingPhaseList) {
             const phase = offerDetails.pricingPhases.pricingPhaseList[0];
             if (phase.formattedPrice) return phase.formattedPrice;
@@ -166,7 +184,7 @@ const SubscriptionScreen = ({ route }: any) => {
     const purchaseInitiatedRef = useRef(false);
     const payModalScale = useRef(new Animated.Value(0.96)).current;
     const payModalOpacity = useRef(new Animated.Value(0)).current;
-
+   
     useEffect(() => {
         if (!verifyModalVisible) return;
         payModalOpacity.setValue(0);
@@ -177,12 +195,7 @@ const SubscriptionScreen = ({ route }: any) => {
         ]).start();
     }, [payModalOpacity, payModalScale, verifyModalVisible]);
 
-    const getHeaderImage = () => {
-        if (selectedTier === "Silver") return silverHeader;
-        if (selectedTier === "Gold") return Platform.OS === "ios" ? goldHeader : GoldSubscriptionImage;
-        if (selectedTier === "Platinum") return Platform.OS === "ios" ? platinumHeader : PlatiumSubscriptionImage;
-        return silverHeader;
-    };
+
 
     useEffect(() => {
         let purchaseUpdateSubscription: any;
@@ -286,6 +299,12 @@ const SubscriptionScreen = ({ route }: any) => {
         purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
             let isInitiated = false;
             try {
+                // Pending (e.g. slow payment method): not paid yet. Don't verify or acknowledge, and keep
+                // purchaseInitiatedRef so the later 'purchased' update still shows the verify modal.
+                if (purchase?.purchaseState === 'pending') {
+                    console.log('[Subscription] Purchase pending, waiting for completion');
+                    return;
+                }
                 const key = getPurchaseTransactionId(purchase);
 
                 // Duplicate protection check
@@ -571,7 +590,9 @@ const SubscriptionScreen = ({ route }: any) => {
                         andDangerouslyFinishTransactionAutomaticallyIOS: false,
                     });
                 } else {
-                    const offerToken = selectedPlan.rawSubscription?.subscriptionOfferDetails?.[0]?.offerToken;
+                    const selectedOffer = selectBaseOffer(selectedPlan.rawSubscription);
+                    const offerToken = selectedOffer?.offerToken;
+                    console.log('[Subscription] Purchasing', { productId, basePlanId: selectedOffer?.basePlanId, offerId: selectedOffer?.offerId, phases: selectedOffer?.pricingPhases?.pricingPhaseList });
                     if (!offerToken) {
                         throw new Error('No subscription offer token found for this product');
                     }
@@ -727,7 +748,7 @@ const SubscriptionScreen = ({ route }: any) => {
                 </ImageBackground>
             </ScrollView>
             <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
-                <TouchableOpacityView style={{width:"100%", paddingHorizontal:metrics.hp2}} onPress={handlePurchase}
+                <TouchableOpacityView style={{ width: "100%", paddingHorizontal: metrics.hp2 }} onPress={handlePurchase}
                     disabled={!!processing || currentTierPlans.length === 0}>
                     <LinearGradient colors={["#D08FA9", "#FDD2C1"]} style={{ height: metrics.hp7, width: "100%", alignItems: "center", justifyContent: "center" }}>
                         <AppText type={EIGHTEEN} weight={SCHEHERAZADE_BOLD} color={BLACK}>
@@ -832,8 +853,9 @@ const SubscriptionScreen = ({ route }: any) => {
                 <View style={styles.payBackdrop}>
                     <Animated.View style={[styles.payCard, { opacity: payModalOpacity, transform: [{ scale: payModalScale }] }]}>
                         <View style={styles.payContent}>
+
                             <View style={styles.payIconRing}>
-                                <FastImage source={logoBlue} resizeMode="contain" style={styles.payIcon} />
+                                <FastImage source={applogo} resizeMode="contain" style={styles.payIcon} tintColor={colors.black} />
                             </View>
 
                             <AppText
@@ -1128,6 +1150,7 @@ const styles = StyleSheet.create({
     payIcon: {
         height: metrics.hp7,
         width: metrics.hp7,
+
     },
     payVerifyingRow: {
         flexDirection: "row",

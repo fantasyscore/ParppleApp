@@ -25,6 +25,7 @@ import PhotoEditorModal from "../../components/PhotoEditor/PhotoEditorModal";
 import { usePhotoEditorUpload, UploadedPhoto } from "../../components/PhotoEditor/usePhotoEditorUpload";
 import { useIsFocused } from "@react-navigation/native";
 import { check, openSettings, PERMISSIONS, request, RESULTS } from "react-native-permissions";
+import PortraitAvatar from "../../common/PortraitAvatar";
 
 const TURN_ON_IMAGES: any = {
     "Smooches": smooheshIcon,
@@ -321,6 +322,7 @@ const ProfileScreenAndroid = () => {
         const n = Number(userData?.profileCompletion);
         setPercentage(Number.isFinite(n) ? n : 0);
     }, [userData?.profileCompletion])
+    const avatarUrl: string | undefined = userData?.gallery?.[0]?.url;
     const size = metrics.hp12;
     const strokeWidth = metrics.hp0_5;
     const radius = (size - strokeWidth) / 2;
@@ -526,10 +528,9 @@ const ProfileScreenAndroid = () => {
                         />
                         <View style={{ marginTop: metrics.hp2, paddingHorizontal: metrics.hp2, flexDirection: "row", alignItems: "center" }}>
                             <TouchableOpacityView activeOpacity={1} style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
-                                <FastImage
-                                    source={userData?.gallery?.length === 0 ? userData?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile : { uri: userData?.gallery[0]?.url }}
-                                    resizeMode="cover"
-                                    style={[styles.imageContainer, { borderWidth: metrics.hp0_2, borderColor: "#E6B7A8" }]}
+                                <PortraitAvatar
+                                    source={avatarUrl ? { uri: avatarUrl } : userData?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile}
+                                    style={[styles.imageContainer, styles.avatarRing]}
                                 />
                                 {userData?.faceVerified ?
                                     <FastImage source={verifiedBadgeIcon} resizeMode='contain' style={{ height: metrics.hp4, width: metrics.hp4, position: "absolute", right: metrics.hp0_5, top: metrics.hp1 }} />
@@ -1010,6 +1011,11 @@ const styles = StyleSheet.create({
         marginTop: metrics.hp6,
         flexDirection: "row",
         alignItems: "center"
+    },
+    avatarRing: {
+        borderWidth: metrics.hp0_2,
+        borderColor: "#E6B7A8",
+        overflow: "hidden",
     },
     imageContainer: {
         position: "absolute",

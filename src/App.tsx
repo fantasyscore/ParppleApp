@@ -9,6 +9,7 @@ import SplashScreen from "react-native-splash-screen";
 import { ForceUpdateService } from "./services/ForceUpdateService";
 import ToastMessage from "./common/ToastMessage";
 import codePush from "@revopush/react-native-code-push";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { recoverPurchasesOnStartup } from "./services/purchaseRecoveryService";
 import { initializeAnalytics } from "./services/analyticsService";
 import notifee, { AndroidImportance } from "@notifee/react-native"
@@ -44,13 +45,11 @@ const App = () => {
       ForceUpdateService.checkAndEnforceUpdate();
     }
 
-    setTimeout(() => {
-      try {
-        (SplashScreen as any)?.hide?.();
-      } catch {
-        // no-op
-      }
-    }, 3000);
+    try {
+      (SplashScreen as any)?.hide?.();
+    } catch {
+      // no-op
+    }
   }, []);
 
   useEffect(() => {
@@ -122,10 +121,12 @@ const App = () => {
 
   return (
     <SafeAreaProvider>
-      <Provider store={store}>
-        <StatusBar hidden={false} translucent backgroundColor={'transparent'} barStyle="light-content" />
-        <Navigator />
-      </Provider>
+      <KeyboardProvider statusBarTranslucent={true} navigationBarTranslucent={true}>
+        <Provider store={store}>
+          <StatusBar hidden={false} translucent backgroundColor={'transparent'} barStyle="light-content" />
+          <Navigator />
+        </Provider>
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 };

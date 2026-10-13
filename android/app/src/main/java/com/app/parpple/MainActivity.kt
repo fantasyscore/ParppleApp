@@ -11,7 +11,8 @@ import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
 import com.facebook.react.defaults.DefaultReactActivityDelegate
 import org.devio.rn.splashscreen.SplashScreen
-
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 class MainActivity : ReactActivity() {
 
   override fun getMainComponentName(): String = "parpple"
@@ -30,12 +31,16 @@ class MainActivity : ReactActivity() {
 
     // Make STATUS BAR transparent and allow content to draw behind it
     window.statusBarColor = android.graphics.Color.TRANSPARENT
+    
+    // Make NAVIGATION BAR transparent to remove the bottom strip
+    window.navigationBarColor = android.graphics.Color.TRANSPARENT
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+        window.isNavigationBarContrastEnforced = false
+    }
 
-    window.decorView.systemUiVisibility =
-        (View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN          // draw behind status bar
-        or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION          // hide navigation buttons
-        or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
+    WindowCompat.setDecorFitsSystemWindows(window, false)
+    val controller = WindowCompat.getInsetsController(window, window.decorView)
+    controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
   }
 }
 

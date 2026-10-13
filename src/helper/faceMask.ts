@@ -1,6 +1,7 @@
 import { Image } from "react-native";
 import FaceDetection from "@react-native-ml-kit/face-detection";
 import { Image as ImageCompressor } from "react-native-compressor";
+import RNFS from "react-native-fs";
 import {
   mask1,
   mask2,
@@ -105,8 +106,26 @@ async function normalizeForDetection(imageUri: string): Promise<string> {
  * null when the photo is not suitable for mask selection.
  */
 export async function analyzeFaceForMask(imageUri: string): Promise<FaceMaskAnalysis | null> {
+  let localUri = imageUri;
+  let isTempFile = false;
+
   try {
-    const detectionUri = await normalizeForDetection(imageUri);
+    // If it's a remote URL, download it first to prevent native ML Kit or Compressor from 
+    // doing manual synchronous downloading and BitmapFactory decoding.
+    if (imageUri.startsWith("http://") || imageUri.startsWith("https://")) {
+      const tempPath = `${RNFS.CachesDirectoryPath}/face_mask_${Date.now()}.jpg`;
+      const downloadResult = await RNFS.downloadFile({
+        fromUrl: imageUri,
+        toFile: tempPath,
+      }).promise;
+      
+      if (downloadResult.statusCode === 200) {
+        localUri = `file://${tempPath}`;
+        isTempFile = true;
+      }
+    }
+
+    const detectionUri = await normalizeForDetection(localUri);
     const [faces, imageSize] = await Promise.all([
       FaceDetection.detect(detectionUri, {
         performanceMode: "accurate",
@@ -174,5 +193,10 @@ export async function analyzeFaceForMask(imageUri: string): Promise<FaceMaskAnal
   } catch (err) {
     console.warn("[faceMask] Face detection failed, continuing without mask:", err);
     return null;
+  } finally {
+    // Clean up temporary downloaded file if we created one
+    if (isTempFile && localUri) {
+      RNFS.unlink(localUri.replace("file://", "")).catch(() => {});
+    }
   }
 }

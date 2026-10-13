@@ -27,6 +27,8 @@ export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) =
                 dispatch(listProfiles());
                 dispatch(getProfile(true));
                 dispatch(discoverProfile());
+                dispatch(getNewMatches());
+                dispatch(getRecentMatches());
                 dispatch(likeByOther());
                 dispatch(likeYou());
                 dispatch(viewProfileByOther());
@@ -40,13 +42,16 @@ export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) =
                     NavigationService.navigate(NAVIGATION_OTP_SCREEN, { PhoneNumber: data?.phoneNumber })
                 }
             }
+            return true;
         } else {
             console.log("i am here")
             // toastAlert.showToastError(response.message);
+            return false;
         }
     } catch (error: any) {
         console.log(error,"errorerrorerrorerrorerror")
         // toastAlert.showToastError(error);
+        return false;
     }
 };
 export const sendOtpApi: any = (data: any, gmail: any) => async (dispatch: any) => {
@@ -380,6 +385,17 @@ export const chatHistoryAPI: any = (data: any, params: any, shouldNavigate: bool
         }
     } catch (error: any) {
     }
+};
+/**
+ * Opens the chat for a match: resets the chat state, navigates to the chat screen and loads the first page of history.
+ * Shared by every screen that lists matches so the flow stays identical.
+ */
+export const openMatchChat: any = (item: any) => (dispatch: any) => {
+    const forEmptyChat = item?.lastMessage === null;
+    dispatch(chatHistoryDetails([]));
+    dispatch(matchChatDetails(item));
+    NavigationService.navigate(NAVIGATION_TAKING_SCREEN, { forEmptyChat });
+    dispatch(chatHistoryAPI({ otherUserId: item.userId, matchId: item.matchId }, { page: 1, limit: 50 }, false));
 };
 export const subscriptionVerifyAPI: any = (data: any, params: any) => async (dispatch: any) => {
     try {

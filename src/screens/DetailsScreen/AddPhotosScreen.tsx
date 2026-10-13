@@ -18,7 +18,6 @@ import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_LOCATION_SCREEN } from "../../navigation/routes";
 import { setAddProfile } from "../../slices/loginServices/authSlice";
 import PhotoEditorModal, { PhotoEditorResult } from "../../components/PhotoEditor/PhotoEditorModal";
-import { analyzeFaceForMask, FaceMaskAnalysis } from "../../helper/faceMask";
 
 interface PermissionResult {
   granted: boolean;
@@ -100,15 +99,13 @@ const AddPhotoScreen = () => {
   );
 
   // The editor pipeline works on exactly one photo at a time: the slot being
-  // filled, the untouched local image, and the (optional) auto-detected face
+  // filled and the untouched local image the user picked (cropped to 3:4 in the editor)
   const [editorState, setEditorState] = useState<{
     visible: boolean;
     slotIndex: number;
     imageUri: string;
-    analysis: FaceMaskAnalysis | null;
     fileName: string;
-    fileType: string;
-  }>({ visible: false, slotIndex: -1, imageUri: "", analysis: null, fileName: "", fileType: "" });
+  }>({ visible: false, slotIndex: -1, imageUri: "", fileName: "" });
   const [editorBusy, setEditorBusy] = useState(false);
 
   const [previewVisible, setPreviewVisible] = useState(false);
@@ -187,17 +184,12 @@ const AddPhotoScreen = () => {
             return;
           }
 
-          // Step 2: try automatic face detection; the editor opens either way.
-          // A valid analysis auto-places the mask, null falls back to the
-          // manual sticker editor.
-          const analysis = await analyzeFaceForMask(asset.uri);
+          // Step 2: the editor crops the photo to 3:4 first, then runs face detection on the result
           setEditorState({
             visible: true,
             slotIndex: index,
             imageUri: asset.uri,
-            analysis,
             fileName: asset.fileName || `image_${Date.now()}.jpg`,
-            fileType: asset.type || "image/jpeg",
           });
         }
       );
@@ -243,7 +235,7 @@ const AddPhotoScreen = () => {
   };
 
   const closeEditor = () =>
-    setEditorState({ visible: false, slotIndex: -1, imageUri: "", analysis: null, fileName: "", fileType: "" });
+    setEditorState({ visible: false, slotIndex: -1, imageUri: "", fileName: "" });
 
   /**
    * Shared tail of the editor flow: upload the given file while the editor
@@ -290,12 +282,12 @@ const AddPhotoScreen = () => {
       type: "image/jpeg",
     });
 
-  /** Skip: upload the original picked photo untouched, in its native format. */
-  const onEditorSkip = () =>
+  /** Skip: upload the cropped 3:4 photo without stickers (the editor already flattened it to a bounded JPEG). */
+  const onEditorSkip = (result: PhotoEditorResult) =>
     uploadFromEditor({
-      uri: editorState.imageUri,
-      name: editorState.fileName,
-      type: editorState.fileType,
+      uri: result.uri,
+      name: editorState.fileName.replace(/\.[^.]+$/, "") + ".jpg",
+      type: "image/jpeg",
     });
 
   const onEditorCancel = () => {
@@ -504,7 +496,6 @@ const AddPhotoScreen = () => {
         <PhotoEditorModal
           visible={editorState.visible}
           imageUri={editorState.imageUri}
-          analysis={editorState.analysis}
           busy={editorBusy}
           busyLabel="Uploading..."
           onCancel={onEditorCancel}

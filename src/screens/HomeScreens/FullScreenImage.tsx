@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
-    ImageBackground,
     StyleSheet,
     View,
     FlatList,
@@ -11,11 +10,11 @@ import {
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { newColor } from "../../theme/colors";
 import metrics from "../../assets/Metrics";
-import { AppText, fontSize, INTER_BOLD, THIRTEEN, TWELVE, WHITE } from "../../common/AppText";
+import { AppText, INTER_BOLD, THIRTEEN, TWELVE, WHITE } from "../../common/AppText";
 import FastImage from "react-native-fast-image";
 import { closeNewWhiteIcon } from "../../helper/ImageAssets";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
-import { Screen } from "../../theme/dimens";
+import { PHOTO_ASPECT_RATIO } from "../../helper/Constants";
 import { Zoomable } from "@likashefqet/react-native-image-zoom";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 const { width } = Dimensions.get("window");
@@ -33,6 +32,7 @@ interface FullScreenImageProps {
 
 const FullScreenImage = ({ gallaryData = [], setFullImage, initialIndex = 0 }: FullScreenImageProps) => {
     const [currentIndex, setCurrentIndex] = useState(initialIndex || 0);
+    const [areaHeight, setAreaHeight] = useState(0);
     const slideAnim = useRef(new Animated.Value(0)).current;
     const fadeAnim = useRef(new Animated.Value(1)).current;
 
@@ -92,28 +92,37 @@ const FullScreenImage = ({ gallaryData = [], setFullImage, initialIndex = 0 }: F
         []
     );
 
+    // Largest 3:4 frame that fits the screen; the photo is shown at exactly that ratio
+    const frameStyle = useMemo(() => {
+        const frameWidth = Math.min(width, areaHeight * PHOTO_ASPECT_RATIO);
+        return { width: frameWidth, height: frameWidth / PHOTO_ASPECT_RATIO };
+    }, [areaHeight]);
+
     const renderItem = ({ item }: { item: GalleryItem }) => {
         return (
-            <View style={styles.imageSlide}>
-                 <Zoomable
-                minScale={1}
-                maxScale={4}
-                doubleTapScale={2.5}
-                isPanEnabled={true}
-                isPinchEnabled={true}
-                isDoubleTapEnabled={true}
-                style={styles.zoomContainer}
-            >
-                <FastImage
-                    source={{
-                        uri: item?.url,
-                        priority: FastImage.priority.high,
-                        cache: FastImage.cacheControl.immutable,
-                    }}
-                    resizeMode={FastImage.resizeMode.cover}
-                    style={styles.fullImage}
-                />
-                </Zoomable>
+            <View style={[styles.imageSlide, { height: areaHeight }]}>
+                {/* overflow hidden: a zoomed photo stays inside the 3:4 frame */}
+                <View style={[frameStyle, styles.frame]}>
+                    <Zoomable
+                        minScale={1}
+                        maxScale={4}
+                        doubleTapScale={2.5}
+                        isPanEnabled={true}
+                        isPinchEnabled={true}
+                        isDoubleTapEnabled={true}
+                        style={styles.zoomContainer}
+                    >
+                        <FastImage
+                            source={{
+                                uri: item?.url,
+                                priority: FastImage.priority.high,
+                                cache: FastImage.cacheControl.immutable,
+                            }}
+                            resizeMode={FastImage.resizeMode.cover}
+                            style={styles.fullImage}
+                        />
+                    </Zoomable>
+                </View>
             </View>
         );
     };
@@ -132,7 +141,11 @@ const FullScreenImage = ({ gallaryData = [], setFullImage, initialIndex = 0 }: F
         <GestureHandlerRootView style={{ flex: 1 }}>
         <AppSafeAreaView style={{ flexGrow: 1 }} color={newColor.blackNew}>
 
-            <View style={styles.container}>
+            <View
+                style={styles.container}
+                onLayout={(e) => setAreaHeight(e.nativeEvent.layout.height)}
+            >
+                {areaHeight > 0 && (
                 <FlatList
                     data={gallaryData}
                     keyExtractor={(item, index) => index.toString()}
@@ -146,6 +159,7 @@ const FullScreenImage = ({ gallaryData = [], setFullImage, initialIndex = 0 }: F
                     getItemLayout={getItemLayout}
                     bounces={false}
                 />
+                )}
                 <TouchableOpacityView onPress={() => setFullImage(false)} style={{ position: "absolute", top: metrics.hp7, right: metrics.hp1, height: metrics.hp5, width: metrics.hp5 }}>
                     <FastImage source={closeNewWhiteIcon} resizeMode="contain" style={{
                         height: metrics.hp3, width: metrics.hp3
@@ -224,11 +238,12 @@ const styles = StyleSheet.create({
     },
     imageSlide: {
         width: width,
-        height: metrics.hp50,
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: newColor.blackNew,
-        alignSelf:"center"
+    },
+    frame: {
+        overflow: "hidden",
     },
 
     fullImage: {
@@ -240,9 +255,5 @@ const styles = StyleSheet.create({
         height: "100%",
         justifyContent: "center",
         alignItems: "center",
-    },
-    image: {
-        width: width,
-        height: metrics.hp50,
     },
 });

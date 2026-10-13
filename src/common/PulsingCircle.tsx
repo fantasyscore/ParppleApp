@@ -1,12 +1,18 @@
 import React, { useEffect, useRef, memo } from 'react';
-import { Animated, StyleSheet } from 'react-native';
+import { Animated, StyleProp, StyleSheet, ViewStyle } from 'react-native';
 
 type Props = {
   size: number;
+  /** Ring color */
   color?: string;
+  /** Optional fill inside each ring */
+  fillColor?: string;
+  ringWidth?: number;
+  /** Extra layout for both rings (e.g. an offset) */
+  style?: StyleProp<ViewStyle>;
 };
 
-const PulsingCircle = ({ size, color = "#6F13F225" }: Props) => {
+const PulsingCircle = ({ size, color = "#6F13F225", fillColor, ringWidth = 1, style }: Props) => {
   const anim = useRef(new Animated.Value(0)).current;
   const animTwo = useRef(new Animated.Value(0)).current;
 
@@ -39,7 +45,7 @@ const PulsingCircle = ({ size, color = "#6F13F225" }: Props) => {
       anim.stopAnimation();
       animTwo.stopAnimation();
     };
-  }, []);
+  }, [anim, animTwo]);
 
   const getAnimatedStyle = (animation: Animated.Value) => ({
     transform: [
@@ -66,7 +72,10 @@ const PulsingCircle = ({ size, color = "#6F13F225" }: Props) => {
             height: size,
             borderRadius: size / 2,
             borderColor: color,
+            borderWidth: ringWidth,
+            backgroundColor: fillColor,
           },
+          style,
           getAnimatedStyle(anim),
         ]}
       />
@@ -78,7 +87,10 @@ const PulsingCircle = ({ size, color = "#6F13F225" }: Props) => {
             height: size,
             borderRadius: size / 2,
             borderColor: color,
+            borderWidth: ringWidth,
+            backgroundColor: fillColor,
           },
+          style,
           getAnimatedStyle(animTwo),
         ]}
       />
@@ -91,6 +103,5 @@ export default memo(PulsingCircle);
 const styles = StyleSheet.create({
   pulse: {
     position: 'absolute',
-    borderWidth: 1,
   },
 });

@@ -1,20 +1,16 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { FlatList, ImageBackground, Platform, StyleSheet, View } from "react-native";
-import FastImage from "react-native-fast-image";
+import { FlatList, ImageBackground, StyleSheet, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import SearchContainer from "../../common/SearchContainer";
-import { AppText, BLACK, FORTEEN, INTER_BOLD, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, SIXTEEN, TWELVE, WHITE } from "../../common/AppText";
+import { AppText, INTER_BOLD, INTER_REGULAR, OPECITY_DARK, SIXTEEN, TWELVE, WHITE } from "../../common/AppText";
 import metrics from "../../assets/Metrics";
 import { colors, newColor } from "../../theme/colors";
-// import { backIcon, blueTikeIcon, reversIcoin } from "../../helper/ImageAssets";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_TAKING_SCREEN } from "../../navigation/routes";
-import { chatHistoryAPI } from "../../actions/authActions";
-import { chatHistoryDetails, matchChatDetails } from "../../slices/loginServices/authSlice";
-import NewHeaderAndroid from "../../common/NewHeaderAndroid";
+import { openMatchChat } from "../../actions/authActions";
 import NewHeader from "../../common/NewHeader";
+import PortraitAvatar from "../../common/PortraitAvatar";
 import { ChatSearchIcon, dummyfemaleProfile, dummyMaleProfile } from "../../helper/ImageAssets";
 
 const normalize = (v: any) => String(v ?? "").toLowerCase();
@@ -22,16 +18,18 @@ const normalize = (v: any) => String(v ?? "").toLowerCase();
 const AllMatchesScreen = () => {
   const dispatch = useDispatch();
   const [search, setSearch] = useState("");
-  const recentMatches = useSelector((state: any) => state.auth.recentMatches) || [];
-  const userData = useSelector((state: any) => state.auth.userData);
+  const recentMatches = useSelector((state: any) => state.auth.recentMatches);
   const query = useMemo(() => normalize(search).trim(), [search]);
 
+  // Same newest-first order as the "New Matches" strip on the Chats screen (copy: never mutate Redux state).
+  const orderedMatches = useMemo(() => [...(recentMatches ?? [])].reverse(), [recentMatches]);
+
   const filtered = useMemo(() => {
-    if (!query) return recentMatches;
-    return recentMatches.filter((m: any) => {
+    if (!query) return orderedMatches;
+    return orderedMatches.filter((m: any) => {
       return normalize(m?.name).includes(query) || normalize(m?.username).includes(query);
     });
-  }, [recentMatches, query]);
+  }, [orderedMatches, query]);
 
   const noSearchFound = useCallback(() => {
     return (
@@ -43,27 +41,13 @@ const AllMatchesScreen = () => {
     );
   }, []);
 
-  const openChat = useCallback(
-    (item: any) => {
-      const data = {
-        otherUserId: item.userId,
-        matchId: item.matchId,
-      };
-      const params = { page: 1, limit: 50 };
-      let forEmptyChat = item?.lastMessage === null ? true :false
-      dispatch(chatHistoryDetails([]));
-      dispatch(matchChatDetails(item));
-      NavigationService.navigate(NAVIGATION_TAKING_SCREEN,{forEmptyChat:forEmptyChat});
-      dispatch(chatHistoryAPI(data, params, false));
-    },
-    [dispatch]
-  );
+  const openChat = useCallback((item: any) => dispatch(openMatchChat(item)), [dispatch]);
 
   const renderItem = useCallback(
     ({ item }: any) => {
       return (
         <TouchableOpacityView onPress={() => openChat(item)} style={styles.row}>
-          <FastImage source={item?.profilePicture ? { uri: item?.profilePicture?.url } : item.gender == "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={styles.avatar} />
+          <PortraitAvatar source={item?.profilePicture?.url ? { uri: item.profilePicture.url } : item.gender == "male" ? dummyMaleProfile : dummyfemaleProfile} style={styles.avatar} />
           {item.online ?
             <View style={{ height: metrics.hp1, width: metrics.hp1, backgroundColor: "#26F600", borderRadius: metrics.hp50, position: "absolute", top: metrics.hp1, left: metrics.hp1 }} /> : <></>}
           <View style={{ flex: 1, marginLeft: metrics.hp2, }}>
@@ -72,9 +56,6 @@ const AllMatchesScreen = () => {
               <AppText style={{ textTransform: "capitalize" }} type={SIXTEEN} weight={INTER_BOLD} color={WHITE}>
                 {item.username ? item.username : item.name}{" "}
               </AppText>
-              {/* {userData?.faceVerified == true && Platform.OS ==="ios"?  <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />:
-               <FastImage source={blueTikeIcon} resizeMode="contain" style={styles.blueTickIcon} />
-              } */}
             </View>
             <AppText type={TWELVE} numberOfLines={1} weight={INTER_REGULAR} color={OPECITY_DARK}>
               Write your first message
