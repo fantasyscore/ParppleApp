@@ -2,16 +2,14 @@ import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React, { memo } from "react";
 import { ImageBackground, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, newColor } from "../theme/colors";
 import metrics from "../assets/Metrics";
 import { TouchableOpacityView } from "./TouchableOpacityView";
 import FastImage from "react-native-fast-image";
-import { AppText, THIRTEEN, INTER_MEDIUM, OPECITY, PURPLE, TWELVE, FORTEEN, WHITE, SCHEHERAZADE_BOLD, ELEVEN, SIXTEEN } from "./AppText";
+import { AppText, BLACK, INTER_BOLD, INTER_MEDIUM, OPECITY, FORTEEN, WHITE, SCHEHERAZADE_BOLD, SIXTEEN, TEN } from "./AppText";
 import NavigationService from "../navigation/NavigationService";
-import { NAVIGATION_CHATS_SCREEN, NAVIGATION_DISCOVER_SCREEN, NAVIGATION_LIKES_YOU_SCREEN, NAVIGATION_PEOPLE_SCREEN, NAVIGATION_PROFILE_SCREEN, NAVIGATION_VIEW_YOU_SCREEN_SCREEN } from "../navigation/routes";
-import { BottomLayer, boyProfileloakBackground, chatAmountBackgroungNew, chatTabNewNrml, chatTabNewNrmlColour, girlProfileLoakBackground, goToProifleIcon, likesYouNewNrml, likesYouNewNrmlColour, lockIconWhite, navBarBottom, pepoleTabNewNrml, pepoleTabNewNrmlColour, rightGoNewIcon, visiterNewNrml, visiterNewNrmlColour } from "../helper/ImageAssets";
+import { NAVIGATION_CHATS_SCREEN, NAVIGATION_LIKES_YOU_SCREEN, NAVIGATION_PEOPLE_SCREEN, NAVIGATION_PROFILE_SCREEN, NAVIGATION_VIEW_YOU_SCREEN_SCREEN } from "../navigation/routes";
+import { boyProfileloakBackground, chatAmountBackgroungNew, chatTabNewNrml, chatTabNewNrmlColour, girlProfileLoakBackground, goToProifleIcon, likesYouNewNrml, likesYouNewNrmlColour, lockIconWhite, navBarBottom, pepoleTabNewNrml, pepoleTabNewNrmlColour, visiterNewNrml, visiterNewNrmlColour } from "../helper/ImageAssets";
 import { useSelector } from "react-redux";
-import { Image } from "react-native";
 import { Screen } from "../theme/dimens";
 
 // PERFORMANCE NOTES (UI unchanged):
@@ -54,24 +52,29 @@ const HiddenProfileOverlay = memo(({ userData }: any) => {
 // Full-screen "Unlock the Profile" banner: isolated + memoized so the blur
 // surface mounts once and is untouched by tab-bar re-renders.
 
-const badgeDotStyle = {
-    borderWidth: metrics.hp0_1, borderRadius: metrics.hp50, borderColor: "#E6B7A8",
-    position: "absolute" as const,
-    zIndex: 1,
-    right: metrics.hp3_5,
-    top: metrics.hp0,
-    height: metrics.hp1,
-    width: metrics.hp1,
-    backgroundColor: "#E6B7A8"
-};
+const MAX_BADGE_COUNT = 99;
+
+/** Small count pill on a tab icon; renders nothing for 0 and caps large numbers at 99+. */
+const TabBadge = memo(({ count }: { count: number }) => {
+    if (!count || count <= 0) return null;
+    return (
+        <View style={styles.badge}>
+            <AppText type={TEN} weight={INTER_BOLD} color={BLACK}>
+                {count > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : count}
+            </AppText>
+        </View>
+    );
+});
 
 const CustomTabBarAndroid = ({ state }: BottomTabBarProps) => {
     const insets = useSafeAreaInsets();
     const userData = useSelector((state: any) => state.auth.userData);
-    const hasLikesBadge = useSelector((state: any) =>
-        Boolean(state.auth.likeByOtherData?.length || state.auth.likeYouData?.length));
-    const hasViewsBadge = useSelector((state: any) =>
-        Boolean(state.auth.viewByOtherData?.length || state.auth.viewYouData?.length));
+    // Numbers (not arrays) so the bar only re-renders when a count actually changes
+    const likedYouCount = useSelector((state: any) => state.auth.likeByOtherData?.length ?? 0);
+    const viewedYouCount = useSelector((state: any) => state.auth.viewByOtherData?.length ?? 0);
+    const unreadChatCount = useSelector((state: any) =>
+        // Each chat with at least one unread message counts once, however many messages it holds
+        (state.auth.newMatches ?? []).filter((chat: any) => Number(chat?.unreadCount) > 0).length);
 
     const getIcon = (route: string, isFocused: boolean, index: number) => {
         return (
@@ -82,16 +85,17 @@ const CustomTabBarAndroid = ({ state }: BottomTabBarProps) => {
                     </View>
                 ) : route === "NAVIGATION_LIKES_YOU_SCREEN" ? (
                     <View style={styles.tabInner}>
-                        {hasLikesBadge ? <View style={badgeDotStyle} /> : <></>}
+                        <TabBadge count={likedYouCount} />
                         <FastImage source={isFocused ? likesYouNewNrmlColour : likesYouNewNrml} resizeMode="contain" style={styles.icons} />
                     </View>
                 ) : route === "NAVIGATION_VIEW_YOU_SCREEN_SCREEN" ? (
                     <View style={styles.tabInner}>
-                        {hasViewsBadge ? <View style={badgeDotStyle} /> : <></>}
+                        <TabBadge count={viewedYouCount} />
                         <FastImage source={isFocused ? visiterNewNrmlColour : visiterNewNrml} resizeMode="contain" style={styles.icons} />
                     </View>
                 ) : (
                     <View style={styles.tabInner}>
+                        <TabBadge count={unreadChatCount} />
                         <FastImage source={isFocused ? chatTabNewNrmlColour : chatTabNewNrml} resizeMode="contain" style={styles.icons} />
                     </View>
                 )}
@@ -137,23 +141,7 @@ const styles = StyleSheet.create({
         paddingVertical: metrics.hp2,
         position: "absolute", bottom: -metrics.hp1,
 
-    },
-    count: {
-        color: "#E6B7A8",
-        marginTop: -metrics.hp0_6,
-        marginLeft: metrics.hp0_3
-    },
-    buttonContainer: {
-        backgroundColor: colors.white,
-        height: metrics.hp9,
-        // Top shadow (tab bar floating effect)
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: -5 },
-        shadowOpacity: 1,
-        shadowRadius: 10,
-        elevation: 20,
-    },
-    flowContainer: {
+    },flowContainer: {
         flexDirection: "row",
         alignItems: "center",
         width: "100%",
@@ -174,12 +162,21 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         width: "100%",
     },
+    badge: {
+        position: "absolute",
+        zIndex: 1,
+        top: 0,
+        right: metrics.hp2,
+        minWidth: metrics.hp2,
+        height: metrics.hp2,
+        paddingHorizontal: metrics.hp0_5,
+        borderRadius: metrics.hp1,
+        backgroundColor: "#E6B7A8",
+        alignItems: "center",
+        justifyContent: "center",
+    },
     icons: {
         height: metrics.hp4_5,
         width: metrics.hp4_5,
     }
-    ,
-    label: {
-        marginTop: metrics.hp0_3,
-    },
-})
+    ,})

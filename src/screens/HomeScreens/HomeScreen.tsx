@@ -8,35 +8,33 @@ import { HomeBackground } from "../../helper/ImageAssets";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import NewHeaderAndroid from "../../common/NewHeaderAndroid";
 import { LikeDislikeOverlays } from "../../common/LikeDislikeOverlays";
-import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
-import { useLatest } from "../../hooks/useLatest";
+import { useProfileModals } from "../../hooks/useProfileModals";
 import { useFaceVerification } from "../../hooks/useFaceVerification";
 import MatchScreen from "./MatchScreen";
 import ViewProfileAndroid from "./ViewProfileAndroid";
 import CrushNotesSender from "./CrushNotesSender";
 import FullScreenImage from "./FullScreenImage";
-import { ITEM_HEIGHT, LIST_TOP_PADDING, SHOW_PROFILE_ACTIONS } from "./home/constants";
-import { isPublishLocked } from "./home/utils";
+import { LIST_TOP_PADDING, SHOW_PROFILE_ACTIONS } from "./home/constants";
+import { isPublishLocked } from "../../utils/profile";
 import { useProfileFeed } from "./home/hooks/useProfileFeed";
-import { useSwipeCounters } from "./home/hooks/useSwipeCounters";
-import { useSwipeActions } from "./home/hooks/useSwipeActions";
 import { useSearchFilters } from "./home/hooks/useSearchFilters";
-import { useMatchSocket } from "./home/hooks/useMatchSocket";
-import { useScrollToTopButton } from "./home/hooks/useScrollToTopButton";
-import { usePushPermissionPrompt } from "./home/hooks/usePushPermissionPrompt";
-import ProfileListCard from "./home/components/ProfileListCard";
-import ProfileActionsSheet, { ProfileActionsSheetHandle } from "./home/components/ProfileActionsSheet";
+import { useSwipeCounters } from "../../hooks/useSwipeCounters";
+import { useSwipeActions } from "../../hooks/useSwipeActions";
+import { useMatchSocket } from "../../hooks/useMatchSocket";
+import { useScrollToTopButton } from "../../hooks/useScrollToTopButton";
+import { usePushPermissionPrompt } from "../../hooks/usePushPermissionPrompt";
+import ProfileListCard, { CARD_ITEM_HEIGHT } from "../../components/ProfileCard/ProfileListCard";
+import ProfileActionsSheet, { ProfileActionsSheetHandle } from "../../components/ProfileCard/ProfileActionsSheet";
 import FeedEmptyState from "./home/components/FeedEmptyState";
 import FilterSheet from "./home/components/FilterSheet";
 import LikeLimitModal from "./home/components/LikeLimitModal";
-import ScrollToTopButton from "./home/components/ScrollToTopButton";
+import ScrollToTopButton from "../../common/ScrollToTopButton";
 
 const keyExtractor = (item: any, index: number) => item?._id ?? `profile-${index}`;
 
 const getItemLayout = (_: any, index: number) => ({
-  length: ITEM_HEIGHT,
-  offset: LIST_TOP_PADDING + ITEM_HEIGHT * index,
+  length: CARD_ITEM_HEIGHT,
+  offset: LIST_TOP_PADDING + CARD_ITEM_HEIGHT * index,
   index,
 });
 
@@ -47,7 +45,6 @@ const getItemLayout = (_: any, index: number) => ({
 const HomeScreen = () => {
   const isFocused = useIsFocused();
   const userData = useSelector((state: any) => state.auth.userData);
-  const userDataRef = useLatest(userData);
   const isLocked = isPublishLocked(userData);
 
   // ---- Feed + list chrome ----
@@ -56,20 +53,12 @@ const HomeScreen = () => {
   usePushPermissionPrompt();
 
   // ---- Modals ----
-  const [selectedProfile, setSelectedProfile] = useState<any>({});
-  const [previewVisible, setPreviewVisible] = useState(false);
-  const [crushNoteVisible, setCrushNoteVisible] = useState(false);
-  const [galleryViewer, setGalleryViewer] = useState<{ visible: boolean; items: any[]; index: number }>({
-    visible: false,
-    items: [],
-    index: 0,
-  });
+  const modals = useProfileModals(userData);
   const [likeLimitVisible, setLikeLimitVisible] = useState(false);
   const faceVerification = useFaceVerification();
   const { reset: resetFaceVerification } = faceVerification;
   const actionsSheetRef = useRef<ProfileActionsSheetHandle>(null);
 
-  const closePreview = useCallback(() => setPreviewVisible(false), []);
   const openLikeLimit = useCallback(() => {
     resetFaceVerification();
     setLikeLimitVisible(true);
@@ -83,7 +72,7 @@ const HomeScreen = () => {
     remainingSwipesRef,
     consumeSwipe,
     removeProfile: feed.removeProfile,
-    onActionStart: closePreview,
+    onActionStart: modals.closePreview,
     onVerifyForMoreLikes: openLikeLimit,
   });
 
@@ -92,30 +81,7 @@ const HomeScreen = () => {
   const match = useMatchSocket(userData?._id, isFocused);
 
   // ---- Card handlers (stable so memoized rows don't re-render) ----
-  const openPreview = useCallback((profile: any) => {
-    setSelectedProfile(profile);
-    setPreviewVisible(true);
-  }, []);
-
-  const openCrushNote = useCallback(
-    (profile: any) => {
-      const user = userDataRef.current;
-      if (isPublishLocked(user)) {
-        NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN);
-      } else if (user?.crushNotesRemaining === 0) {
-        NavigationService.navigate(NAVIGATION_CRUSH_PURCHESE_SCREEN);
-      } else {
-        setSelectedProfile(profile);
-        setCrushNoteVisible(true);
-      }
-    },
-    [userDataRef]
-  );
-
-  const openGallery = useCallback((items: any[], index: number = 0) => {
-    setGalleryViewer({ visible: true, items, index });
-  }, []);
-  const closeGallery = useCallback((visible: boolean) => setGalleryViewer((viewer) => ({ ...viewer, visible })), []);
+  const removeBlockedProfile = useCallback((profile: any) => feed.removeProfile(profile._id), [feed.removeProfile]);
   const openProfileActions = useCallback((profile: any) => actionsSheetRef.current?.open(profile), []);
 
   const renderItem = useCallback(
@@ -125,13 +91,13 @@ const HomeScreen = () => {
         isLocked={isLocked}
         onLike={like}
         onDislike={dislike}
-        onOpenPreview={openPreview}
-        onCrushNote={openCrushNote}
-        onOpenGallery={openGallery}
+        onOpenPreview={modals.openPreview}
+        onCrushNote={modals.openCrushNote}
+        onOpenGallery={modals.openGallery}
         onOpenActions={SHOW_PROFILE_ACTIONS ? openProfileActions : undefined}
       />
     ),
-    [isLocked, like, dislike, openPreview, openCrushNote, openGallery, openProfileActions]
+    [isLocked, like, dislike, modals.openPreview, modals.openCrushNote, modals.openGallery, openProfileActions]
   );
 
   const emptyState = useMemo(
@@ -186,26 +152,21 @@ const HomeScreen = () => {
         crushlikeIconAnimatedStyle={animation.crushlikeIconAnimatedStyle}
       />
 
-      <Modal animationType="fade" visible={previewVisible} statusBarTranslucent onRequestClose={closePreview}>
+      <Modal animationType="fade" visible={modals.previewVisible} statusBarTranslucent onRequestClose={modals.closePreview}>
         <ViewProfileAndroid
-          currentProfileData={selectedProfile}
-          setModalVisible={setPreviewVisible}
+          currentProfileData={modals.selectedProfile}
+          setModalVisible={modals.setPreviewVisible}
           handleDislikePress={dislike}
           handleLikePress={like}
-          handleCrushNote={openCrushNote}
-          showFullProfile={openGallery}
+          handleCrushNote={modals.openCrushNote}
+          showFullProfile={modals.openGallery}
         />
       </Modal>
-      <Modal
-        animationType="fade"
-        visible={crushNoteVisible}
-        statusBarTranslucent
-        onRequestClose={() => setCrushNoteVisible(false)}
-      >
+      <Modal animationType="fade" visible={modals.crushNoteVisible} statusBarTranslucent onRequestClose={modals.closeCrushNote}>
         <CrushNotesSender
-          setCrushNoteVisible={setCrushNoteVisible}
-          crushNoteVisible={crushNoteVisible}
-          currentProfileData={selectedProfile}
+          setCrushNoteVisible={modals.setCrushNoteVisible}
+          crushNoteVisible={modals.crushNoteVisible}
+          currentProfileData={modals.selectedProfile}
           handleCrushNotes={crushNoteSent}
         />
       </Modal>
@@ -222,10 +183,14 @@ const HomeScreen = () => {
         animationType="fade"
         transparent
         statusBarTranslucent
-        visible={galleryViewer.visible}
-        onRequestClose={() => closeGallery(false)}
+        visible={modals.galleryViewer.visible}
+        onRequestClose={() => modals.setGalleryVisible(false)}
       >
-        <FullScreenImage gallaryData={galleryViewer.items} setFullImage={closeGallery} initialIndex={galleryViewer.index} />
+        <FullScreenImage
+          gallaryData={modals.galleryViewer.items}
+          setFullImage={modals.setGalleryVisible}
+          initialIndex={modals.galleryViewer.index}
+        />
       </Modal>
 
       <FilterSheet filters={filters} />
@@ -236,7 +201,7 @@ const HomeScreen = () => {
         onStart={faceVerification.start}
         onClose={closeLikeLimit}
       />
-      <ProfileActionsSheet ref={actionsSheetRef} />
+      <ProfileActionsSheet ref={actionsSheetRef} onBlocked={removeBlockedProfile} />
     </AppSafeAreaView>
   );
 };

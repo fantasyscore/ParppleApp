@@ -1,692 +1,189 @@
-import React, { useEffect, useRef, useState } from "react";
-import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { ActivityIndicator, Alert, Animated, FlatList, ImageBackground, Modal, Platform, StyleSheet, View } from "react-native";
-import OneTimeProductHeader from "../../common/OneTimeProductHeader";
-import { applogo, BottomLayer, chatAmountBackgroungNew, chatPurchaseBlack, chatPurchaseColour, chatsPurchesNewBackground, closeNewWhiteIcon, crushParBack, flasIcon, goldCard, logoBlue, orBottomIcon, Platinum, platinumUpgrade, popularBackground, premiumIcon, purchaseImageNew, superlIkeBackGround, timeShowNewBackground, upgradPlan } from "../../helper/ImageAssets";
-import LinearGradient from "react-native-linear-gradient";
-import { AppText, BLACK, EIGHT, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, INTER_EXTRA_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, OPECITY_DARK, SCHEHERAZADE_BOLD, SIXTEEN, TEN, THIRTEEN, TWELVE, TWENTY, TWENTY_FOUR, TWENTY_TWO, WHITE } from "../../common/AppText";
-import metrics from "../../assets/Metrics";
+import React from "react";
+import { FlatList, ImageBackground, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
-import { colors, newColor } from "../../theme/colors";
+import LinearGradient from "react-native-linear-gradient";
+import { AppSafeAreaView } from "../../common/AppSafeAreaView";
+import { AppText, BLACK, EIGHTEEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_REGULAR, OPECITY, SCHEHERAZADE_BOLD, TEN, THIRTEEN, TWELVE, TWENTY, TWENTY_FOUR, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
-import * as RNIap from '../../utils/iapWrapper';
-import { trackSuccessfulPurchase, getPurchaseTransactionId } from '../../services/analyticsService';
-import { getAlreadyRecoveredTransactionIds, addRecoveredTransactionIds } from '../../services/purchaseRecoveryService';
+import metrics from "../../assets/Metrics";
+import { newColor } from "../../theme/colors";
+import { BottomLayer, chatAmountBackgroungNew, chatPurchaseBlack, chatPurchaseColour, chatsPurchesNewBackground, closeNewWhiteIcon, popularBackground, timeShowNewBackground } from "../../helper/ImageAssets";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
-import { useDispatch } from "react-redux";
-import { getProfile, iosPucrchesAPIIs, subscriptionVerifyAPI, verifyconsumableitemsAPI } from "../../actions/authActions";
+import PaymentStatusModal from "../../components/Payment/PaymentStatusModal";
+import { useCrushNotePurchase } from "./crushNote/useCrushNotePurchase";
 
-// One-time Product SKUs
-const PRODUCT_SKUS = Platform.select({
-    android: ['20_chats', '10_chats', '5_chats'],
-    ios: ['10_crush_notes', '3_crush_notes', '1_crush_note'],
-}) ?? ['20_chats', '10_chats', '5_chats'];
-
-// Helper to extract numeric price for calculations
-const extractPriceNumber = (priceStr: string): { amount: number; currency: string } => {
-    const amountMatch = priceStr.match(/[\d,.]+/);
-    const amount = amountMatch ? parseFloat(amountMatch[0].replace(/,/g, '')) : 0;
-    const currency = priceStr.replace(/[\d,.\s]+/g, '') || '₹';
-    return { amount, currency };
-};
-
+/** Store screen for chat packs (crush notes): pick a pack, pay, and see the verification result. */
 const CrushNotePurchase = () => {
-    const dispatch = useDispatch();
-    const [select, setSelect] = useState(0);
-    const [products, setProducts] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [processing, setProcessing] = useState<string | null>(null);
-    const lastVerifiedKeyRef = useRef<string | null>(null);
-    const isVerifyingRef = useRef(false);
-    const purchaseInitiatedRef = useRef(false);
-    const [verifyModalVisible, setVerifyModalVisible] = useState(false);
-    const [verifyStage, setVerifyStage] = useState<'verifying' | 'success' | 'error'>('verifying');
-    const [verifyError, setVerifyError] = useState<string>('');
-    const [verifyResponse, setVerifyResponse] = useState<any>(null);
-    const payModalScale = useRef(new Animated.Value(0.96)).current;
-    const payModalOpacity = useRef(new Animated.Value(0)).current;
+  const { products, select, setSelect, processing, startPurchase, verify } = useCrushNotePurchase();
+  const selectedPack = products[select];
 
-    useEffect(() => {
-        if (!verifyModalVisible) return;
-        payModalOpacity.setValue(0);
-        payModalScale.setValue(0.96);
-        Animated.parallel([
-            Animated.timing(payModalOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
-            Animated.timing(payModalScale, { toValue: 1, duration: 180, useNativeDriver: true }),
-        ]).start();
-    }, [payModalOpacity, payModalScale, verifyModalVisible]);
-
-    useEffect(() => {
-        let purchaseUpdateSubscription: any;
-        let purchaseErrorSubscription: any;
-
-        const initializeIAP = async () => {
-            try {
-                setLoading(true);
-                await RNIap.initConnection();
-
-                const rawProducts = await RNIap.getProducts({ skus: PRODUCT_SKUS });
-                const availableProducts = Array.isArray(rawProducts) ? rawProducts : [];
-
-                if (availableProducts.length > 0) {
-                    // First pass: calculate all products with per-item pricing
-                    const productsWithPricing = availableProducts.map((prod: any) => {
-                        const productId = (prod.productId || prod.id || '').toString();
-                        const countStr = productId.match(/\d+/)?.[0] || '1';
-                        const n = parseInt(countStr);
-
-                        const fullPriceStr = prod.localizedPrice || prod.displayPrice || '₹0';
-                        const priceInfo = extractPriceNumber(fullPriceStr);
-                        const total = priceInfo.amount;
-
-                        // Rule: Compute exact per-item value, then floor to 2 decimal places for items 1 to (n-1)
-                        const perItemFixed = Math.floor((total / n) * 100) / 100;
-                        const lastItemAmount = Number((total - (perItemFixed * (n - 1))).toFixed(2));
-
-                        // Proof check
-                        const proofSum = Number(((perItemFixed * (n - 1)) + lastItemAmount).toFixed(2));
-                        console.log(`[Crush Note IAP Proof Check] - Pack: ${n}, Total: ${total}, Breakdown: ${perItemFixed}x${n - 1} + ${lastItemAmount} = ${proofSum}`);
-
-                        const perItemPriceStr = `${priceInfo.currency}${perItemFixed.toFixed(2)}`;
-
-                        return {
-                            ...prod,
-                            count: n,
-                            displayPrice: fullPriceStr,
-                            perItemPrice: perItemPriceStr,
-                            perItemPriceAmount: perItemFixed,
-                            totalAmount: total,
-                            currency: priceInfo.currency,
-                        };
-                    });
-
-                    // Find base price (single unit pack)
-                    const singleUnitPack = productsWithPricing.find((p: any) => p.count === 1);
-                    const baseUnitPrice = singleUnitPack?.perItemPriceAmount || 0;
-
-                    // Second pass: calculate discounts and labels
-                    const formattedProducts = productsWithPricing.map((prod: any) => {
-                        const n = prod.count;
-                        let discount = "";
-                        let discountPercent = 0;
-                        let label = "";
-
-                        if (n > 1 && baseUnitPrice > 0) {
-                            // Calculate discount: (baseUnitPrice - perUnitPackPrice) / baseUnitPrice * 100
-                            const perUnitSavings = baseUnitPrice - prod.perItemPriceAmount;
-                            discountPercent = Number(((perUnitSavings / baseUnitPrice) * 100).toFixed(2));
-                            const roundedDiscount = Math.round(discountPercent);
-
-                            // UI Rules: Show discount badge if ≥ 10%, add "Best Value" if ≥ 25%
-                            if (roundedDiscount >= 10) {
-                                discount = `Save ${roundedDiscount}%`;
-                            }
-                            if (roundedDiscount >= 25) {
-                                label = 'Best Value';
-                            } else if (n === 3) {
-                                label = 'Most Popular';
-                            }
-                        }
-
-                        return {
-                            ...prod,
-                            discount,
-                            discountPercent,
-                            label,
-                        };
-                    });
-
-                    // Sort descending by count
-                    formattedProducts.sort((a: any, b: any) => b.count - a.count);
-                    setProducts(formattedProducts);
-                }
-            } catch (err) {
-                console.warn('IAP Initialization Error:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: any) => {
-            let isInitiated = false;
-            try {
-                // Pending (e.g. slow payment method): not paid yet. Don't verify or consume it, and keep
-                // purchaseInitiatedRef so the later 'purchased' update still shows the verify modal.
-                if (purchase?.purchaseState === 'pending') {
-                    console.log('[Crush Note] Purchase pending, waiting for completion');
-                    return;
-                }
-                const key = getPurchaseTransactionId(purchase);
-
-                // Duplicate protection check
-                const alreadyVerified = await getAlreadyRecoveredTransactionIds();
-                if (key && alreadyVerified.has(key)) {
-                    console.log(`[Crush Note] Transaction ${key} already verified. Skipping duplicate.`);
-                    try {
-                        await RNIap.finishTransaction({ purchase, isConsumable: true });
-                    } catch (e) {
-                        console.warn('[Crush Note] Duplicate finishTransaction skipped/failed:', e);
-                    }
-                    return;
-                }
-
-                if (isVerifyingRef.current) return;
-                if (key && lastVerifiedKeyRef.current === key) return;
-
-                isVerifyingRef.current = true;
-                lastVerifiedKeyRef.current = key || null;
-
-                isInitiated = purchaseInitiatedRef.current;
-                purchaseInitiatedRef.current = false;
-
-                if (isInitiated) {
-                    setVerifyModalVisible(true);
-                    setVerifyStage('verifying');
-                    setVerifyError('');
-                    setVerifyResponse(null);
-                    setProcessing(purchase?.productId || 'verifying');
-                }
-
-                const data = {
-                    productId: purchase.productId,
-                    purchaseToken: purchase.purchaseToken,
-                    platform: Platform.OS === 'ios' ? 'ios' : 'android',
-                    orderId: purchase.id,
-                    transactionReceipt: purchase?.transactionReceipt,
-                    transactionId: purchase?.transactionId
-                };
-                const newdata = {
-                    productId: purchase?.productId,
-                    transactionReceipt: purchase?.transactionReceipt,
-                    transactionId: purchase?.transactionId
-                }
-                const response: any = Platform.OS === "ios" ? await dispatch(iosPucrchesAPIIs(newdata)) : await dispatch(verifyconsumableitemsAPI(data));
-                const isOk = response?.statusCode === 200
-
-                if (!isOk) {
-                    throw new Error(response?.message || response?.data?.message || 'Crush Note verification failed');
-                }
-
-                await trackSuccessfulPurchase(purchase, 'in-app');
-
-                if (key) {
-                    await addRecoveredTransactionIds([key]);
-                }
-
-                if (isInitiated) {
-                    setVerifyResponse(response);
-                    setVerifyStage('success');
-                }
-                dispatch(getProfile(true))
-                try {
-                    await RNIap.finishTransaction({ purchase, isConsumable: true });
-                } catch (finishErr) {
-                    console.warn('[Crush Note] Client finishTransaction failed (possibly already consumed by server):', finishErr);
-                }
-            } catch (err) {
-                console.error('[Crush Note] Purchase handler error:', err);
-                if (isInitiated) {
-                    setVerifyStage('error');
-                    setVerifyError((err as any)?.message || 'Something went wrong while verifying your purchase.');
-                }
-            } finally {
-                setProcessing(null);
-                isVerifyingRef.current = false;
-            }
-        });
-
-        purchaseErrorSubscription = RNIap.purchaseErrorListener((error: any) => {
-            setProcessing(null);
-            purchaseInitiatedRef.current = false;
-            if (!error.message?.toLowerCase().includes('cancel')) {
-                Alert.alert('Error', error.message || 'An error occurred during purchase.');
-            }
-        });
-
-        initializeIAP();
-
-        return () => {
-            if (purchaseUpdateSubscription) purchaseUpdateSubscription.remove();
-            if (purchaseErrorSubscription) purchaseErrorSubscription.remove();
-            RNIap.endConnection();
-        };
-    }, []);
-
-    const handlePurchase = async () => {
-        if (processing) return;
-        const selectedProduct = products[select];
-        if (!selectedProduct) return;
-
-        const productId = (selectedProduct as any).productId || (selectedProduct as any).id;
-        if (!productId) return;
-
-        try {
-            setProcessing(String(productId));
-            purchaseInitiatedRef.current = true;
-
-            // iOS (v12): requestPurchase({ sku }). Android (v14): requestPurchase({ request: { android: { skus } }, type: 'in-app' }).
-            if (Platform.OS === 'ios') {
-                await RNIap.requestPurchase({
-                    sku: productId,
-                    andDangerouslyFinishTransactionAutomaticallyIOS: false,
-                });
-            } else {
-                await RNIap.requestPurchase({ skus: [productId] });
-            }
-        } catch (err: any) {
-            setProcessing(null);
-            purchaseInitiatedRef.current = false;
-            if (!err?.message?.toLowerCase?.().includes('cancel')) {
-                console.warn('Purchase Error:', err);
-            }
-        }
-    };
-
-    const renderItem = ({ item, index }: { item: any, index: number }) => {
-        const isSelected = select === index;
-        return (
-            <TouchableOpacityView activeOpacity={0.8} onPress={() => setSelect(index)} style={[styles.conatiner, { backgroundColor: isSelected ? colors.purple : colors.white }]}>
-                <View>
-                    {item.label ? (
-                        <View style={{ flexDirection: "row", alignItems: "center", borderBottomWidth: metrics.hp0_1, borderColor: isSelected ? colors.white : colors.black, paddingBottom: metrics.hp0_2, marginBottom: metrics.hp0_5 }}>
-                            <FastImage source={flasIcon} resizeMode="contain" tintColor={isSelected ? colors.white : colors.black} style={{ height: metrics.hp1_5, width: metrics.hp1_5 }} />
-                            <AppText type={TWELVE} color={isSelected ? WHITE : BLACK} weight={INTER_MEDIUM}>
-                                {"  "}{item.label}
-                            </AppText>
-                        </View>
-                    ) : null}
-                    <AppText color={isSelected ? WHITE : BLACK} type={SIXTEEN} weight={INTER_EXTRA_BOLD}>
-                        {item.count}<AppText color={isSelected ? WHITE : BLACK} type={FORTEEN} weight={INTER_BOLD}>
-                            {"  "}Crush Note
-                        </AppText>
-                    </AppText>
-                </View>
-                <View style={{ alignItems: "flex-end", marginTop: -metrics.hp0_1 }}>
-                    {item.discount ? (
-                        <View style={styles.discountContainer}>
-                            <AppText type={EIGHT} weight={INTER_SEMI_BOLD} color={WHITE}>
-                                {item.discount}
-                            </AppText>
-                        </View>
-                    ) : null}
-                    <AppText style={{ marginTop: metrics.hp1 }} type={THIRTEEN} color={isSelected ? WHITE : BLACK} weight={INTER_MEDIUM}>
-                        {item.perItemPrice}/ea
-                    </AppText>
-                </View>
-            </TouchableOpacityView>
-        )
-    }
-
-    // if (loading) {
-    //     return (
-    //         <AppSafeAreaView>
-    //             <ImageBackground source={superlIkeBackGround} resizeMode="cover" style={{ flex: 1 }}>
-    //                 <OneTimeProductHeader title={"Get Crush Note"} />
-    //                 <View style={styles.loadingContainer}>
-    //                     <ActivityIndicator size="large" color={colors.purple} />
-    //                     <AppText style={{ marginTop: metrics.hp2 }} type={TWELVE} weight={INTER_MEDIUM}>Loading Crush Notes...</AppText>
-    //                 </View>
-    //             </ImageBackground>
-    //         </AppSafeAreaView>
-    //     );
-    // }
-    const subscriptionItem = { id: '3', icon: Platinum, title: 'Platinum' }
-
+  const renderPack = ({ item, index }: { item: any; index: number }) => {
+    const isSelected = select === index;
     return (
-        <AppSafeAreaView color={newColor.blackNew}>
-            <ImageBackground source={chatsPurchesNewBackground} resizeMode="stretch" style={{ height: metrics.hp30, width: "100%" }}>
-                <TouchableOpacityView onPress={() => NavigationService.goBack()} style={{ width: "100%", paddingVertical: metrics.hp3, marginTop: metrics.hp2, alignItems: "flex-end", paddingHorizontal: metrics.hp2 }}>
-                    <FastImage source={closeNewWhiteIcon} resizeMode="contain" style={{ height: metrics.hp4, width: metrics.hp4 }} />
-                </TouchableOpacityView>
+      <TouchableOpacityView activeOpacity={1} onPress={() => setSelect(index)}>
+        <ImageBackground source={isSelected ? chatPurchaseColour : chatPurchaseBlack} resizeMode="stretch" style={styles.pack}>
+          <AppText style={{ color: isSelected ? "black" : "#E6B7A8" }} type={TWENTY} weight={SCHEHERAZADE_BOLD}>
+            {item.count}
+          </AppText>
+          <AppText style={styles.packUnit} type={THIRTEEN} weight={INTER_REGULAR} color={isSelected ? BLACK : WHITE}>
+            Chats
+          </AppText>
+          {isSelected ? (
+            <ImageBackground source={chatAmountBackgroungNew} resizeMode="stretch" style={styles.priceTag}>
+              <AppText type={TEN} color={WHITE} weight={INTER_BOLD}>
+                {item.perItemPrice} / Chat
+              </AppText>
             </ImageBackground>
-            <LinearGradient colors={["#21212350", "#212123"]} style={{ paddingHorizontal: metrics.hp2, marginTop: -metrics.hp3 }}>
-                <AppText style={{ textAlign: "center" }} weight={SCHEHERAZADE_BOLD} type={TWENTY_FOUR} color={WHITE}>
-                    Let Your First Message
-                </AppText>
-                <AppText style={{ marginTop: -metrics.hp3, textAlign: "center" }} weight={SCHEHERAZADE_BOLD} type={TWENTY_FOUR} color={WHITE}>
-                    Create the Magic.
-                </AppText>
-                <AppText style={{ textAlign: "center", marginTop: -metrics.hp1_5 }} type={FORTEEN} weight={INTER_MEDIUM} color={OPECITY}>
-                    Where Every Conversation Begins with{'\n'} Mystery.
-                </AppText>
-            </LinearGradient>
-            <FlatList
-                data={products}
-                keyExtractor={(item: any) => (item.productId || item.id).toString()}
-                showsVerticalScrollIndicator={false}
-                renderItem={({ item, index }) => {
-                    console.log(item, "item.discount");
-
-                    const isSelected = select === index;
-                    return (
-                        <TouchableOpacityView activeOpacity={1} onPress={() => setSelect(index)}>
-                            <ImageBackground source={isSelected ? chatPurchaseColour : chatPurchaseBlack} resizeMode="stretch" style={{ height: metrics.hp17, width: metrics.hp13, alignItems: "center", justifyContent: "center" }}>
-                                <AppText style={{ color: isSelected ? "black" : "#E6B7A8" }} type={TWENTY} weight={SCHEHERAZADE_BOLD}>
-                                    {item.count}
-                                </AppText>
-                                <AppText style={{ marginTop: -metrics.hp1_5 }} type={THIRTEEN} weight={INTER_REGULAR} color={isSelected ? BLACK : WHITE}>
-                                    Chats
-                                </AppText>
-                                {isSelected ?
-                                    <ImageBackground source={chatAmountBackgroungNew} resizeMode="stretch" style={{ height: metrics.hp4_6, width: metrics.hp12, bottom: -metrics.hp2, position: "absolute", alignItems: "center", justifyContent: "center" }}>
-                                        <AppText type={TEN} color={WHITE} weight={INTER_BOLD}>
-                                            {item.perItemPrice} / Chat
-                                        </AppText>
-                                    </ImageBackground> : <ImageBackground source={timeShowNewBackground} tintColor={"#E6B7A8"} resizeMode="stretch" style={{ height: metrics.hp4_6, width: metrics.hp12, bottom: -metrics.hp2, position: "absolute", alignItems: "center", justifyContent: "center" }}>
-                                        <AppText type={TEN} weight={INTER_BOLD}>
-                                            {item.perItemPrice} / Chat
-                                        </AppText>
-                                    </ImageBackground>}
-                                {index === 1 ?
-                                    <ImageBackground source={popularBackground} resizeMode="stretch" style={{ height: metrics.hp3_5, width: metrics.hp9, position: "absolute", right: -metrics.hp0_4, top: metrics.hp1, alignItems: "center", justifyContent: "center" }}>
-                                        <AppText style={{ marginTop: -metrics.hp1 }} type={TWELVE} weight={SCHEHERAZADE_BOLD} color={BLACK}>
-                                            {"   Popular"}
-                                        </AppText>
-                                    </ImageBackground> : <></>}
-                            </ImageBackground>
-                        </TouchableOpacityView>
-                    )
-                }}
-                horizontal
-                contentContainerStyle={{ paddingHorizontal: metrics.hp2, marginTop: metrics.hp2, gap: metrics.hp1 }}
-            />
-            <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
-                <TouchableOpacityView style={{ width: "100%", paddingHorizontal: metrics.hp2 }} onPress={handlePurchase}
-                    disabled={!!processing || products.length === 0}>
-                    <LinearGradient colors={["#D08FA9", "#FDD2C1"]} style={{ height: metrics.hp7, width: "100%", alignItems: "center", justifyContent: "center" }}>
-                        <AppText type={EIGHTEEN} weight={SCHEHERAZADE_BOLD} color={BLACK}>
-                            Get {products[select]?.count || ''} chats for {products[select]?.displayPrice || ''}
-                        </AppText>
-                    </LinearGradient>
-                </TouchableOpacityView>
+          ) : (
+            <ImageBackground source={timeShowNewBackground} tintColor="#E6B7A8" resizeMode="stretch" style={styles.priceTag}>
+              <AppText type={TEN} weight={INTER_BOLD}>
+                {item.perItemPrice} / Chat
+              </AppText>
             </ImageBackground>
-            {/* <ImageBackground source={crushParBack} resizeMode="cover" style={{ flex: 1 }}>
-                <OneTimeProductHeader title={"Get Crush Note"} />
-                <View style={{ alignItems: "center", justifyContent: "center", marginTop: metrics.hp7 }}>
-                    <AppText weight={SCHEHERAZADE_BOLD} type={TWENTY_TWO} color={BLACK}>
-                        “Turn Every Crush into a Real
-                    </AppText>
-                    <AppText style={{ marginTop: -metrics.hp3 }} weight={SCHEHERAZADE_BOLD} type={TWENTY_TWO} color={BLACK}>
-                        Chance — 4x More Connections!
-                    </AppText>
-                </View>
-                <View style={styles.PremiumText}>
-                    <FastImage source={premiumIcon} resizeMode="contain" style={styles.pencilIcon} />
-                    <AppText type={TWELVE} weight={INTER_SEMI_BOLD}>{"  "}Choose your crush note</AppText>
-                </View>
-                <FlatList
-                    data={products}
-                    keyExtractor={(item: any) => (item.productId || item.id).toString()}
-                    showsVerticalScrollIndicator={false}
-                    renderItem={renderItem}
-                    contentContainerStyle={{ paddingHorizontal: metrics.hp2, marginTop: metrics.hp2 }}
-                />
-                <FastImage source={orBottomIcon} resizeMode="contain" style={{ height: metrics.hp2_4, width: "100%", marginTop: metrics.hp4 }} />
-                <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: subscriptionItem })}>
-                    <FastImage source={platinumUpgrade} resizeMode="contain" style={styles.imageiContainer} />
-                </TouchableOpacityView>
-                <View style={styles.bottomcontainer}>
-                    <AppText weight={INTER_REGULAR} type={TEN}>
-                        By tapping Upgrade, your payment will be charged... Manage your subscription anytime in settings and you agree to our
-                        <AppText style={{ textDecorationLine: "underline" }} weight={INTER_SEMI_BOLD} type={TEN}> Terms</AppText>
-                    </AppText>
-                    <TouchableOpacityView
-                        onPress={handlePurchase}
-                        disabled={!!processing || products.length === 0}
-                        style={[styles.buttonContiner, (processing || products.length === 0) && styles.buttonDisabled]}
-                    >
-                        {processing ? (
-                            <ActivityIndicator size="small" color={colors.white} />
-                        ) : (
-                            <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={FORTEEN}>
-                                Get {products[select]?.count || ''} Crush Notes for {products[select]?.displayPrice || ''}
-                            </AppText>
-                        )}
-                    </TouchableOpacityView>
-                </View>
-            </ImageBackground> */}
+          )}
+          {index === 1 ? (
+            <ImageBackground source={popularBackground} resizeMode="stretch" style={styles.popularTag}>
+              <AppText style={styles.popularText} type={TWELVE} weight={SCHEHERAZADE_BOLD} color={BLACK}>
+                {"   Popular"}
+              </AppText>
+            </ImageBackground>
+          ) : null}
+        </ImageBackground>
+      </TouchableOpacityView>
+    );
+  };
 
-            <Modal
-                visible={verifyModalVisible}
-                transparent
-                animationType="fade"
-                statusBarTranslucent
-                hardwareAccelerated
-                onRequestClose={() => { }}
-            >
-                <View style={styles.payBackdrop}>
-                    <Animated.View style={[styles.payCard, { opacity: payModalOpacity, transform: [{ scale: payModalScale }] }]}>
-                        <View style={styles.payContent}>
-                            <View style={styles.payIconRing}>
-                                <FastImage source={applogo} resizeMode="contain" style={styles.payIcon} tintColor={colors.black}/>
-                            </View>
+  return (
+    <AppSafeAreaView color={newColor.blackNew}>
+      <ImageBackground source={chatsPurchesNewBackground} resizeMode="stretch" style={styles.hero}>
+        <TouchableOpacityView onPress={() => NavigationService.goBack()} style={styles.closeButton}>
+          <FastImage source={closeNewWhiteIcon} resizeMode="contain" style={styles.closeIcon} />
+        </TouchableOpacityView>
+      </ImageBackground>
+      <LinearGradient colors={["#21212350", "#212123"]} style={styles.headline}>
+        <AppText style={styles.centered} weight={SCHEHERAZADE_BOLD} type={TWENTY_FOUR} color={WHITE}>
+          Let Your First Message
+        </AppText>
+        <AppText style={[styles.centered, styles.headlineSecond]} weight={SCHEHERAZADE_BOLD} type={TWENTY_FOUR} color={WHITE}>
+          Create the Magic.
+        </AppText>
+        <AppText style={[styles.centered, styles.headlineSub]} type={FORTEEN} weight={INTER_MEDIUM} color={OPECITY}>
+          Where Every Conversation Begins with{"\n"} Mystery.
+        </AppText>
+      </LinearGradient>
+      <FlatList
+        data={products}
+        keyExtractor={(item: any) => (item.productId || item.id).toString()}
+        showsVerticalScrollIndicator={false}
+        renderItem={renderPack}
+        horizontal
+        contentContainerStyle={styles.packList}
+      />
+      <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
+        <TouchableOpacityView style={styles.buyTouchable} onPress={startPurchase} disabled={!!processing || products.length === 0}>
+          <LinearGradient colors={["#D08FA9", "#FDD2C1"]} style={styles.buyButton}>
+            <AppText type={EIGHTEEN} weight={SCHEHERAZADE_BOLD} color={BLACK}>
+              Get {selectedPack?.count || ""} chats for {selectedPack?.displayPrice || ""}
+            </AppText>
+          </LinearGradient>
+        </TouchableOpacityView>
+      </ImageBackground>
 
-                            <AppText
-                                type={FORTEEN}
-                                weight={INTER_EXTRA_BOLD}
-                                color={LIGHT_BLACK}
-                                style={{ textAlign: "center", marginTop: metrics.hp1 }}
-                            >
-                                {verifyStage === "success"
-                                    ? "Payment Successful"
-                                    : verifyStage === "error"
-                                        ? "Payment Verification Failed"
-                                        : "Verifying Payment"}
-                            </AppText>
-
-                            {verifyStage === "success" ? (
-                                <>
-                                    <AppText
-                                        type={ELEVEN}
-                                        weight={INTER_REGULAR}
-                                        color={OPECITY_DARK}
-                                        style={{ textAlign: "center", marginTop: metrics.hp1 }}
-                                    >
-                                        Your payment has been completed successfully. Crush Notes have been added to your account.
-                                    </AppText>
-                                    <AppText
-                                        type={ELEVEN}
-                                        weight={INTER_MEDIUM}
-                                        color={OPECITY_DARK}
-                                        style={{ textAlign: "center", marginTop: metrics.hp1 }}
-                                    >
-                                        Enjoy unlimited access and exclusive benefits!
-                                    </AppText>
-
-                                    {verifyResponse?.data?.transactionId ? (
-                                        <View style={styles.payMetaBox}>
-                                            <AppText type={TEN} weight={INTER_SEMI_BOLD} color={LIGHT_BLACK}>
-                                                Transaction ID
-                                            </AppText>
-                                            <AppText type={TEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ marginTop: metrics.hp0_5 }}>
-                                                {verifyResponse?.data?.transactionId}
-                                            </AppText>
-                                        </View>
-                                    ) : null}
-                                </>
-                            ) : verifyStage === "error" ? (
-                                <AppText
-                                    type={ELEVEN}
-                                    weight={INTER_REGULAR}
-                                    color={OPECITY_DARK}
-                                    style={{ textAlign: "center", marginTop: metrics.hp1 }}
-                                >
-                                    {verifyError || "We couldn't verify your purchase right now. Please try again."}
-                                </AppText>
-                            ) : (
-                                <View style={styles.payVerifyingRow}>
-                                    <ActivityIndicator size="small" color={colors.purple} />
-                                    <AppText type={ELEVEN} weight={INTER_MEDIUM} color={OPECITY_DARK} style={{ marginLeft: metrics.hp1 }}>
-                                        Please wait…
-                                    </AppText>
-                                </View>
-                            )}
-
-                            <TouchableOpacityView
-                                activeOpacity={0.9}
-                                disabled={verifyStage === "verifying"}
-                                onPress={() => {
-                                    if (verifyStage === "verifying") return;
-                                    setVerifyModalVisible(false);
-                                    if (verifyStage === "success") {
-                                        NavigationService.goBack();
-                                    }
-                                }}
-                                style={[styles.payBtnWrap, verifyStage === "verifying" && { opacity: 0.6 }]}
-                            >
-                                <LinearGradient
-                                    colors={verifyStage === "error" ? [colors.red, "#FF5B6B"] : ["#6F13F2", "#2B7CFF"]}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={styles.payBtn}
-                                >
-                                    <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={FORTEEN}>
-                                        {verifyStage === "success" ? "Done" : verifyStage === "error" ? "OK" : "Verifying…"}
-                                    </AppText>
-                                </LinearGradient>
-                            </TouchableOpacityView>
-                        </View>
-                    </Animated.View>
-                </View>
-            </Modal>
-        </AppSafeAreaView>
-    )
+      <PaymentStatusModal
+        visible={verify.visible}
+        stage={verify.stage}
+        error={verify.error}
+        transactionId={verify.transactionId}
+        successMessage="Your payment has been completed successfully. Crush Notes have been added to your account."
+        errorFallback="We couldn't verify your purchase right now. Please try again."
+        onClose={(stage) => {
+          verify.close();
+          if (stage === "success") NavigationService.goBack();
+        }}
+      />
+    </AppSafeAreaView>
+  );
 };
 
 export default CrushNotePurchase;
 
 const styles = StyleSheet.create({
-    PremiumText: { flexDirection: "row", alignItems: "center", marginTop: metrics.hp4, paddingHorizontal: metrics.hp2, },
-    pencilIcon: { height: metrics.hp2, width: metrics.hp2 },
-    conatiner: {
-        height: metrics.hp8,
-        borderRadius: metrics.hp1_5,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginBottom: metrics.hp1,
-        paddingHorizontal: metrics.hp2,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-    },
-    bottomcontainer: {
-        paddingHorizontal: metrics.hp2,
-        paddingVertical: metrics.hp2,
-        backgroundColor: colors.white,
-        borderTopLeftRadius: metrics.hp2,
-        borderTopRightRadius: metrics.hp2,
-    },
-    buttonContiner: {
-        height: metrics.hp6,
-        borderRadius: metrics.hp4,
-        backgroundColor: colors.purple,
-        alignItems: "center",
-        justifyContent: "center",
-        marginTop: metrics.hp2,
-    },
-    buttonDisabled: {
-        opacity: 0.5,
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    discountContainer: {
-        width: metrics.hp6_5,
-        height: metrics.hp2,
-        backgroundColor: colors.lightBlack,
-        borderRadius: metrics.hp1,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    imageiContainer: {
-        // shadowColor: colors.black,
-        // shadowOffset: { width: 0, height: metrics.hp1_2 },
-        // shadowOpacity: 0.22,
-        // shadowRadius: metrics.hp1,
-        // elevation: 8,
-        height: metrics.hp10, width: "100%", marginTop: metrics.hp3, marginBottom: metrics.hp4,
-    },
-    payBackdrop: {
-        flex: 1,
-        backgroundColor: "#00000066",
-        justifyContent: "center",
-        paddingHorizontal: metrics.hp2,
-    },
-    payCard: {
-        borderRadius: metrics.hp2,
-        backgroundColor: colors.white,
-        overflow: "hidden",
-        shadowColor: "#000",
-        shadowOpacity: 0.18,
-        shadowOffset: { width: 0, height: 10 },
-        shadowRadius: 18,
-        elevation: 12,
-    },
-    payContent: {
-        paddingHorizontal: metrics.hp2_5,
-        paddingTop: metrics.hp2_5,
-        paddingBottom: metrics.hp2,
-        alignItems: "center",
-    },
-    payIconRing: {
-        height: metrics.hp10,
-        width: metrics.hp10,
-        borderRadius: metrics.hp50,
-        backgroundColor: "#FFFFFF",
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: metrics.hp0_1,
-        borderColor: "#6F13F233",
-        shadowColor: "#6F13F2",
-        shadowOpacity: 0.12,
-        shadowOffset: { width: 0, height: 8 },
-        shadowRadius: 14,
-        elevation: 6,
-    },
-    payIcon: {
-        height: metrics.hp7,
-        width: metrics.hp7,
-    },
-    payVerifyingRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        marginTop: metrics.hp2,
-    },
-    payMetaBox: {
-        marginTop: metrics.hp2,
-        width: "100%",
-        borderRadius: metrics.hp1_5,
-        borderWidth: metrics.hp0_1,
-        borderColor: colors.nanoOpecity,
-        backgroundColor: "#FFFFFF",
-        paddingVertical: metrics.hp1,
-        paddingHorizontal: metrics.hp1_5,
-        alignItems: "center",
-    },
-    payBtnWrap: {
-        width: "100%",
-        marginTop: metrics.hp2_5,
-        borderRadius: metrics.hp4,
-        overflow: "hidden",
-    },
-    payBtn: {
-        height: metrics.hp5_5,
-        width: "100%",
-        borderRadius: metrics.hp4,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    bottomLayer: {
-        width: "100%",
-        paddingVertical: metrics.hp2,
-        alignItems: "center",
-        backgroundColor: newColor.blackNew,
-    },
+  hero: {
+    height: metrics.hp30,
+    width: "100%",
+  },
+  closeButton: {
+    width: "100%",
+    paddingVertical: metrics.hp3,
+    marginTop: metrics.hp2,
+    alignItems: "flex-end",
+    paddingHorizontal: metrics.hp2,
+  },
+  closeIcon: {
+    height: metrics.hp4,
+    width: metrics.hp4,
+  },
+  headline: {
+    paddingHorizontal: metrics.hp2,
+    marginTop: -metrics.hp3,
+  },
+  centered: {
+    textAlign: "center",
+  },
+  headlineSecond: {
+    marginTop: -metrics.hp3,
+  },
+  headlineSub: {
+    marginTop: -metrics.hp1_5,
+  },
+  packList: {
+    paddingHorizontal: metrics.hp2,
+    marginTop: metrics.hp2,
+    gap: metrics.hp1,
+  },
+  pack: {
+    height: metrics.hp17,
+    width: metrics.hp13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  packUnit: {
+    marginTop: -metrics.hp1_5,
+  },
+  priceTag: {
+    height: metrics.hp4_6,
+    width: metrics.hp12,
+    bottom: -metrics.hp2,
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  popularTag: {
+    height: metrics.hp3_5,
+    width: metrics.hp9,
+    position: "absolute",
+    right: -metrics.hp0_4,
+    top: metrics.hp1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  popularText: {
+    marginTop: -metrics.hp1,
+  },
+  bottomLayer: {
+    width: "100%",
+    paddingVertical: metrics.hp2,
+    alignItems: "center",
+    backgroundColor: newColor.blackNew,
+  },
+  buyTouchable: {
+    width: "100%",
+    paddingHorizontal: metrics.hp2,
+  },
+  buyButton: {
+    height: metrics.hp7,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

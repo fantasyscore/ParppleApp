@@ -1,5 +1,5 @@
 import {combineReducers} from 'redux';
-import authSlice from '../slices/loginServices/authSlice';
+import authSlice, {logout} from '../slices/loginServices/authSlice';
 import purchaseSlice from '../slices/purchase/purchaseSlice';
 import inAppNotificationSlice from '../slices/inAppNotificationSlice';
 
@@ -9,9 +9,9 @@ const appReducer = combineReducers({
   inAppNotification: inAppNotificationSlice,
 });
 
-// Reset ALL slices on logout
+// Logging out resets EVERY slice, so the next account never sees the previous user's data.
 const rootReducer = (state, action) => {
-  if (action?.type === 'auth/logout') {
+  if (logout.match(action)) {
     state = undefined;
   }
   return appReducer(state, action);

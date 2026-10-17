@@ -24,16 +24,7 @@ const SearchContainer = ({ placeholder, value, onChangeText, style, editable = t
     )
 };
 export default SearchContainer;
-const styles = StyleSheet.create({
-    container: {
-        height: metrics.hp5,
-        backgroundColor: colors.lightBack,
-        borderRadius: metrics.hp4,
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: metrics.hp2
-    },
-    iconSearch: {
+const styles = StyleSheet.create({    iconSearch: {
         height: metrics.hp2_5,
         width: metrics.hp2_5,
         marginRight: metrics.hp1

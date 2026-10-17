@@ -1,5 +1,5 @@
 import Toast from 'react-native-toast-message';
-import { interBold, interSemiBold, ScheherazadeNewBold } from '../theme/typography';
+import { ScheherazadeNewBold } from '../theme/typography';
 import { fontSize } from '../common/AppText';
 import { colors } from '../theme/colors';
 export const uploadImageCloud = async (imageUri: any) => {

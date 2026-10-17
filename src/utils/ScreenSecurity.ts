@@ -1,5 +1,4 @@
 import ScreenGuardModule from 'react-native-screenguard';
-import { Platform } from 'react-native';
 
 /**
  * Enables screen security globally.

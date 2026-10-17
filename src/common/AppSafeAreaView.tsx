@@ -1,6 +1,5 @@
 import React, { useCallback, useRef } from "react";
 import { Platform, StatusBar, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "../theme/colors";
 import { AppSafeAreaViewProps } from "../types/common";
 import { useFocusEffect } from "@react-navigation/native";

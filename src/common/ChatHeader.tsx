@@ -1,10 +1,9 @@
 import React from "react";
-import { ImageBackground, Platform, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import metrics from "../assets/Metrics";
 import FastImage from "react-native-fast-image";
-import { backIconNew, dummyfemaleProfile, dummyMaleProfile, HeaderHomeBack, threeDotNewIcon, } from "../helper/ImageAssets";
-import { colors, newColor } from "../theme/colors";
-import { AppText, BLACK, EIGHTEEN, ELEVEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, TEN, THIRTEEN, TWELVE, WHITE } from "./AppText";
+import { backIconNew, dummyfemaleProfile, dummyMaleProfile, threeDotNewIcon } from "../helper/ImageAssets";
+import { AppText, ELEVEN, INTER_BOLD, INTER_MEDIUM, TWELVE, WHITE } from "./AppText";
 import { TouchableOpacityView } from "./TouchableOpacityView";
 import NavigationService from "../navigation/NavigationService";
 import { useSelector } from "react-redux";
@@ -68,16 +67,4 @@ const styles = StyleSheet.create({
         width: metrics.hp4,
         borderRadius: metrics.hp50,
         marginLeft: metrics.hp2_5
-    },
-    blueTickIcon: {
-        height: metrics.hp2,
-        width: metrics.hp2,
-    },
-    threeDots: {
-        height: metrics.hp2_5,
-        width: metrics.hp2_5
-    },
-    activeBackground: { height: metrics.hp1_2, width: metrics.hp1_2, borderWidth: metrics.hp0_1, borderColor: "#28EC594D", backgroundColor: "#28EC591A", borderRadius: metrics.hp20, alignItems: "center", justifyContent: "center", marginRight: metrics.hp0_3 },
-    activeDot: { height: metrics.hp0_8, width: metrics.hp0_8, backgroundColor: "#28EC59", borderRadius: metrics.hp50 },
-    activeContainer: { height: metrics.hp2, paddingHorizontal: metrics.hp1, flexDirection: "row", alignItems: "center", borderRadius: metrics.hp5, backgroundColor: "#00000033", marginTop: metrics.hp0_5 },
-})
+    },})

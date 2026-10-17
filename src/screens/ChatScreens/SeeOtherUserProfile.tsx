@@ -5,41 +5,20 @@ import { colors, newColor } from "../../theme/colors";
 import NewHeader from "../../common/NewHeader";
 import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
-import { bioBackground, biosToggla, directChatIcon, dobIcon, forProfileDetailsBack, heightIconWhiteNew, locationIconWhiteNew, locIcon, lockIconWhite, newCloseIcon, newLikeIcon, partnerheart, pronounIcon, straightenIcon, trunOnIcon, beingWatchIcon, bitingIcon, blinedFlodedIcon, BottomLayer, dirtyTalks, fantasiesIcon, fotFetiesIcon, hairIcon, hugsIcon, massageIcon, musicIcons, oralIcon, rightSelectTrunOns, roomServiceIcon, scentsIcon, sextingIcon, smooheshIcon, TattosIcon, trunOnBackground, touchNewIcon, choclateImageNew, danceNewIcon, rolePlayImageNew, dummyMaleProfile, dummyfemaleProfile, sexualityIcon, verifiedBadgeIcon } from "../../helper/ImageAssets";
-import { TouchableOpacityView } from "../../common/TouchableOpacityView";
-import { AppText, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
+import { bioBackground, biosToggla, dobIcon, forProfileDetailsBack, heightIconWhiteNew, locationIconWhiteNew, lockIconWhite, pronounIcon, trunOnIcon, trunOnBackground, dummyMaleProfile, dummyfemaleProfile, sexualityIcon, verifiedBadgeIcon } from "../../helper/ImageAssets";
+import { AppText, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, SCHEHERAZADE_BOLD, TWELVE, WHITE } from "../../common/AppText";
 import { useSelector } from "react-redux";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
+import { TURN_ON_IMAGES } from "../../helper/turnOnImages";
+
 const ITEM_WIDTH = metrics.hp34;
 const SPACING = metrics.hp1;
 
-const TURN_ON_IMAGES: any = {
-    "Smooches": smooheshIcon,
-    "Hugs": hugsIcon,
-    "Massage": massageIcon,
-    "Oral": oralIcon,
-    "Dirty Talk": dirtyTalks,
-    "Fantasies": fantasiesIcon,
-    "Music": musicIcons,
-    "Foot Fetish": fotFetiesIcon,
-    "Scents": scentsIcon,
-    "Biting": bitingIcon,
-    "Hair": hairIcon,
-    "Being Watched": beingWatchIcon,
-    "Sexting": sextingIcon,
-    "Room Service": roomServiceIcon,
-    "Blindfolded": blinedFlodedIcon,
-    "Tattoos": TattosIcon,
-    "Dance": danceNewIcon,
-    "Role-Play": rolePlayImageNew,
-    "Chocolate": choclateImageNew,
-    "Touch": touchNewIcon,
-};
 const SeeOtherUserProfile = ({ currentProfileData, setModalVisible, showFullProfile }: any) => {
     const scrollX = useRef(new Animated.Value(0)).current;
     const userData = useSelector((state: any) => state.auth.userData);
-    const [selectedIds, setSelectedIds] = useState([]);
+    const [selectedIds, setSelectedIds] = useState<any[]>([]);
     const turnOnData = useSelector((state: any) => state?.auth?.turnOnData);
     const [selectedTurnOnIds, setSelectedTurnOnIds] = useState<any[]>([]);
 
@@ -292,32 +271,7 @@ const styles = StyleSheet.create({
         // height: metrics.hp37,
         width: "100%",
         // marginVertical:metrics.hp2
-    },
-    actionsRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        marginTop: -metrics.hp3,
-        position: "absolute",
-        bottom: metrics.hp2,
-        zIndex: 999,
-        alignSelf: "center"
-    },
-    dislikeButton: {
-        height: metrics.hp8,
-        width: metrics.hp8,
-        marginRight: metrics.hp1_5,
-    },
-    likeButton: {
-        height: metrics.hp9,
-        width: metrics.hp9,
-    },
-    chatButton: {
-        height: metrics.hp8,
-        width: metrics.hp8,
-        marginLeft: metrics.hp1_5,
-    },
-    trunback: {
+    },trunback: {
         height: metrics.hp21,
         width: metrics.hp20,
         marginBottom: metrics.hp2,

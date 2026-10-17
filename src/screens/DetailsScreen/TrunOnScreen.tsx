@@ -3,160 +3,17 @@ import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { FlatList, ImageBackground, StyleSheet, TouchableOpacity, View } from "react-native";
 import { colors, newColor } from "../../theme/colors";
 import FastImage from "react-native-fast-image";
-import { applogo, beingWatchIcon, bitingIcon, blinedFlodedIcon, BottomLayer, choclateImageNew, danceNewIcon, dirtyTalks, fantasiesIcon, fotFetiesIcon, hairIcon, hugsIcon, massageIcon, musicIcons, oralIcon, rightSelectTrunOns, rolePlayImageNew, roomServiceIcon, scentsIcon, sextingIcon, smooheshIcon, TattosIcon, touchNewIcon, trunOnBackground, trunOnIcon } from "../../helper/ImageAssets";
+import OnboardingLogo from "../../components/Onboarding/OnboardingLogo";
+import OnboardingButton from "../../components/Onboarding/OnboardingButton";
+import { BottomLayer, rightSelectTrunOns, trunOnBackground, trunOnIcon } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
-import { AppText, EIGHTEEN, ELEVEN, fontSize, FORTEEN, SCHEHERAZADE_BOLD, SCHEHERAZADE_SEMI_BOLD, TWELVE, TWENTY, TWENTY_FOUR, WHITE } from "../../common/AppText";
-import { opacity } from "react-native-reanimated/lib/typescript/Colors";
+import { AppText, EIGHTEEN, ELEVEN, fontSize, SCHEHERAZADE_BOLD, SCHEHERAZADE_SEMI_BOLD, WHITE } from "../../common/AppText";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_ADD_PHOTOS_SCREEN } from "../../navigation/routes";
 import { useDispatch, useSelector } from "react-redux";
 import { setAddProfile } from "../../slices/loginServices/authSlice";
+import { TURN_ON_IMAGES } from "../../helper/turnOnImages";
 
-const DATA = [
-    {
-        id: "1",
-        title: "Smooches",
-        discription: "Steal a kiss worth remembering.",
-        image: smooheshIcon
-    },
-    {
-        id: "2",
-        title: "Hugs",
-        discription: "Hold me a little longer.",
-        image: hugsIcon
-    },
-    {
-        id: "3",
-        title: "Massage",
-        discription: "Where every touch melts away the distance.",
-        image: massageIcon
-    },
-    {
-        id: "4",
-        title: "Oral",
-        discription: "Open to deeper intimacy.",
-        image: oralIcon
-    },
-    {
-        id: "5",
-        title: "Dirty Talk",
-        discription: "Whisper what you're really thinking.",
-        image: dirtyTalks
-    },
-    {
-        id: "6",
-        title: "Fantasies",
-        discription: "Every secret deserves a safe place.",
-        image: fantasiesIcon
-    },
-    {
-        id: "7",
-        title: "Music",
-        discription: "Set the mood, let the sparks follow.",
-        image: musicIcons
-    },
-    {
-        id: "8",
-        title: "Foot Fetish",
-        discription: "A little obsession, a lot of chemistry.",
-        image: fotFetiesIcon
-    },
-    {
-        id: "9",
-        title: "Scents",
-        discription: "Irresistible starts with a signature scent.",
-        image: scentsIcon
-    },
-    {
-        id: "10",
-        title: "Biting",
-        discription: "A playful tease with a wild side.",
-        image: bitingIcon
-    },
-    {
-        id: "11",
-        title: "Hair",
-        discription: "Lost in every strand.",
-        image: hairIcon
-    },
-    {
-        id: "12",
-        title: "Being Watched",
-        discription: "The thrill of every lingering glance.",
-        image: beingWatchIcon
-    },
-    {
-        id: "13",
-        title: "Sexting",
-        discription: "Turn texts into irresistible tension.",
-        image: sextingIcon
-    },
-    {
-        id: "14",
-        title: "Room Service",
-        discription: "Luxury nights, unforgettable memories.",
-        image: roomServiceIcon
-    },
-    {
-        id: "15",
-        title: "Blindfolded",
-        discription: "Trust the moment, embrace the mystery.",
-        image: blinedFlodedIcon
-    },
-    {
-        id: "16",
-        title: "Tattoos",
-        discription: "Every ink tells a tempting story.",
-        image: TattosIcon
-    },
-    {
-        id: "17",
-        title: "Dance",
-        discription: "Let your bodies find the rhythm.",
-        image: danceNewIcon
-    },
-    {
-        id: "18",
-        title: "Role-Play",
-        discription: "Become whoever the night desires.",
-        image: rolePlayImageNew
-    },
-    {
-        id: "19",
-        title: "Chocolate",
-        discription: "Sweet enough to crave again.",
-        image: choclateImageNew
-    },
-    {
-        id: "20",
-        title: "Touch",
-        discription: "One touch can change everything.",
-        image: touchNewIcon
-    },
-
-];
-const TURN_ON_IMAGES: any = {
-    "Smooches": smooheshIcon,
-    "Hugs": hugsIcon,
-    "Massage": massageIcon,
-    "Oral": oralIcon,
-    "Dirty Talk": dirtyTalks,
-    "Fantasies": fantasiesIcon,
-    "Music": musicIcons,
-    "Foot Fetish": fotFetiesIcon,
-    "Scents": scentsIcon,
-    "Biting": bitingIcon,
-    "Hair": hairIcon,
-    "Being Watched": beingWatchIcon,
-    "Sexting": sextingIcon,
-    "Room Service": roomServiceIcon,
-    "Blindfolded": blinedFlodedIcon,
-    "Tattoos": TattosIcon,
-    "Dance": danceNewIcon,
-    "Role-Play": rolePlayImageNew,
-    "Chocolate": choclateImageNew,
-    "Touch": touchNewIcon,
-};
 const TrunOnScreen = () => {
     const dispatch = useDispatch();
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -256,7 +113,7 @@ const TrunOnScreen = () => {
     }
     return (
         <AppSafeAreaView color={newColor.blackNew}>
-            <FastImage source={applogo} resizeMode="contain" style={styles.logo} />
+            <OnboardingLogo />
             <AppText style={{ textAlign: "center", fontSize: fontSize(26), marginTop: metrics.hp1 }} weight={SCHEHERAZADE_SEMI_BOLD} color={WHITE}>
                 What makes you Turn on?
             </AppText>
@@ -270,23 +127,13 @@ const TrunOnScreen = () => {
                 contentContainerStyle={{ paddingHorizontal: metrics.hp2, alignItems: "center", marginTop: metrics.hp0, paddingBottom: metrics.hp5 }}
                 columnWrapperStyle={{ columnGap: metrics.hp2, marginTop: metrics.hp6 }} />
             <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
-                <TouchableOpacity activeOpacity={0.5} onPress={onSubmit} style={[styles.phoneContainer, { opacity: selectedIds?.length ? 1 : 0.5 }]}>
-                    <AppText weight={SCHEHERAZADE_BOLD} color={WHITE} type={TWENTY}>
-                        Next
-                    </AppText>
-                </TouchableOpacity>
+                <OnboardingButton label="Next" onPress={onSubmit} dimmed={!selectedIds?.length} />
             </ImageBackground>
         </AppSafeAreaView>
     )
 };
 export default TrunOnScreen;
 const styles = StyleSheet.create({
-    logo: {
-        height: metrics.hp7,
-        width: metrics.hp20,
-        alignSelf: "center",
-        marginTop: metrics.hp8,
-    },
     trunback: {
         height: metrics.hp21,
         width: metrics.hp20,
@@ -305,16 +152,5 @@ const styles = StyleSheet.create({
         width: "100%",
         paddingVertical: metrics.hp2,
         alignItems: "center"
-    },
-    phoneContainer: {
-        height: metrics.hp7,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: metrics.hp0_1,
-        borderColor: colors.white,
-        marginHorizontal: metrics.hp2,
-        marginTop: metrics.hp2,
-        width: "90%"
     },
 })

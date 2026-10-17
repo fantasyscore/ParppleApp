@@ -38,7 +38,6 @@ import ViewYouScreen from "../screens/LikesYouScreens/ViewYouScreen";
 import ProfilePreviewNew from "../screens/ProfileScreens/ProfilePreviewNew";
 import { newColor } from "../theme/colors";
 import HeightScreen from "../screens/DetailsScreen/HeightScreen";
-import CrushNotesSender from "../screens/HomeScreens/CrushNotesSender";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PERFORMANCE: everything below is created ONCE at module scope.
@@ -76,6 +75,9 @@ const defaultStackScreenOptions: NativeStackNavigationOptions = {
   animation: 'slide_from_right',
 };
 
+// The first screen shown after the splash fades in instead of sliding from the right edge
+const launchScreenOptions: NativeStackNavigationOptions = { animation: 'fade' };
+
 const renderTabBar = (props: BottomTabBarProps) => <CustomTabBarAndroid {...props} />;
 
 const tabScreenOptions = {
@@ -105,19 +107,17 @@ const MyAuthLoadingStack = () => (
   <Stack.Navigator id={undefined}
     initialRouteName={routes.NAVIGATION_AUTH_LOADING_STACK}
     screenOptions={defaultStackScreenOptions}>
-    {/* <Stack.Screen name={routes.NAVIGATION_IN_APP_PURCHASE_SCREEN} component={InAppPurchaseScreen} /> */}
-    {/* <Stack.Screen name={routes.NAVIGATION_LOCATION_SCREEN} component={LocationScreen} /> */}
 
-    {/* <Stack.Screen name={routes.NAVIGATION_FACE_LIVENESS_TEST_SCREEN} component={FaceLivenessTestScreen} /> */}
     <Stack.Screen name={routes.NAVIGATION_AUTH_LOADING_STACK} component={AuthLoding} />
-    <Stack.Screen name={routes.NAVIGATION_WELCOME_SCREEN} component={WelcomeScreen} />
+    {/* Screens AuthLoding resets to after the splash: fade in place instead of sliding in from the right */}
+    <Stack.Screen name={routes.NAVIGATION_WELCOME_SCREEN} component={WelcomeScreen} options={launchScreenOptions} />
     <Stack.Screen name={routes.NAVIGATION_DOB_SCREEN} component={DobScreen} />
     <Stack.Screen name={routes.NAVIGATION_LOCATION_SCREEN} component={LocationScreen} />
     <Stack.Screen name={routes.NAVIGATION_GANDER_SCREEN} component={GanderScreen} />
     <Stack.Screen name={routes.NAVIGATION_HEIGHT_SCREEN} component={HeightScreen} />
     <Stack.Screen name={routes.NAVIGATION_TRUN_ON_SCREEN} component={TrunOnScreen} />
     <Stack.Screen name={routes.NAVIGATION_ADD_PHOTOS_SCREEN} component={AddPhotoScreen} />
-    <Stack.Screen name={routes.NAVIGATION_BOTTOMTAB_SCREEN} component={BottomMainTab} />
+    <Stack.Screen name={routes.NAVIGATION_BOTTOMTAB_SCREEN} component={BottomMainTab} options={launchScreenOptions} />
     <Stack.Screen name={routes.NAVIGATION_PEOPLE_SCREEN} component={PeopleScreen} />
     <Stack.Screen name={routes.NAVIGATION_PROFILE_SCREEN} component={ProfileScreenAndroid} />
     <Stack.Screen name={routes.NAVIGATION_MATCH_SCREEN} component={MatchScreen} />
@@ -133,8 +133,6 @@ const MyAuthLoadingStack = () => (
     <Stack.Screen name={routes.NAVIGATION_OHTER_REPORT_SCREEN} component={OtherReport} />
     <Stack.Screen name={routes.NAVIGATION_SUCCES_REPORTING_SCREEN} component={SuceesReporting} />
     <Stack.Screen name={routes.NAVIGATION_CRUSH_PURCHESE_SCREEN} component={CrushNotePurchase} />
-    {/* <Stack.Screen name={routes.NAVIGATION_CRUSH_NOTE_SENDER_SCREEN} component={CrushNotesSender} /> */}
-
 
   </Stack.Navigator>
 );

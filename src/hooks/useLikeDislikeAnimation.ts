@@ -1,176 +1,92 @@
-import { useCallback, useRef, useEffect } from 'react';
-import { useSharedValue, withSequence, withTiming, useAnimatedStyle } from 'react-native-reanimated';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { SharedValue, useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 
+// Timings (ms) shared by the like, dislike and crush-note effects.
+const FADE_IN_MS = 100;
+const POP_UP_MS = 170;
+const SETTLE_DOWN_MS = 130;
+const SETTLE_MS = 100;
+// The card is removed once the pop sequence above has finished (170 + 130 + 100)
+const COMPLETE_AFTER_MS = POP_UP_MS + SETTLE_DOWN_MS + SETTLE_MS;
+const FADE_OUT_MS = 130;
 const TRANSITION_MS = 320;
 
+type Effect = {
+    runningRef: React.MutableRefObject<boolean>;
+    timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>;
+    overlayOpacity: SharedValue<number>;
+    iconScale: SharedValue<number>;
+};
+
+/** Per-effect state; the returned object is stable across renders. */
+const useEffectState = (): Effect => {
+    const runningRef = useRef(false);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const overlayOpacity = useSharedValue(0);
+    const iconScale = useSharedValue(0.7);
+    return useMemo(() => ({ runningRef, timerRef, overlayOpacity, iconScale }), [overlayOpacity, iconScale]);
+};
+
 export const useLikeDislikeAnimation = () => {
-    const isDislikeFxRunningRef = useRef(false);
-    const dislikeOverlayOpacity = useSharedValue(0);
-    const dislikeIconScale = useSharedValue(0.7);
+    const dislike = useEffectState();
+    const like = useEffectState();
+    const crush = useEffectState();
 
-    const isLikeFxRunningRef = useRef(false);
-    const likeOverlayOpacity = useSharedValue(0);
-    const likeIconScale = useSharedValue(0.7);
-
-    const isCrushFxRunningRef = useRef(false);
-    const crushOverlayOpacity = useSharedValue(0);
-    const crushIconScale = useSharedValue(0.7);
-
+    // True from the moment an effect starts until the list has had time to settle after the card left
     const isSwipeAnimatingRef = useRef(false);
-    const swipeAnimationReleaseTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const dislikeFxTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const likeFxTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const crushFxTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const releaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const runDislikeAnimation = useCallback((onComplete?: () => void) => {
-        if (isDislikeFxRunningRef.current) return;
-        isDislikeFxRunningRef.current = true;
+    const run = useCallback((effect: Effect, onComplete?: () => void) => {
+        if (effect.runningRef.current) return;
+        effect.runningRef.current = true;
         isSwipeAnimatingRef.current = true;
 
-        if (swipeAnimationReleaseTimerRef.current) {
-            clearTimeout(swipeAnimationReleaseTimerRef.current);
-        }
-        dislikeOverlayOpacity.value = 0;
-        dislikeIconScale.value = 0.7;
+        if (releaseTimerRef.current) clearTimeout(releaseTimerRef.current);
+        if (effect.timerRef.current) clearTimeout(effect.timerRef.current);
 
-        dislikeOverlayOpacity.value = withTiming(1, { duration: 70 });
-        dislikeIconScale.value = withSequence(
-            withTiming(1.28, { duration: 120 }),
-            withTiming(0.9, { duration: 90 }),
-            withTiming(1, { duration: 70 })
+        effect.overlayOpacity.value = 0;
+        effect.iconScale.value = 0.7;
+        effect.overlayOpacity.value = withTiming(1, { duration: FADE_IN_MS });
+        effect.iconScale.value = withSequence(
+            withTiming(1.28, { duration: POP_UP_MS }),
+            withTiming(0.9, { duration: SETTLE_DOWN_MS }),
+            withTiming(1, { duration: SETTLE_MS })
         );
 
-        if (dislikeFxTimerRef.current) {
-            clearTimeout(dislikeFxTimerRef.current);
-        }
-        
-        dislikeFxTimerRef.current = setTimeout(() => {
-            if (onComplete) onComplete();
-            
-            dislikeOverlayOpacity.value = withTiming(0, { duration: 90 });
-            isDislikeFxRunningRef.current = false;
-            dislikeFxTimerRef.current = null;
-            
-            swipeAnimationReleaseTimerRef.current = setTimeout(() => {
+        effect.timerRef.current = setTimeout(() => {
+            onComplete?.();
+
+            effect.overlayOpacity.value = withTiming(0, { duration: FADE_OUT_MS });
+            effect.runningRef.current = false;
+            effect.timerRef.current = null;
+
+            releaseTimerRef.current = setTimeout(() => {
                 isSwipeAnimatingRef.current = false;
-                swipeAnimationReleaseTimerRef.current = null;
+                releaseTimerRef.current = null;
             }, TRANSITION_MS + 120);
-        }, 240);
-    }, [dislikeIconScale, dislikeOverlayOpacity]);
+        }, COMPLETE_AFTER_MS);
+    }, []);
 
-    const runLikeAnimation = useCallback((onComplete?: () => void) => {
-        if (isLikeFxRunningRef.current) return;
-        isLikeFxRunningRef.current = true;
-        isSwipeAnimatingRef.current = true;
-        
-        if (swipeAnimationReleaseTimerRef.current) {
-            clearTimeout(swipeAnimationReleaseTimerRef.current);
-        }
-        likeOverlayOpacity.value = 0;
-        likeIconScale.value = 0.7;
-
-        likeOverlayOpacity.value = withTiming(1, { duration: 70 });
-        likeIconScale.value = withSequence(
-            withTiming(1.28, { duration: 120 }),
-            withTiming(0.9, { duration: 90 }),
-            withTiming(1, { duration: 70 })
-        );
-
-        if (likeFxTimerRef.current) {
-            clearTimeout(likeFxTimerRef.current);
-        }
-        
-        likeFxTimerRef.current = setTimeout(() => {
-            if (onComplete) onComplete();
-            
-            likeOverlayOpacity.value = withTiming(0, { duration: 90 });
-            isLikeFxRunningRef.current = false;
-            likeFxTimerRef.current = null;
-            
-            swipeAnimationReleaseTimerRef.current = setTimeout(() => {
-                isSwipeAnimatingRef.current = false;
-                swipeAnimationReleaseTimerRef.current = null;
-            }, TRANSITION_MS + 120);
-        }, 240);
-    }, [likeIconScale, likeOverlayOpacity]);
-
-
-    const crushLikeAnimation = useCallback((onComplete?: () => void) => {
-        if (isCrushFxRunningRef.current) return;
-        isCrushFxRunningRef.current = true;
-        isSwipeAnimatingRef.current = true;
-        
-        if (swipeAnimationReleaseTimerRef.current) {
-            clearTimeout(swipeAnimationReleaseTimerRef.current);
-        }
-        crushOverlayOpacity.value = 0;
-        crushIconScale.value = 0.7;
-
-        crushOverlayOpacity.value = withTiming(1, { duration: 70 });
-        crushIconScale.value = withSequence(
-            withTiming(1.28, { duration: 120 }),
-            withTiming(0.9, { duration: 90 }),
-            withTiming(1, { duration: 70 })
-        );
-
-        if (crushFxTimerRef.current) {
-            clearTimeout(crushFxTimerRef.current);
-        }
-        
-        crushFxTimerRef.current = setTimeout(() => {
-            if (onComplete) onComplete();
-            
-            crushOverlayOpacity.value = withTiming(0, { duration: 90 });
-            isCrushFxRunningRef.current = false;
-            crushFxTimerRef.current = null;
-            
-            swipeAnimationReleaseTimerRef.current = setTimeout(() => {
-                isSwipeAnimatingRef.current = false;
-                swipeAnimationReleaseTimerRef.current = null;
-            }, TRANSITION_MS + 120);
-        }, 240);
-    }, [crushIconScale, crushOverlayOpacity]);
-
+    const runDislikeAnimation = useCallback((onComplete?: () => void) => run(dislike, onComplete), [run, dislike]);
+    const runLikeAnimation = useCallback((onComplete?: () => void) => run(like, onComplete), [run, like]);
+    const crushLikeAnimation = useCallback((onComplete?: () => void) => run(crush, onComplete), [run, crush]);
 
     useEffect(() => {
         return () => {
-            if (swipeAnimationReleaseTimerRef.current) {
-                clearTimeout(swipeAnimationReleaseTimerRef.current);
-            }
-            if (dislikeFxTimerRef.current) {
-                clearTimeout(dislikeFxTimerRef.current);
-            }
-            if (likeFxTimerRef.current) {
-                clearTimeout(likeFxTimerRef.current);
-            }
-            if (crushFxTimerRef.current) {
-                clearTimeout(crushFxTimerRef.current);
-            }
+            [releaseTimerRef.current, dislike.timerRef.current, like.timerRef.current, crush.timerRef.current].forEach((timer) => {
+                if (timer) clearTimeout(timer);
+            });
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const dislikeOverlayStyle = useAnimatedStyle(() => ({
-        opacity: dislikeOverlayOpacity.value,
-    }));
+    const dislikeOverlayStyle = useAnimatedStyle(() => ({ opacity: dislike.overlayOpacity.value }));
+    const dislikeIconAnimatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: dislike.iconScale.value }] }));
+    const likeOverlayStyle = useAnimatedStyle(() => ({ opacity: like.overlayOpacity.value }));
+    const likeIconAnimatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: like.iconScale.value }] }));
+    const crushlikeOverlayStyle = useAnimatedStyle(() => ({ opacity: crush.overlayOpacity.value }));
+    const crushlikeIconAnimatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: crush.iconScale.value }] }));
 
-    const dislikeIconAnimatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: dislikeIconScale.value }],
-    }));
-
-    const likeOverlayStyle = useAnimatedStyle(() => ({
-        opacity: likeOverlayOpacity.value,
-    }));
-
-    const likeIconAnimatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: likeIconScale.value }],
-    }));
-    const crushlikeOverlayStyle = useAnimatedStyle(() => ({
-        opacity: crushOverlayOpacity.value,
-    }));
-
-    const crushlikeIconAnimatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: crushIconScale.value }],
-    }));
     return {
         runLikeAnimation,
         runDislikeAnimation,

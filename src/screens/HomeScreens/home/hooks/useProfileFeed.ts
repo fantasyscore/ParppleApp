@@ -1,31 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, AppStateStatus } from "react-native";
-import FastImage from "react-native-fast-image";
 import { useDispatch, useSelector } from "react-redux";
 import { getProfile, listProfiles } from "../../../../actions/authActions";
 import { setListProfiles } from "../../../../slices/loginServices/authSlice";
 import { useLatest } from "../../../../hooks/useLatest";
 import {
-  AVATAR_PRELOAD_CACHE_LIMIT,
   FEED_STALE_AFTER_MS,
   LIST_REMOUNT_AFTER_MS,
   PROFILE_BATCH_LIMIT,
   TOP_UP_TRIGGER_COUNT,
 } from "../constants";
-import { runAfterInitialInteractions } from "../utils";
 
 // Stable reference so the selector doesn't return a new array on every store update
 const NO_PROFILES: any[] = [];
 
 /**
  * Owns the discovery feed: first load, infinite paging, low-water refill,
- * pull-to-refresh, avatar preloading and recovery after the app returns from
- * the background.
+ * pull-to-refresh and recovery after the app returns from the background.
  */
 export function useProfileFeed(isFocused: boolean) {
   const dispatch = useDispatch();
   const profiles: any[] = useSelector((state: any) => state.auth.listProfiles ?? NO_PROFILES);
   const userId: string | undefined = useSelector((state: any) => state.auth.userData?._id);
+console.log(profiles,"profiles");
 
   const [refreshing, setRefreshing] = useState(false);
   // Bumping this remounts the list (see LIST_REMOUNT_AFTER_MS)
@@ -40,7 +37,6 @@ export function useProfileFeed(isFocused: boolean) {
   const isFetchingMoreRef = useRef(false);
   const feedExhaustedRef = useRef(false);
   const prevListLengthRef = useRef(0);
-  const preloadedAvatarUrlsRef = useRef<Set<string>>(new Set());
   const backgroundedAtRef = useRef<number | null>(null);
 
   // ---- Initial data: profile + first feed batch ----
@@ -91,28 +87,6 @@ export function useProfileFeed(isFocused: boolean) {
     const timer = setTimeout(loadMore, 300);
     return () => clearTimeout(timer);
   }, [isFocused, profiles.length, loadMore]);
-
-  // ---- Image preloading: warm the cache for upcoming avatars ----
-  useEffect(() => {
-    if (!profiles.length) return;
-    return runAfterInitialInteractions(() => {
-      const cache = preloadedAvatarUrlsRef.current;
-      const sources: any[] = [];
-      profiles.forEach((profile: any) => {
-        const url = profile?.gallery?.[0]?.url;
-        if (!url || cache.has(url)) return;
-        cache.add(url);
-        if (cache.size > AVATAR_PRELOAD_CACHE_LIMIT) {
-          const oldest = cache.values().next().value;
-          if (oldest) cache.delete(oldest);
-        }
-        sources.push({ uri: url, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable });
-      });
-      if (sources.length > 0) {
-        FastImage.preload(sources);
-      }
-    }, 300);
-  }, [profiles]);
 
   // ---- Pull to refresh ----
   const onRefresh = useCallback(async () => {

@@ -1,30 +1,16 @@
-import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { Chat, Bubble, Time } from '@kesha-antonov/react-native-chat';
-import { AppIcon, backIcon, backIconNew, blackIcon, blockModalImage, blueTikeIcon, check, checks, emojiIcon, HeaderHomeBack, noccce, profileImage, rightBlack, sendButton, timeShowNewBackground, unmatchModalImage } from '../../helper/ImageAssets';
+import React, { useCallback } from 'react';
+import { Chat, Bubble } from '@kesha-antonov/react-native-chat';
+import { AppIcon, backIconNew, HeaderHomeBack, profileImage, timeShowNewBackground } from '../../helper/ImageAssets';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
-import ChatHeader from '../../common/ChatHeader';
-import { StyleSheet, View, TextInput, KeyboardAvoidingView, Keyboard, Dimensions, Modal, Animated, ImageBackground } from 'react-native';
-import { colors, newColor } from '../../theme/colors';
+import { StyleSheet, View, ImageBackground } from 'react-native';
+import { newColor } from '../../theme/colors';
 import metrics from '../../assets/Metrics';
-import { AppText, fontSize, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, PURPLE, SCHEHERAZADE_BOLD, SIXTEEN, TEN, TWELVE, TWENTY_FOUR, WHITE } from '../../common/AppText';
+import { AppText, fontSize, INTER_BOLD, INTER_SEMI_BOLD, TEN, TWELVE, WHITE } from '../../common/AppText';
 import { TouchableOpacityView } from '../../common/TouchableOpacityView';
 import FastImage from 'react-native-fast-image';
-import { interMedium, interSemiBold } from '../../theme/typography';
-import EmojiSelector, { Categories } from 'react-native-emoji-selector';
-import { Screen } from '../../theme/dimens';
-import ChatProfileScreen from './ChatProfileScreen';
-import RBSheet from 'react-native-raw-bottom-sheet';
-import { threeDotData } from '../../common/UiltData';
+import { interSemiBold } from '../../theme/typography';
 import NavigationService from '../../navigation/NavigationService';
-import { NAVIGATION_REPORT_SCREEN } from '../../navigation/routes';
-import { useDispatch, useSelector } from 'react-redux';
-import { getOtherProfile, userBlockAPI, userUnmatchAPI } from '../../actions/authActions';
-import { createSocket } from '../../common/Socket';
-import { appOperation } from '../../appOperation';
-import { ActivityIndicator } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import { clearActiveChat, setActiveChatMatchId } from '../../slices/inAppNotificationSlice';
-import { chatHistoryDetails } from '../../slices/loginServices/authSlice';
+import { useDispatch } from 'react-redux';
 
 const USER_ID = 1;
 
@@ -167,14 +153,7 @@ const styles = StyleSheet.create({
     height: metrics.hp13,
     width: "100%",
     paddingVertical: metrics.hp2,
-  },
-  container: {
-    paddingHorizontal: metrics.hp2, flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    backgroundColor: newColor.blackNew,
-    marginTop: metrics.hp4_5,
-    height: metrics.hp5_5
-  },
-  backIcon: {
+  },  backIcon: {
     height: metrics.hp4,
     width: metrics.hp4
   },
@@ -183,107 +162,4 @@ const styles = StyleSheet.create({
     width: metrics.hp4,
     borderRadius: metrics.hp50,
     marginLeft: metrics.hp2_5
-  },
-  blueTickIcon: {
-    height: metrics.hp2,
-    width: metrics.hp2,
-    marginTop: metrics.hp0_4
-  },
-  tabContainer: { backgroundColor: colors.white, height: metrics.hp5, justifyContent: 'flex-end' },
-  selectLine: { height: metrics.hp0_3, width: metrics.hp11, borderTopRightRadius: metrics.hp1, borderTopLeftRadius: metrics.hp1 },
-  inTabContainer: { alignItems: 'center', justifyContent: 'center', flex: 1 },
-  containerChat: { flex: 1, backgroundColor: newColor.blackNew, /* paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp5 */ },
-  inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: metrics.hp2, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e0e0e0', paddingVertical: metrics.hp2 },
-  textInput: { minHeight: metrics.hp4, maxHeight: metrics.hp8, fontSize: fontSize(13), width: "83%", fontFamily: interMedium, marginLeft: metrics.hp1 },
-  sendButton: { backgroundColor: '#6F13F2', borderRadius: metrics.hp50, marginLeft: 6, justifyContent: 'center', alignItems: 'center', height: metrics.hp5_5, width: metrics.hp5_5 },
-  inputContainerType: { borderWidth: metrics.hp0_1, borderColor: colors.nanoOpecity, borderRadius: metrics.hp5, paddingHorizontal: metrics.hp1, alignItems: 'center', justifyContent: 'space-between', flexDirection: 'row', paddingVertical: metrics.hp0_5 },
-  emojiIcon: { height: metrics.hp3, width: metrics.hp3 },
-  containerRb: { paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp2 },
-  containerViewRb: { paddingHorizontal: metrics.hp1, paddingVertical: metrics.hp2, flexDirection: "row", backgroundColor: colors.lightBack, marginBottom: metrics.hp0_5, borderRadius: metrics.hp1_5 },
-  rbIcon: { height: metrics.hp2_5, width: metrics.hp2_5, marginTop: metrics.hp0_5 },
-  textContainerRb: { paddingLeft: metrics.hp2, paddingRight: metrics.hp5 },
-  centeredView: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: colors.transparentBlack,
-    paddingHorizontal: metrics.hp2
-  },
-  confirmContainer: {
-    height: metrics.hp40,
-    backgroundColor: colors.white,
-    width: Screen.Width / 1.20,
-    borderRadius: metrics.hp2,
-  },
-  bdyBack: {
-    height: metrics.hp17,
-    borderTopRightRadius: metrics.hp2,
-    borderTopLeftRadius: metrics.hp2,
-
-  },
-  ediButton: {
-    height: metrics.hp5,
-    borderWidth: 1,
-    borderColor: colors.purple,
-    borderRadius: metrics.hp4,
-    alignItems: "center",
-    justifyContent: "center",
-    width: "40%",
-    alignSelf: "center",
-  },
-  bubbleWrapperRight: {
-    position: 'relative',
-    alignSelf: 'flex-end',
-  },
-  loaderContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#F5F7FA',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  readReceiptContainer: {
-    position: 'absolute',
-    bottom: metrics.hp1_2,
-    right: metrics.hp2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  readReceiptIcon: {
-    height: metrics.hp2_5,
-    width: metrics.hp2_5,
-  },
-  readReceiptIconUnread: {
-    height: metrics.hp2,
-    width: metrics.hp2,
-    marginBottom: metrics.hp0_5,
-    marginLeft: metrics.hp0_5,
-  },
-  typingBubbleWrapper: {
-    marginBottom: metrics.hp1_2,
-    marginLeft: metrics.hp2,
-    alignSelf: 'flex-start',
-  },
-  typingBubble: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: metrics.hp1_5,
-    paddingHorizontal: metrics.hp1,
-    paddingVertical: metrics.hp0_5,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: metrics.hp1_7,
-  },
-  typingDotsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: metrics.hp0_5,
-  },
-  typingDot: {
-    backgroundColor: colors.darkOpecity,
-    borderRadius: metrics.hp0_5,
-  },
-});
+  },containerChat: { flex: 1, backgroundColor: newColor.blackNew, /* paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp5 */ },});

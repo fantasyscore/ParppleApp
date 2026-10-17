@@ -1,4 +1,4 @@
-import { Platform, AppState, AppStateStatus } from 'react-native';
+import { Platform } from 'react-native';
 import SpInAppUpdates, {
   IAUUpdateKind,
   StartUpdateOptions,

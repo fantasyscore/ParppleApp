@@ -7,7 +7,7 @@ import { logMetaEvent } from "../../../../utils/MetaEvents";
 import NavigationService from "../../../../navigation/NavigationService";
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../../../navigation/routes";
 import { PROFILE_BATCH_LIMIT } from "../constants";
-import { isPublishLocked } from "../utils";
+import { isPublishLocked } from "../../../../utils/profile";
 
 const DEFAULT_AGE_RANGE = [18, 80];
 const DEFAULT_RADIUS = [100];

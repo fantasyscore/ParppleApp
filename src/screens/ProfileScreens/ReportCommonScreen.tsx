@@ -8,7 +8,7 @@ import { reportProfileIcon } from "../../helper/ImageAssets";
 import NavigationService from "../../navigation/NavigationService";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { colors, newColor } from "../../theme/colors";
-import { NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_CHATS_SCREEN, NAVIGATION_OHTER_REPORT_SCREEN, NAVIGATION_SUCCES_REPORTING_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_OHTER_REPORT_SCREEN, NAVIGATION_SUCCES_REPORTING_SCREEN } from "../../navigation/routes";
 import { useDispatch } from "react-redux";
 import { reportUserAPI } from "../../actions/authActions";
 
@@ -26,6 +26,7 @@ const ReportCommonScreen = ({ route }: any) => {
         if (selectReport === "Other") {
             NavigationService.navigate(NAVIGATION_OHTER_REPORT_SCREEN, {
                 reportedUserId: data.reportedUserId,
+                returnToOrigin: data?.returnToOrigin,
                 subject: "Other",
                 headline: "Other",
                 inLine: "Please tell us more about the issue in your own words.",
@@ -46,10 +47,15 @@ const ReportCommonScreen = ({ route }: any) => {
                 })
             );
             if (res?.statusCode == 200) {
-                NavigationService.resetStack(
-                    [{ name: NAVIGATION_BOTTOMTAB_SCREEN }, { name: NAVIGATION_SUCCES_REPORTING_SCREEN }],
-                    1
-                );
+                if (data?.returnToOrigin) {
+                    // Opened from Home / Likes / Views: keep that screen in the stack so Done can return to it
+                    NavigationService.navigate(NAVIGATION_SUCCES_REPORTING_SCREEN, { returnToOrigin: true });
+                } else {
+                    NavigationService.resetStack(
+                        [{ name: NAVIGATION_BOTTOMTAB_SCREEN }, { name: NAVIGATION_SUCCES_REPORTING_SCREEN }],
+                        1
+                    );
+                }
             }
         } finally {
             setIsSubmitting(false);

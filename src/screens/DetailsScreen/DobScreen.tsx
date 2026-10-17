@@ -7,17 +7,14 @@ import {
     ImageBackground,
 } from "react-native";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import HeaderCommon from "../../common/HeaderCommon";
 import metrics from "../../assets/Metrics";
 import {
     AppText,
-    EIGHTEEN,
     ELEVEN,
     fontSize,
     INTER_MEDIUM,
     INTER_REGULAR,
     INTER_SEMI_BOLD,
-    LIGHT_BLACK,
     OPECITY,
     SCHEHERAZADE_BOLD,
     SCHEHERAZADE_SEMI_BOLD,
@@ -29,22 +26,22 @@ import {
 } from "../../common/AppText";
 import { colors, newColor } from "../../theme/colors";
 import FastImage from "react-native-fast-image";
+import OnboardingLogo from "../../components/Onboarding/OnboardingLogo";
 import GoButton from "../../common/GoButton";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { Screen } from "../../theme/dimens";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_HEIGHT_SCREEN, NAVIGATION_LOCATION_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_HEIGHT_SCREEN } from "../../navigation/routes";
 import { toastAlert } from "../../actions/UploadImageActions";
 import { useDispatch, useSelector } from "react-redux";
 import { setAddProfile } from "../../slices/loginServices/authSlice";
 import LinearGradient from "react-native-linear-gradient";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { applogo, bdyBack, BottomLayer, calendarIcon, dobIcon, dobImage } from "../../helper/ImageAssets";
+import { bdyBack, BottomLayer, calendarIcon, dobImage } from "../../helper/ImageAssets";
 import DOBPicker from "../../components/DOBPicker";
 
 const DobScreen = () => {
     const dispatch = useDispatch();
-    const datalist = new Array(12).fill(null).map((_, index) => ({ id: String(index) }));
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
     const todaynew = new Date();
     const [date, setDate] = useState<Date | null>(null);
@@ -106,7 +103,7 @@ const DobScreen = () => {
 
     return (
         <AppSafeAreaView color={newColor.blackNew}>
-            <FastImage source={applogo} resizeMode="contain" style={styles.logo} />
+            <OnboardingLogo />
             <FastImage source={dobImage} resizeMode="contain" style={styles.homeLandImage} />
 
             <View style={{ position: "absolute", bottom: metrics.hp0, width: Screen.Width, }}>
@@ -267,15 +264,7 @@ const DobScreen = () => {
 
 export default DobScreen;
 
-const styles = StyleSheet.create({
-    logo: {
-        height: metrics.hp7,
-        width: metrics.hp20,
-        alignSelf: "center",
-        marginTop: metrics.hp8,
-
-    },
-    homeLandImage: {
+const styles = StyleSheet.create({    homeLandImage: {
         height: metrics.hp40, width: metrics.hp40,
         alignSelf: "center",
         marginTop: metrics.hp8,
@@ -286,10 +275,7 @@ const styles = StyleSheet.create({
         width: "100%",
         paddingVertical: metrics.hp2,
         alignItems: "center"
-    },
-
-    container: { flex: 1, marginTop: metrics.hp3 },
-    dobContainer: {
+    },    dobContainer: {
         flexDirection: "row",
         justifyContent: "space-between",
         marginTop: metrics.hp5,
@@ -309,12 +295,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.white,
         paddingBottom: metrics.hp10,
         alignItems: "center",
-    },
-    doneButton: {
-        alignSelf: "flex-end",
-        padding: metrics.hp2,
-    },
-    centeredView: {
+    },    centeredView: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
@@ -327,20 +308,4 @@ const styles = StyleSheet.create({
     bdyBack: {
         width: Screen.Width / 1.2,
         height: metrics.hp16,
-    },
-    actionRow: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        padding: metrics.hp2,
-    },
-    editButton: {
-        width: "47%",
-        height: metrics.hp5,
-        borderRadius: metrics.hp4,
-        borderWidth: 1,
-        borderColor: colors.purple,
-        alignItems: "center",
-        justifyContent: "center",
-
-    },
-});
+    },});

@@ -7,7 +7,7 @@ import {
   TouchableOpacityProps,
   ViewStyle,
 } from "react-native";
-import { LegacyRef, ReactNode } from "react";
+import { ReactNode } from "react";
 import { Source } from "react-native-fast-image";
 
 export interface CheckboxProps {

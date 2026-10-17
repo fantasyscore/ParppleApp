@@ -11,7 +11,7 @@ type FaceLivenessModule = {
   startLiveness?: (sessionId: string) => Promise<{ status?: string; message?: string } | string | null | undefined>;
 };
 
-const getFaceLivenessModule = () => (NativeModules as any)?.FaceLiveness as FaceLivenessModule | undefined;
+export const getFaceLivenessModule = () => (NativeModules as any)?.FaceLiveness as FaceLivenessModule | undefined;
 
 const openSettingsAlert = (title: string, message: string) =>
   Alert.alert(title, message, [
@@ -19,7 +19,7 @@ const openSettingsAlert = (title: string, message: string) =>
     { text: "Cancel", style: "cancel" },
   ]);
 
-async function ensureCameraPermission(): Promise<boolean> {
+export async function ensureCameraPermission(): Promise<boolean> {
   try {
     const permission = Platform.OS === "ios" ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA;
     const currentStatus = await check(permission);

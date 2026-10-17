@@ -74,7 +74,7 @@ const ChatsScreen = () => {
             cancelled = true;
         };
     }, [isFoucse, dispatch]);
-    
+
     const normalize = useCallback((v: any) => String(v ?? "").toLowerCase(), []);
     const query = useMemo(() => normalize(search).trim(), [normalize, search]);
 
@@ -158,17 +158,25 @@ const ChatsScreen = () => {
                         source={isBot ? AppIcon : item?.profilePicture?.url ? { uri: item.profilePicture.url } : item.gender == "male" ? dummyMaleProfile : dummyfemaleProfile}
                         style={styles.newMatchProfile}
                     />
-                       {item.online && !isBot && 
-                      <View style={{height:metrics.hp1,width:metrics.hp1, backgroundColor:"#26F600", borderRadius:metrics.hp50, position:"absolute", top:metrics.hp1, left:metrics.hp1}}/>}
+                    {item.online && !isBot &&
+                        <View style={{
+                            height: metrics.hp2,
+                            width: metrics.hp2,
+                            borderRadius: metrics.hp50,
+                            backgroundColor: "#39E75F",
+                            borderWidth: metrics.hp0_5,
+                            borderColor: "#2A2A2C", position: "absolute", top: metrics.hp0, left: metrics.hp0_5
+                        }} />
+                     } 
                     <View style={styles.messageContainer}>
                         <View style={{ flexDirection: "row" }}>
                             <AppText style={{ textTransform: "capitalize" }} type={SIXTEEN} weight={INTER_BOLD} color={WHITE}>
                                 {item.username ? item.username : item.name}{"  "}
                             </AppText>
                         </View>
-                            <AppText type={FORTEEN} numberOfLines={1} weight={item.unreadCount > 0 ? INTER_SEMI_BOLD : INTER_REGULAR} color={item.unreadCount > 0 ? WHITE : OPECITY}>
-                                {item?.lastMessage?.text ? truncateText(item?.lastMessage?.text) : "Send your first message"}
-                            </AppText>
+                        <AppText type={FORTEEN} numberOfLines={1} weight={item.unreadCount > 0 ? INTER_SEMI_BOLD : INTER_REGULAR} color={item.unreadCount > 0 ? WHITE : OPECITY}>
+                            {item?.lastMessage?.text ? truncateText(item?.lastMessage?.text) : "Send your first message"}
+                        </AppText>
                     </View>
                 </View>
                 <View style={{ alignItems: "flex-end", marginTop: metrics.hp2_3 }}>
@@ -236,8 +244,8 @@ const ChatsScreen = () => {
                                         source={item?.avatarUrl ? { uri: item?.avatarUrl } : item?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile}
                                         style={styles.newMatchProfile}
                                     >
-                                        {item.online? 
-                                     <View style={{height:metrics.hp1,width:metrics.hp1, backgroundColor:"#26F600", borderRadius:metrics.hp50, position:"absolute", top:metrics.hp1, left:metrics.hp1}}/>:<></>}
+                                        {item.online ?
+                                            <View style={{ height: metrics.hp1, width: metrics.hp1, backgroundColor: "#26F600", borderRadius: metrics.hp50, position: "absolute", top: metrics.hp1, left: metrics.hp1 }} /> : <></>}
                                         <View style={styles.moreOverlay}>
                                             <AppText type={FORTEEN} color={WHITE} weight={INTER_BOLD}>
                                                 +{item.remaining}
@@ -289,39 +297,39 @@ const ChatsScreen = () => {
 
     return (
         <AppSafeAreaView color={newColor.blackNew}>
-             <ImageBackground source={HomeBackground} resizeMode='contain' style={{ flex: 1 }}>
-            <NewHeaderAndroid message={true} filterShow={false} />
-            <ImageBackground source={ChatSearchIcon} resizeMode="stretch" style={{ height: metrics.hp7, width: "95%", alignSelf: "center", marginLeft: metrics.hp2, marginTop: metrics.hp2, justifyContent: "center" }}>
-                {newMatches?.length ?
-                    <SearchContainer onChangeText={setSearch} value={search} placeholder={"Search matches"} style={{ height: metrics.hp7, marginTop: Platform.OS === "ios" ? metrics.hp0_7 : 0 }} /> :
-                    <SearchContainer editable={false} onChangeText={setSearch} value={search} placeholder={"Search matches"} style={{ height: metrics.hp7 }} />
-                }
-            </ImageBackground>
-            {isFirstLoad && !newMatches?.length ? (
-                <View style={styles.firstLoadContainer}>
-                    <ActivityIndicator size="small" color={colors.white} />
-                </View>
-            ) : newMatches?.length === 0 ? (
-                <FlatList
-                    data={query ? (normalize(botChatItem.name).includes(query) ? [botChatItem] : []) : [botChatItem]}
-                    renderItem={renderItemChats}
-                    keyExtractor={(item: any) => item.matchId || item.userId || 'bot'}
-                    ListEmptyComponent={query ? noSearchFound : null}
-                    ListHeaderComponent={listHeader}
-                    contentContainerStyle={{ paddingBottom: metrics.hp5 }}
-                    showsVerticalScrollIndicator={false}
-                />
-            ) : (
-                <FlatList
-                    data={filteredChats}
-                    renderItem={renderItemChats}
-                    keyExtractor={(item) => item.matchId}
-                    showsVerticalScrollIndicator={false}
-                    ListEmptyComponent={noSearchFound}
-                    ListHeaderComponent={listHeader}
-                    contentContainerStyle={{ paddingBottom: metrics.hp20 }}
-                />
-            )}
+            <ImageBackground source={HomeBackground} resizeMode='contain' style={{ flex: 1 }}>
+                <NewHeaderAndroid message={true} filterShow={false} />
+                <ImageBackground source={ChatSearchIcon} resizeMode="stretch" style={{ height: metrics.hp7, width: "95%", alignSelf: "center", marginLeft: metrics.hp2, marginTop: metrics.hp2, justifyContent: "center" }}>
+                    {newMatches?.length ?
+                        <SearchContainer onChangeText={setSearch} value={search} placeholder={"Search matches"} style={{ height: metrics.hp7, marginTop: Platform.OS === "ios" ? metrics.hp0_7 : 0 }} /> :
+                        <SearchContainer editable={false} onChangeText={setSearch} value={search} placeholder={"Search matches"} style={{ height: metrics.hp7 }} />
+                    }
+                </ImageBackground>
+                {isFirstLoad && !newMatches?.length ? (
+                    <View style={styles.firstLoadContainer}>
+                        <ActivityIndicator size="small" color={colors.white} />
+                    </View>
+                ) : newMatches?.length === 0 ? (
+                    <FlatList
+                        data={query ? (normalize(botChatItem.name).includes(query) ? [botChatItem] : []) : [botChatItem]}
+                        renderItem={renderItemChats}
+                        keyExtractor={(item: any) => item.matchId || item.userId || 'bot'}
+                        ListEmptyComponent={query ? noSearchFound : null}
+                        ListHeaderComponent={listHeader}
+                        contentContainerStyle={{ paddingBottom: metrics.hp5 }}
+                        showsVerticalScrollIndicator={false}
+                    />
+                ) : (
+                    <FlatList
+                        data={filteredChats}
+                        renderItem={renderItemChats}
+                        keyExtractor={(item) => item.matchId}
+                        showsVerticalScrollIndicator={false}
+                        ListEmptyComponent={noSearchFound}
+                        ListHeaderComponent={listHeader}
+                        contentContainerStyle={{ paddingBottom: metrics.hp20 }}
+                    />
+                )}
             </ImageBackground>
         </AppSafeAreaView>
     )
@@ -332,32 +340,7 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-    },
-    singlelIne: {
-        height: metrics.hp0_1,
-        backgroundColor: colors.borderfifty,
-        marginTop: metrics.hp1
-    },
-    emptyImage: {
-        height: metrics.hp25,
-        width: metrics.hp25,
-        alignSelf: "center",
-        marginTop: metrics.hp6,
-    },
-    buttonContiner: {
-        height: metrics.hp5,
-        borderRadius: metrics.hp4,
-        backgroundColor: colors.purple,
-        alignItems: "center",
-        justifyContent: "center",
-        marginTop: metrics.hp2,
-        width: "100%"
-    },
-    heartIcon: {
-        height: metrics.hp2,
-        width: metrics.hp2
-    },
-    numberCount: {
+    }, numberCount: {
         height: metrics.hp2,
         borderRadius: metrics.hp3,
         alignItems: "center",
@@ -382,49 +365,16 @@ const styles = StyleSheet.create({
         marginTop: metrics.hp2,
         alignItems: "center",
         justifyContent: "center"
-    },
-    matchRoudImage: {
-        height: metrics.hp10,
-        width: metrics.hp10,
-        position: "absolute",
-        top: -metrics.hp0_4,
-        borderRadius: metrics.hp50,
-    },
-    numbersMatchContainer: {
-        height: metrics.hp9,
-        width: metrics.hp9,
-        borderRadius: metrics.hp50,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "#00000050",
-        overflow: "hidden"
-    },
-    chatListContainer: {
+    }, chatListContainer: {
         paddingVertical: metrics.hp2,
-        borderBottomWidth: metrics.hp0_1,
+        borderBottomWidth: 0.2,
         borderBottomColor: colors.borderfifty,
         marginHorizontal: metrics.hp2,
         flexDirection: "row",
         justifyContent: "space-between"
-    },
-    blueTickIcon: {
-        height: metrics.hp2,
-        width: metrics.hp2,
-        marginTop: metrics.hp0_5
-    },
-    messageContainer: {
+    }, messageContainer: {
         marginLeft: metrics.hp2
-    },
-    moreCard: {
-        height: metrics.hp9,
-        width: metrics.hp9,
-        borderRadius: metrics.hp50,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: colors.purple,
-        overflow: "hidden"
-    },
-    moreOverlay: {
+    }, moreOverlay: {
         height: metrics.hp9,
         width: metrics.hp9,
         borderRadius: metrics.hp50,
@@ -432,10 +382,5 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         backgroundColor: "#00000070",
         overflow: "hidden"
-    },
-    activeBackground: {
-        height: metrics.hp1, width: metrics.hp1,
-        backgroundColor: colors.darkGreen, borderRadius: metrics.hp20,
-        position: "absolute", top: metrics.hp1, left: metrics.hp7_3,
     },
 })

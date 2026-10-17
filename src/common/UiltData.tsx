@@ -1,4 +1,4 @@
-import { accountcircleIcon, blackIcon, blueTikeIcon, drikingIcon, flasIcon, goldCard, lifeStyleIcon, locationCIon, locIcon, moonIcon, petsIcon, Platinum, profileImage, pronounIcon, pText, purpleHeart, redHeart, reportProfileIcon, schoolIcon, searchIcon, silverCard, smookingIcon, straightenIcon, unMatchProfileIcon, workIcon } from "../helper/ImageAssets";
+import { blackIcon, reportProfileIcon, unMatchProfileIcon } from "../helper/ImageAssets";
 export const GOOGLE_API_KEY = 'AIzaSyBlbpgR6GCn6ZOPcZsv16dHixcsiaaBTX8';
 
 export const womenData = [
@@ -59,92 +59,6 @@ export const dataPets = [{ id: "1", title: "Dog" }, { id: "2", title: "Cat" },
 { id: "7", title: "Don’t have but love" }, { id: "8", title: "Turtle" },
 { id: "9", title: "Hamster" }, { id: "10", title: "Rabbit" }, { id: "11", title: "Want a pet" }, { id: "12", title: "Allergic to pets" },
 ];
-export const editProfileData = [
-    { id: "1", title: "Gemini", image: moonIcon }, { id: "2", title: "Smoker", image: smookingIcon }, { id: "3", title: "location", image: locationCIon },
-];
-export const editProfilelistData = [
-    {
-        id: "1",
-        headIcon: accountcircleIcon,
-        title: "My Vitals",
-        details: [
-            {
-                value: "100",
-                icons: schoolIcon,
-                valueTitle: "Education",
-                line: "High school"
-            },
-            {
-                value: "101",
-                icons: searchIcon,
-                valueTitle: "Job",
-                line: "React Native Developer"
-            },
-            {
-                value: "102",
-                icons: locIcon,
-                valueTitle: "Location",
-                line: "Jaipur"
-            },
-        ]
-    },
-    {
-        id: "2",
-        headIcon: accountcircleIcon,
-        title: "About me",
-        details: [
-            {
-                value: "100",
-                icons: pronounIcon,
-                valueTitle: "Pronoun",
-                line: "He,him"
-            },
-            {
-                value: "101",
-                icons: straightenIcon,
-                valueTitle: "Height",
-                line: "5’9”"
-            },
-            {
-                value: "102",
-                icons: moonIcon,
-                valueTitle: "Zodiac",
-                line: "Gemini"
-            },
-        ]
-    },
-    {
-        id: "3",
-        headIcon: lifeStyleIcon,
-        title: "Lifestyle",
-        details: [
-            {
-                value: "100",
-                icons: smookingIcon,
-                valueTitle: "Smoke",
-                line: "Smoking while drinking"
-            },
-            {
-                value: "101",
-                icons: drikingIcon,
-                valueTitle: "Drink",
-                line: "On special occasions"
-            },
-            {
-                value: "102",
-                icons: workIcon,
-                valueTitle: "Workout",
-                line: "Often"
-            },
-            {
-                value: "103",
-                icons: petsIcon,
-                valueTitle: "Pets",
-                line: "Turtle"
-            },
-        ]
-    },
-];
 export const datapersonal = [
     { "id": "1", "title": "#music" },
     { "id": "2", "title": "#movies" },
@@ -159,16 +73,7 @@ export const similarProfileFilter = [
     { "id": "3", "title": "Dating Goals" },
     { "id": "4", "title": "Communities in Common" },
 ];
-export const premiumDetaiData = [
-    { id: "1", icon: flasIcon, numberText: "5", title: "Boost", headLine: "Get more" },
-    { id: "2", icon: redHeart, numberText: "10", title: "Super Like", headLine: "Get more" },
-    { id: "3", icon: pText, numberText:  "Get\nSubscription", title: "", headLine: "Purchase" },
-];
-export const PurchaseCards = [
-    { id: "3", icon: Platinum, title: "Platinum" },
-    { id: "2", icon: goldCard, title: "Gold" },
-    { id: "1", icon: silverCard, title: "Silver" },
-];
+
 export const SilverPurchase = [
     { id: "1", planOf: "1 Week", amount: "₹549 /", ofPu: "Week" },
     { id: "2", planOf: "1 Month", amount: "₹2,459/", ofPu: "Month", discount: "Save 10%" },
@@ -191,7 +96,7 @@ export const SilverPurchasedis = [
 // Gold Plan – More Matches, More Visibility
 export const GoldPurchasedis = [
     { id: "1", title: "Unlimited Likes", subTitle: "Swipe and like without any restrictions." },
-    { id: "2", title: "See Who Likes You", subTitle: "Match faster by seeing who's already interested." }, 
+    { id: "2", title: "See Who Likes You", subTitle: "Match faster by seeing who's already interested." },
     { id: "3", title: "Top Picks", subTitle: "Access daily hand-picked profiles matched to your taste." },
     { id: "4", title: "1 Free Spotlight per Month", subTitle: "Get more profile visibility instantly." },
     // { id: "5", title: "2 Super Likes per Week", subTitle: "Stand out and show strong interest." },
@@ -213,95 +118,13 @@ export const PlatinumPurchasedis = [
     // { id: "6", title: "3 Super Likes per Week", subTitle: "Make bold first moves." },
     // { id: "7", title: "3 Free Crush Notes per Week", subTitle: "Send personalized notes before matching." },
     { id: "8", title: "Advanced Filters", subTitle: "Unlock complete control over who you match with." },
-    { id: "9", title: "Who Viewed You", subTitle: "See who's interested in your profile." },   
+    { id: "9", title: "Who Viewed You", subTitle: "See who's interested in your profile." },
     { id: "10", title: "Unlimited Re-Swipe", subTitle: "Never miss a connection due to a wrong swipe." },
     { id: "11", title: "Control Your Profile", subTitle: "Full control over profile visibility." },
     { id: "12", title: "Control Who You Viewed", subTitle: "Decide if your profile views are visible." },
     { id: "13", title: "Hide Ads", subTitle: "Enjoy a completely ad-free premium experience." },
 ];
-export const profileDataDiscover = [
-    {
-        id: "1",
-        name: "Diksha",
-        age: 21,
-        distance: "5 Km away",
-        occupation: "Entrepreneurs at F&B",
-        imageUri: profileImage,
-    },
-    {
-        id: "2",
-        name: "Anjali",
-        age: 23,
-        distance: "8 Km away",
-        occupation: "Software Engineer",
-        imageUri: profileImage,
-    },
-    {
-        id: "3",
-        name: "harshit",
-        age: 23,
-        distance: "5 Km away",
-        occupation: "Software Engineer",
-        imageUri: profileImage,
-    },
-    {
-        id: "4",
-        name: "Gaurav",
-        age: 23,
-        distance: "9 Km away",
-        occupation: "Software Engineer",
-        imageUri: profileImage,
-    },
-    {
-        id: "5",
-        name: "Rohan",
-        age: 23,
-        distance: "4 Km away",
-        occupation: "Software Engineer",
-        imageUri: profileImage,
-    },
-];
-export const editDiscover = [
-    { id: "1", title: "Gemini", image: moonIcon }, { id: "2", title: "Smoker", image: smookingIcon }];
-export const chatData = [
-    {
-        id: "1",
-        profile: profileImage,
-        name: "Yogendra",
-        age: "25",
-        verified: true,
-        lastMessage: "Today",
-        message: "Thanks! BTW you look good too.",
-        upComingMesaage: true
-    },
-    {
-        id: "2",
-        profile: profileImage,
-        name: "Gaurav",
-        age: "28",
-        verified: false,
-        lastMessage: "Yesterday",
-        message: "You: Hey what’s up!",
-        upComingMesaage: false
-    },
-];
-export const newMatchData = [
-    {
-        id: "1",
-        profile: profileImage,
-        name: "Matched"
-    },
-    {
-        id: "2",
-        profile: profileImage,
-        name: "Gopal"
-    },
-    {
-        id: "3",
-        profile: profileImage,
-        name: "Harshit"
-    },
-];
+
 export const threeDotData = [
     {
         id: "1",
@@ -329,12 +152,12 @@ export const threeDotDataHome = [
         headLine: "Report",
         disLine: "We won’t let them know you’ve reported."
     },
-    // {
-    //     id: "2",
-    //     icon: blackIcon,
-    //     headLine: "Block",
-    //     disLine: "You both won’t see each other again."
-    // },
+    {
+        id: "2",
+        icon: blackIcon,
+        headLine: "Block",
+        disLine: "You both won’t see each other again."
+    },
 ];
 export const reportData = [
     {
@@ -476,64 +299,7 @@ export const UpgradeData = [
         id: "2",
     },
 ];
-export const viewsData = [
-    {
-        id: "1",
-        profile: profileImage,
-        name: "Diksha,",
-        age: "21",
-        bluetike: blueTikeIcon,
-        active: "Active Now"
-    },
-    {
-        id: "2",
-        profile: profileImage,
-        name: "Chetan,",
-        age: "21",
-        bluetike: blueTikeIcon,
-        active: "Recently Active"
-    },
-    {
-        id: "3",
-        profile: profileImage,
-        name: "Ravi,",
-        age: "21",
-        bluetike: blueTikeIcon,
-        active: "Active Now"
-    },
-    {
-        id: "4",
-        profile: profileImage,
-        name: "Harshit,",
-        age: "21",
-        bluetike: blueTikeIcon,
-        active: "Active Now"
-    },
-    {
-        id: "5",
-        profile: profileImage,
-        name: "Suresh,",
-        age: "21",
-        bluetike: blueTikeIcon,
-        active: "Recently Active"
-    },
-    {
-        id: "6",
-        profile: profileImage,
-        name: "Gaurav,",
-        age: "21",
-        bluetike: blueTikeIcon,
-        active: "Active Now"
-    },
-    {
-        id: "7",
-        profile: profileImage,
-        name: "Yogendra,",
-        age: "21",
-        bluetike: blueTikeIcon,
-        active: "Recently Active"
-    },
-];
+
 export const pronounDATA = [
     {
         id: "1",
@@ -869,19 +635,19 @@ export const languagesDATA = [
     { id: "20", title: "Polish", sendTitle: "polish" },
 ];
 export const religiousBeliefsDATA = [
-    { id: "1", title: "Hinduism",sendTitle:"hinduism" },
-    { id: "2", title: "Islam" , sendTitle:"islam"},
-    { id: "3", title: "Christianity", sendTitle:"christianity" },
-    { id: "4", title: "Sikhism", sendTitle:"sikhism" },
-    { id: "5", title: "Buddhism" , sendTitle:"buddhism"},
-    { id: "6", title: "Jainism" , sendTitle:"jainism"},
-    { id: "7", title: "Judaism" , sendTitle:"judaism"},
-    { id: "8", title: "Atheism" , sendTitle:"atheism"},
-    { id: "9", title: "Agnostic" , sendTitle:"agnostic"},
-    { id: "10", title: "Spiritual but not religious", sendTitle:"spiritualbutnotreligious"},
-    { id: "11", title: "Other" , sendTitle:"other"},
+    { id: "1", title: "Hinduism", sendTitle: "hinduism" },
+    { id: "2", title: "Islam", sendTitle: "islam" },
+    { id: "3", title: "Christianity", sendTitle: "christianity" },
+    { id: "4", title: "Sikhism", sendTitle: "sikhism" },
+    { id: "5", title: "Buddhism", sendTitle: "buddhism" },
+    { id: "6", title: "Jainism", sendTitle: "jainism" },
+    { id: "7", title: "Judaism", sendTitle: "judaism" },
+    { id: "8", title: "Atheism", sendTitle: "atheism" },
+    { id: "9", title: "Agnostic", sendTitle: "agnostic" },
+    { id: "10", title: "Spiritual but not religious", sendTitle: "spiritualbutnotreligious" },
+    { id: "11", title: "Other", sendTitle: "other" },
 ];
-  
+
 export const dataNew = [
     {
         "_id": "68f0d9a61e52207b71a5c96c",
@@ -1094,33 +860,33 @@ export const dataNew = [
 ];
 export const SafetyTips = [
     {
-        id:"1",
-        line:"Meet in public for your first few dates.",
+        id: "1",
+        line: "Meet in public for your first few dates.",
     },
     {
-        id:"2",
-        line:"Don’t share personal info too soon.",
+        id: "2",
+        line: "Don’t share personal info too soon.",
     },
     {
-        id:"3",
-        line:"Trust your instincts — if it feels off, it probably is.",
+        id: "3",
+        line: "Trust your instincts — if it feels off, it probably is.",
     },
     {
-        id:"4",
-        line:"Tell a friend where you’re going.",
+        id: "4",
+        line: "Tell a friend where you’re going.",
     },
 ];
 export const TrustTransparency = [
     {
-        id:"1",
-        line:"All reports are reviewed within 24 hours.",
+        id: "1",
+        line: "All reports are reviewed within 24 hours.",
     },
     {
-        id:"2",
-        line:"Your data and chats are encrypted.",
+        id: "2",
+        line: "Your data and chats are encrypted.",
     },
     {
-        id:"3",
-        line:"We never share your location without consent.",
+        id: "3",
+        line: "We never share your location without consent.",
     },
 ]

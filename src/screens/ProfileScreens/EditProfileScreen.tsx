@@ -1,13 +1,11 @@
 import React, { useEffect, useState, useRef } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Alert, FlatList, Platform, ScrollView, StyleSheet, View, Modal, Dimensions, ImageBackground } from "react-native";
+import { FlatList, Platform, ScrollView, StyleSheet, View, Modal, ImageBackground } from "react-native";
 import metrics from "../../assets/Metrics";
-import { Screen } from "../../theme/dimens";
 import { colors, newColor } from "../../theme/colors";
-import { AppText, BLACK, EIGHTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, WHITE, SCHEHERAZADE_BOLD, SIXTEEN, TWENTY_FOUR, TWELVE, OPECITY, FORTEEN } from "../../common/AppText";
+import { AppText, BLACK, EIGHTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, WHITE, SCHEHERAZADE_BOLD, SIXTEEN, TWENTY_FOUR, TWELVE, FORTEEN } from "../../common/AppText";
 import { editProfileTextInput, BottomLayer, forProfileDetailsBack } from "../../helper/ImageAssets";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
-import { sexualityDATA } from "../../common/UiltData";
 import NavigationService from "../../navigation/NavigationService";
 import { useDispatch, useSelector } from "react-redux";
 import { editProfile, getProfile } from "../../actions/authActions";
@@ -18,21 +16,8 @@ import DOBPicker from "../../components/DOBPicker";
 import { scale, verticalScale } from "react-native-size-matters";
 import GoButton from "../../common/GoButton";
 import { NAVIAGATION_PROFILE_PREVIEW_NEW_SCREEN } from "../../navigation/routes";
+import { HEIGHTS_CM, HEIGHTS_FT } from "../../helper/heights";
 
-const heights: any = [];
-for (let ft = 4; ft <= 7; ft++) {
-    for (let inch = 0; inch < 12; inch++) {
-        if (ft === 7 && inch === 11) {
-            heights.push(`${ft}'${inch}"`);
-            break;
-        }
-        heights.push(`${ft}'${inch}"`);
-    }
-}
-const heightsCm: any = [];
-for (let cm = 140; cm <= 210; cm++) {
-    heightsCm.push(`${cm} cm`);
-}
 const MARK_HEIGHT = verticalScale(20);
 
 const EditProfileScreen = () => {
@@ -70,14 +55,14 @@ const EditProfileScreen = () => {
 
     const formattedDate = localDate ? localDate.toISOString().split("T")[0] : null;
 
-    const currentDataSource = selectFtCm === "FT" ? heights : heightsCm;
+    const currentDataSource = selectFtCm === "FT" ? HEIGHTS_FT : HEIGHTS_CM;
     const centerOffset = (verticalScale(400) / 2) - (MARK_HEIGHT / 2);
 
     useEffect(() => {
         if (showHeightModal && heightScrollViewRef.current) {
             const index = currentDataSource.indexOf(localHeight) !== -1
                 ? currentDataSource.indexOf(localHeight)
-                : (selectFtCm === "FT" ? heights.indexOf("4'0\"") : heightsCm.indexOf("170 cm"));
+                : (selectFtCm === "FT" ? HEIGHTS_FT.indexOf("4'0\"") : HEIGHTS_CM.indexOf("170 cm"));
             const offset = index * MARK_HEIGHT;
             setTimeout(() => {
                 heightScrollViewRef.current?.scrollTo({ y: offset, animated: false });
@@ -441,25 +426,7 @@ const styles = StyleSheet.create({
         borderRadius: metrics.hp2,
         padding: metrics.hp2,
         alignItems: "center",
-    },
-    selectCm: {
-        height: metrics.hp5,
-        backgroundColor: colors.lightBack,
-        width: metrics.hp15,
-        borderRadius: metrics.hp4,
-        padding: metrics.hp0_2,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-    },
-    selectedBack: {
-        height: metrics.hp4_5,
-        width: "48%",
-        borderRadius: metrics.hp50,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    rulerMarkContainer: {
+    },rulerMarkContainer: {
         height: MARK_HEIGHT,
         flexDirection: "row",
         alignItems: "center",

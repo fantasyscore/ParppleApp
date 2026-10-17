@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, TouchableOpacity, View, Platform } from 'react-native';
 import Animated, {
     useAnimatedStyle,
@@ -9,14 +9,13 @@ import Animated, {
     Easing,
 } from 'react-native-reanimated';
 import FastImage from 'react-native-fast-image';
-import { AppText, BLACK, FORTEEN, INTER_MEDIUM, INTER_REGULAR, SIXTEEN, WHITE } from './AppText';
+import { AppText, FORTEEN, INTER_MEDIUM, INTER_REGULAR, SIXTEEN, WHITE } from './AppText';
 import metrics from '../assets/Metrics';
-import { colors } from '../theme/colors';
 import NavigationService from '../navigation/NavigationService';
 import { NAVIGATION_TAKING_SCREEN } from '../navigation/routes';
 import { useDispatch, useSelector } from 'react-redux';
-import { chatHistoryAPI, getNewMatches } from '../actions/authActions';
-import { chatHistoryDetails, matchChatDetails, setNewMatches } from '../slices/loginServices/authSlice';
+import { chatHistoryAPI } from '../actions/authActions';
+import { chatHistoryDetails, matchChatDetails } from '../slices/loginServices/authSlice';
 import { dummyfemaleProfile, dummyMaleProfile } from '../helper/ImageAssets';
 
 interface NotificationData {
@@ -26,6 +25,7 @@ interface NotificationData {
     messagePreview: string;
     profilePicture?: string;
     timestamp: string;
+    gender?: string;
 }
 
 interface GlobalNotificationBannerProps {
@@ -37,8 +37,6 @@ const GlobalNotificationBanner: React.FC<GlobalNotificationBannerProps> = ({
     notification,
     onDismiss,
 }) => {
-    console.log(notification, "notificationnotificationnotification");
-
     const dispatch = useDispatch();
     const userData = useSelector((state: any) => state.auth.userData);
     const newMatches = useSelector((state: any) => state.auth.newMatches);
@@ -206,6 +204,8 @@ const GlobalNotificationBanner: React.FC<GlobalNotificationBannerProps> = ({
         return null;
     }
 
+    const senderName = notification.senderName?.trim() || 'New message';
+
     return (
         <Animated.View style={[styles.container, animatedStyle]} pointerEvents="box-none">
             <TouchableOpacity
@@ -214,22 +214,14 @@ const GlobalNotificationBanner: React.FC<GlobalNotificationBannerProps> = ({
                 style={styles.banner}
             >
                 <View style={styles.content}>
-                    {/* {notification.profilePicture ? ( */}
                         <FastImage
                             source={notification.profilePicture ? { uri: notification.profilePicture } : notification?.gender == "female" ? dummyfemaleProfile : dummyMaleProfile}
                             style={styles.avatar}
                             resizeMode="cover"
                         />
-                    {/* ) : (
-                        <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                            <AppText type={SIXTEEN} weight={INTER_MEDIUM} color={WHITE}>
-                                {notification.senderName?.charAt(0)?.toUpperCase() || 'U'}
-                            </AppText>
-                        </View>
-                    )} */}
                     <View style={styles.textContainer}>
                         <AppText type={SIXTEEN} weight={INTER_MEDIUM} color={WHITE} numberOfLines={1}>
-                            {notification.senderName}
+                            {senderName}
                         </AppText>
                         <AppText
                             type={FORTEEN}
@@ -254,6 +246,8 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         zIndex: 10000,
+        // Android draws native screens by elevation; without this the banner can sit underneath them
+        elevation: 24,
         paddingHorizontal: metrics.hp2,
         pointerEvents: 'box-none',
     },
@@ -280,13 +274,7 @@ const styles = StyleSheet.create({
         height: metrics.hp5,
         borderRadius: metrics.hp2_5,
         marginRight: metrics.hp1_5,
-    },
-    avatarPlaceholder: {
-        backgroundColor: colors.borderfifty,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    textContainer: {
+    },    textContainer: {
         flex: 1,
         marginLeft: metrics.hp0_5,
     },

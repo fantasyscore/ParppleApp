@@ -91,6 +91,10 @@ function navigate(routeName: string, params?: object) {
 function pop(n = 1) {
   safeDispatch(StackActions.pop(n));
 }
+/** Goes back to an existing screen in the stack, dropping everything above it (keeps that screen's state). */
+function popTo(routeName: string) {
+  safeDispatch(StackActions.popTo(routeName));
+}
 function push(routeName: string) {
   safeDispatch(StackActions.push(routeName));
 }
@@ -156,6 +160,7 @@ export default {
   openDrawer,
   closeDrawer,
   pop,
+  popTo,
   reset,
   resetStack,
   push,

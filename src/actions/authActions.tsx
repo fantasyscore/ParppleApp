@@ -1,13 +1,36 @@
+import { InteractionManager } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { appOperation } from "../appOperation";
-import { USER_TOKEN_KEY, SWIPES_REMAINING_KEY, SUPER_LIKES_REMAINING_KEY, SWIPES_PER_DAY_KEY } from "../helper/Constants";
+import { USER_TOKEN_KEY } from "../helper/Constants";
 import NavigationService from "../navigation/NavigationService";
-import { NAVIGATION_ALL_SET_SCREEN, NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_CHATS_SCREEN, NAVIGATION_GANDER_SCREEN, NAVIGATION_OTP_SCREEN, NAVIGATION_PROCCED_SCREEN, NAVIGATION_TAKING_SCREEN, NAVIGATION_USER_EDIT_PROFILE_SCREEN, NAVIGATION_WELCOME_SCREEN } from "../navigation/routes";
+import { NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_CHATS_SCREEN, NAVIGATION_GANDER_SCREEN, NAVIGATION_OTP_SCREEN, NAVIGATION_PROCCED_SCREEN, NAVIGATION_TAKING_SCREEN, NAVIGATION_USER_EDIT_PROFILE_SCREEN, NAVIGATION_WELCOME_SCREEN } from "../navigation/routes";
 import { toastAlert } from "./UploadImageActions";
 import Toast from "react-native-toast-message";
-import { chatHistoryDetails, matchChatDetails, setAttributes, setDiscoverData, setGetProfile, setLikeByOther, setLikeYou, setListProfiles, setNewMatches, setOtherUserProfile, setRecentMatches, setTurnOnData, setViewByOhter, setViewYou } from "../slices/loginServices/authSlice";
+import { chatHistoryDetails, matchChatDetails, setAttributes, setDiscoverData, setGetProfile, setLikeByOther, setLikeYou, setListProfiles, removeUserFromProfileLists, setNewMatches, setOtherUserProfile, setRecentMatches, setTurnOnData, setViewByOhter, setViewYou } from "../slices/loginServices/authSlice";
 import { logLogin, logSignUp, setAnalyticsUserId } from "../services/analyticsService";
 
+/**
+ * Loads everything the signed-in app needs: profile, discovery feed, matches, likes, views and
+ * turn-ons. Used on app start, after login and after onboarding. `listProfiles()` also moves the
+ * user into the main tabs once the feed arrives.
+ */
+export const loadSessionData: any = () => (dispatch: any) => {
+    // The feed and the profile decide what the first screen shows (and the feed moves the user into the tabs)
+    dispatch(listProfiles());
+    dispatch(getProfile(true));
+    // Everything else only fills badges and the other tabs: start it once the screen transition has finished so
+    // its store updates and re-renders don't compete with the animation.
+    InteractionManager.runAfterInteractions(() => {
+        dispatch(discoverProfile());
+        dispatch(getNewMatches());
+        dispatch(getRecentMatches());
+        dispatch(likeByOther());
+        dispatch(likeYou());
+        dispatch(viewProfileByOther());
+        dispatch(youView());
+        dispatch(turnOn({}));
+    });
+};
 export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.guest.login(data);
@@ -24,16 +47,7 @@ export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) =
                 }
                 await logLogin(data?.googleToken ? 'google' : data?.iosToken ? 'apple' : 'phone');
                 // NavigationService.navigate(NAVIGATION_GANDER_SCREEN);
-                dispatch(listProfiles());
-                dispatch(getProfile(true));
-                dispatch(discoverProfile());
-                dispatch(getNewMatches());
-                dispatch(getRecentMatches());
-                dispatch(likeByOther());
-                dispatch(likeYou());
-                dispatch(viewProfileByOther());
-                dispatch(youView());
-                dispatch(turnOn({}))
+                dispatch(loadSessionData());
             } else {
                 if (gmail) {
                     NavigationService.navigate(NAVIGATION_GANDER_SCREEN);
@@ -49,7 +63,7 @@ export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) =
             return false;
         }
     } catch (error: any) {
-        console.log(error,"errorerrorerrorerrorerror")
+        console.log(error, "errorerrorerrorerrorerror")
         // toastAlert.showToastError(error);
         return false;
     }
@@ -233,8 +247,8 @@ export const youView: any = () => async (dispatch: any) => {
 export const getOtherProfile: any = (data: any, setCurrentProfileData: any, setOtherUserProfile: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.otherDataProfileAPI(data);
-        console.log(response,"responseresponseresponse");
-        
+        console.log(response, "responseresponseresponse");
+
         if (response?.statusCode == 200) {
             setCurrentProfileData(response?.data);
             setOtherUserProfile(true)
@@ -360,24 +374,35 @@ export const userUnmatchAPI: any = (data: any) => async (dispatch: any) => {
     } catch (error: any) {
     }
 };
-export const userBlockAPI: any = (data: any) => async (dispatch: any) => {
+export const userBlockAPI: any = (data: any, options: { navigateToChats?: boolean } = {}) => async (dispatch: any) => {
+    const { navigateToChats = true } = options;
     try {
         const response: any = await appOperation.customer.userBlockAPI(data);
         if (response?.statusCode == 200) {
             dispatch(getNewMatches())
-            return NavigationService.navigate(NAVIGATION_CHATS_SCREEN)
+            if (navigateToChats) NavigationService.navigate(NAVIGATION_CHATS_SCREEN)
+            return true;
         }
+        return false;
     } catch (error: any) {
         console.log(error, "errorerrorerror");
 
     }
 };
+// Last fetched first page per match, so reopening a chat paints instantly (like WhatsApp) while the
+// fresh page loads in the background.
+const chatHistoryCache = new Map<string, any[]>();
+export const clearChatHistoryCache = () => chatHistoryCache.clear();
+
 export const chatHistoryAPI: any = (data: any, params: any, shouldNavigate: boolean = true) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.chatHistortAPI(data, params);
         console.log(response, "responseresponseresponse");
 
         if (response?.statusCode == 200) {
+            if (data?.matchId && params?.page === 1 && Array.isArray(response.data)) {
+                chatHistoryCache.set(String(data.matchId), response.data);
+            }
             dispatch(chatHistoryDetails(response.data))
             if (shouldNavigate) {
                 NavigationService.navigate(NAVIGATION_TAKING_SCREEN)
@@ -392,7 +417,7 @@ export const chatHistoryAPI: any = (data: any, params: any, shouldNavigate: bool
  */
 export const openMatchChat: any = (item: any) => (dispatch: any) => {
     const forEmptyChat = item?.lastMessage === null;
-    dispatch(chatHistoryDetails([]));
+    dispatch(chatHistoryDetails(chatHistoryCache.get(String(item.matchId)) ?? []));
     dispatch(matchChatDetails(item));
     NavigationService.navigate(NAVIGATION_TAKING_SCREEN, { forEmptyChat });
     dispatch(chatHistoryAPI({ otherUserId: item.userId, matchId: item.matchId }, { page: 1, limit: 50 }, false));
@@ -519,10 +544,14 @@ export const iosPucrchesAPIIs: any = (data: any) => async (dispatch: any) => {
 
 
 export const reportUserAPI: any =
-    (payload: { reportedUserId: string; subject: string; body: string }) => async () => {
+    (payload: { reportedUserId: string; subject: string; body: string }) => async (dispatch: any) => {
         try {
             const response: any = await appOperation.customer.reportUserAPI(payload);
-            if (response?.statusCode == 200) return response;
+            if (response?.statusCode == 200) {
+                // The reported profile disappears from Home / Likes / Views right away
+                dispatch(removeUserFromProfileLists(payload.reportedUserId));
+                return response;
+            }
             // Toast.show({
             //     type: "error",
             //     text2: response?.message || "Unable to submit report. Please try again.",
@@ -537,13 +566,21 @@ export const reportUserAPI: any =
         }
     };
 
-export const blockByIdAPIUser: any = (data: any) => async (dispatch: any) => {
+/** Blocks a user by their user id (no match needed). Resolves true on success. */
+export const blockByIdAPIUser: any = (data: any, options: { navigateToChats?: boolean } = {}) => async (dispatch: any) => {
+    const { navigateToChats = true } = options;
     try {
         const response: any = await appOperation.customer.blockByIdAPI(data);
-        if (response?.statusCode == 200)
-            console.log(response, "responseresponseresponse");
+        console.log(response, "responseresponseresponse");
+        if (response?.statusCode == 200) {
+            dispatch(getNewMatches())
+            if (navigateToChats) NavigationService.navigate(NAVIGATION_CHATS_SCREEN)
+            return true;
+        }
+        return false;
     } catch (error: any) {
         console.log(error, "responseresponseresponse");
+        return false;
     }
 };
 
@@ -572,14 +609,3 @@ export const deletePhotoAPI: any = (data: { imageId: string }) => async (dispatc
     }
 };
 
-export const userLogout: any = () => async () => {
-    appOperation.setCustomerToken('');
-    await AsyncStorage.removeItem(USER_TOKEN_KEY);
-    await AsyncStorage.multiRemove([
-        SWIPES_REMAINING_KEY,
-        SUPER_LIKES_REMAINING_KEY,
-        SWIPES_PER_DAY_KEY
-    ]);
-    await setAnalyticsUserId(null);
-    NavigationService.reset(NAVIGATION_WELCOME_SCREEN);
-};

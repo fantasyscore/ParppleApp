@@ -1,54 +1,33 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { Animated, FlatList, Image, ImageBackground, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { colors, newColor } from "../../theme/colors";
 import NewHeader from "../../common/NewHeader";
 import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
-import { bioBackground, biosToggla, directChatIcon, dobIcon, forProfileDetailsBack, heightIconWhiteNew, locationIconWhiteNew, locIcon, lockIconWhite, newCloseIcon, newLikeIcon, partnerheart, pronounIcon, straightenIcon, trunOnIcon, beingWatchIcon, bitingIcon, blinedFlodedIcon, BottomLayer, dirtyTalks, fantasiesIcon, fotFetiesIcon, hairIcon, hugsIcon, massageIcon, musicIcons, oralIcon, rightSelectTrunOns, roomServiceIcon, scentsIcon, sextingIcon, smooheshIcon, TattosIcon, trunOnBackground, touchNewIcon, choclateImageNew, danceNewIcon, rolePlayImageNew, dummyMaleProfile, dummyfemaleProfile, sexualityIcon, verifiedBadgeIcon } from "../../helper/ImageAssets";
+import { bioBackground, biosToggla, directChatIcon, dobIcon, forProfileDetailsBack, heightIconWhiteNew, locationIconWhiteNew, lockIconWhite, newCloseIcon, newLikeIcon, pronounIcon, trunOnIcon, trunOnBackground, dummyMaleProfile, dummyfemaleProfile, sexualityIcon, verifiedBadgeIcon } from "../../helper/ImageAssets";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
-import { AppText, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
+import { AppText, EIGHTEEN, ELEVEN, FORTEEN, INTER_BOLD, SCHEHERAZADE_BOLD, TWELVE, WHITE } from "../../common/AppText";
 import { useSelector } from "react-redux";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
-import FullScreenViewPhoto from "../../components/FullScreenViewPhoto";
+import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 import { logMetaEvent } from "../../utils/MetaEvents";
 import PortraitAvatar from "../../common/PortraitAvatar";
 import { PHOTO_ASPECT_RATIO } from "../../helper/Constants";
+import { TURN_ON_IMAGES } from "../../helper/turnOnImages";
+
 const ITEM_WIDTH = metrics.hp34;
 // Carousel photos are shown at their stored 3:4 portrait ratio
 const ITEM_HEIGHT = ITEM_WIDTH / PHOTO_ASPECT_RATIO;
 const SPACING = metrics.hp1;
 
-const TURN_ON_IMAGES: any = {
-    "Smooches": smooheshIcon,
-    "Hugs": hugsIcon,
-    "Massage": massageIcon,
-    "Oral": oralIcon,
-    "Dirty Talk": dirtyTalks,
-    "Fantasies": fantasiesIcon,
-    "Music": musicIcons,
-    "Foot Fetish": fotFetiesIcon,
-    "Scents": scentsIcon,
-    "Biting": bitingIcon,
-    "Hair": hairIcon,
-    "Being Watched": beingWatchIcon,
-    "Sexting": sextingIcon,
-    "Room Service": roomServiceIcon,
-    "Blindfolded": blinedFlodedIcon,
-    "Tattoos": TattosIcon,
-    "Dance": danceNewIcon,
-    "Role-Play": rolePlayImageNew,
-    "Chocolate": choclateImageNew,
-    "Touch": touchNewIcon,
-};
 const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislikePress, handleLikePress, likeYoue, ViewYoue, handleCrushNote, showFullProfile }: any) => {
 
 
     const scrollX = useRef(new Animated.Value(0)).current;
     const userData = useSelector((state: any) => state.auth.userData);
 
-    const [selectedIds, setSelectedIds] = useState([]);
+    const [selectedIds, setSelectedIds] = useState<any[]>([]);
     const turnOnData = useSelector((state: any) => state?.auth?.turnOnData);
     const [selectedTurnOnIds, setSelectedTurnOnIds] = useState<any[]>([]);
     const [fullProfileShow, setFullProfileShow] = useState(false);

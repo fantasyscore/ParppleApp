@@ -1,4 +1,3 @@
-import { url } from "./../services/appOptions";
 import admin from "./lib/admin";
 import guest from "./lib/guest";
 import customer from "./lib/customer";

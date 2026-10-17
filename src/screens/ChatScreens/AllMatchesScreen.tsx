@@ -93,26 +93,7 @@ const AllMatchesScreen = () => {
 
 export default AllMatchesScreen;
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: metrics.hp2,
-    marginTop: metrics.hp5,
-    backgroundColor: colors.white,
-  },
-  backBtn: {
-    height: metrics.hp4,
-    width: metrics.hp4,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  backIcon: {
-    height: metrics.hp2_5,
-    width: metrics.hp2_5,
-  },
-  row: {
+const styles = StyleSheet.create({row: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: metrics.hp1_8,
@@ -125,17 +106,6 @@ const styles = StyleSheet.create({
     borderRadius: metrics.hp50,
     overflow: "hidden",
     backgroundColor: colors.lightBack,
-  },
-  blueTickIcon: {
-    height: metrics.hp2,
-    width: metrics.hp2,
-    marginTop: metrics.hp0_5
-  },
-  activeBackground: {
-    height: metrics.hp1, width: metrics.hp1,
-    backgroundColor: colors.darkGreen, borderRadius: metrics.hp20,
-    marginRight: metrics.hp0_5
-  },
-});
+  },});
 
 

@@ -75,7 +75,7 @@ export default (appOperation: AppOperation) => ({
     appOperation.post(`faceId/liveliness`, {}, CUSTOMER_TYPE),
   verifyFaceLivenessSessionAPI: (data: {sessionId: string}) =>
     appOperation.post(`faceId/verifySessionResult`, data, CUSTOMER_TYPE),
-  blockByIdAPI: (data: {sessionId: string}) =>
+  blockByIdAPI: (data: any) =>
     appOperation.post(`app/userAction/blockById`, data, CUSTOMER_TYPE),
   uplaodPhotoAPI: (data: any) =>
     appOperation.post(`asset/upload`, data, CUSTOMER_TYPE),

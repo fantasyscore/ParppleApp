@@ -1,52 +1,29 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Animated, Dimensions, FlatList, Image, ImageBackground, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
-import PeopleHeader from "../../common/PeopleHeader";
-import CrushNotesHeader from "../../common/CrushNotesHeader";
+import { Animated, Dimensions, FlatList, Image, ImageBackground, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
-import { AppText, EIGHTEEN, ELEVEN, fontSize, FORTEEN, INTER_BOLD, SCHEHERAZADE_BOLD, SCHEHERAZADE_SEMI_BOLD, SIXTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
+import { AppText, EIGHTEEN, ELEVEN, fontSize, FORTEEN, INTER_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { colors, newColor } from "../../theme/colors";
 import { useDispatch, useSelector } from "react-redux";
-import { setListProfiles } from "../../slices/loginServices/authSlice";
 import { interMedium } from "../../theme/typography";
 const { width, height } = Dimensions.get("window");
 const COLLAPSED_IMAGE_HEIGHT = height * 0.45;
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { getProfile, sendCrushNotesAPI } from "../../actions/authActions";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_CRUSH_PURCHESE_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_CRUSH_PURCHESE_SCREEN } from "../../navigation/routes";
 import { toastAlert } from "../../actions/UploadImageActions";
-import { beingWatchIcon, bioBackground, biosToggla, bitingIcon, blinedFlodedIcon, BottomLayer, choclateImageNew, danceNewIcon, dirtyTalks, dobIcon, dummyfemaleProfile, dummyMaleProfile, fantasiesIcon, forProfileDetailsBack, fotFetiesIcon, hairIcon, heightIconWhiteNew, hugsIcon, locationIconWhiteNew, lockIconWhite, massageIcon, musicIcons, oralIcon, partnerheart, pronounIcon, rolePlayImageNew, roomServiceIcon, scentsIcon, sendMessageNewIcon, sendMessageText, sextingIcon, sexualityIcon, smooheshIcon, TattosIcon, touchNewIcon, trunOnBackground, trunOnIcon, unMatchProfileIcon } from "../../helper/ImageAssets";
+import { bioBackground, biosToggla, BottomLayer, dobIcon, dummyfemaleProfile, dummyMaleProfile, forProfileDetailsBack, heightIconWhiteNew, locationIconWhiteNew, pronounIcon, sendMessageNewIcon, sendMessageText, sexualityIcon, trunOnBackground, trunOnIcon, unMatchProfileIcon } from "../../helper/ImageAssets";
 import PortraitAvatar from "../../common/PortraitAvatar";
 import { PHOTO_ASPECT_RATIO } from "../../helper/Constants";
+import { TURN_ON_IMAGES } from "../../helper/turnOnImages";
+
 const ITEM_WIDTH = metrics.hp34;
 // Carousel photos are shown at their stored 3:4 portrait ratio
 const ITEM_HEIGHT = ITEM_WIDTH / PHOTO_ASPECT_RATIO;
 const SPACING = metrics.hp1;
-const TURN_ON_IMAGES: any = {
-    "Smooches": smooheshIcon,
-    "Hugs": hugsIcon,
-    "Massage": massageIcon,
-    "Oral": oralIcon,
-    "Dirty Talk": dirtyTalks,
-    "Fantasies": fantasiesIcon,
-    "Music": musicIcons,
-    "Foot Fetish": fotFetiesIcon,
-    "Scents": scentsIcon,
-    "Biting": bitingIcon,
-    "Hair": hairIcon,
-    "Being Watched": beingWatchIcon,
-    "Sexting": sextingIcon,
-    "Room Service": roomServiceIcon,
-    "Blindfolded": blinedFlodedIcon,
-    "Tattoos": TattosIcon,
-    "Dance": danceNewIcon,
-    "Role-Play": rolePlayImageNew,
-    "Chocolate": choclateImageNew,
-    "Touch": touchNewIcon,
-};
 const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfileData, handleCrushNotes }: any) => {
 
 
@@ -354,38 +331,7 @@ const styles = StyleSheet.create({
     },
     container: {
         flex: 1,
-    },
-    imageContainer: {
-        flex: 1, marginTop: metrics.hp1,
-
-    },
-    shareIcon: {
-        height: metrics.hp4,
-        width: metrics.hp4
-    },
-    image: {
-        borderRadius: metrics.hp2,
-        width: "100%",
-    },
-    paginationContainer: {
-        position: 'absolute',
-        top: metrics.hp1,
-        left: 0,
-        right: 0,
-        height: 4,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: metrics.hp1,
-        gap: metrics.hp0_5,
-    },
-    paginationBar: {
-        height: metrics.hp0_3,
-        width: metrics.hp5,
-        flex: 1,
-        borderRadius: metrics.hp10
-    },
-    imageMain: {
+    },imageMain: {
         height: ITEM_HEIGHT,
         width: metrics.hp34
     },

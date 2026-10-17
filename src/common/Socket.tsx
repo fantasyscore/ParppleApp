@@ -193,6 +193,11 @@ class LifecycleAwareSocket {
   }
 
   // Getters to mimic socket.io properties perfectly
+  /** True once the connection was closed for good; its owner must create a new one. */
+  public get isClosed(): boolean {
+    return this.isDisconnectedByUser;
+  }
+
   public get connected(): boolean {
     return this.rawSocket ? this.rawSocket.connected : false;
   }
@@ -202,10 +207,15 @@ class LifecycleAwareSocket {
   }
 }
 
-let globalSocketInstance: LifecycleAwareSocket | null = null;
-let currentSocketUrl: string | null = null;
-let activeSubscribers = 0;
-let originalDisconnect: (() => void) | null = null;
+interface SharedSocket {
+  socket: LifecycleAwareSocket;
+  subscribers: number;
+  closeForReal: () => void;
+}
+
+// One shared connection per URL. A screen asking for a different URL (e.g. Home adds coordinates)
+// must not tear down the connection another part of the app (like the notification banner) relies on.
+const sharedSockets = new Map<string, SharedSocket>();
 
 export const createSocket = (url: any) => {
   if (!url || typeof url !== 'string') {
@@ -213,35 +223,26 @@ export const createSocket = (url: any) => {
     throw new Error('Invalid socket URL');
   }
 
-  if (globalSocketInstance && currentSocketUrl === url) {
-    activeSubscribers++;
-    return globalSocketInstance;
-  }
-
-  if (globalSocketInstance && originalDisconnect) {
-    originalDisconnect();
-    globalSocketInstance = null;
-    currentSocketUrl = null;
-    activeSubscribers = 0;
+  const existing = sharedSockets.get(url);
+  if (existing && !existing.socket.isClosed) {
+    existing.subscribers++;
+    return existing.socket;
   }
 
   try {
     const socket = new LifecycleAwareSocket(url);
     activeSockets.add(socket);
-    
-    globalSocketInstance = socket;
-    currentSocketUrl = url;
-    activeSubscribers = 1;
-    originalDisconnect = socket.disconnect.bind(socket);
-    
+    const closeForReal = socket.disconnect.bind(socket);
+    const shared: SharedSocket = { socket, subscribers: 1, closeForReal };
+    sharedSockets.set(url, shared);
+
+    // Each owner "disconnects" by releasing its reference; the connection closes with the last one.
     socket.disconnect = () => {
-      activeSubscribers--;
-      if (activeSubscribers <= 0) {
-        if (originalDisconnect) originalDisconnect();
-        globalSocketInstance = null;
-        currentSocketUrl = null;
-        activeSubscribers = 0;
-        originalDisconnect = null;
+      shared.subscribers--;
+      if (shared.subscribers <= 0) {
+        closeForReal();
+        activeSockets.delete(socket);
+        if (sharedSockets.get(url) === shared) sharedSockets.delete(url);
       }
     };
 
@@ -252,16 +253,18 @@ export const createSocket = (url: any) => {
   }
 };
 
+/** Force-closes every connection (logout / app backgrounded). Owners recreate theirs when needed. */
 export const disconnectAllSockets = () => {
   try {
-    activeSockets.forEach((socket) => {
+    sharedSockets.forEach((shared) => {
       try {
-        socket.disconnect();
+        shared.closeForReal();
       } catch (e) {
         // ignore
       }
     });
   } finally {
+    sharedSockets.clear();
     activeSockets.clear();
   }
 };

@@ -1,10 +1,12 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { createSocket, disconnectAllSockets } from './Socket';
+import { createSocket } from './Socket';
 import GlobalNotificationBanner from './GlobalNotificationBanner';
 import { useDispatch, useStore } from 'react-redux';
 import { setNewMatches } from '../slices/loginServices/authSlice';
 import { markProcessed } from '../slices/inAppNotificationSlice';
+
+const KEEP_ALIVE_MS = 3000;
 
 // Module-level singleton: dedupe survives tab switching/reconnects and blocks repeated popups.
 const seenNotificationKeys = new Set<string>();
@@ -143,7 +145,7 @@ const GlobalNotificationManager: React.FC = () => {
             const currentMatches = newMatchesRef.current;
 
             if (response?.type === 'new_message') {
-                const { matchId, senderId, senderName, messagePreview, timestamp } = response;
+                const { matchId, senderId, messagePreview, timestamp } = response;
 
                 // Update chat list (always update, even if user is in same TakingScreen)
                 const updatedMatches = currentMatches.map((chat: any) => {
@@ -182,13 +184,12 @@ const GlobalNotificationManager: React.FC = () => {
                         return;
                     }
                     const chat = currentMatches.find((c: any) => c.matchId === matchId);
-                    console.log(chat, "chatchatchatchatchat");
-
                     console.log('[GlobalNotificationManager] Showing notification banner for matchId:', matchId);
                     setNotification({
                         matchId,
                         senderId,
-                        senderName: chat?.username,
+                        // The matches list may not contain this chat yet; fall back to what the server sent
+                        senderName: chat?.username || chat?.name || response?.senderName,
                         messagePreview,
                         profilePicture: chat?.profilePicture?.url,
                         timestamp,
@@ -198,8 +199,27 @@ const GlobalNotificationManager: React.FC = () => {
             } else if (response?.type === 'crushNote') {
                 const { fromUserId, fromUserName, messagePreview, createdAt } = response;
 
-                // Don't show notification if user is already in the same TakingScreen
-                if (activeChatMatchId && activeChatMatchId === fromUserId) {
+                // A crush note lands in the chat with that person, so it counts as an unread chat message
+                const chat = currentMatches.find((c: any) => String(c.userId) === String(fromUserId));
+                const isChatOpen = Boolean(chat && activeChatMatchId && activeChatMatchId === chat.matchId);
+                if (chat && fromUserId !== currentUserIdInner) {
+                    const updatedMatches = currentMatches.map((c: any) =>
+                        c.matchId === chat.matchId
+                            ? {
+                                ...c,
+                                lastMessage: { text: messagePreview, content: messagePreview, createdAt, senderId: fromUserId, type: 'crushNote' },
+                                unreadCount: isChatOpen ? c.unreadCount : (c.unreadCount || 0) + 1,
+                            }
+                            : c
+                    );
+                    // Newest conversation first, like for regular messages
+                    const index = updatedMatches.findIndex((c: any) => c.matchId === chat.matchId);
+                    if (index > 0) updatedMatches.unshift(updatedMatches.splice(index, 1)[0]);
+                    dispatch(setNewMatches(updatedMatches));
+                }
+
+                // No banner while that chat is on screen
+                if (isChatOpen) {
                     console.log('[GlobalNotificationManager] Skipping crushNote notification - user is in same TakingScreen:', fromUserId);
                     return;
                 }
@@ -207,198 +227,78 @@ const GlobalNotificationManager: React.FC = () => {
                 if (fromUserId !== currentUserIdInner) {
                     console.log('[GlobalNotificationManager] Showing crushNote notification banner for fromUserId:', fromUserId);
                     setNotification({
-                        matchId: fromUserId,
+                        matchId: chat?.matchId ?? fromUserId,
                         senderId: fromUserId,
-                        senderName: fromUserName,
+                        senderName: fromUserName || chat?.username || chat?.name,
                         messagePreview,
-                        profilePicture: undefined,
+                        profilePicture: chat?.profilePicture?.url,
                         timestamp: createdAt,
+                        gender: chat?.gender,
                     });
                 }
             }
         };
     };
 
+    // Always points at the latest handler so the socket listener never goes stale
+    const handlerRef = useRef<(response: any) => void>(() => { });
+    handlerRef.current = createNotificationHandler();
+
     useEffect(() => {
-        // Socket lifecycle is managed internally; not tied to Home/Chat/Taking renders.
-        let lastSocketUserId: string | null = null;
+        // One stable function attached to the socket; it forwards to the latest handler
+        const onInAppNotification = (response: any) => handlerRef.current(response);
+        let attachedTo: any = null;
+
+        const detach = () => {
+            // Remove only OUR listener: the socket is shared with other screens
+            try {
+                attachedTo?.off?.('in_app_notification', onInAppNotification);
+                attachedTo?.disconnect?.();
+            } catch (e) {
+                // ignore
+            }
+            attachedTo = null;
+            socketRef.current = null;
+        };
 
         const ensureSocket = () => {
             const currentUserId = userIdRef.current;
             if (!currentUserId) return;
+            // Healthy already
+            if (attachedTo && !attachedTo.isClosed) return;
 
-            if (lastSocketUserId === currentUserId && socketRef.current?.connected) return;
-
-            // User changed (or first init) -> reconnect
-            try {
-                if (socketRef.current) {
-                    socketRef.current.removeAllListeners?.();
-                    socketRef.current.disconnect?.();
-                }
-            } catch (e) {
-                // ignore
-            }
-
-            lastSocketUserId = currentUserId;
-            // Use the same socket URL as TakingScreen for consistency
+            attachedTo = null;
             const { config } = require('../config/config');
             const url = `${config.BASE_URL}?userId=${currentUserId}`;
-            console.log('[GlobalNotificationManager] Creating socket connection:', url);
             const socket = createSocket(url);
             socketRef.current = socket;
-
-            // Add connection event listeners for debugging
-            socket.on('connect', () => {
-                console.log('[GlobalNotificationManager] Socket connected successfully');
-            });
-
-            socket.on('disconnect', (reason: string) => {
-                console.log('[GlobalNotificationManager] Socket disconnected:', reason);
-            });
-
+            attachedTo = socket;
+            socket.on('in_app_notification', onInAppNotification);
             socket.on('connect_error', (error: any) => {
                 console.error('[GlobalNotificationManager] Socket connection error:', error);
             });
-
-            // CRITICAL: Remove all existing listeners first to prevent duplicates
-            socket.removeAllListeners?.();
-
-            // Attach notification handler
-            socket.on('in_app_notification', createNotificationHandler());
         };
 
-        // Poll once quickly until userId is available, then socket stays alive.
-        const initTimer = setInterval(() => {
-            ensureSocket();
-            if (socketRef.current && userIdRef.current) {
-                clearInterval(initTimer);
-            }
-        }, 200);
+        // Keep-alive: another screen, logout or going to the background may have closed our socket,
+        // and the user may only become known after start-up. Re-check regularly.
+        ensureSocket();
+        const keepAlive = setInterval(ensureSocket, KEEP_ALIVE_MS);
 
-        return () => {
-            clearInterval(initTimer);
-            // Cleanup socket on unmount
-            if (socketRef.current) {
-                try {
-                    socketRef.current.removeAllListeners?.();
-                    socketRef.current.disconnect?.();
-                } catch (e) {
-                    // ignore
-                }
-                socketRef.current = null;
-            }
-        };
-    }, [dispatch, store]);
-
-    // Handle app lifecycle: disconnect socket on background, reconnect on foreground
-    useEffect(() => {
-        const handleAppStateChange = (nextAppState: AppStateStatus) => {
-            console.log('[GlobalNotificationManager] App state changed:', nextAppState);
-
+        const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
             if (nextAppState === 'background' || nextAppState === 'inactive') {
-                // CRITICAL: App is going to background/recent apps - disconnect ALL sockets
-                // This prevents background socket events and memory leaks
-                console.log('[GlobalNotificationManager] Disconnecting ALL sockets - app going to background');
-                try {
-                    disconnectAllSockets();
-                    if (socketRef.current) {
-                        try {
-                            socketRef.current.removeAllListeners?.();
-                            socketRef.current.disconnect?.();
-                        } catch (e) {
-                            console.error('[GlobalNotificationManager] Error disconnecting socket:', e);
-                        }
-                        socketRef.current = null;
-                    }
-                } catch (e) {
-                    console.error('[GlobalNotificationManager] Error during background disconnect:', e);
-                    // Don't crash - ensure socket ref is cleared
-                    socketRef.current = null;
-                }
+                // Don't hold a connection while backgrounded; the keep-alive reconnects on return
+                detach();
             } else if (nextAppState === 'active') {
-                // App is coming to foreground - reconnect socket
-                // This tells backend user is online again
-                // CRITICAL: Add delay to ensure app is fully initialized after resume
-                // This prevents crashes when app is restored from killed state
-                setTimeout(() => {
-                    try {
-                        // Verify store is available and has valid state
-                        const state: any = store.getState();
-                        if (!state) {
-                            console.warn('[GlobalNotificationManager] Store not available on resume, skipping socket reconnect');
-                            return;
-                        }
-
-                        const currentUserId = userIdRef.current;
-                        if (!currentUserId) {
-                            console.log('[GlobalNotificationManager] No userId available on resume, skipping socket reconnect');
-                            return;
-                        }
-
-                        // Only reconnect if socket is not already connected
-                        if (socketRef.current?.connected) {
-                            console.log('[GlobalNotificationManager] Socket already connected, skipping reconnect');
-                            return;
-                        }
-
-                        console.log('[GlobalNotificationManager] Reconnecting socket - app coming to foreground');
-                        // Use the same socket URL as TakingScreen for consistency
-                        const { config } = require('../config/config');
-                        if (!config?.BASE_URL) {
-                            console.error('[GlobalNotificationManager] Config BASE_URL not available');
-                            return;
-                        }
-
-                        const url = `${config.BASE_URL}?userId=${currentUserId}`;
-
-                        // Clean up old socket if exists
-                        if (socketRef.current) {
-                            try {
-                                socketRef.current.removeAllListeners?.();
-                                socketRef.current.disconnect?.();
-                            } catch (e) {
-                                console.warn('[GlobalNotificationManager] Error cleaning up old socket:', e);
-                            }
-                        }
-
-                        const socket = createSocket(url);
-                        socketRef.current = socket;
-
-                        // Add connection event listeners
-                        socket.on('connect', () => {
-                            console.log('[GlobalNotificationManager] Socket reconnected successfully');
-                        });
-
-                        socket.on('disconnect', (reason: string) => {
-                            console.log('[GlobalNotificationManager] Socket disconnected:', reason);
-                        });
-
-                        socket.on('connect_error', (error: any) => {
-                            console.error('[GlobalNotificationManager] Socket reconnection error:', error);
-                            // Don't crash on connection error - socket will retry automatically
-                        });
-
-                        // CRITICAL: Remove all existing listeners first to prevent duplicates
-                        socket.removeAllListeners?.();
-
-                        // Re-attach notification handler
-                        socket.on('in_app_notification', createNotificationHandler());
-                    } catch (e) {
-                        console.error('[GlobalNotificationManager] Error reconnecting socket on resume:', e);
-                        // Don't crash - clear socket ref and let it retry later
-                        socketRef.current = null;
-                    }
-                }, 500); // Delay to ensure app is fully initialized
+                ensureSocket();
             }
-        };
-
-        // Subscribe to app state changes
-        const subscription = AppState.addEventListener('change', handleAppStateChange);
+        });
 
         return () => {
+            clearInterval(keepAlive);
             subscription.remove();
+            detach();
         };
-    }, [dispatch, store]);
+    }, []);
 
     const handleDismiss = () => {
         setNotification(null);

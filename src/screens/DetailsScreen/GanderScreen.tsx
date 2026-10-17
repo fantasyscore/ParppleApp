@@ -1,23 +1,19 @@
 import React, { useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { FlatList, ImageBackground, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ImageBackground, StyleSheet, TouchableOpacity, View } from "react-native";
 import metrics from "../../assets/Metrics";
-import { applogo, BottomLayer, femaleGirl, femaleGirlSelected, malePerson, malePersonSelected } from "../../helper/ImageAssets";
-import ListCheckBox from "../../common/ListCheckbox";
-import GoButton from "../../common/GoButton";
+import { BottomLayer, femaleGirl, femaleGirlSelected, malePerson, malePersonSelected } from "../../helper/ImageAssets";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_DOB_SCREEN, NAVIGATION_SEXUALITY_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_DOB_SCREEN } from "../../navigation/routes";
 import { useDispatch, useSelector } from "react-redux";
 import { setAddProfile } from "../../slices/loginServices/authSlice";
-import { ganderDATA } from "../../common/UiltData";
-import { toastAlert } from "../../actions/UploadImageActions";
 import { Screen } from "../../theme/dimens";
-import { colors, newColor } from "../../theme/colors";
+import { newColor } from "../../theme/colors";
 import { editProfile } from "../../actions/authActions";
-import LinearGradient from "react-native-linear-gradient";
 import FastImage from "react-native-fast-image";
-import { AppText, EIGHTEEN, FORTEEN, INTER_REGULAR, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SCHEHERAZADE_SEMI_BOLD, SIXTEEN, THIRTEEN, TWENTY, TWENTY_FOUR, WHITE } from "../../common/AppText";
-import { TouchableOpacityView } from "../../common/TouchableOpacityView";
+import OnboardingLogo from "../../components/Onboarding/OnboardingLogo";
+import OnboardingButton from "../../components/Onboarding/OnboardingButton";
+import { AppText, INTER_REGULAR, INTER_SEMI_BOLD, SCHEHERAZADE_SEMI_BOLD, SIXTEEN, THIRTEEN, TWENTY_FOUR, WHITE } from "../../common/AppText";
 
 const GanderScreen = ({ route }: any) => {
     const dispatch = useDispatch();
@@ -25,7 +21,6 @@ const GanderScreen = ({ route }: any) => {
     const dataFilter = route?.params?.data ?? "";
     const fieldVisibility = route?.params?.fieldVisibility ?? "";
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
-    const datalistnew = new Array(9).fill(null).map((_, index) => ({ id: String(index), }))
     const [selectPronoun, setSelectPronoun] = useState('');
     const [showProfile, setShowProfile] = useState(fieldVisibility ? fieldVisibility?.gender : true);
 
@@ -50,7 +45,7 @@ const GanderScreen = ({ route }: any) => {
 
     return (
         <AppSafeAreaView color={newColor.blackNew}>
-            <FastImage source={applogo} resizeMode="contain" style={styles.logo} />
+            <OnboardingLogo />
             <View style={{
                 flexDirection: "row", alignItems: "center",
                 justifyContent: "space-between",
@@ -86,11 +81,7 @@ const GanderScreen = ({ route }: any) => {
                     </AppText>
                 </View>
                 <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
-                    <TouchableOpacity activeOpacity={0.5} onPress={onSubmit} style={[styles.phoneContainer, { opacity: selectPronoun ? 1 : 0.5 }]}>
-                        <AppText weight={SCHEHERAZADE_BOLD} color={WHITE} type={TWENTY}>
-                            Next
-                        </AppText>
-                    </TouchableOpacity>
+                    <OnboardingButton label="Next" onPress={onSubmit} dimmed={!selectPronoun} fullRow />
                 </ImageBackground>
             </View>
         </AppSafeAreaView>
@@ -98,13 +89,6 @@ const GanderScreen = ({ route }: any) => {
 };
 export default GanderScreen;
 const styles = StyleSheet.create({
-    logo: {
-        height: metrics.hp7,
-        width: metrics.hp20,
-        alignSelf: "center",
-        marginTop: metrics.hp8,
-
-    },
     boyPerson: {
         height: metrics.hp35,
         width: metrics.hp20,
@@ -112,30 +96,9 @@ const styles = StyleSheet.create({
     femaleGirl: {
         height: metrics.hp35,
         width: metrics.hp20,
-    },
-    container: {
-        marginTop: metrics.hp3,
-        flex: 1,
-    },
-    singleLine: {
-        height: metrics.hp0_2,
-        width: Screen.Width,
-        backgroundColor: colors.nanoOpecity,
-        marginTop: metrics.hp2,
-    },
-    bottomLayer: {
+    },bottomLayer: {
         height: metrics.hp15,
         width: "100%",
         paddingVertical: metrics.hp2,
-    },
-    phoneContainer: {
-        height: metrics.hp7,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: metrics.hp0_1,
-        borderColor: colors.white,
-        marginHorizontal: metrics.hp2,
-        marginTop: metrics.hp2
     },
 })

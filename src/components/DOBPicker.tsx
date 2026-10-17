@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useMemo, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import BottomSheet from "./BottomSheet";
 import WheelPicker, {
@@ -7,7 +7,7 @@ import WheelPicker, {
     WHEEL_VISIBLE_ROWS,
 } from "./WheelPicker";
 import { TouchableOpacityView } from "../common/TouchableOpacityView";
-import { AppText, EIGHTEEN, SCHEHERAZADE_BOLD, SCHEHERAZADE_SEMI_BOLD, SIXTEEN, TWENTY, TWENTY_FOUR, WHITE } from "../common/AppText";
+import { AppText, EIGHTEEN, SCHEHERAZADE_BOLD, SCHEHERAZADE_SEMI_BOLD, TWENTY_FOUR, WHITE } from "../common/AppText";
 import metrics from "../assets/Metrics";
 
 export interface DOBPickerProps {

@@ -3,7 +3,7 @@ import { ImageBackground, StyleSheet, TouchableOpacity, View } from "react-nativ
 import FastImage from "react-native-fast-image";
 import { backIconNew, HeaderHomeBack, previewImageIBackground, settingIconNew, verifiedButton } from "../helper/ImageAssets";
 import metrics from "../assets/Metrics";
-import { AppText, EIGHTEEN, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, WHITE } from "./AppText";
+import { AppText, EIGHTEEN, SCHEHERAZADE_BOLD, WHITE } from "./AppText";
 import { useSelector } from "react-redux";
 
 const NewHeader = ({ title, onPress, onPressTwo, preview, onPreview, profile, onVerificationPress, isPublishButton }: any) => {

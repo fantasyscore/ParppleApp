@@ -4,13 +4,14 @@ import { StyleSheet, View } from "react-native";
 import FastImage from "react-native-fast-image";
 import { rightSuccesIcon } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
-import { AppText, EIGHTEEN, FORTEEN, INTER_BOLD, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY_DARK, SCHEHERAZADE_BOLD, TWELVE, TWENTY, WHITE } from "../../common/AppText";
+import { AppText, EIGHTEEN, INTER_BOLD, INTER_REGULAR, OPECITY_DARK, SCHEHERAZADE_BOLD, TWELVE, TWENTY, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_CHATS_SCREEN } from "../../navigation/routes";
-import { colors, newColor } from "../../theme/colors";
+import { NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_CHATS_SCREEN } from "../../navigation/routes";
+import { newColor } from "../../theme/colors";
 
-const SuceesReporting = () => {
+const SuceesReporting = ({ route }: any) => {
+    const returnToOrigin = !!route?.params?.returnToOrigin;
     return (
         <AppSafeAreaView color={newColor.blackNew}>
             <View style={{ flex: 1 }}>
@@ -25,6 +26,11 @@ const SuceesReporting = () => {
             <View style={styles.buttonContainer}>
                 <TouchableOpacityView
                     onPress={() => {
+                        if (returnToOrigin) {
+                            // Back to the Home / Likes / Views screen the report was started from
+                            NavigationService.popTo(NAVIGATION_BOTTOMTAB_SCREEN);
+                            return;
+                        }
                         // If we arrived via resetStack([Chat, Success]) this will go back to Chat.
                         // Otherwise, fall back to resetting to Chat.
                         NavigationService.goBack();

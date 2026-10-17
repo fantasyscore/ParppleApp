@@ -1,6 +1,6 @@
 import React from "react";
 import { ImageBackground, StyleSheet, TouchableOpacity, View } from "react-native";
-import { applogo, BottomLayer, dummyfemaleProfile, dummyMaleProfile, filterNewIcon, HeaderHomeBack, messagesText } from "../helper/ImageAssets";
+import { applogo, dummyfemaleProfile, dummyMaleProfile, filterNewIcon, HeaderHomeBack, messagesText } from "../helper/ImageAssets";
 import metrics from "../assets/Metrics";
 import FastImage from "react-native-fast-image";
 import { useSelector } from "react-redux";

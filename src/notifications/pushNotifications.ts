@@ -345,7 +345,7 @@ export function handleNotificationNavigation(
     // Dispatch Redux actions in the correct order
     store.dispatch(chatHistoryDetails([]));
     store.dispatch(matchChatDetails(matchItem)); // Use full matchItem if available
-    
+
     // Navigate - NavigationService will queue if not ready
     try {
       NavigationService.navigate(NAVIGATION_TAKING_SCREEN);
@@ -360,7 +360,7 @@ export function handleNotificationNavigation(
         }
       }, 300);
     }
-    
+
     store.dispatch(chatHistoryAPI(chatData, params, false));
 
     console.log('[PushNotifications] Navigated to Taking Screen from notification', {
@@ -389,7 +389,7 @@ export async function getInitialNotification(store?: any) {
   try {
     const initialNotification = await messaging().getInitialNotification();
     console.log(initialNotification,"initialNotification");
-    
+
     if (initialNotification) {
       console.log('[PushNotifications] App opened from notification (killed state)', {
         hasData: !!initialNotification.data,
@@ -483,7 +483,7 @@ function setupNotifeeEventHandlers(store?: any) {
           console.warn('[PushNotifications] Store not available in background handler');
           return;
         }
-        
+
         // Create a mock remoteMessage object for navigation handler
         const mockRemoteMessage: any = {
           data: {

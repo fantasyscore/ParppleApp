@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { AppState, AppStateStatus, ImageBackground, Platform, ScrollView } from 'react-native';
+import { AppState, AppStateStatus, ImageBackground, InteractionManager, Platform, ScrollView } from 'react-native';
 import { Chat, Bubble, Time } from '@kesha-antonov/react-native-chat';
 import { blockModalImage, chatBackground, dummyfemaleProfile, dummyMaleProfile, emptyTextImage, helloHand, sendMessageNewIcon, timeShowNewBackground, unmatchModalImage } from '../../helper/ImageAssets';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
@@ -18,19 +18,28 @@ import { threeDotData } from '../../common/UiltData';
 import NavigationService from '../../navigation/NavigationService';
 import { NAVIGATION_REPORT_SCREEN } from '../../navigation/routes';
 import { useDispatch, useSelector, useStore } from 'react-redux';
-import { getOtherProfile, userBlockAPI, userUnmatchAPI } from '../../actions/authActions';
+import { blockByIdAPIUser, getOtherProfile, userUnmatchAPI } from '../../actions/authActions';
 import { createSocket } from '../../common/Socket';
 import { appOperation } from '../../appOperation';
 import { ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { clearActiveChat, setActiveChatMatchId } from '../../slices/inAppNotificationSlice';
-import { chatHistoryDetails, setNewMatches } from '../../slices/loginServices/authSlice';
+import { setNewMatches } from '../../slices/loginServices/authSlice';
 import { clearNotificationsByMatchId } from '../../notifications/pushNotifications';
 import SeeOtherUserProfile from './SeeOtherUserProfile';
 import FullScreenImage from '../HomeScreens/FullScreenImage'
+import KeyboardInsetView from './KeyboardInsetView';
 const USER_ID = 1;
 const OTHER_USER_ID = 2;
 const TYPING_INDICATOR_ID = 'typing-indicator';
+
+// The library keeps an empty spacer the size of its avatar under every message of a group except the
+// last one. It must equal our custom avatar's size (see renderAvatar), or earlier bubbles sit off-line.
+const AVATAR_SIZE = metrics.hp4;
+const CHAT_THEME = {
+    colors: { background: colors.transparent },
+    avatar: { size: AVATAR_SIZE },
+};
 
 type ChatMessage = {
     _id: number | string;
@@ -159,6 +168,13 @@ const TakingScreen = ({ route }: any) => {
     const [gallaryData, setGallaryData] = useState<any>([]);
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
     const inputRef = useRef<TextInput>(null);
+    // Opening this screen slides it in. Creating the socket, loading profile + history and rebuilding the
+    // message list during that slide makes it stutter, so that work waits until the animation is done.
+    const [transitionDone, setTransitionDone] = useState(false);
+    useEffect(() => {
+        const handle = InteractionManager.runAfterInteractions(() => setTransitionDone(true));
+        return () => handle.cancel();
+    }, []);
 
     useEffect(() => {
         activeMatchIdRef.current = matchChatUserDetails?.matchId;
@@ -176,7 +192,6 @@ const TakingScreen = ({ route }: any) => {
 
     useEffect(() => {
         if (!matchChatUserDetails?.matchId) return;
-        dispatch(chatHistoryDetails([]));
         setMessages([]);
         seenMessageKeysRef.current = new Set();
         setMessagesOwnerMatchId(matchChatUserDetails?.matchId);
@@ -224,6 +239,9 @@ const TakingScreen = ({ route }: any) => {
             return [];
         }
 
+        const userData = userDataRef.current;
+        const otherUserProfile = otherUserProfileRef.current;
+        const matchChatUserDetails = matchChatUserDetailsRef.current;
         const transformedRaw = history.map((item: any) => {
             const messageText = extractMessageText(item);
 
@@ -270,7 +288,9 @@ const TakingScreen = ({ route }: any) => {
         transformed.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
         return transformed.reverse();
-    }, [userData, otherUserProfile, matchChatUserDetails]);
+    // Reads user/profile data through refs on purpose: the other user's profile finishes loading right after
+    // the screen opens, and depending on it here rebuilt the whole message list (a visible blink).
+    }, []);
 
     const transformedMessages = useMemo(() => {
         const activeMatchId = matchChatUserDetails?.matchId;
@@ -288,8 +308,10 @@ const TakingScreen = ({ route }: any) => {
     const displayedMessages = useMemo(() => {
         const activeMatchId = matchChatUserDetails?.matchId;
         if (!activeMatchId) return [];
-        return messagesOwnerMatchId === activeMatchId ? messages : [];
-    }, [messages, messagesOwnerMatchId, matchChatUserDetails?.matchId]);
+        if (messagesOwnerMatchId !== activeMatchId) return [];
+        // First frame: show the (cached) history directly instead of waiting for the effect below
+        return messages.length > 0 ? messages : (transformedMessages as ChatMessage[]);
+    }, [messages, messagesOwnerMatchId, matchChatUserDetails?.matchId, transformedMessages]);
 
     const isChatTransitioning = useMemo(() => {
         const activeMatchId = matchChatUserDetails?.matchId;
@@ -308,11 +330,10 @@ const TakingScreen = ({ route }: any) => {
     const [socketReconnectKey, setSocketReconnectKey] = useState(0);
 
     const socket = useMemo(() => {
-        if (!socketUrl) return null;
+        if (!socketUrl || !transitionDone) return null;
         // Disconnect old socket if exists
         if (socketRef.current) {
             try {
-                socketRef.current.removeAllListeners?.();
                 socketRef.current.disconnect?.();
             } catch (e) {
                 // ignore
@@ -321,7 +342,7 @@ const TakingScreen = ({ route }: any) => {
         const newSocket = createSocket(socketUrl);
         socketRef.current = newSocket;
         return newSocket;
-    }, [socketUrl, socketReconnectKey]);
+    }, [socketUrl, socketReconnectKey, transitionDone]);
 
     useEffect(() => {
         if (!socket) return;
@@ -469,9 +490,6 @@ const TakingScreen = ({ route }: any) => {
         socket.on('connect_error', (error: any) => {
             console.error('[TakingScreen] Socket connection error:', error);
         });
-
-        // CRITICAL: Remove all existing listeners first to prevent duplicates
-        socket.removeAllListeners?.();
 
         socket.on('connected', handleConnected);
         socket.on('messagesRead', handleMessagesRead);
@@ -652,11 +670,12 @@ const TakingScreen = ({ route }: any) => {
     }, [transformedMessages, chatHistory]);
 
     useEffect(() => {
+        if (!transitionDone) return;
         let data = {
             "userId": matchChatUserDetails?.userId
         };
         dispatch(getOtherProfile(data, true, setProfileData, true));
-    }, [matchChatUserDetails?.userId]);
+    }, [matchChatUserDetails?.userId, transitionDone]);
     useEffect(() => {
         const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
             setEmojiVisible(false);
@@ -764,7 +783,7 @@ const TakingScreen = ({ route }: any) => {
             <TouchableOpacityView onPress={() => seeOtherProfile()}>
                 <PortraitAvatar
                     source={matchChatUserDetails?.profilePicture?.url ? { uri: matchChatUserDetails?.profilePicture?.url } : matchChatUserDetails?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile}
-                    style={{ width: metrics.hp4, height: metrics.hp4, borderRadius: metrics.hp2, marginBottom: metrics.hp1_5 }}
+                    style={{ width: AVATAR_SIZE, height: AVATAR_SIZE, borderRadius: AVATAR_SIZE / 2, marginBottom: metrics.hp1_5, backgroundColor: '#2A2A2D' }}
                 />
             </TouchableOpacityView>
         );
@@ -779,10 +798,9 @@ const TakingScreen = ({ route }: any) => {
     }
     const unBlockButton = () => {
         const data = {
-            matchId: matchChatUserDetails?.matchId,
-       
+            blockedId: matchChatUserDetails?.userId,
         };
-        dispatch(userBlockAPI(data))
+        dispatch(blockByIdAPIUser(data))
         setModalVisible(false);
         NavigationService.goBack();
     }
@@ -932,6 +950,7 @@ const TakingScreen = ({ route }: any) => {
                 source={chatBackground}
                 resizeMode="cover"
                 style={styles.containerChat}>
+                <KeyboardInsetView>
                 <Chat
                     messages={displayedMessages}
                     onSend={onSend}
@@ -943,7 +962,8 @@ const TakingScreen = ({ route }: any) => {
                     renderInputToolbar={renderCustomInput}
                     renderChatEmpty={chatEmptyRender}
                     isUserAvatarVisible={false}
-                    // enableKeyboardProvider={false}
+                    // Keyboard lift is handled by KeyboardInsetView (real IME inset)
+                    keyboardAvoidingViewProps={{ enabled: false }}
                     loadEarlierMessagesProps={{
                         isAvailable: hasMoreMessages,
                         onPress: loadOlderMessages,
@@ -952,16 +972,8 @@ const TakingScreen = ({ route }: any) => {
                         activityIndicatorColor: colors.purple,
                         activityIndicatorSize: 'small',
                     }}
-                    theme={{
-                        colors: {
-                            background: colors.transparent,
-                        }
-                    }}
-                    darkTheme={{
-                        colors: {
-                            background: colors.transparent,
-                        }
-                    }}
+                    theme={CHAT_THEME}
+                    darkTheme={CHAT_THEME}
                     renderLoadEarlier={() => {
                         if (!hasMoreMessages) return null;
                         if (isLoadingMore) {
@@ -974,6 +986,7 @@ const TakingScreen = ({ route }: any) => {
                         return null;
                     }}
                 />
+                </KeyboardInsetView>
                 {isChatTransitioning && (
                     <View style={styles.loaderContainer}>
                         <ActivityIndicator size="large" color={colors.purple} />
@@ -1080,17 +1093,11 @@ const TakingScreen = ({ route }: any) => {
 
 export default TakingScreen;
 
-const styles = StyleSheet.create({
-    tabContainer: { backgroundColor: newColor.blackNew, height: metrics.hp5, justifyContent: 'flex-end' },
-    selectLine: { height: metrics.hp0_3, width: "80%", borderTopRightRadius: metrics.hp1, borderTopLeftRadius: metrics.hp1, },
-    inTabContainer: { alignItems: 'center', justifyContent: 'center', flex: 1 },
-    containerChat: { flex: 1, backgroundColor: newColor.blackNew },
+const styles = StyleSheet.create({containerChat: { flex: 1, backgroundColor: newColor.blackNew, overflow: 'hidden' },
     inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: metrics.hp2, backgroundColor: colors.transparent, paddingVertical: metrics.hp3, },
     textInput: { minHeight: metrics.hp4, maxHeight: metrics.hp8, fontSize: fontSize(13), /* width: "68%", */ flex: 1, fontFamily: interMedium, marginLeft: metrics.hp1, marginTop: Platform.OS === "ios" ? metrics.hp1 : 0, color: colors.white },
     sendButton: { /* backgroundColor: '#6F13F2', borderRadius: metrics.hp50, */ marginLeft: 6, /* justifyContent: 'center', alignItems: 'center', */ height: metrics.hp5_5, width: metrics.hp5_5, marginBottom: metrics.hp2 },
-    inputContainerType: { borderRadius: metrics.hp5, paddingHorizontal: metrics.hp1, alignItems: 'center', justifyContent: 'space-between', flexDirection: 'row', paddingVertical: metrics.hp0_5, backgroundColor: "#1F272A", marginBottom: metrics.hp2, width: "85%" },
-    emojiIcon: { height: metrics.hp3, width: metrics.hp3 },
-    containerRb: { paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp2 },
+    inputContainerType: { borderRadius: metrics.hp5, paddingHorizontal: metrics.hp1, alignItems: 'center', justifyContent: 'space-between', flexDirection: 'row', paddingVertical: metrics.hp0_5, backgroundColor: "#1F272A", marginBottom: metrics.hp2, width: "85%" },    containerRb: { paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp2 },
     containerViewRb: { paddingHorizontal: metrics.hp1, paddingVertical: metrics.hp2, flexDirection: "row", backgroundColor: "#212123", marginBottom: metrics.hp0_5, borderRadius: metrics.hp1_5 },
     rbIcon: { height: metrics.hp2_5, width: metrics.hp2_5, marginTop: metrics.hp0_5, marginLeft: metrics.hp1 },
     textContainerRb: { paddingLeft: metrics.hp2, paddingRight: metrics.hp5 },
@@ -1122,40 +1129,17 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         width: "40%",
         alignSelf: "center",
-    },
-    bubbleWrapperRight: {
-        position: 'relative',
-        alignSelf: 'flex-end',
-    },
-    loaderContainer: {
+    },    loaderContainer: {
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: '#F5F7FA',
+        backgroundColor: newColor.blackNew,
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 1000,
-    },
-    readReceiptContainer: {
-        position: 'absolute',
-        bottom: metrics.hp1_2,
-        right: metrics.hp2,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    readReceiptIcon: {
-        height: metrics.hp2_5,
-        width: metrics.hp2_5,
-    },
-    readReceiptIconUnread: {
-        height: metrics.hp2,
-        width: metrics.hp2,
-        marginBottom: metrics.hp0_5,
-        marginLeft: metrics.hp0_5,
-    },
-    typingBubbleWrapper: {
+    },typingBubbleWrapper: {
         marginBottom: metrics.hp1_2,
         marginLeft: metrics.hp2,
         alignSelf: 'flex-start',
@@ -1177,9 +1161,4 @@ const styles = StyleSheet.create({
     typingDot: {
         backgroundColor: colors.darkOpecity,
         borderRadius: metrics.hp0_5,
-    },
-    smlieIcon: {
-        height: metrics.hp3,
-        width: metrics.hp3
-    }
-});
+    },});

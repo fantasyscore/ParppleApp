@@ -1,21 +1,53 @@
 import React, { useEffect, useState, useRef } from "react";
-import { AppSafeAreaView } from "../common/AppSafeAreaView";
 import { useDispatch } from "react-redux";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { USER_TOKEN_KEY } from "../helper/Constants";
-import { discoverProfile, getNewMatches, getProfile, getRecentMatches, likeByOther, likeYou, listProfiles, turnOn, viewProfileByOther, youView } from "../actions/authActions";
+import { appOperation } from "../appOperation";
+import { loadSessionData } from "../actions/authActions";
 import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_WELCOME_SCREEN } from "../navigation/routes";
-import { ActivityIndicator, Text, TouchableOpacity, View, StyleSheet } from "react-native";
+import { ActivityIndicator, ImageBackground, Text, TouchableOpacity, View, StyleSheet } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
+import SplashScreen from "react-native-splash-screen";
 import { config } from "../config/config";
 import { newColor } from "../theme/colors";
 import { INTER_MEDIUM } from "../common/AppText";
+import { splashImage } from "../helper/ImageAssets";
+
+const REACHABILITY_TIMEOUT_MS = 10000;
+const NAVIGATION_READY_POLL_MS = 25;
+const NAVIGATION_READY_TIMEOUT_MS = 5000;
+// If the splash image is slow to load, don't keep the native splash up forever
+const SPLASH_HIDE_FALLBACK_MS = 1000;
 
 const AuthLoding = () => {
   const dispatch = useDispatch();
   const [loadingState, setLoadingState] = useState<'checking' | 'error' | 'no-internet'>('checking');
   const unsubscribeRef = useRef<(() => void) | null>(null);
+  const splashHiddenRef = useRef(false);
+  // Set once a logged-out user has been sent to Welcome (that needs no network, so a failed probe is moot)
+  const navigatedRef = useRef(false);
+
+  // The native splash stays up until this screen has drawn the same artwork, so the hand-over is invisible
+  const hideNativeSplash = () => {
+    if (splashHiddenRef.current) return;
+    splashHiddenRef.current = true;
+    try {
+      SplashScreen.hide();
+    } catch {
+      // The splash screen may already be gone
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(hideNativeSplash, SPLASH_HIDE_FALLBACK_MS);
+    return () => {
+      clearTimeout(timer);
+      // This screen can be replaced (e.g. straight to Welcome) before the image has loaded or the fallback
+      // timer fires; without this the native splash would never be dismissed and covers the app forever.
+      hideNativeSplash();
+    };
+  }, []);
 
   useEffect(() => {
     checkAndBootstrap();
@@ -29,12 +61,12 @@ const AuthLoding = () => {
   const checkBackendReachability = async () => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-      const response = await fetch(config.BASE_URL, {
-        method: 'HEAD',
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
+      const timeoutId = setTimeout(() => controller.abort(), REACHABILITY_TIMEOUT_MS);
+      try {
+        await fetch(config.BASE_URL, { method: 'HEAD', signal: controller.signal });
+      } finally {
+        clearTimeout(timeoutId);
+      }
       // As long as we get any response, the backend is reachable
       return true;
     } catch (e) {
@@ -59,6 +91,7 @@ const AuthLoding = () => {
 
   const checkAndBootstrap = async () => {
     setLoadingState('checking');
+    navigatedRef.current = false;
     try {
       const netInfo = await NetInfo.fetch();
       if (!netInfo.isConnected) {
@@ -67,61 +100,47 @@ const AuthLoding = () => {
         return;
       }
 
-      // Check if backend is actually reachable before dispatching API actions
-      const isReachable = await checkBackendReachability();
-      if (!isReachable) {
-        setLoadingState('error');
-        listenForConnection(); // Also listen for network changes if backend is down (e.g. captive portal)
+      // The reachability probe and the session bootstrap run side by side: the probe only decides whether
+      // to show the error screen, so it no longer delays loading the user's data.
+      const reachability = checkBackendReachability();
+      const bootstrap = bootstrapAsync();
+      if (!(await reachability)) {
+        if (!navigatedRef.current) {
+          setLoadingState('error');
+          listenForConnection(); // Also listen for network changes if backend is down (e.g. captive portal)
+        }
         return;
       }
-
-      await bootstrapAsync();
+      await bootstrap;
     } catch (e) {
       setLoadingState('error');
     }
   };
 
+  // Navigation actions fired before the navigator is ready are dropped (see NavigationService), so on a
+  // cold start wait for it before navigating or loading data that navigates when it arrives.
+  const waitForNavigationReady = async () => {
+    const startedAt = Date.now();
+    while (!NavigationService.isNavigationReady() && Date.now() - startedAt < NAVIGATION_READY_TIMEOUT_MS) {
+      await new Promise((resolve) => setTimeout(resolve, NAVIGATION_READY_POLL_MS));
+    }
+  };
+
+  const goToWelcome = () => {
+    navigatedRef.current = true;
+    NavigationService.reset(NAVIGATION_WELCOME_SCREEN);
+  };
+
   const bootstrapAsync = async () => {
     try {
-      const token = await AsyncStorage.getItem(USER_TOKEN_KEY);
+      const [token] = await Promise.all([AsyncStorage.getItem(USER_TOKEN_KEY), waitForNavigationReady()]);
       if (token) {
-        try {
-          dispatch(listProfiles());
-          dispatch(getProfile(true));
-          dispatch(discoverProfile());
-          dispatch(getNewMatches());
-          dispatch(getRecentMatches());
-          dispatch(likeByOther());
-          dispatch(likeYou());
-          dispatch(viewProfileByOther());
-          dispatch(youView());
-          dispatch(turnOn({}))
-        } catch (dispatchError) {
-          console.error('[AuthLoading] Error dispatching actions:', dispatchError);
-        }
+        // Make sure requests carry the token even if the startup hook has not applied it yet
+        appOperation.setCustomerToken(token);
+        // Fetching the feed also moves the user into the main tabs
+        dispatch(loadSessionData());
       } else {
-        const navigateToWelcome = () => {
-          try {
-            if (NavigationService.isNavigationReady()) {
-              NavigationService.reset(NAVIGATION_WELCOME_SCREEN);
-            } else {
-              setTimeout(() => {
-                if (NavigationService.isNavigationReady()) {
-                  NavigationService.reset(NAVIGATION_WELCOME_SCREEN);
-                } else {
-                  NavigationService.reset(NAVIGATION_WELCOME_SCREEN);
-                }
-              }, 300);
-            }
-          } catch (navError) {
-            setTimeout(() => {
-              try {
-                NavigationService.reset(NAVIGATION_WELCOME_SCREEN);
-              } catch (retryError) {}
-            }, 1000);
-          }
-        };
-        navigateToWelcome();
+        goToWelcome();
       }
     } catch (e) {
       setLoadingState('error');
@@ -129,7 +148,8 @@ const AuthLoding = () => {
   };
 
   return (
-    <View style={styles.container}>
+    // Same artwork as the native launch screen, so the loader appears on top of the splash
+    <ImageBackground source={splashImage} resizeMode="stretch" style={styles.container} onLoadEnd={hideNativeSplash}>
       {loadingState === 'checking' && (
         <ActivityIndicator size="large" color="#FFFFFF" />
       )}
@@ -149,14 +169,14 @@ const AuthLoding = () => {
           </TouchableOpacity>
         </View>
       )}
-    </View>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: newColor.blackNew || '#000000',
+    backgroundColor: newColor.blackNew,
     alignItems: 'center',
     justifyContent: 'center',
   },

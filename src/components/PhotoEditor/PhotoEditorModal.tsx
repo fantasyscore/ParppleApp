@@ -16,12 +16,10 @@ import {
   AppText,
   EIGHTEEN,
   fontSize,
-  FORTEEN,
   INTER_BOLD,
   INTER_MEDIUM,
   OPECITY,
   SCHEHERAZADE_BOLD,
-  SCHEHERAZADE_SEMI_BOLD,
   TWELVE,
   TWENTY,
   WHITE,
@@ -428,16 +426,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: newColor.blackNew,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: metrics.hp2,
-    paddingTop: Platform.OS === "ios" ? metrics.hp6 : metrics.hp2,
-    paddingBottom: metrics.hp1,
-  },
-  closeButton: {
+  },  closeButton: {
     width: metrics.hp3_5,
     height: metrics.hp3_5,
     borderRadius: metrics.hp3_5 / 2,
@@ -450,11 +439,7 @@ const styles = StyleSheet.create({
     lineHeight: fontSize(20),
     textAlign: "center",
     marginTop: -metrics.hp0_3
-  },
-  title: {
-    fontSize: fontSize(22),
-  },
-  doneButton: {
+  },  doneButton: {
     borderWidth: metrics.hp0_1,
     borderColor: colors.white,
     paddingHorizontal: metrics.hp2,

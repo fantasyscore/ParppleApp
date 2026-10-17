@@ -2,7 +2,7 @@ import { appOperation } from "../appOperation";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { USER_TOKEN_KEY } from "./Constants";
 
-export const onAppStart = async (store:any) => {
+export const onAppStart = async () => {
   try {
     console.log('[onAppStart] Initializing app...');
     const customerToken:any = await AsyncStorage.getItem(USER_TOKEN_KEY);

@@ -1,81 +1,35 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { ActivityIndicator, ImageBackground, Linking, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
-import HeaderCommon from "../../common/HeaderCommon";
 import { colors, newColor } from "../../theme/colors";
-import { editButtonBackground, legalBackgroundSettin, messageIcon, shieldIcon, infoIcon, checkSafety, aboutIcon, keywordRightArrow, logOutIcon, deleteIcon, logoBlue, goldCard, emailNewIcon, privacyNewIcon, termsandConditionNewIcon, safetyCenterNewIcon, helpAndSupportNewIcon, ChatSearchIcon, rightGoNewIcon, deleteNewBackground, deleteNewIcon, BottomLayer, logOutnewIcon, applogo } from "../../helper/ImageAssets";
+import { editButtonBackground, legalBackgroundSettin, emailNewIcon, privacyNewIcon, termsandConditionNewIcon, safetyCenterNewIcon, helpAndSupportNewIcon, ChatSearchIcon, rightGoNewIcon, deleteNewBackground, deleteNewIcon, BottomLayer, logOutnewIcon, applogo } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
 import Toast from "react-native-toast-message";
 
-import { AppText, FOURTEEN, BLACK, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, OPECITY_DARK, RED, SCHEHERAZADE_BOLD, TEN, TWELVE, TWENTY, WHITE, SIXTEEN, fontSize } from "../../common/AppText";
+import { AppText, BLACK, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, OPECITY, OPECITY_DARK, RED, SCHEHERAZADE_BOLD, TEN, TWELVE, TWENTY, WHITE, fontSize } from "../../common/AppText";
 
 
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { useDispatch, useSelector } from "react-redux";
-import { deleteAccountAPI, userLogout } from "../../actions/authActions";
-import { logMetaEvent } from "../../utils/MetaEvents";
+import { endSession } from "../../actions/sessionActions";
 import NavigationService from "../../navigation/NavigationService";
-import { NAVIGATION_SUBSCRIPTION_ALL_SCREEN, NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
-import { disconnectAllSockets } from "../../common/Socket";
-import { version as appVersion } from "../../../package.json";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { appOperation } from "../../appOperation";
 import NewHeader from "../../common/NewHeader";
-
-const PROFILE_DISCOVERY_ENABLED_KEY = "PROFILE_DISCOVERY_ENABLED";
 
 type ConfirmAction = "logout" | "delete";
 
 const SettingScreen = () => {
     const userData = useSelector((state: any) => state.auth.userData);
     const dispatch = useDispatch();
-    const [toggleOne, setToggleOne] = useState(false);
-    const [toggleTwo, setToggleTwo] = useState(false);
     const [confirmVisible, setConfirmVisible] = useState(false);
     const [confirmAction, setConfirmAction] = useState<ConfirmAction>("logout");
     const [isProcessing, setIsProcessing] = useState(false);
     const [deleteSuccessVisible, setDeleteSuccessVisible] = useState(false);
 
-    // Persist "Enable Profile Discover" (toggleTwo) via AsyncStorage
-    useEffect(() => {
-        let isMounted = true;
-        (async () => {
-            try {
-                const raw = await AsyncStorage.getItem(PROFILE_DISCOVERY_ENABLED_KEY);
-                if (!isMounted) return;
-                if (raw === null) {
-                    // Default: enabled unless user explicitly disabled it.
-                    setToggleTwo(true);
-                    return;
-                }
-                setToggleTwo(raw === "true");
-            } catch {
-                // Default safe behavior if storage read fails
-                if (isMounted) setToggleTwo(true);
-            }
-        })();
-        return () => {
-            isMounted = false;
-        };
-    }, []);
-
-    const setProfileDiscoverEnabled = useCallback(async (enabled: boolean) => {
-        setToggleTwo(enabled);
-        try {
-            await AsyncStorage.setItem(PROFILE_DISCOVERY_ENABLED_KEY, enabled ? "true" : "false");
-        } catch {
-            // no-op: never crash settings due to storage failures
-        }
-    }, []);
-
+    // Sockets, store, credentials and navigation are all torn down by endSession
     const handleLogoutConfirmed = () => {
-        // 1) Disconnect ALL sockets
-        disconnectAllSockets();
-        // 2) Clear ALL redux slices
-        dispatch({ type: "auth/logout" });
-        // 3) Existing logout flow (token removal + navigation reset)
-        dispatch(userLogout());
+        dispatch(endSession());
     };
 
     const openConfirm = useCallback((action: ConfirmAction) => {
@@ -117,11 +71,7 @@ const SettingScreen = () => {
             setIsProcessing(false);
         }
     }, [confirmAction, dispatch]);
-    const onSubcription = () => {
-        let itemtwo = { id: "2", icon: goldCard, title: "Gold" };
 
-        NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN, { comming: itemtwo })
-    }
     return (
         <AppSafeAreaView color={newColor.blackNew}>
             <NewHeader title={"Settings"} onPress={() => NavigationService.goBack()} />
@@ -218,17 +168,6 @@ const SettingScreen = () => {
                     </ImageBackground>
                 </TouchableOpacityView>
 
-                {/* <TouchableOpacityView onPress={() => openConfirm("logout")} style={styles.logoutButtonContaier}>
-                    <FastImage source={logOutIcon} resizeMode="contain" style={styles.shareIcon} />
-                    <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
-                        {"  "}
-                        Log Out
-                    </AppText>
-                </TouchableOpacityView>
-
-                <AppText style={styles.textVersion} color={OPECITY} weight={INTER_SEMI_BOLD} type={TWELVE}>
-                    Version: {appVersion}
-                </AppText> */}
             </ScrollView>
             <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
                 <TouchableOpacity onPress={() => openConfirm("logout")}>
@@ -239,11 +178,6 @@ const SettingScreen = () => {
                         </AppText>
                     </ImageBackground>
                 </TouchableOpacity>
-                {/* <TouchableOpacity activeOpacity={0.5} onPress={() => openConfirm("logout")}  style={styles.phoneContainer}>
-                    <AppText weight={SCHEHERAZADE_BOLD} color={WHITE} type={TWENTY}>
-                    Log Out
-                    </AppText>
-                </TouchableOpacity> */}
             </ImageBackground>
             {/* Confirm Modal (Logout / Delete) */}
             <Modal
@@ -379,13 +313,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         paddingHorizontal: metrics.hp2,
-    },
-    legalSeparator: {
-        height: StyleSheet.hairlineWidth,
-        backgroundColor: colors.nanoOpecity,
-        marginHorizontal: metrics.hp2,
-    },
-    rowContent: {
+    },    rowContent: {
         flexDirection: "row",
         alignItems: "center",
     },
@@ -400,39 +328,7 @@ const styles = StyleSheet.create({
     rightArrowIcon: {
         height: metrics.hp2_5,
         width: metrics.hp2_5,
-    },
-    deleteAccountCard: {
-        height: metrics.hp8,
-        width: "100%",
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        // paddingHorizontal: metrics.hp2,
-        backgroundColor: colors.lightBack,
-        borderRadius: metrics.hp1_5,
-        marginBottom: metrics.hp1_5,
-        borderWidth: metrics.hp0_1,
-        borderColor: colors.nanoOpecity,
-    },
-    logoutButtonContaier: {
-        height: metrics.hp6,
-        borderRadius: metrics.hp3,
-        backgroundColor: colors.purple,
-        marginTop: metrics.hp4,
-        alignItems: "center",
-        justifyContent: "center",
-        flexDirection: "row",
-        marginHorizontal: metrics.hp2,
-    },
-    shareIcon: {
-        height: metrics.hp2_5,
-        width: metrics.hp2_5,
-    },
-    textVersion: {
-        textAlign: "center",
-        marginTop: metrics.hp3,
-    },
-    modalBackdrop: {
+    },modalBackdrop: {
         flex: 1,
         backgroundColor: "#000000B3",
         justifyContent: "center",

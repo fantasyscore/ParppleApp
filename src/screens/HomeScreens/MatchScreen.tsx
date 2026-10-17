@@ -1,12 +1,9 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, View, TouchableOpacity, StatusBar, ImageBackground } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, withSpring, withSequence, withRepeat } from 'react-native-reanimated';
-import { bigHeart, dummyfemaleProfile, dummyMaleProfile, heartEight, heartFive, heartFour, heartOne, heartSeven, heartSix, heartTwo, matchbackground, matchText, seeMoreBackground, trunOnBackground } from '../../helper/ImageAssets';
+import { dummyfemaleProfile, dummyMaleProfile, matchbackground, matchText, seeMoreBackground } from '../../helper/ImageAssets';
 import metrics from '../../assets/Metrics';
-import { AppText, EIGHTEEN, FORTEEN, INTER_MEDIUM, INTER_SEMI_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, WHITE } from '../../common/AppText';
-import { colors } from '../../theme/colors';
-import NavigationService from '../../navigation/NavigationService';
-import { TouchableOpacityView } from '../../common/TouchableOpacityView';
+import { AppText, EIGHTEEN, INTER_MEDIUM, SCHEHERAZADE_BOLD, SIXTEEN, WHITE } from '../../common/AppText';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 
 const createGlowingHeartAnimation = (delay: number, startY: number, finalY: number) => {
@@ -166,15 +163,7 @@ const styles = StyleSheet.create({
     profile2Position: {
         right: '10%',
         zIndex: 2,
-    },
-    centralHeartWrapper: {
-        position: 'absolute',
-        zIndex: 3,
-        width: metrics.hp12,
-        height: metrics.hp10,
-        bottom: -metrics.hp14
-    },
-    textContainer: {
+    },    textContainer: {
         marginTop: metrics.hp12,
         alignItems: 'center',
         zIndex: 4,
@@ -186,23 +175,6 @@ const styles = StyleSheet.create({
     buttonsContainer: {
         marginTop: metrics.hp1,
         alignItems: 'center',
-    },
-    startButton: {
-        backgroundColor: colors.singleButtonGreen,
-        height: metrics.hp5,
-        width: metrics.hp16,
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: metrics.hp3,
-        marginTop: metrics.hp2
-    },
-    notNowButtonText: {
-        marginTop: metrics.hp2
-    },
-    cascadingHeart: {
-        position: 'absolute',
-        zIndex: 0,
-    }
-});
+    },});
 
 export default MatchScreen;

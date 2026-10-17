@@ -7,7 +7,7 @@ import {
     View,
 } from "react-native";
 import { fontSize } from "../common/AppText";
-import { ScheherazadeNewBold, ScheherazadeNewSemiBold } from "../theme/typography";
+import { ScheherazadeNewBold } from "../theme/typography";
 import metrics from "../assets/Metrics";
 
 export const WHEEL_ITEM_HEIGHT = 42;

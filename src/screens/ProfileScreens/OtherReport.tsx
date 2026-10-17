@@ -2,7 +2,7 @@ import React, { useCallback, useState } from "react";
 import { ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import FastImage from "react-native-fast-image";
-import { AppText, BLACK, DARK_GREEN, ELEVEN, fontSize, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, OPECITY_DARK, RED, SCHEHERAZADE_BOLD, TEN, TWENTY, WHITE } from "../../common/AppText";
+import { AppText, BLACK, ELEVEN, fontSize, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, OPECITY, RED, SCHEHERAZADE_BOLD, TWENTY, WHITE } from "../../common/AppText";
 import metrics from "../../assets/Metrics";
 import { reportProfileIcon, shieldIcon } from "../../helper/ImageAssets";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
@@ -10,7 +10,7 @@ import NavigationService from "../../navigation/NavigationService";
 import { colors, newColor } from "../../theme/colors";
 import { interMedium } from "../../theme/typography";
 import LinearGradient from "react-native-linear-gradient";
-import { NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_CHATS_SCREEN, NAVIGATION_SUCCES_REPORTING_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_SUCCES_REPORTING_SCREEN } from "../../navigation/routes";
 import { useDispatch } from "react-redux";
 import { reportUserAPI } from "../../actions/authActions";
 import Toast from "react-native-toast-message";
@@ -43,10 +43,15 @@ const OtherReport = ({ route }: any) => {
                 })
             );
             if (res?.statusCode == 200) {
-                NavigationService.resetStack(
-                    [{ name: NAVIGATION_BOTTOMTAB_SCREEN }, { name: NAVIGATION_SUCCES_REPORTING_SCREEN }],
-                    1
-                );
+                if (data?.returnToOrigin) {
+                    // Opened from Home / Likes / Views: keep that screen in the stack so Done can return to it
+                    NavigationService.navigate(NAVIGATION_SUCCES_REPORTING_SCREEN, { returnToOrigin: true });
+                } else {
+                    NavigationService.resetStack(
+                        [{ name: NAVIGATION_BOTTOMTAB_SCREEN }, { name: NAVIGATION_SUCCES_REPORTING_SCREEN }],
+                        1
+                    );
+                }
             }
         } finally {
             setIsSubmitting(false);

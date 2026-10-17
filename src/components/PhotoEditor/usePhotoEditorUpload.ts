@@ -97,6 +97,11 @@ interface Options {
   /** Return false (optionally after showing a toast) to block picking */
   canStart?: () => boolean;
   /**
+   * Gender sent with the upload (the backend picks a moderation model from it). Defaults to the
+   * signed-in user's; onboarding passes the one being entered, since there is no profile yet.
+   */
+  getGender?: () => string | undefined;
+  /**
    * Called once the backend has stored the photo, right before the editor
    * closes. Awaited, so follow-up API calls keep the busy overlay up.
    */
@@ -111,7 +116,7 @@ interface Options {
  * and Retry/Cancel error handling — lives here so
  * the flow stays identical on every screen.
  */
-export function usePhotoEditorUpload({ canStart, onUploaded }: Options) {
+export function usePhotoEditorUpload({ canStart, getGender, onUploaded }: Options) {
   const dispatch = useDispatch();
   const userData = useSelector((state: any) => state.auth.userData);
 
@@ -187,7 +192,7 @@ export function usePhotoEditorUpload({ canStart, onUploaded }: Options) {
         type: file.type,
         name: file.name,
       } as any);
-      formData.append("gender", userData?.gender);
+      formData.append("gender", getGender ? getGender() : userData?.gender);
       const response: any = await dispatch(uploadImagesPhotoAPI(formData));
       console.log("[PhotoEditorUpload] Upload response:", response);
 
