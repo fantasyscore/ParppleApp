@@ -1,8 +1,8 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { ActivityIndicator, ImageBackground, Linking, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { colors, newColor } from "../../theme/colors";
-import { editButtonBackground, legalBackgroundSettin, emailNewIcon, privacyNewIcon, termsandConditionNewIcon, safetyCenterNewIcon, helpAndSupportNewIcon, ChatSearchIcon, rightGoNewIcon, deleteNewBackground, deleteNewIcon, BottomLayer, logOutnewIcon, applogo } from "../../helper/ImageAssets";
+import { editButtonBackground, legalBackgroundSettin, emailNewIcon, privacyNewIcon, termsandConditionNewIcon, safetyCenterNewIcon, helpAndSupportNewIcon, ChatSearchIcon, rightGoNewIcon, blackIcon as blockUserNewIcon, deleteNewBackground, deleteNewIcon, BottomLayer, logOutnewIcon, applogo, childIcon } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
 import Toast from "react-native-toast-message";
@@ -13,9 +13,11 @@ import { AppText, BLACK, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, OPECITY, OPE
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { useDispatch, useSelector } from "react-redux";
 import { endSession } from "../../actions/sessionActions";
+import { getBlockedUsersAPI } from "../../actions/authActions";
 import NavigationService from "../../navigation/NavigationService";
 import { appOperation } from "../../appOperation";
 import NewHeader from "../../common/NewHeader";
+import { NAVIGATION_BLOCKED_USERS_SCREEN } from "../../navigation/routes";
 
 type ConfirmAction = "logout" | "delete";
 
@@ -26,6 +28,17 @@ const SettingScreen = () => {
     const [confirmAction, setConfirmAction] = useState<ConfirmAction>("logout");
     const [isProcessing, setIsProcessing] = useState(false);
     const [deleteSuccessVisible, setDeleteSuccessVisible] = useState(false);
+
+    // Load the blocked users while Settings is open, so the list is already there when its page opens
+    useEffect(() => {
+        dispatch(getBlockedUsersAPI());
+    }, [dispatch]);
+
+    const openBlockedUsers = useCallback(() => {
+        // Refresh once more on the way in; the page shows what is already in the store meanwhile
+        dispatch(getBlockedUsersAPI());
+        NavigationService.navigate(NAVIGATION_BLOCKED_USERS_SCREEN);
+    }, [dispatch]);
 
     // Sockets, store, credentials and navigation are all torn down by endSession
     const handleLogoutConfirmed = () => {
@@ -130,7 +143,33 @@ const SettingScreen = () => {
                         </View>
                         <FastImage source={rightGoNewIcon} resizeMode="contain" style={styles.rightArrowIcon} />
                     </TouchableOpacityView>
+
+                    <TouchableOpacityView style={styles.legalRow} onPress={() => Linking.openURL("https://parpple.com/child-safety")}>
+                        <View style={styles.rowContent}>
+                            <FastImage source={childIcon} resizeMode="contain" style={styles.leftIcon} tintColor={WHITE} />
+                            <AppText type={TWELVE} weight={INTER_MEDIUM} color={WHITE} style={styles.rowTitle}>
+                                Child Safety Standards
+                            </AppText>
+                        </View>
+                        <FastImage source={rightGoNewIcon} resizeMode="contain" style={styles.rightArrowIcon} />
+                    </TouchableOpacityView>
                 </ImageBackground>
+
+                {/* Blocked users */}
+                <AppText weight={INTER_BOLD} color={WHITE} style={[styles.sectionHeader, { fontSize: fontSize(13) }]}>
+                    Blocked
+                </AppText>
+                <TouchableOpacityView onPress={openBlockedUsers}>
+                    <ImageBackground source={ChatSearchIcon} style={styles.singleItemCard} imageStyle={styles.cardImageStyle}>
+                        <View style={styles.rowContent}>
+                            <FastImage source={blockUserNewIcon} resizeMode="contain" style={[styles.leftIcon, { marginLeft: metrics.hp2 }]} tintColor={colors.white} />
+                            <AppText type={TWELVE} weight={INTER_MEDIUM} color={WHITE} style={styles.rowTitle}>
+                                Blocked Users
+                            </AppText>
+                        </View>
+                        <FastImage source={rightGoNewIcon} resizeMode="contain" style={[styles.rightArrowIcon, { marginRight: metrics.hp2 }]} />
+                    </ImageBackground>
+                </TouchableOpacityView>
 
                 {/* 3. Contact Us */}
                 <AppText weight={INTER_BOLD} color={WHITE} style={[styles.sectionHeader, { fontSize: fontSize(13) }]}>

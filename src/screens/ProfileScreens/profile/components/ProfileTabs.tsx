@@ -1,5 +1,5 @@
 import React from "react";
-import { ImageBackground, StyleSheet, View } from "react-native";
+import { ImageBackground, Platform, StyleSheet, View } from "react-native";
 import metrics from "../../../../assets/Metrics";
 import { AppText, SCHEHERAZADE_BOLD, SIXTEEN } from "../../../../common/AppText";
 import { TouchableOpacityView } from "../../../../common/TouchableOpacityView";

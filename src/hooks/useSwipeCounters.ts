@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SUPER_LIKES_REMAINING_KEY, SWIPES_PER_DAY_KEY, SWIPES_REMAINING_KEY } from "../helper/Constants";
+import { useDispatch } from "react-redux";
+import { consumeStoreSwipe } from "../slices/loginServices/authSlice";
 import { useLatest } from "./useLatest";
 
 /**
@@ -9,6 +11,7 @@ import { useLatest } from "./useLatest";
  * arrives and keeps them across launches.
  */
 export function useSwipeCounters(userData: any) {
+  const dispatch = useDispatch();
   const [remainingSwipes, setRemainingSwipes] = useState(0);
   const [remainingSuperLikes, setRemainingSuperLikes] = useState(0);
   const [swipesPerDay, setSwipesPerDay] = useState(0);
@@ -70,7 +73,10 @@ export function useSwipeCounters(userData: any) {
 
   const consumeSwipe = useCallback(() => {
     setRemainingSwipes((prev) => Math.max((prev ?? 0) - 1, 0));
-  }, []);
+    // Home, Likes You and Viewed You each have their own counter: lowering the shared server value in the
+    // store lets the other screens pick up the change, so the 5 free likes are shared across all three.
+    dispatch(consumeStoreSwipe());
+  }, [dispatch]);
 
   return { remainingSwipesRef, consumeSwipe };
 }

@@ -116,8 +116,8 @@ export function useLoginFlow() {
   );
 
   /**
-   * Sign in with Apple (iOS only). Not offered on the Welcome screen at the moment,
-   * but kept ready: App Store rules require it whenever another social login is shown.
+   * Sign in with Apple (iOS only). Shown on the Welcome screen next to Google: App Store rules
+   * require it whenever another social login is offered.
    */
   const signInWithApple = useCallback(async () => {
     if (Platform.OS !== "ios") return;
@@ -130,14 +130,21 @@ export function useLoginFlow() {
         console.warn("[Apple Sign-In] No identity token received");
         return;
       }
-      dispatch(userLogin({ phoneNumber: null, googleToken: null, iosToken: response.identityToken, fcmtoken: fcmToken }, true));
       dispatch(setEmailAuth(response));
+      startLoading();
+      const accepted =
+        (await dispatch(
+          userLogin({ phoneNumber: null, googleToken: null, iosToken: response.identityToken, fcmtoken: fcmToken }, true)
+        )) === true;
+      if (accepted) keepLoadingUntilNavigation();
+      else stopLoading();
     } catch (error: any) {
+      stopLoading();
       // The user closing the Apple sheet is not an error
       if (error?.code === "ERR_REQUEST_CANCELED" || error?.code === 1001 || error?.code === "1001") return;
       console.warn("[Apple Sign-In] Error:", error?.message ?? error);
     }
-  }, [dispatch, fcmToken]);
+  }, [dispatch, fcmToken, startLoading, stopLoading, keepLoadingUntilNavigation]);
 
   return { loading, stopLoading, signInWithGoogle, signInWithEmail, signInWithApple };
 }

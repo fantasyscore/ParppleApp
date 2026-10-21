@@ -19,7 +19,8 @@ const openSettingsAlert = (title: string, message: string) =>
     { text: "Cancel", style: "cancel" },
   ]);
 
-export async function ensureCameraPermission(): Promise<boolean> {
+/** Checks / asks for camera access; `purpose` only words the "enable it in Settings" messages. */
+export async function ensureCameraPermission(purpose = "face verification"): Promise<boolean> {
   try {
     const permission = Platform.OS === "ios" ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA;
     const currentStatus = await check(permission);
@@ -28,7 +29,7 @@ export async function ensureCameraPermission(): Promise<boolean> {
     if (currentStatus === RESULTS.BLOCKED) {
       openSettingsAlert(
         "Camera permission required",
-        "Camera permission is disabled. Please enable it from Settings to continue face verification."
+        `Camera permission is disabled. Please enable it from Settings to continue with ${purpose}.`
       );
       return false;
     }
@@ -38,7 +39,7 @@ export async function ensureCameraPermission(): Promise<boolean> {
 
     openSettingsAlert(
       "Camera permission denied",
-      "Face verification requires camera access. You can enable it from Settings."
+      `${purpose.charAt(0).toUpperCase() + purpose.slice(1)} requires camera access. You can enable it from Settings.`
     );
     return false;
   } catch (error) {
@@ -77,6 +78,11 @@ export function useFaceVerification() {
 
     try {
       if (!(await ensureCameraPermission())) return;
+
+      // Leave the previous result ("Verification Failed") behind: while the camera screen opens and the
+      // result is checked with the server, the dialog shows a neutral "verifying" state instead.
+      setError("");
+      setStage("verifying");
 
       const sessionResp = await (appOperation.customer as any).createFaceLivenessSessionAPI();
       const sessionId = sessionResp?.data;

@@ -1,5 +1,5 @@
 import React from "react";
-import { FlatList, ImageBackground, StyleSheet } from "react-native";
+import { FlatList, ImageBackground, Platform, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
 import LinearGradient from "react-native-linear-gradient";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
@@ -124,8 +124,9 @@ const styles = StyleSheet.create({
     width: metrics.hp4,
   },
   headline: {
-    paddingHorizontal: metrics.hp2,
+    paddingHorizontal: Platform.OS === "ios" ? metrics.hp0 : metrics.hp0,
     marginTop: -metrics.hp3,
+    alignSelf:"center"
   },
   centered: {
     textAlign: "center",

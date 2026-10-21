@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { ActivityIndicator, FlatList, ImageBackground, Platform, StyleSheet, View } from "react-native";
+import { ActivityIndicator, FlatList, ImageBackground, InteractionManager, Platform, StyleSheet, View } from "react-native";
 import metrics from "../../assets/Metrics";
 import { colors, newColor } from "../../theme/colors";
 import { ChatSearchIcon, dummyfemaleProfile, dummyMaleProfile, HomeBackground, } from "../../helper/ImageAssets";
@@ -53,6 +53,142 @@ export const truncateText = (text: any, limit = 15) => {
     return text;
 };
 
+// A chat row only re-renders when its own chat changes: typing in the search box or a new message in another chat leaves
+// every other row untouched (the list used to re-render all rows each time).
+const ChatRow = memo(({ item, isBot, userId, showCrushBadge, onOpen }: { item: any; isBot: boolean; userId?: string; showCrushBadge: boolean; onOpen: (item: any) => void }) => {
+    const rawTime = formatChatTime(item?.lastMessage?.createdAt);
+    const timeLabel = rawTime === "Invalid Date" ? "" : rawTime;
+    const handlePress = useCallback(() => onOpen(item), [onOpen, item]);
+
+    return (
+        <TouchableOpacityView onPress={handlePress} style={styles.chatListContainer}>
+            <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+                <PortraitAvatar
+                    source={isBot ? AppIcon : item?.profilePicture?.url ? { uri: item.profilePicture.url } : item.gender == "male" ? dummyMaleProfile : dummyfemaleProfile}
+                    style={styles.newMatchProfile}
+                />
+                {item.online && !isBot &&
+                    <View style={{
+                        height: metrics.hp2,
+                        width: metrics.hp2,
+                        borderRadius: metrics.hp50,
+                        backgroundColor: "#39E75F",
+                        borderWidth: metrics.hp0_5,
+                        borderColor: "#2A2A2C", position: "absolute", top: metrics.hp0, left: metrics.hp0_5
+                    }} />
+                }
+                <View style={styles.messageContainer}>
+                    <View style={{ flexDirection: "row" }}>
+                        <AppText style={{ textTransform: "capitalize" }} type={SIXTEEN} weight={INTER_BOLD} color={WHITE}>
+                            {item.username ? item.username : item.name}{"  "}
+                        </AppText>
+                    </View>
+                    <AppText type={FORTEEN} numberOfLines={1} weight={item.unreadCount > 0 ? INTER_SEMI_BOLD : INTER_REGULAR} color={item.unreadCount > 0 ? WHITE : OPECITY}>
+                        {item?.lastMessage?.text ? truncateText(item?.lastMessage?.text) : "Send your first message"}
+                    </AppText>
+                </View>
+            </View>
+            <View style={{ alignItems: "flex-end", marginTop: metrics.hp2_3 }}>
+                <AppText type={TEN} weight={item.unreadCount > 0 ? INTER_SEMI_BOLD : INTER_MEDIUM} style={{ color: "#E6B7A8" }} color={item.unreadCount > 0 ? WHITE : OPECITY}>
+                    {timeLabel}
+                </AppText>
+                {item?.lastMessage?.type == "crushNote" && showCrushBadge ?
+                    <View style={[styles.numberCount, { marginTop: metrics.hp1, backgroundColor: "#E6B7A8" }]}>
+                        <AppText type={TEN} weight={INTER_MEDIUM}>
+                            {1}
+                        </AppText>
+                    </View> : <></>}
+                {!isBot && item.unreadCount > 0 &&
+                    <View style={[styles.numberCount, { marginTop: metrics.hp0_5, backgroundColor: "#E6B7A8" }]}>
+                        <AppText type={TEN} color={BLACK} weight={INTER_MEDIUM}>
+                            {item.unreadCount}
+                        </AppText>
+                    </View>
+                }
+                {isBot &&
+                    <View style={[styles.numberCount, { marginTop: metrics.hp0_5, backgroundColor: "#E6B7A8" }]}>
+                        <AppText type={TEN} weight={INTER_MEDIUM}>
+                            {1}
+                        </AppText>
+                    </View>
+                }
+                {!isBot && item.unreadCount == 0 && item?.lastMessage?.senderId !== userId &&
+                    <View style={{ paddingHorizontal: metrics.hp1, paddingVertical: metrics.hp0_2, backgroundColor: "#E6B7A8", borderRadius: metrics.hp4, marginTop: metrics.hp0_5 }}>
+                        <AppText color={BLACK} weight={INTER_SEMI_BOLD}>
+                            Your Turn
+                        </AppText>
+                    </View>
+                }
+            </View>
+        </TouchableOpacityView>
+    );
+});
+
+// The "New Matches" strip. Memoized so it keeps its horizontal scroll position and does not redraw while the user types
+// in the search box.
+const RecentMatchesStrip = memo(({ data, onOpenProfile, onOpenAll }: { data: any[]; onOpenProfile: (item: any) => void; onOpenAll: () => void }) => {
+    const renderRecent = useCallback(({ item }: any) => {
+        if (item?.__type === "MORE") {
+            return (
+                <TouchableOpacityView onPress={onOpenAll} style={[styles.newmatchContainer, { marginLeft: metrics.hp2, marginRight: metrics.hp2 }]}>
+                    <PortraitAvatar
+                        source={item?.avatarUrl ? { uri: item?.avatarUrl } : item?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile}
+                        style={styles.newMatchProfile}
+                    >
+                        {item.online ?
+                            <View style={{ height: metrics.hp1, width: metrics.hp1, backgroundColor: "#26F600", borderRadius: metrics.hp50, position: "absolute", top: metrics.hp1, left: metrics.hp1 }} /> : <></>}
+                        <View style={styles.moreOverlay}>
+                            <AppText type={FORTEEN} color={WHITE} weight={INTER_BOLD}>
+                                +{item.remaining}
+                            </AppText>
+                        </View>
+                    </PortraitAvatar>
+                    <AppText style={{ marginTop: metrics.hp0_3, color: colors.white }} type={TWELVE} weight={INTER_SEMI_BOLD}>
+                        {item.username ? item.username : item.name}
+                    </AppText>
+                </TouchableOpacityView>
+            );
+        }
+        return (
+            <TouchableOpacityView onPress={() => onOpenProfile(item)} style={[styles.newmatchContainer, {
+                marginLeft: data.length <= 3 ? metrics.hp2 : 0,
+                marginRight: data.length > 3 ? metrics.hp2 : 0
+            }]}>
+                <PortraitAvatar source={item?.profilePicture?.url ? { uri: item?.profilePicture?.url } : item?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile} style={styles.newMatchProfile} />
+                <AppText style={{ marginTop: metrics.hp1, color: colors.white }} type={TWELVE} weight={INTER_SEMI_BOLD}>
+                    {item.username ? item.username : item.name}
+                </AppText>
+            </TouchableOpacityView>
+        );
+    }, [data.length, onOpenAll, onOpenProfile]);
+
+    if (data.length === 0) return null;
+    return (
+        <View>
+            <View style={{ paddingHorizontal: metrics.hp2 }}>
+                <View style={styles.newMatchTextContainer}>
+                    <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={WHITE}>
+                        {"  "}New Matches{"  "}
+                    </AppText>
+                </View>
+            </View>
+            <FlatList
+                data={data}
+                horizontal
+                keyExtractor={recentKeyExtractor}
+                showsHorizontalScrollIndicator={false}
+                renderItem={renderRecent}
+            />
+        </View>
+    );
+});
+
+const recentKeyExtractor = (item: any, idx: number) => item?.__type === "MORE" ? `more-${idx}` : String(item?.userId || item?._id || idx);
+const chatKeyExtractor = (item: any) => item.matchId || item.userId || "bot";
+const NO_ITEMS: any[] = [];
+/** A refetch on every visit is only needed when the data is older than this (the socket keeps the lists fresh meanwhile) */
+const REFETCH_AFTER_MS = 10 * 1000;
+
 const ChatsScreen = () => {
     const isFoucse = useIsFocused()
     const [search, setSearch] = useState("");
@@ -64,15 +200,18 @@ const ChatsScreen = () => {
     const [isFirstLoad, setIsFirstLoad] = useState(
         () => !(newMatches?.length || recentMatches?.length)
     );
+    const lastFetchAtRef = useRef(0);
     useEffect(() => {
         if (!isFoucse) return;
-        let cancelled = false;
-        Promise.all([dispatch(getNewMatches()), dispatch(getRecentMatches())]).finally(() => {
-            if (!cancelled) setIsFirstLoad(false);
+        // Wait for the screen transition to finish (coming back from a chat slides this screen in) and skip the request
+        // when the lists were fetched a moment ago: the new data re-renders the list in the middle of the animation.
+        const handle = InteractionManager.runAfterInteractions(() => {
+            if (Date.now() - lastFetchAtRef.current < REFETCH_AFTER_MS && !isFirstLoad) return;
+            lastFetchAtRef.current = Date.now();
+            Promise.all([dispatch(getNewMatches()), dispatch(getRecentMatches())]).finally(() => setIsFirstLoad(false));
         });
-        return () => {
-            cancelled = true;
-        };
+        return () => handle.cancel();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isFoucse, dispatch]);
 
     const normalize = useCallback((v: any) => String(v ?? "").toLowerCase(), []);
@@ -141,159 +280,37 @@ const ChatsScreen = () => {
     const onSubmit = useCallback((item: any) => {
         dispatch(openMatchChat(item));
     }, [dispatch]);
-
-    const renderItemChats = ({ item }: any) => {
-        const isBot = item?.__type === "BOT";
-
-        const rawTime = formatChatTime(item?.lastMessage?.createdAt);
-        const timeLabel = rawTime === "Invalid Date" ? "" : rawTime;
-
-        return (
-            <TouchableOpacityView
-                onPress={() => (isBot ? NavigationService.navigate(NAVIGATION_BOT_CHAT_SCREEN) : onSubmit(item))}
-                style={styles.chatListContainer}
-            >
-                <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-                    <PortraitAvatar
-                        source={isBot ? AppIcon : item?.profilePicture?.url ? { uri: item.profilePicture.url } : item.gender == "male" ? dummyMaleProfile : dummyfemaleProfile}
-                        style={styles.newMatchProfile}
-                    />
-                    {item.online && !isBot &&
-                        <View style={{
-                            height: metrics.hp2,
-                            width: metrics.hp2,
-                            borderRadius: metrics.hp50,
-                            backgroundColor: "#39E75F",
-                            borderWidth: metrics.hp0_5,
-                            borderColor: "#2A2A2C", position: "absolute", top: metrics.hp0, left: metrics.hp0_5
-                        }} />
-                     } 
-                    <View style={styles.messageContainer}>
-                        <View style={{ flexDirection: "row" }}>
-                            <AppText style={{ textTransform: "capitalize" }} type={SIXTEEN} weight={INTER_BOLD} color={WHITE}>
-                                {item.username ? item.username : item.name}{"  "}
-                            </AppText>
-                        </View>
-                        <AppText type={FORTEEN} numberOfLines={1} weight={item.unreadCount > 0 ? INTER_SEMI_BOLD : INTER_REGULAR} color={item.unreadCount > 0 ? WHITE : OPECITY}>
-                            {item?.lastMessage?.text ? truncateText(item?.lastMessage?.text) : "Send your first message"}
-                        </AppText>
-                    </View>
-                </View>
-                <View style={{ alignItems: "flex-end", marginTop: metrics.hp2_3 }}>
-                    <AppText type={TEN} weight={item.unreadCount > 0 ? INTER_SEMI_BOLD : INTER_MEDIUM} style={{ color: "#E6B7A8" }} color={item.unreadCount > 0 ? WHITE : OPECITY}>
-                        {timeLabel}
-                    </AppText>
-                    {item?.lastMessage?.type == "crushNote" && userData?.subscription?.plan !== "PLATINUM" ?
-                        <View style={[styles.numberCount, { marginTop: metrics.hp1, backgroundColor: "#E6B7A8" }]}>
-                            <AppText type={TEN} weight={INTER_MEDIUM}>
-                                {1}
-                            </AppText>
-                        </View> : <></>}
-                    {!isBot && item.unreadCount > 0 &&
-                        <View style={[styles.numberCount, { marginTop: metrics.hp0_5, backgroundColor: "#E6B7A8" }]}>
-                            <AppText type={TEN} color={BLACK} weight={INTER_MEDIUM}>
-                                {item.unreadCount}
-                            </AppText>
-                        </View>
-                    }
-                    {isBot &&
-                        <View style={[styles.numberCount, { marginTop: metrics.hp0_5, backgroundColor: "#E6B7A8" }]}>
-                            <AppText type={TEN} weight={INTER_MEDIUM}>
-                                {1}
-                            </AppText>
-                        </View>
-                    }
-                    {!isBot && item.unreadCount == 0 && item?.lastMessage?.senderId !== userData?._id &&
-                        <View style={{ paddingHorizontal: metrics.hp1, paddingVertical: metrics.hp0_2, backgroundColor: "#E6B7A8", borderRadius: metrics.hp4, marginTop: metrics.hp0_5 }}>
-                            <AppText color={BLACK} weight={INTER_SEMI_BOLD}>
-                                Your Turn
-                            </AppText>
-                        </View>
-                    }
-                </View>
-            </TouchableOpacityView>
-        )
-    };
-    // Rendered as an element (not passed as a component) so the horizontal strip keeps its scroll position
-    // and state when the search text changes.
-    const renderRecentMatches = () => {
-        return recentPreviewData?.length === 0 ? (
-            <></>
-        ) : (
-            <View>
-                <View style={{ paddingHorizontal: metrics.hp2 }}>
-                    <View style={styles.newMatchTextContainer}>
-                        <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={WHITE}>
-                            {"  "}New Matches{"  "}
-                        </AppText>
-                    </View>
-                </View>
-                <FlatList
-                    data={recentPreviewData}
-                    horizontal
-                    keyExtractor={(item: any, idx: number) => item?.__type === "MORE" ? `more-${idx}` : String(item?.userId || item?._id || idx)}
-                    showsHorizontalScrollIndicator={false}
-                    renderItem={({ item }: any) => {
-                        if (item?.__type === "MORE") {
-                            return (
-                                <TouchableOpacityView onPress={openAllMatches} style={[styles.newmatchContainer, {
-                                    marginLeft: metrics.hp2,
-                                    marginRight: metrics.hp2,
-                                }]}>
-                                    <PortraitAvatar
-                                        source={item?.avatarUrl ? { uri: item?.avatarUrl } : item?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile}
-                                        style={styles.newMatchProfile}
-                                    >
-                                        {item.online ?
-                                            <View style={{ height: metrics.hp1, width: metrics.hp1, backgroundColor: "#26F600", borderRadius: metrics.hp50, position: "absolute", top: metrics.hp1, left: metrics.hp1 }} /> : <></>}
-                                        <View style={styles.moreOverlay}>
-                                            <AppText type={FORTEEN} color={WHITE} weight={INTER_BOLD}>
-                                                +{item.remaining}
-                                            </AppText>
-                                        </View>
-                                    </PortraitAvatar>
-                                    <AppText style={{ marginTop: metrics.hp0_3, color: colors.white }} type={TWELVE} weight={INTER_SEMI_BOLD}>
-                                        {item.username ? item.username : item.name}
-                                    </AppText>
-                                </TouchableOpacityView>
-                            )
-                        }
-                        return (
-                            <TouchableOpacityView onPress={() => onSubmit(item)} key={item?.userId} style={[styles.newmatchContainer, {
-                                marginLeft: recentPreviewData?.length <= 3 ? metrics.hp2 : 0,
-                                marginRight: recentPreviewData?.length > 3 ? metrics.hp2 : 0
-                            }]}>
-                                <PortraitAvatar source={item?.profilePicture?.url ? { uri: item?.profilePicture?.url } : item?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile} style={styles.newMatchProfile} />
-                                <AppText style={{ marginTop: metrics.hp1, color: colors.white, }} type={TWELVE} weight={INTER_SEMI_BOLD}>
-                                    {item.username ? item.username : item.name}
-
-                                </AppText>
-                            </TouchableOpacityView>
-                        )
-                    }}
-                />
-
-            </View>
-        )
-    };
-
-
-
-    const listHeader = (
-        <>
-            {renderRecentMatches()}
-            <View style={[styles.newMatchTextContainer, {
-                paddingHorizontal: metrics.hp2,
-                marginTop: metrics.hp4
-            }]}>
-                <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={WHITE}>
-                    Messages{"  "}
-                </AppText>
-            </View>
-        </>
+    const openChatRow = useCallback(
+        (item: any) => (item?.__type === "BOT" ? NavigationService.navigate(NAVIGATION_BOT_CHAT_SCREEN) : onSubmit(item)),
+        [onSubmit]
+    );
+    const showCrushBadge = userData?.subscription?.plan !== "PLATINUM";
+    const renderItemChats = useCallback(
+        ({ item }: any) => (
+            <ChatRow item={item} isBot={item?.__type === "BOT"} userId={userData?._id} showCrushBadge={showCrushBadge} onOpen={openChatRow} />
+        ),
+        [userData?._id, showCrushBadge, openChatRow]
     );
 
+    // Kept as one memoized element so the strip is not rebuilt on every key typed in the search box
+    const listHeader = useMemo(
+        () => (
+            <>
+                <RecentMatchesStrip data={recentPreviewData} onOpenProfile={onSubmit} onOpenAll={openAllMatches} />
+                <View style={[styles.newMatchTextContainer, { paddingHorizontal: metrics.hp2, marginTop: metrics.hp4 }]}>
+                    <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={WHITE}>
+                        Messages{"  "}
+                    </AppText>
+                </View>
+            </>
+        ),
+        [recentPreviewData, onSubmit, openAllMatches]
+    );
 
+    const botData = useMemo(
+        () => (query ? (normalize(botChatItem.name).includes(query) ? [botChatItem] : NO_ITEMS) : [botChatItem]),
+        [query, normalize, botChatItem]
+    );
 
     return (
         <AppSafeAreaView color={newColor.blackNew}>
@@ -311,9 +328,9 @@ const ChatsScreen = () => {
                     </View>
                 ) : newMatches?.length === 0 ? (
                     <FlatList
-                        data={query ? (normalize(botChatItem.name).includes(query) ? [botChatItem] : []) : [botChatItem]}
+                        data={botData}
                         renderItem={renderItemChats}
-                        keyExtractor={(item: any) => item.matchId || item.userId || 'bot'}
+                        keyExtractor={chatKeyExtractor}
                         ListEmptyComponent={query ? noSearchFound : null}
                         ListHeaderComponent={listHeader}
                         contentContainerStyle={{ paddingBottom: metrics.hp5 }}
@@ -323,11 +340,15 @@ const ChatsScreen = () => {
                     <FlatList
                         data={filteredChats}
                         renderItem={renderItemChats}
-                        keyExtractor={(item) => item.matchId}
+                        keyExtractor={chatKeyExtractor}
                         showsVerticalScrollIndicator={false}
                         ListEmptyComponent={noSearchFound}
                         ListHeaderComponent={listHeader}
                         contentContainerStyle={{ paddingBottom: metrics.hp20 }}
+                        initialNumToRender={12}
+                        maxToRenderPerBatch={10}
+                        windowSize={9}
+                        removeClippedSubviews={Platform.OS === "android"}
                     />
                 )}
             </ImageBackground>

@@ -5,6 +5,37 @@ import { logMetaEvent } from './MetaEvents';
 // Re-export everything from react-native-iap
 export * from 'react-native-iap';
 
+/**
+ * App Store receipt for a purchase (base64). react-native-iap v15 uses StoreKit 2 and no longer puts
+ * `transactionReceipt` on the purchase object, so on iOS it is read from the app receipt instead.
+ * Always undefined on Android.
+ */
+export const getIosReceipt = async (purchase: any): Promise<string | undefined> => {
+  if (Platform.OS !== 'ios') return undefined;
+  // Apple rejects a receipt with whitespace/newlines in it as malformed (status 21002)
+  const clean = (receipt?: string | null) => (receipt ? receipt.replace(/\s+/g, '') : undefined);
+
+  const fromPurchase = clean(purchase?.transactionReceipt);
+  if (fromPurchase) return fromPurchase;
+
+  try {
+    const receipt = clean(await RNIap.getReceiptDataIOS());
+    if (receipt) return receipt;
+  } catch (error) {
+    // StoreKit 2 purchases do not always leave a receipt file on the device yet; refresh it below
+    console.warn('[iapWrapper] getReceiptDataIOS failed, refreshing the receipt:', error);
+  }
+
+  try {
+    const receipt = clean(await RNIap.requestReceiptRefreshIOS());
+    if (receipt) return receipt;
+  } catch (error) {
+    console.warn('[iapWrapper] requestReceiptRefreshIOS failed:', error);
+  }
+  console.warn('[iapWrapper] No App Store receipt available for', purchase?.productId);
+  return undefined;
+};
+
 // Compatibility shim for getProducts
 export const getProducts = async (req: { skus: string[] }): Promise<any[]> => {
   try {

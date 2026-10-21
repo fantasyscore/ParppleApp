@@ -1,34 +1,40 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { AppState, AppStateStatus, ImageBackground, InteractionManager, Platform, ScrollView } from 'react-native';
 import { Chat, Bubble, Time } from '@kesha-antonov/react-native-chat';
-import { blockModalImage, chatBackground, dummyfemaleProfile, dummyMaleProfile, emptyTextImage, helloHand, sendMessageNewIcon, timeShowNewBackground, unmatchModalImage } from '../../helper/ImageAssets';
+import { addPhotoIcon, gallaryICon, blockModalImage, chatBackground, dummyfemaleProfile, dummyMaleProfile, emptyTextImage, helloHand, timeShowNewBackground, unmatchModalImage } from '../../helper/ImageAssets';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 import ChatHeader from '../../common/ChatHeader';
-import { StyleSheet, View, TextInput, Keyboard, Dimensions, Modal, Animated } from 'react-native';
+import { StyleSheet, View, Dimensions, Modal, Animated } from 'react-native';
 import { colors, newColor } from '../../theme/colors';
 import metrics from '../../assets/Metrics';
 import { AppText, BLACK, fontSize, FORTEEN, INTER_MEDIUM, INTER_SEMI_BOLD, OPECITY, SCHEHERAZADE_BOLD, TEN, THIRTEEN, TWELVE, TWENTY_FOUR, WHITE } from '../../common/AppText';
 import { TouchableOpacityView } from '../../common/TouchableOpacityView';
 import FastImage from 'react-native-fast-image';
 import PortraitAvatar from '../../common/PortraitAvatar';
-import { interMedium, interSemiBold } from '../../theme/typography';
+import { interSemiBold } from '../../theme/typography';
 import { Screen } from '../../theme/dimens';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import { threeDotData } from '../../common/UiltData';
 import NavigationService from '../../navigation/NavigationService';
 import { NAVIGATION_REPORT_SCREEN } from '../../navigation/routes';
 import { useDispatch, useSelector, useStore } from 'react-redux';
-import { blockByIdAPIUser, getOtherProfile, userUnmatchAPI } from '../../actions/authActions';
+import { blockByIdAPIUser, getOtherProfile, removeMessageFromChatHistoryCache, setChatHistoryCache, userUnmatchAPI } from '../../actions/authActions';
 import { createSocket } from '../../common/Socket';
 import { appOperation } from '../../appOperation';
 import { ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { clearActiveChat, setActiveChatMatchId } from '../../slices/inAppNotificationSlice';
-import { setNewMatches } from '../../slices/loginServices/authSlice';
+import { chatHistoryDetails, setLastMessageOverride, setNewMatches } from '../../slices/loginServices/authSlice';
 import { clearNotificationsByMatchId } from '../../notifications/pushNotifications';
+import { toastAlert } from '../../actions/UploadImageActions';
 import SeeOtherUserProfile from './SeeOtherUserProfile';
 import FullScreenImage from '../HomeScreens/FullScreenImage'
 import KeyboardInsetView from './KeyboardInsetView';
+import ChatInputBar from './components/ChatInputBar';
+import ViewOncePhotoBubble from './viewOnce/ViewOncePhotoBubble';
+import ViewOncePhotoViewer from './viewOnce/ViewOncePhotoViewer';
+import { dismissedPhotoIds, useViewOncePhotos } from './viewOnce/useViewOncePhotos';
 const USER_ID = 1;
 const OTHER_USER_ID = 2;
 const TYPING_INDICATOR_ID = 'typing-indicator';
@@ -36,6 +42,13 @@ const TYPING_INDICATOR_ID = 'typing-indicator';
 // The library keeps an empty spacer the size of its avatar under every message of a group except the
 // last one. It must equal our custom avatar's size (see renderAvatar), or earlier bubbles sit off-line.
 const AVATAR_SIZE = metrics.hp4;
+const EmptyDataText = [
+    { id: 1, text: "Hello!🤗" },
+    { id: 2, text: "What's Up!" },
+    { id: 3, text: "How are you?" },
+];
+const TIME_TEXT_STYLE = { left: { color: colors.white }, right: { color: colors.white } };
+const TIME_CONTAINER_STYLE = { left: { marginTop: 2 }, right: { marginTop: 2 } };
 const CHAT_THEME = {
     colors: { background: colors.transparent },
     avatar: { size: AVATAR_SIZE },
@@ -52,6 +65,10 @@ type ChatMessage = {
         avatar: any;
     };
     isRead?: boolean; // Read receipt status
+    // View-once photos (see viewOnce/)
+    messageType?: string;
+    viewOnce?: boolean;
+    mediaStatus?: 'unopened' | 'opened' | 'expired' | null;
 }
 
 /** Newest message first (the order the chat list expects). */
@@ -133,27 +150,21 @@ const TypingIndicatorBubble = () => {
 
 const TakingScreen = ({ route }: any) => {
     const dispatch = useDispatch();
+    const insets = useSafeAreaInsets();
     const store = useStore();
     const matchChatUserDetails = useSelector((state: any) => state.auth.matchChatUserDetails);
     const otherUserProfile = useSelector((state: any) => state.auth.otherUserProfile);
     const userData = useSelector((state: any) => state.auth.userData);
     const chatHistory = useSelector((state: any) => state.auth.chatHistory);
     const refFilter: any = useRef(null);
-    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const hasLoadedInitialMessages = useRef(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const seenMessageKeysRef = useRef<Set<string>>(new Set());
     const [messagesOwnerMatchId, setMessagesOwnerMatchId] = useState<string | undefined>(matchChatUserDetails?.matchId);
-    const [, setTabSelect] = useState('Chat');
-    const [inputText, setInputText] = useState('');
-    const [, setEmojiVisible] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [otherUserProfie, setOtherUserProfile] = useState(false);
 
     const [saveReportTitle, setSaveReportTitle] = useState("");
-    const [, setProfileData] = useState();
-    const [, setIsOtherUserTyping] = useState(false);
-    const [, setTypingUserName] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
@@ -164,10 +175,16 @@ const TakingScreen = ({ route }: any) => {
     const matchChatUserDetailsRef = useRef<any>(matchChatUserDetails);
     const otherUserProfileRef = useRef<any>(otherUserProfile);
     const userDataRef = useRef<any>(userData);
+    // Long-press delete of my own messages: the message the confirmation dialog is about (null = closed)
+    const [deleteTarget, setDeleteTarget] = useState<ChatMessage | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    // Ids of the text messages sent from this screen that the server has not confirmed yet (messageSent gives their real id)
+    const pendingTextIdsRef = useRef<(number | string)[]>([]);
+    // Takes a deleted message out of the chat, the cached history and the store, so it does not reappear when the chat reopens
+    const forgetMessageRef = useRef<(messageId: string) => void>(() => undefined);
     const [fullImage, setFullImage] = useState<any>(false);
     const [gallaryData, setGallaryData] = useState<any>([]);
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-    const inputRef = useRef<TextInput>(null);
     // Opening this screen slides it in. Creating the socket, loading profile + history and rebuilding the
     // message list during that slide makes it stutter, so that work waits until the animation is done.
     const [transitionDone, setTransitionDone] = useState(false);
@@ -195,10 +212,6 @@ const TakingScreen = ({ route }: any) => {
         setMessages([]);
         seenMessageKeysRef.current = new Set();
         setMessagesOwnerMatchId(matchChatUserDetails?.matchId);
-        setIsOtherUserTyping(false);
-        setTypingUserName('');
-        setEmojiVisible(false);
-        setInputText('');
         setCurrentPage(1);
         setHasMoreMessages(true);
         setIsLoadingMore(false);
@@ -229,6 +242,57 @@ const TakingScreen = ({ route }: any) => {
             }
             return () => {
                 dispatch(clearActiveChat());
+                // Leaving the chat: remember exactly what is on screen (including messages sent or received since it was
+                // opened) as the cached history. Reopening shows it at once; without this the chat showed the older cached
+                // messages first and the newest ones popped in only when the server's history arrived.
+                const shown = messagesRef.current.filter(
+                    (message) =>
+                        message._id !== TYPING_INDICATOR_ID &&
+                        typeof message._id === 'string' &&
+                        !message._id.startsWith('pending-')
+                );
+                const cachedMatchId = matchChatUserDetails?.matchId;
+                if (cachedMatchId && shown.length > 0) {
+                    setChatHistoryCache(
+                        cachedMatchId,
+                        shown.slice(0, 50).map((message) => ({
+                            _id: message._id,
+                            matchId: cachedMatchId,
+                            message: message.text,
+                            createdAt: message.createdAt.toISOString(),
+                            isMine: message.isMine,
+                            isRead: message.isRead,
+                            messageType: message.messageType,
+                            viewOnce: message.viewOnce,
+                            mediaStatus: message.mediaStatus,
+                        }))
+                    );
+                }
+                // The chats list shows this conversation's newest message straight away (messages sent
+                // from this screen are not in the list's data yet), so it never flashes an old preview while it refreshes.
+                const newest = messagesRef.current.find(
+                    (message) =>
+                        message._id !== TYPING_INDICATOR_ID &&
+                        !String(message._id).startsWith('pending-') &&
+                        !(message.viewOnce && (message.mediaStatus === 'opened' || message.mediaStatus === 'expired' || dismissedPhotoIds.has(String(message._id))))
+                );
+                const leftMatchId = matchChatUserDetails?.matchId;
+                if (!newest || !leftMatchId) return;
+                const chats: any[] = (store.getState() as any)?.auth?.newMatches || [];
+                const current = chats.find((chat: any) => chat.matchId === leftMatchId);
+                const currentTime = new Date(current?.lastMessage?.createdAt).getTime();
+                // Only a newer message replaces the preview; never overwrite something fresher the server told us
+                if (!current || (Number.isFinite(currentTime) && currentTime >= newest.createdAt.getTime())) return;
+                dispatch(setNewMatches(chats.map((chat: any) => chat.matchId !== leftMatchId ? chat : {
+                    ...chat,
+                    lastMessage: {
+                        ...(chat.lastMessage || {}),
+                        text: newest.text,
+                        message: newest.text,
+                        createdAt: newest.createdAt.toISOString(),
+                        senderId: newest.isMine ? userDataRef.current?._id : matchChatUserDetailsRef.current?.userId,
+                    },
+                })));
             };
         }, [dispatch, matchChatUserDetails?.matchId, store])
     );
@@ -272,12 +336,17 @@ const TakingScreen = ({ route }: any) => {
                 },
                 isRead: isRead,
                 isMine: isMine,
+                messageType: item.messageType,
+                viewOnce: item.viewOnce === true || item.messageType === 'image',
+                mediaStatus: item.mediaStatus ?? null,
                 _dedupeKey: dedupeKey,
             } as any;
         });
 
         const seenLocal = new Set<string>();
         const transformed = transformedRaw.filter((m: any) => {
+            // A view-once photo (sent or received) that was already opened or has expired is not shown again
+            if (m.viewOnce && (m.mediaStatus === 'opened' || m.mediaStatus === 'expired' || dismissedPhotoIds.has(String(m._id)))) return false;
             const key = m?._dedupeKey || `id:${String(m?._id)}`;
             if (seenLocal.has(key)) return false;
             seenLocal.add(key);
@@ -349,9 +418,12 @@ const TakingScreen = ({ route }: any) => {
         const handleConnected = (data: any) => {
             console.log('Socket connected:', data);
         };
+        // Only my own unread messages change: every other bubble keeps its object, so it is not re-rendered
         const handleMessagesRead = () => {
             setMessages((prevMessages) =>
-                prevMessages.map((msg) => ({ ...msg, isRead: true }))
+                prevMessages.some((msg) => msg.isMine && !msg.isRead)
+                    ? prevMessages.map((msg) => (msg.isMine && !msg.isRead ? { ...msg, isRead: true } : msg))
+                    : prevMessages
             );
         };
         const handleUserTyping = (response: any) => {
@@ -384,8 +456,6 @@ const TakingScreen = ({ route }: any) => {
                 response.is_typing === true ||
                 response.is_typing === 'true';
             const senderName = response.senderName || matchChatUserDetailsRef.current?.name || 'Someone';
-            setIsOtherUserTyping(isTyping);
-            setTypingUserName(senderName);
             if (isTyping) {
                 setMessages((prevMessages) => {
                     const hasTypingIndicator = prevMessages.some((msg) => msg._id === TYPING_INDICATOR_ID);
@@ -455,6 +525,9 @@ const TakingScreen = ({ route }: any) => {
                         text: String(messageText || ''),
                         createdAt: createdAt,
                         isMine: false,
+                        messageType: response.messageType,
+                        viewOnce: response.viewOnce === true || response.messageType === 'image',
+                        mediaStatus: response.mediaStatus ?? null,
                         user: {
                             _id: userId,
                             name: '',
@@ -491,6 +564,28 @@ const TakingScreen = ({ route }: any) => {
             console.error('[TakingScreen] Socket connection error:', error);
         });
 
+        // The server confirms a text I sent: swap the temporary local id for the real one (needed to delete it)
+        const handleTextMessageSent = (payload: any) => {
+            const saved = payload?.message;
+            if (!saved?._id || saved?.messageType === 'image') return;
+            const localId = pendingTextIdsRef.current.shift();
+            seenMessageKeysRef.current.add(`id:${String(saved._id)}`);
+            if (localId === undefined) return;
+            setMessages((previous) => previous.map((message) => (message._id === localId ? { ...message, _id: saved._id } : message)));
+        };
+        // A message was deleted by its sender: take it out of this chat at once. The server's event name is not
+        // documented, so any event whose name says "delete" / "remove" is accepted (and logged, to find the real name).
+        const handleAnyEvent = (event: string, payload: any) => {
+            if (!/delet|remov/i.test(event)) return;
+            console.log('[TakingScreen] Delete-like socket event:', event, payload);
+            const ids = [payload?.messageId, payload?._id, payload?.id, payload?.message?._id, ...(Array.isArray(payload?.messageIds) ? payload.messageIds : [])]
+                .filter((value) => value !== undefined && value !== null)
+                .map(String);
+            ids.forEach((id) => forgetMessageRef.current(id));
+        };
+        socket.on('messageSent', handleTextMessageSent);
+        socket.onAny?.(handleAnyEvent);
+
         socket.on('connected', handleConnected);
         socket.on('messagesRead', handleMessagesRead);
         socket.on('newMessage', handleIncomingMessage);
@@ -502,6 +597,8 @@ const TakingScreen = ({ route }: any) => {
                 socket.off('connect');
                 socket.off('disconnect');
                 socket.off('connect_error');
+                socket.off('messageSent', handleTextMessageSent);
+                socket.offAny?.(handleAnyEvent);
                 socket.off('connected', handleConnected);
                 socket.off('messagesRead', handleMessagesRead);
                 socket.off('newMessage', handleIncomingMessage);
@@ -514,10 +611,8 @@ const TakingScreen = ({ route }: any) => {
 
     useEffect(() => {
         const handleAppStateChange = (nextAppState: AppStateStatus) => {
-            console.log('[TakingScreen] App state changed:', nextAppState);
             if (nextAppState === 'active') {
                 if (socketUrl) {
-                    console.log('[TakingScreen] Reconnecting socket - app coming to foreground');
                     setSocketReconnectKey((prev) => prev + 1);
                 }
             }
@@ -544,10 +639,6 @@ const TakingScreen = ({ route }: any) => {
             if (socket && socket.connected) {
                 socket.disconnect();
             }
-            if (typingTimeoutRef.current) {
-                clearTimeout(typingTimeoutRef.current);
-                typingTimeoutRef.current = null;
-            }
         };
     }, [socket]);
     const sendMessageViaSocket = useCallback((message: string, messageType: string = 'text') => {
@@ -565,6 +656,84 @@ const TakingScreen = ({ route }: any) => {
         socket.emit('send_message', payload);
     }, [socket, matchChatUserDetails?.userId]);
 
+    // A viewed photo is gone from the chat, so the chat list must not keep showing the photo label as the last message:
+    // it shows the newest message that is still visible instead (from me or from the other user), or none.
+    const messagesRef = useRef<ChatMessage[]>([]);
+    messagesRef.current = messages;
+    const rememberLastMessage = useCallback(
+        (photoCreatedAt: number, visibleMessage: ChatMessage | undefined) => {
+            const matchId = matchChatUserDetailsRef.current?.matchId;
+            if (!matchId || !Number.isFinite(photoCreatedAt)) return;
+            const lastMessage = visibleMessage
+                ? {
+                      text: visibleMessage.text,
+                      message: visibleMessage.text,
+                      createdAt: visibleMessage.createdAt.toISOString(),
+                      senderId: visibleMessage.isMine ? userDataRef.current?._id : matchChatUserDetailsRef.current?.userId,
+                      type: visibleMessage.messageType || 'text',
+                      messageType: visibleMessage.messageType || 'text',
+                  }
+                : null;
+            dispatch(setLastMessageOverride({ matchId, photoCreatedAt, lastMessage }));
+        },
+        [dispatch]
+    );
+    const onPhotoGone = useCallback(
+        (photoId: string) => {
+            const current = messagesRef.current;
+            const photo = current.find((message) => String(message._id) === photoId);
+            if (!photo) return;
+            const newestVisible = current.find(
+                (message) =>
+                    String(message._id) !== photoId &&
+                    message._id !== TYPING_INDICATOR_ID &&
+                    !String(message._id).startsWith('pending-') &&
+                    !(message.viewOnce && (message.mediaStatus === 'opened' || message.mediaStatus === 'expired' || dismissedPhotoIds.has(String(message._id))))
+            );
+            rememberLastMessage(photo.createdAt.getTime(), newestVisible);
+        },
+        [rememberLastMessage]
+    );
+
+    const viewOncePhotos = useViewOncePhotos({
+        socket,
+        socketUrl,
+        receiverId: matchChatUserDetails?.userId,
+        matchKey: matchChatUserDetails?.matchId,
+        myUserKey: USER_ID,
+        setMessages: setMessages as any,
+        seenMessageKeysRef,
+        onPhotoGone,
+    });
+    // renderBubble below is memoized once, so it reaches the latest open handler through a ref
+    // Photos that are still "Sending..." come from outside the screen, so they are there again after leaving and returning
+    const chatMessages = useMemo(
+        () => (viewOncePhotos.pendingMessages.length > 0 ? [...viewOncePhotos.pendingMessages, ...displayedMessages] : displayedMessages),
+        [viewOncePhotos.pendingMessages, displayedMessages]
+    );
+    const openPhotoRef = useRef(viewOncePhotos.openPhoto);
+    openPhotoRef.current = viewOncePhotos.openPhoto;
+
+    // Gallery / Camera sheet. The picker opens only after the sheet has finished closing, so the two
+    // never animate over each other (that is what made the flow stutter).
+    const photoSheetRef: any = useRef(null);
+    const pendingPhotoSourceRef = useRef<'gallery' | 'camera' | null>(null);
+    const sendPhotoRef = useRef(viewOncePhotos.sendPhoto);
+    sendPhotoRef.current = viewOncePhotos.sendPhoto;
+    const onPhotoSheetClosed = useCallback(() => {
+        const source = pendingPhotoSourceRef.current;
+        pendingPhotoSourceRef.current = null;
+        if (!source) return;
+        // The sheet is a native modal that is still being dismissed when its close callback fires. Presenting the
+        // camera over it too early makes iOS drop the camera again and leaves the app waiting for it, so wait
+        // until the sheet is really gone.
+        setTimeout(() => sendPhotoRef.current(source), 500);
+    }, []);
+    const choosePhotoSource = (source: 'gallery' | 'camera') => {
+        pendingPhotoSourceRef.current = source;
+        photoSheetRef.current?.close();
+    };
+
     const emitTypingStatus = useCallback((isTyping: boolean) => {
         if (!socket || !matchChatUserDetails?.userId) {
             return;
@@ -576,26 +745,6 @@ const TakingScreen = ({ route }: any) => {
 
         socket.emit('typing', payload);
     }, [socket, matchChatUserDetails?.userId]);
-
-    const handleTypingStart = useCallback(() => {
-        if (typingTimeoutRef.current) {
-            clearTimeout(typingTimeoutRef.current);
-            typingTimeoutRef.current = null;
-        }
-
-        emitTypingStatus(true);
-    }, [emitTypingStatus]);
-
-    const handleTypingStop = useCallback(() => {
-        if (typingTimeoutRef.current) {
-            clearTimeout(typingTimeoutRef.current);
-        }
-
-        typingTimeoutRef.current = setTimeout(() => {
-            emitTypingStatus(false);
-            typingTimeoutRef.current = null;
-        }, 2000);
-    }, [emitTypingStatus]);
 
     const loadOlderMessages = useCallback(async () => {
         if (isLoadingMore || !hasMoreMessages || !matchChatUserDetails?.userId) {
@@ -613,17 +762,13 @@ const TakingScreen = ({ route }: any) => {
                 matchId: matchChatUserDetails.matchId,
             }
 
-            console.log('Loading older messages with params:', params);
             const response: any = await appOperation.customer.loadChatMessagesAPI(params, data);
-            console.log('API Response:', response);
 
             if (response?.statusCode === 200 && response?.data) {
                 const olderMessages = response.data;
-                console.log('Older messages received:', olderMessages?.length, 'messages');
 
                 if (olderMessages && Array.isArray(olderMessages) && olderMessages.length > 0) {
                     const transformedOlderMessages = transformChatHistoryToMessages(olderMessages);
-                    console.log('Transformed older messages:', transformedOlderMessages.length);
                     setMessages((prevMessages) => {
                         return [...transformedOlderMessages, ...prevMessages].sort(sortNewestFirst);
                     });
@@ -631,13 +776,10 @@ const TakingScreen = ({ route }: any) => {
                     setCurrentPage(nextPage);
                     const hasMore = olderMessages.length >= 50;
                     setHasMoreMessages(hasMore);
-                    console.log('Has more messages:', hasMore);
                 } else {
-                    console.log('No older messages found, setting hasMoreMessages to false');
                     setHasMoreMessages(false);
                 }
             } else {
-                console.log('API response not successful or no data:', response);
                 setHasMoreMessages(false);
             }
         } catch (error) {
@@ -659,7 +801,12 @@ const TakingScreen = ({ route }: any) => {
                 return true;
             });
             seenMessageKeysRef.current = seeded;
-            setMessages(uniq as any);
+            // Messages that are only on this device (just sent, or older pages loaded by scrolling up) are not in the stored
+            // history. Replacing the list with the history would make them vanish until the chat is reopened, so they stay.
+            setMessages((previous) => {
+                const localOnly = previous.filter((message) => message._id !== TYPING_INDICATOR_ID && !seeded.has(`id:${String(message._id)}`));
+                return (localOnly.length === 0 ? uniq : [...uniq, ...localOnly].sort(sortNewestFirst)) as any;
+            });
             setMessagesOwnerMatchId(matchChatUserDetails?.matchId);
             setCurrentPage(1);
             setHasMoreMessages(transformedMessages.length >= 50);
@@ -669,35 +816,96 @@ const TakingScreen = ({ route }: any) => {
         if (isInitialLoading) setIsInitialLoading(false);
     }, [transformedMessages, chatHistory]);
 
+    // The newest message of the loaded history is a photo that was already viewed: the chat list shows the last visible message
     useEffect(() => {
-        if (!transitionDone) return;
-        let data = {
-            "userId": matchChatUserDetails?.userId
-        };
-        dispatch(getOtherProfile(data, true, setProfileData, true));
-    }, [matchChatUserDetails?.userId, transitionDone]);
-    useEffect(() => {
-        const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
-            setEmojiVisible(false);
-        });
-        return () => showSubscription.remove();
-    }, []);
-  
+        if (!Array.isArray(chatHistory) || chatHistory.length === 0) return;
+        let newest: any = null;
+        let newestTime = -Infinity;
+        for (const item of chatHistory as any[]) {
+            const time = new Date(item?.createdAt || item?.timestamp).getTime();
+            if (time > newestTime) {
+                newestTime = time;
+                newest = item;
+            }
+        }
+        const isPhoto = newest && (newest.viewOnce === true || newest.messageType === 'image');
+        const isGone = isPhoto && (newest.mediaStatus === 'opened' || newest.mediaStatus === 'expired' || dismissedPhotoIds.has(String(newest._id)));
+        if (isGone) rememberLastMessage(newestTime, (transformedMessages as ChatMessage[])[0]);
+    }, [chatHistory, transformedMessages, rememberLastMessage]);
+
     const onSend = useCallback((newMessages: ChatMessage[] = []) => {
         setMessagesOwnerMatchId(matchChatUserDetails?.matchId);
         setMessages(prev => {
             return Chat.append(prev, newMessages).sort(sortNewestFirst);
         });
-        setInputText('');
-        if (typingTimeoutRef.current) {
-            clearTimeout(typingTimeoutRef.current);
-            typingTimeoutRef.current = null;
-        }
-        emitTypingStatus(false);
         if (newMessages.length > 0 && newMessages[0].text) {
+            pendingTextIdsRef.current.push(newMessages[0]._id);
             sendMessageViaSocket(newMessages[0].text, 'text');
         }
-    }, [sendMessageViaSocket, emitTypingStatus, matchChatUserDetails?.matchId]);
+    }, [sendMessageViaSocket, matchChatUserDetails?.matchId]);
+
+    forgetMessageRef.current = (messageId: string) => {
+        setMessages((previous) => previous.filter((message) => String(message._id) !== messageId));
+        const matchId = matchChatUserDetailsRef.current?.matchId;
+        if (matchId) removeMessageFromChatHistoryCache(matchId, messageId);
+        const history: any[] = (store.getState() as any)?.auth?.chatHistory;
+        if (Array.isArray(history)) {
+            dispatch(chatHistoryDetails(history.filter((message: any) => String(message?._id ?? message?.messageId ?? message?.id) !== messageId)));
+        }
+    };
+
+    // ---- Delete one of my own messages (long press) ----
+    const requestDelete = useCallback((message: ChatMessage | undefined) => {
+        if (!message || !message.isMine || message._id === TYPING_INDICATOR_ID) return;
+        // Messages (and photos) the server has not confirmed yet have no deletable id
+        if (String(message._id).startsWith('pending-')) return;
+        if (typeof message._id === 'number') {
+            toastAlert.showToastError('This message is still being sent. Try again in a moment.');
+            return;
+        }
+        setDeleteTarget(message);
+    }, []);
+    const requestDeleteRef = useRef(requestDelete);
+    requestDeleteRef.current = requestDelete;
+
+    const confirmDelete = useCallback(async () => {
+        const target = deleteTarget;
+        if (!target || isDeleting) return;
+        setIsDeleting(true);
+        try {
+            const response: any = await appOperation.customer.deleteChatMessageAPI(String(target._id));
+            if (response?.statusCode !== 200 && response?.success !== true) {
+                throw new Error(response?.message || 'Delete failed');
+            }
+            const remaining = messagesRef.current.filter((message) => message._id !== target._id);
+            if (target.viewOnce) dismissedPhotoIds.add(String(target._id));
+            forgetMessageRef.current(String(target._id));
+            setDeleteTarget(null);
+            // The chat list's last message follows: it becomes the newest message that is left
+            const matchId = matchChatUserDetailsRef.current?.matchId;
+            const newest = remaining.find((message) => message._id !== TYPING_INDICATOR_ID && !String(message._id).startsWith('pending-'));
+            const wasNewest = messagesRef.current.find((message) => message._id !== TYPING_INDICATOR_ID && !String(message._id).startsWith('pending-'))?._id === target._id;
+            if (matchId && wasNewest) {
+                const chats: any[] = (store.getState() as any)?.auth?.newMatches || [];
+                dispatch(setNewMatches(chats.map((chat: any) => chat.matchId !== matchId ? chat : {
+                    ...chat,
+                    lastMessage: newest ? {
+                        ...(chat.lastMessage || {}),
+                        text: newest.text,
+                        message: newest.text,
+                        createdAt: newest.createdAt.toISOString(),
+                        senderId: newest.isMine ? userDataRef.current?._id : matchChatUserDetailsRef.current?.userId,
+                    } : null,
+                })));
+            }
+            toastAlert.showToastError('Message deleted.');
+        } catch (error: any) {
+            console.warn('[TakingScreen] Delete failed:', error?.message ?? error);
+            toastAlert.showToastError("Couldn't delete the message. Please try again.");
+        } finally {
+            setIsDeleting(false);
+        }
+    }, [deleteTarget, isDeleting, dispatch, store]);
 
     const renderDay = useCallback((props: any) => {
         if (props.currentMessage?._id === 'typing-indicator') return null;
@@ -726,10 +934,23 @@ const TakingScreen = ({ route }: any) => {
             return <TypingIndicatorBubble />;
         }
 
+        if (props.currentMessage?.viewOnce) {
+            return (
+                <ViewOncePhotoBubble
+                    message={props.currentMessage}
+                    onOpen={(id) => openPhotoRef.current(id)}
+                    // Long press on one of my own photos offers to delete it, like a text message
+                    onLongPress={() => requestDeleteRef.current(props.currentMessage)}
+                />
+            );
+        }
+
 
         return (
             <Bubble
                 {...props}
+                // Long press on one of my own messages offers to delete it
+                onLongPressMessage={(_context: any, message: any) => requestDeleteRef.current(message)}
                 wrapperStyle={{
                     right: {
                         backgroundColor: "#555359",
@@ -804,118 +1025,62 @@ const TakingScreen = ({ route }: any) => {
         setModalVisible(false);
         NavigationService.goBack();
     }
-    const renderTime = (props: any) => {
+    const renderTime = useCallback((props: any) => {
         if (props.currentMessage?._id === 'typing-indicator') return null;
         return (
             <View>
-                <Time {...props} timeTextStyle={{ left: { color: colors.white }, right: { color: colors.white } }} containerStyle={{ left: { marginTop: 2 }, right: { marginTop: 2 } }} />
+                <Time {...props} timeTextStyle={TIME_TEXT_STYLE} containerStyle={TIME_CONTAINER_STYLE} />
             </View>
         );
-    };
+    }, []);
 
-    const renderCustomInput = () => (
-        // <KeyboardAvoidingView keyboardVerticalOffset={80}>
-            <View style={styles.inputContainer}>
-                <View style={styles.inputContainerType}>
-                    <TextInput
-                        ref={inputRef}
-                        style={styles.textInput}
-                        value={inputText}
-                        onChangeText={(text) => {
-                            setInputText(text);
-
-                            if (text.length > 0) {
-                                handleTypingStart();
-                                handleTypingStop();
-                            } else {
-                                if (typingTimeoutRef.current) {
-                                    clearTimeout(typingTimeoutRef.current);
-                                    typingTimeoutRef.current = null;
-                                }
-
-                                emitTypingStatus(false);
-                            }
-                        }}
-                        onFocus={() => {
-                            if (inputText.length > 0) {
-                                handleTypingStart();
-                            }
-                        }}
-                        onBlur={() => {
-                            if (typingTimeoutRef.current) {
-                                clearTimeout(typingTimeoutRef.current);
-                                typingTimeoutRef.current = null;
-                            }
-
-                            emitTypingStatus(false);
-                        }}
-                        placeholder="Type a message..."
-                        placeholderTextColor={colors.white}
-                        multiline
-                    />
-                    {/* <TouchableOpacityView
-                        activeOpacity={1}
-                        onPress={openGallary}
-                        style={styles.smlieIcon}>
-                        <FastImage
-                            source={addPhotoIcon}
-                            resizeMode="contain"
-                            style={styles.smlieIcon}
-                        />
-                    </TouchableOpacityView> */}
-                </View>
-                    <TouchableOpacityView
-                        style={styles.sendButton}
-                        onPress={() => {
-                            if (inputText.trim().length > 0) {
-                                onSend([buildOutgoingMessage(inputText)]);
-                            }
-                        }}>
-                        <FastImage
-                            source={sendMessageNewIcon}
-                            resizeMode="contain"
-                            style={{
-                                height: metrics.hp5_5,
-                                width: metrics.hp5_5,
-                            }}
-                        />
-                    </TouchableOpacityView>
-            </View>
-        // </KeyboardAvoidingView>
+    // The message box keeps its own text (see ChatInputBar), so typing never re-renders this screen
+    const sendText = useCallback((text: string) => onSend([buildOutgoingMessage(text)]), [onSend]);
+    const openPhotoSheet = useCallback(() => photoSheetRef.current?.open(), []);
+    const renderCustomInput = useCallback(
+        () => (
+            <ChatInputBar
+                key={matchChatUserDetails?.matchId}
+                onSendText={sendText}
+                onTypingChange={emitTypingStatus}
+                onPhotoPress={openPhotoSheet}
+            />
+        ),
+        [matchChatUserDetails?.matchId, sendText, emitTypingStatus, openPhotoSheet]
     );
+    // The actions sheet is a native modal. iOS cannot present another modal (the unmatch / block dialogs) while it is still
+    // being dismissed and silently drops it, so the chosen action runs only once the sheet has really closed.
+    const pendingActionRef = useRef<(() => void) | null>(null);
+    const onActionsSheetClosed = useCallback(() => {
+        const action = pendingActionRef.current;
+        pendingActionRef.current = null;
+        if (!action) return;
+        setTimeout(action, Platform.OS === "ios" ? 400 : 0);
+    }, []);
     const onthreedot = (index: any) => {
-        if (index == "0") refFilter?.current?.close(), setModalVisible(true), setSaveReportTitle("unMatch");
-        if (index == "1") refFilter?.current?.close(), NavigationService.navigate(NAVIGATION_REPORT_SCREEN, { reportedUserId: matchChatUserDetails?.userId })
-        if (index == '2') refFilter?.current?.close(), setModalVisible(true), setSaveReportTitle("Block");
-
+        if (index == "0") pendingActionRef.current = () => { setSaveReportTitle("unMatch"); setModalVisible(true); };
+        else if (index == "1") pendingActionRef.current = () => NavigationService.navigate(NAVIGATION_REPORT_SCREEN, { reportedUserId: matchChatUserDetails?.userId });
+        else if (index == "2") pendingActionRef.current = () => { setSaveReportTitle("Block"); setModalVisible(true); };
+        else return;
+        refFilter?.current?.close();
     };
+    const openActionsSheet = useCallback(() => refFilter?.current?.open(), []);
     const showFullProfile = useCallback((item: any, index: number = 0) => {
         setGallaryData(item);
         setSelectedImageIndex(index);
         setFullImage(true);
     }, []);
-    const EmptyDataText = [
-        {
-            id: 1,
-            text: "Hello!🤗"
-        },
-        {
-            id: 2,
-            text: "What's Up!"
-        },
-        {
-            id: 3,
-            text: "How are you?"
-        },
-    ];
-    const sendEmptyMessage = (text: string) => {
+    const sendEmptyMessage = useCallback((text: string) => {
         if (!text?.trim()) return;
         onSend([buildOutgoingMessage(text.trim())]);
-    }
-    const chatEmptyRender = () => {
-        if (!route?.params?.forEmptyChat) return null
+    }, [onSend]);
+    const forEmptyChat = !!route?.params?.forEmptyChat;
+    const chatEmptyRender = useCallback(() => {
+        if (!forEmptyChat) return null
         return (
-            <View style={{ transform: [{ rotate: "180deg" }], }}>
+            // The chat list is upside down, so this is turned back. Android flips the list with a 180deg rotation, but iOS
+            // mirrors it vertically (scaleY -1): rotating here as well left the iOS text mirrored left-to-right.
+            <View style={{ transform: Platform.OS === "ios" ? [{ scaleY: -1 }] : [{ rotate: "180deg" }], }}>
                 <TouchableOpacityView activeOpacity={0.7} onPress={() => sendEmptyMessage("Hi")} style={{ alignItems: "center", justifyContent: "center" }}>
                     <FastImage source={helloHand} resizeMode='contain' style={{ height: metrics.hp18, width: metrics.hp18, }} />
                     <TouchableOpacityView activeOpacity={0.7} onPress={() => sendEmptyMessage("Hi")}>
@@ -941,20 +1106,45 @@ const TakingScreen = ({ route }: any) => {
                 </ScrollView>
             </View>
         )
-    };
-    
+    }, [forEmptyChat, sendEmptyMessage]);
+
+    // Props handed to the chat list are kept stable, so an unrelated state change never makes the whole list re-render
+    const chatUser = useMemo(
+        () => ({ _id: USER_ID, name: 'Gurrent User', avatar: userData?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile }),
+        [userData?.gender]
+    );
+    const loadEarlierMessagesProps = useMemo(
+        () => ({
+            isAvailable: hasMoreMessages,
+            onPress: loadOlderMessages,
+            isLoading: isLoadingMore,
+            isInfiniteScrollEnabled: true,
+            activityIndicatorColor: colors.purple,
+            activityIndicatorSize: 'small' as const,
+        }),
+        [hasMoreMessages, loadOlderMessages, isLoadingMore]
+    );
+    const renderLoadEarlier = useCallback(() => {
+        if (!hasMoreMessages || !isLoadingMore) return null;
+        return (
+            <View style={{ paddingVertical: 10, alignItems: 'center' }}>
+                <ActivityIndicator size="small" color={colors.purple} />
+            </View>
+        );
+    }, [hasMoreMessages, isLoadingMore]);
+
     return (
         <AppSafeAreaView color={newColor.blackNew}>
-            <ChatHeader setTabSelect={setTabSelect} onPress={() => refFilter?.current?.open()} seeProfileOther={() => seeOtherProfile()} />
+            <ChatHeader onPress={openActionsSheet} seeProfileOther={seeOtherProfile} />
             <ImageBackground
                 source={chatBackground}
                 resizeMode="cover"
                 style={styles.containerChat}>
                 <KeyboardInsetView>
                 <Chat
-                    messages={displayedMessages}
+                    messages={chatMessages}
                     onSend={onSend}
-                    user={{ _id: USER_ID, name: 'Gurrent User', avatar: userData?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile }}
+                    user={chatUser}
                     renderAvatar={renderAvatar}
                     renderBubble={renderBubble}
                     renderDay={renderDay}
@@ -964,27 +1154,10 @@ const TakingScreen = ({ route }: any) => {
                     isUserAvatarVisible={false}
                     // Keyboard lift is handled by KeyboardInsetView (real IME inset)
                     keyboardAvoidingViewProps={{ enabled: false }}
-                    loadEarlierMessagesProps={{
-                        isAvailable: hasMoreMessages,
-                        onPress: loadOlderMessages,
-                        isLoading: isLoadingMore,
-                        isInfiniteScrollEnabled: true,
-                        activityIndicatorColor: colors.purple,
-                        activityIndicatorSize: 'small',
-                    }}
+                    loadEarlierMessagesProps={loadEarlierMessagesProps}
                     theme={CHAT_THEME}
                     darkTheme={CHAT_THEME}
-                    renderLoadEarlier={() => {
-                        if (!hasMoreMessages) return null;
-                        if (isLoadingMore) {
-                            return (
-                                <View style={{ paddingVertical: 10, alignItems: 'center' }}>
-                                    <ActivityIndicator size="small" color={colors.purple} />
-                                </View>
-                            );
-                        }
-                        return null;
-                    }}
+                    renderLoadEarlier={renderLoadEarlier}
                 />
                 </KeyboardInsetView>
                 {isChatTransitioning && (
@@ -994,15 +1167,59 @@ const TakingScreen = ({ route }: any) => {
                 )}
             </ImageBackground>
             
-            <Modal
-                animationType="fade"
-                transparent
-                statusBarTranslucent
-                visible={fullImage}
-                onRequestClose={() => setFullImage(false)}>
-                <FullScreenImage gallaryData={gallaryData} setFullImage={setFullImage} initialIndex={selectedImageIndex} />
+            <Modal animationType="fade" transparent statusBarTranslucent visible={!!deleteTarget} onRequestClose={() => !isDeleting && setDeleteTarget(null)}>
+                <View style={styles.centeredView}>
+                    <View style={[styles.confirmContainer, { height: undefined, paddingVertical: metrics.hp3 }]}>
+                        <AppText style={{ textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={WHITE}>
+                            Delete message?
+                        </AppText>
+                        <AppText style={{ textAlign: "center", marginTop: metrics.hp1, marginHorizontal: metrics.hp2 }} type={TWELVE} weight={INTER_MEDIUM} color={OPECITY} numberOfLines={3}>
+                            {deleteTarget?.text}
+                        </AppText>
+                        <AppText style={{ textAlign: "center", marginTop: metrics.hp1 }} type={TEN} weight={INTER_MEDIUM} color={OPECITY}>
+                            This can't be undone.
+                        </AppText>
+                        <TouchableOpacityView onPress={confirmDelete} disabled={isDeleting} style={[styles.ediButton, { backgroundColor: "#E6B7A8", marginTop: metrics.hp3, width: "55%", opacity: isDeleting ? 0.6 : 1 }]}>
+                            {isDeleting ? <ActivityIndicator size="small" color={BLACK} /> : (
+                                <AppText color={BLACK} weight={INTER_SEMI_BOLD} type={TWELVE}>
+                                    Yes, Delete
+                                </AppText>
+                            )}
+                        </TouchableOpacityView>
+                        <AppText onPress={() => !isDeleting && setDeleteTarget(null)} weight={INTER_SEMI_BOLD} type={TWELVE} style={{ textAlign: "center", marginTop: metrics.hp2 }} color={WHITE}>
+                            No, cancel
+                        </AppText>
+                    </View>
+                </View>
             </Modal>
-            <RBSheet ref={refFilter} openDuration={100}
+            <ViewOncePhotoViewer visible={viewOncePhotos.viewerVisible} imageUri={viewOncePhotos.viewerImage} onClose={viewOncePhotos.closeViewer} />
+            {/* Sized to its two rows (no empty space below them) and drawn under the navigation bar, so the chat
+                behind it no longer shows through a strip at the bottom of the screen */}
+            <RBSheet ref={photoSheetRef} openDuration={150} closeDuration={150} onClose={onPhotoSheetClosed}
+                height={metrics.hp21 + insets.bottom}
+                customModalProps={{ statusBarTranslucent: true, navigationBarTranslucent: true }}
+                customStyles={{
+                    wrapper: { backgroundColor: "#00000020" },
+                    container: { backgroundColor: "#151517", borderTopLeftRadius: metrics.hp2, borderTopRightRadius: metrics.hp2, paddingBottom: insets.bottom }
+                }}>
+                <View style={styles.containerRb}>
+                    <TouchableOpacityView onPress={() => choosePhotoSource('gallery')} style={styles.containerViewRb}>
+                        <FastImage source={gallaryICon} resizeMode='contain' style={styles.rbIcon} />
+                        <View style={styles.textContainerRb}>
+                            <AppText type={FORTEEN} weight={INTER_SEMI_BOLD} color={WHITE}>Gallery</AppText>
+                            <AppText type={TEN} weight={INTER_MEDIUM} color={WHITE}>Send a photo from your library. It can be opened only once.</AppText>
+                        </View>
+                    </TouchableOpacityView>
+                    <TouchableOpacityView onPress={() => choosePhotoSource('camera')} style={styles.containerViewRb}>
+                        <FastImage source={addPhotoIcon} resizeMode='contain' style={styles.rbIcon} />
+                        <View style={styles.textContainerRb}>
+                            <AppText type={FORTEEN} weight={INTER_SEMI_BOLD} color={WHITE}>Camera</AppText>
+                            <AppText type={TEN} weight={INTER_MEDIUM} color={WHITE}>Take a new photo and send it. It can be opened only once.</AppText>
+                        </View>
+                    </TouchableOpacityView>
+                </View>
+            </RBSheet>
+            <RBSheet ref={refFilter} openDuration={100} onClose={onActionsSheetClosed}
                 height={Dimensions.get('window').height / 3.10}
                 customStyles={{
                     wrapper: {
@@ -1086,6 +1303,15 @@ const TakingScreen = ({ route }: any) => {
                 onRequestClose={() => setOtherUserProfile(false)}>
                 <SeeOtherUserProfile currentProfileData={currentProfileData} setModalVisible={setOtherUserProfile}
                     showFullProfile={showFullProfile} />
+                {/* Inside the profile modal: iOS cannot show a second, separate modal over one that is already open */}
+                <Modal
+                    animationType="fade"
+                    transparent
+                    statusBarTranslucent
+                    visible={fullImage}
+                    onRequestClose={() => setFullImage(false)}>
+                    <FullScreenImage gallaryData={gallaryData} setFullImage={setFullImage} initialIndex={selectedImageIndex} />
+                </Modal>
             </Modal>
         </AppSafeAreaView>
     );
@@ -1094,10 +1320,7 @@ const TakingScreen = ({ route }: any) => {
 export default TakingScreen;
 
 const styles = StyleSheet.create({containerChat: { flex: 1, backgroundColor: newColor.blackNew, overflow: 'hidden' },
-    inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: metrics.hp2, backgroundColor: colors.transparent, paddingVertical: metrics.hp3, },
-    textInput: { minHeight: metrics.hp4, maxHeight: metrics.hp8, fontSize: fontSize(13), /* width: "68%", */ flex: 1, fontFamily: interMedium, marginLeft: metrics.hp1, marginTop: Platform.OS === "ios" ? metrics.hp1 : 0, color: colors.white },
-    sendButton: { /* backgroundColor: '#6F13F2', borderRadius: metrics.hp50, */ marginLeft: 6, /* justifyContent: 'center', alignItems: 'center', */ height: metrics.hp5_5, width: metrics.hp5_5, marginBottom: metrics.hp2 },
-    inputContainerType: { borderRadius: metrics.hp5, paddingHorizontal: metrics.hp1, alignItems: 'center', justifyContent: 'space-between', flexDirection: 'row', paddingVertical: metrics.hp0_5, backgroundColor: "#1F272A", marginBottom: metrics.hp2, width: "85%" },    containerRb: { paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp2 },
+    containerRb: { paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp2 },
     containerViewRb: { paddingHorizontal: metrics.hp1, paddingVertical: metrics.hp2, flexDirection: "row", backgroundColor: "#212123", marginBottom: metrics.hp0_5, borderRadius: metrics.hp1_5 },
     rbIcon: { height: metrics.hp2_5, width: metrics.hp2_5, marginTop: metrics.hp0_5, marginLeft: metrics.hp1 },
     textContainerRb: { paddingLeft: metrics.hp2, paddingRight: metrics.hp5 },

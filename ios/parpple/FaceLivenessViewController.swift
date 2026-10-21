@@ -156,7 +156,7 @@ private struct FaceLivenessHostView: View {
       }
 #endif
 
-      // Close Button
+      // The only close button: the AWS view's own one is removed in Vendor/amplify-ui-swift-liveness
       Button(action: {
         onOutcome(.cancelled(message: "User cancelled"))
       }) {

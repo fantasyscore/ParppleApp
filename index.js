@@ -21,4 +21,6 @@ AppRegistry.registerComponent(appName, () => App);
 LogBox.ignoreAllLogs();
 
 // Background / quit-state handler (required by @react-native-firebase/messaging)
-Platform.OS === "android" && registerBackgroundPushHandler();
+// Android: runs for data-only pushes while the app is in the background or killed. iOS: runs for pushes that carry
+// content-available (data-only); pushes with an alert are shown by the system itself (see displayRemoteMessage)
+registerBackgroundPushHandler();

@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import metrics from "../../../../assets/Metrics";
 import { AppText, BLACK, FORTEEN, INTER_BOLD, INTER_MEDIUM, OPECITY, RED, SCHEHERAZADE_BOLD, TWELVE, TWENTY_TWO, WHITE } from "../../../../common/AppText";
 import { TouchableOpacityView } from "../../../../common/TouchableOpacityView";
@@ -52,6 +52,18 @@ const LikeLimitModal = ({ visible, stage, error, onStart, onClose }: LikeLimitMo
       </View>
     )}
 
+    {stage === "verifying" && (
+      <View style={styles.content}>
+        <ActivityIndicator size="large" color="#E6B7A8" style={styles.spinner} />
+        <AppText type={TWENTY_TWO} weight={SCHEHERAZADE_BOLD} color={WHITE} style={styles.title}>
+          Verifying...
+        </AppText>
+        <AppText type={TWELVE} weight={INTER_MEDIUM} color={OPECITY} style={styles.message}>
+          Please complete the face check and wait a moment while we confirm your identity.
+        </AppText>
+      </View>
+    )}
+
     {stage === "success" && (
       <View style={styles.content}>
         <StatusIcon symbol="✓" backgroundColor="#73D673" borderColor="rgba(76, 175, 80, 0.3)" symbolColor={WHITE} />
@@ -84,6 +96,9 @@ const LikeLimitModal = ({ visible, stage, error, onStart, onClose }: LikeLimitMo
 export default LikeLimitModal;
 
 const styles = StyleSheet.create({
+  spinner: {
+    marginBottom: metrics.hp3,
+  },
   content: {
     alignItems: "center",
   },

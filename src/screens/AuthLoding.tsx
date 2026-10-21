@@ -180,10 +180,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // The splash artwork fills the middle of the screen, so the status sits below it on its own dark card
   centerBox: {
+    position: 'absolute',
+    bottom: '10%',
+    alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    paddingHorizontal: 28,
+    paddingTop: 24,
+    paddingBottom: 20,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    maxWidth: '88%',
   },
   errorText: {
     color: '#FFFFFF',
@@ -193,12 +202,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: '#333333',
+    backgroundColor: '#555555',
     paddingHorizontal: 30,
     paddingVertical: 12,
     borderRadius: 25,
     borderWidth: 1,
-    borderColor: '#555555',
+    borderColor: '#8A8A8A',
   },
   retryText: {
     color: '#FFFFFF',

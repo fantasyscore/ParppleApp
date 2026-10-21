@@ -2,7 +2,6 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import metrics from "../../../../assets/Metrics";
 import { colors } from "../../../../theme/colors";
-import { AppText, INTER_MEDIUM, TWELVE, WHITE } from "../../../../common/AppText";
 import PortraitAvatar from "../../../../common/PortraitAvatar";
 import PulsingCircle from "../../../../common/PulsingCircle";
 import { dummyfemaleProfile, dummyMaleProfile } from "../../../../helper/ImageAssets";
@@ -19,14 +18,10 @@ const FeedEmptyState = ({ userData }: { userData: any }) => {
         color="#F69E8250"
         fillColor="#F69E8225"
         ringWidth={metrics.hp0_1}
-        style={styles.pulse}
       />
       <View style={styles.avatarRing}>
         <PortraitAvatar source={source} style={styles.avatar} />
       </View>
-      <AppText style={styles.text} type={TWELVE} color={WHITE} weight={INTER_MEDIUM}>
-        Searching people near you...
-      </AppText>
     </View>
   );
 };
@@ -39,9 +34,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: metrics.hp10,
-  },
-  pulse: {
-    marginTop: -metrics.hp4_5,
   },
   avatarRing: {
     height: metrics.hp15,
@@ -58,8 +50,5 @@ const styles = StyleSheet.create({
     borderRadius: metrics.hp50,
     borderWidth: metrics.hp0_1,
     borderColor: colors.white,
-  },
-  text: {
-    marginTop: metrics.hp2,
   },
 });

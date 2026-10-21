@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { FlatList, Platform, ScrollView, StyleSheet, View, Modal, ImageBackground } from "react-native";
+import { FlatList, ScrollView, StyleSheet, View, Modal, ImageBackground } from "react-native";
 import metrics from "../../assets/Metrics";
 import { colors, newColor } from "../../theme/colors";
 import { AppText, BLACK, EIGHTEEN, INTER_BOLD, INTER_MEDIUM, INTER_SEMI_BOLD, WHITE, SCHEHERAZADE_BOLD, SIXTEEN, TWENTY_FOUR, TWELVE, FORTEEN } from "../../common/AppText";
@@ -11,10 +11,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { editProfile, getProfile } from "../../actions/authActions";
 import NewHeader from "../../common/NewHeader";
 import LinearGradient from "react-native-linear-gradient";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import DOBPicker from "../../components/DOBPicker";
 import { scale, verticalScale } from "react-native-size-matters";
-import GoButton from "../../common/GoButton";
 import { NAVIAGATION_PROFILE_PREVIEW_NEW_SCREEN } from "../../navigation/routes";
 import { HEIGHTS_CM, HEIGHTS_FT } from "../../helper/heights";
 
@@ -29,8 +27,7 @@ const EditProfileScreen = () => {
     const [localDate, setLocalDate] = useState<Date | null>(null);
     const [localHeight, setLocalHeight] = useState(userData?.height || "4'0\"");
     const [showSexualityModal, setShowSexualityModal] = useState(false);
-    const [showIOSPicker, setShowIOSPicker] = useState(false);
-    const [showAndroidPicker, setShowAndroidPicker] = useState(false);
+    const [showAgePicker, setShowAgePicker] = useState(false);
     const [showHeightModal, setShowHeightModal] = useState(false);
     const [selectFtCm, setSelectFtCm] = useState("FT");
     const [isUpdating, setIsUpdating] = useState(false);
@@ -136,7 +133,6 @@ const EditProfileScreen = () => {
         NavigationService.goBack();
     };
 
-    const minAgeDate = new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate());
     const originalDate = userData?.dateOfBirth
         ? new Date(userData.dateOfBirth).toISOString().split("T")[0]
         : "";
@@ -176,7 +172,7 @@ const EditProfileScreen = () => {
                 {/* 3. Age */}
                 <View style={styles.fieldWrapper}>
                     <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={WHITE} style={styles.fieldLabel}>Age</AppText>
-                    <TouchableOpacityView onPress={() => Platform.OS === 'ios' ? setShowIOSPicker(true) : setShowAndroidPicker(true)}>
+                    <TouchableOpacityView onPress={() => setShowAgePicker(true)}>
                         <ImageBackground source={editProfileTextInput} resizeMode="stretch" style={styles.inputBg}>
                             <AppText style={{ marginLeft: metrics.hp3 }} type={FORTEEN} weight={INTER_MEDIUM} color={WHITE}>
                                 {localDate ? `${new Date().getFullYear() - localDate.getFullYear()} years (${localDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })})` : "Select Age"}
@@ -287,33 +283,15 @@ const EditProfileScreen = () => {
                 </View>
             </Modal>
 
-            {/* Age Picker Modals */}
-            {Platform.OS === "android" && showAndroidPicker && (
+            {/* Age picker: the same themed wheel sheet on Android and iOS */}
+            {showAgePicker && (
                 <DOBPicker
-                    visible={showAndroidPicker}
-                    onClose={() => setShowAndroidPicker(false)}
+                    visible={showAgePicker}
+                    onClose={() => setShowAgePicker(false)}
                     initialDate={localDate || new Date(1998, 6, 17)}
-                    onConfirm={(d) => { setLocalDate(d); setShowAndroidPicker(false); }}
+                    onConfirm={(d) => { setLocalDate(d); setShowAgePicker(false); }}
                 />
             )}
-            <Modal transparent animationType="slide" visible={showIOSPicker}>
-                <TouchableOpacityView onPress={() => setShowIOSPicker(false)} style={styles.iosOverlay}>
-                    <TouchableOpacityView activeOpacity={1} style={styles.iosContainer}>
-                        <DateTimePicker
-                            value={localDate || minAgeDate}
-                            mode="date"
-                            display="spinner"
-                            textColor="black"
-                            themeVariant="light"
-                            maximumDate={minAgeDate}
-                            onChange={(e, d) => { if (d) setLocalDate(d); }}
-                        />
-                        <View style={{ position: "absolute", right: metrics.hp2, bottom: metrics.hp2 }}>
-                            <GoButton colortrue={localDate} onPress={() => setShowIOSPicker(false)} />
-                        </View>
-                    </TouchableOpacityView>
-                </TouchableOpacityView>
-            </Modal>
 
         </AppSafeAreaView>
     );
@@ -403,16 +381,6 @@ const styles = StyleSheet.create({
         paddingVertical: metrics.hp1,
         paddingHorizontal: metrics.hp3,
         borderRadius: metrics.hp4,
-    },
-    iosOverlay: {
-        flex: 1,
-        justifyContent: "flex-end",
-        backgroundColor: "rgba(0,0,0,0.3)",
-    },
-    iosContainer: {
-        backgroundColor: colors.white,
-        paddingBottom: metrics.hp10,
-        alignItems: "center",
     },
     rulerModalOverlay: {
         flex: 1,

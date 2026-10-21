@@ -40,17 +40,34 @@ const ProfileActionsSheet = forwardRef<ProfileActionsSheetHandle, ProfileActions
     },
   }));
 
+  // The chosen action runs once the sheet has finished closing. Opening the confirm dialog (another Modal)
+  // or navigating while the sheet's own Modal is still dismissing leaves iOS stuck on a frozen screen.
+  const pendingActionRef = useRef<(() => void) | null>(null);
+  const pendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const runPendingAction = useCallback(() => {
+    if (pendingTimerRef.current) {
+      clearTimeout(pendingTimerRef.current);
+      pendingTimerRef.current = null;
+    }
+    const action = pendingActionRef.current;
+    pendingActionRef.current = null;
+    action?.();
+  }, []);
+
   const onActionPress = useCallback(
     (index: number) => {
-      sheetRef.current?.close();
       if (index === REPORT_INDEX) {
         // returnToOrigin: after the report is submitted, come back to this screen instead of going to Chats
-        NavigationService.navigate(NAVIGATION_REPORT_SCREEN, { reportedUserId: profile?.userId, returnToOrigin: true });
+        pendingActionRef.current = () =>
+          NavigationService.navigate(NAVIGATION_REPORT_SCREEN, { reportedUserId: profile?.userId, returnToOrigin: true });
       } else if (index === BLOCK_INDEX) {
-        setConfirmBlockVisible(true);
+        pendingActionRef.current = () => setConfirmBlockVisible(true);
       }
+      sheetRef.current?.close();
+      // Safety net in case the sheet's onClose never fires
+      pendingTimerRef.current = setTimeout(runPendingAction, 600);
     },
-    [profile?.userId]
+    [profile?.userId, runPendingAction]
   );
 
   const confirmBlock = useCallback(async () => {
@@ -67,6 +84,7 @@ const ProfileActionsSheet = forwardRef<ProfileActionsSheetHandle, ProfileActions
       <RBSheet
         ref={sheetRef}
         openDuration={100}
+        onClose={runPendingAction}
         height={Dimensions.get("window").height / 4.1}
         customStyles={{
           wrapper: { backgroundColor: "#00000020" },

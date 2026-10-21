@@ -1,5 +1,6 @@
 import { connect } from 'socket.io-client';
 import { AppState, AppStateStatus } from 'react-native';
+import { appOperation } from '../appOperation';
 
 // Track all created sockets so we can safely disconnect them on logout.
 const activeSockets = new Set<any>();
@@ -8,6 +9,8 @@ class LifecycleAwareSocket {
   private url: string;
   private rawSocket: any = null;
   private listeners: Map<string, Set<(...args: any[]) => void>> = new Map();
+  // Listeners for every event (socket.io's onAny), re-attached on each reconnect like the named ones
+  private anyListeners: Set<(event: string, ...args: any[]) => void> = new Set();
   private isDisconnectedByUser: boolean = false;
   private appStateSubscription: any = null;
 
@@ -31,6 +34,8 @@ class LifecycleAwareSocket {
         upgrade: false,
         rejectUnauthorized: false,
         reconnectionAttempts: 5,
+        // The login token, read afresh on every (re)connect. The chat server needs it to open view-once photos.
+        auth: (callback: (data: object) => void) => callback({ token: appOperation.customerToken }),
       });
 
       if (!socket) {
@@ -48,6 +53,14 @@ class LifecycleAwareSocket {
             console.error(`[LifecycleAwareSocket] Error re-attaching listener for ${event}:`, e);
           }
         });
+      });
+
+      this.anyListeners.forEach((callback) => {
+        try {
+          this.rawSocket.onAny(callback);
+        } catch (e) {
+          console.error('[LifecycleAwareSocket] Error re-attaching onAny listener:', e);
+        }
       });
 
       // Handle raw socket errors defensively
@@ -108,6 +121,24 @@ class LifecycleAwareSocket {
       } catch (e) {
         console.error(`[LifecycleAwareSocket] Error adding listener for ${event}:`, e);
       }
+    }
+  }
+
+  public onAny(callback: (event: string, ...args: any[]) => void) {
+    this.anyListeners.add(callback);
+    try {
+      this.rawSocket?.onAny(callback);
+    } catch (e) {
+      console.error('[LifecycleAwareSocket] Error adding onAny listener:', e);
+    }
+  }
+
+  public offAny(callback: (event: string, ...args: any[]) => void) {
+    this.anyListeners.delete(callback);
+    try {
+      this.rawSocket?.offAny(callback);
+    } catch (e) {
+      // ignore
     }
   }
 

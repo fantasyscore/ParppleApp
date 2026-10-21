@@ -8,7 +8,7 @@ import { colors, newColor } from "../../theme/colors";
 import { AppText, ELEVEN, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, OPECITY, OPECITY_DARK, RED, SCHEHERAZADE_BOLD, TWENTY, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import NavigationService from "../../navigation/NavigationService";
-import { fakeProfileReport, HarassmentReport, InappropriatePhotosReport, reportData, ScamsFraudReport, SexualReport } from "../../common/UiltData";
+import { ChildSafetyReport, fakeProfileReport, HarassmentReport, InappropriatePhotosReport, reportData, ScamsFraudReport, SexualReport } from "../../common/UiltData";
 import { NAVIGATION_OHTER_REPORT_SCREEN, NAVIGATION_REPORT_COMMON_SCREEN } from "../../navigation/routes";
 import Toast from "react-native-toast-message";
 
@@ -31,6 +31,7 @@ const ReportScreen = ({ route }: any) => {
         if (selectReport == "Harassment or Abusive Behavior") NavigationService.navigate(NAVIGATION_REPORT_COMMON_SCREEN, { reportedUserId, returnToOrigin, subject: selectReport, headline: "Harassment or Abusive Behavior", inLine: "What happened in your interaction?", data: HarassmentReport })
         if (selectReport == "Sexual Misconduct or Solicitation") NavigationService.navigate(NAVIGATION_REPORT_COMMON_SCREEN, { reportedUserId, returnToOrigin, subject: selectReport, headline: "Sexual Misconduct or Solicitation", inLine: "What describes the issue best?", data: SexualReport })
         if (selectReport == "Scams, Fraud, or Money Requests") NavigationService.navigate(NAVIGATION_REPORT_COMMON_SCREEN, { reportedUserId, returnToOrigin, subject: selectReport, headline: "Scams, Fraud, or Money Requests", inLine: "What type of suspicious activity are you reporting?", data: ScamsFraudReport })
+        if (selectReport == "Child Safety Standards") NavigationService.navigate(NAVIGATION_REPORT_COMMON_SCREEN, { reportedUserId, returnToOrigin, subject: selectReport, headline: "Child Safety Standards", inLine: "What child safety concern do you want to report?", data: ChildSafetyReport })
         if (selectReport == "Other") NavigationService.navigate(NAVIGATION_OHTER_REPORT_SCREEN, { reportedUserId, returnToOrigin, subject: "Other", headline: "Other", inLine: "Please tell us more about the issue in your own words." })
 
     }

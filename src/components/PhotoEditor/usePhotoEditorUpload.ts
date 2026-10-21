@@ -1,77 +1,9 @@
 import { useRef, useState } from "react";
-import { Alert, PermissionsAndroid, Platform } from "react-native";
+import { Alert, Platform } from "react-native";
 import { launchImageLibrary } from "react-native-image-picker";
 import { useDispatch, useSelector } from "react-redux";
-import { check, request, PERMISSIONS, RESULTS, openSettings } from "react-native-permissions";
 import { uploadImagesPhotoAPI } from "../../actions/authActions";
 import { PhotoEditorResult } from "./PhotoEditorModal";
-
-export interface PermissionResult {
-  granted: boolean;
-  newlyGranted: boolean;
-}
-
-export async function requestGalleryPermission(): Promise<PermissionResult> {
-  if (Platform.OS === "android") {
-    try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES || PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-        {
-          title: "Gallery Permission",
-          message: "App needs access to your photos to upload them.",
-          buttonNeutral: "Ask Me Later",
-          buttonNegative: "Cancel",
-          buttonPositive: "OK",
-        }
-      );
-      const isGranted = granted === PermissionsAndroid.RESULTS.GRANTED;
-      return { granted: isGranted, newlyGranted: false };
-    } catch (err) {
-      console.warn("Android permission error:", err);
-      return { granted: false, newlyGranted: false };
-    }
-  } else {
-    // iOS permission handling
-    try {
-      const permission = PERMISSIONS.IOS.PHOTO_LIBRARY;
-      const checkResult = await check(permission);
-
-      if (checkResult === RESULTS.GRANTED || checkResult === RESULTS.LIMITED) {
-        return { granted: true, newlyGranted: false };
-      }
-
-      if (checkResult === RESULTS.BLOCKED) {
-        Alert.alert(
-          "Photo Library Permission Required",
-          "Photo library access is disabled. Please enable it in your device Settings to choose profile photos.",
-          [
-            { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
-            { text: "Cancel", style: "cancel" },
-          ]
-        );
-        return { granted: false, newlyGranted: false };
-      }
-
-      // Request permission if not determined
-      const requestResult = await request(permission);
-      if (requestResult === RESULTS.BLOCKED) {
-        Alert.alert(
-          "Photo Library Permission Required",
-          "Photo library access is disabled. Please enable it in your device Settings to choose profile photos.",
-          [
-            { text: "Open Settings", onPress: () => openSettings().catch(() => null) },
-            { text: "Cancel", style: "cancel" },
-          ]
-        );
-      }
-      const isAllowed = requestResult === RESULTS.GRANTED || requestResult === RESULTS.LIMITED;
-      return { granted: isAllowed, newlyGranted: isAllowed };
-    } catch (err) {
-      console.warn("iOS permission error:", err);
-      return { granted: false, newlyGranted: false };
-    }
-  }
-}
 
 export interface UploadedPhoto {
   url: string;
@@ -135,16 +67,9 @@ export function usePhotoEditorUpload({ canStart, getGender, onUploaded }: Option
     if (canStart && !canStart()) return;
 
     try {
-      // const permissionResult = await requestGalleryPermission();
-      // console.log("[PhotoEditorUpload] Permission result:", permissionResult);
-      // if (!permissionResult.granted) return;
+      // No storage permission is needed: the system photo picker returns the chosen photo on its own
 
       isPickerOpenRef.current = true;
-
-      // Safe presentation buffer delay for first-time grants on iOS
-      // if (Platform.OS === "ios" && permissionResult.newlyGranted) {
-      //   await new Promise((resolve) => setTimeout(resolve, 800));
-      // }
 
       launchImageLibrary(
         {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, AppStateStatus } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { getProfile, listProfiles } from "../../../../actions/authActions";
-import { setListProfiles } from "../../../../slices/loginServices/authSlice";
+import { removeProfileFromFeeds, setListProfiles } from "../../../../slices/loginServices/authSlice";
 import { useLatest } from "../../../../hooks/useLatest";
 import {
   FEED_STALE_AFTER_MS,
@@ -130,9 +130,10 @@ console.log(profiles,"profiles");
   /** Takes a profile out of the deck (swiped or messaged); the low-water effect refills the feed. */
   const removeProfile = useCallback(
     (profileId: string) => {
-      dispatch(setListProfiles(profilesRef.current.filter((profile: any) => profile._id !== profileId)));
+      // Out of the main feed and out of every filter tab (Near By / Verified / Online)
+      dispatch(removeProfileFromFeeds(profileId));
     },
-    [dispatch, profilesRef]
+    [dispatch]
   );
 
   return { profiles, refreshing, listMountKey, onRefresh, loadMore, removeProfile };

@@ -164,6 +164,12 @@ export interface AuthState {
   showMessage:undefined;
   turnOnData:[];
   profileHide:any;
+  /** Users you blocked; undefined until the blocked-users list has been loaded */
+  blockedUsers?: any[];
+  /** Per match: what the chat list should show instead of a view-once photo that has been viewed and is gone */
+  lastMessageOverrides?: Record<string, { photoCreatedAt: number; lastMessage: any | null }>;
+  /** Home filter tabs (Near By / Verified / Online): profiles per tab; a tab is undefined until its first fetch finishes */
+  filterFeeds?: { nearby?: any[]; verified?: any[]; online?: any[] };
 }
 export interface DeviceTokenParams {
   merchantId: string;

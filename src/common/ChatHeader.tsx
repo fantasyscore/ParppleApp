@@ -3,7 +3,7 @@ import { StyleSheet, View } from "react-native";
 import metrics from "../assets/Metrics";
 import FastImage from "react-native-fast-image";
 import { backIconNew, dummyfemaleProfile, dummyMaleProfile, threeDotNewIcon } from "../helper/ImageAssets";
-import { AppText, ELEVEN, INTER_BOLD, INTER_MEDIUM, TWELVE, WHITE } from "./AppText";
+import { AppText, ELEVEN, INTER_BOLD, INTER_MEDIUM, SCHEHERAZADE_BOLD, TWELVE, WHITE } from "./AppText";
 import { TouchableOpacityView } from "./TouchableOpacityView";
 import NavigationService from "../navigation/NavigationService";
 import { useSelector } from "react-redux";
@@ -22,10 +22,10 @@ const ChatHeader = ({ onPress, setTabSelect, seeProfileOther }: any) => {
                     <FastImage source={matchChatUserDetails?.profilePicture?.url ? { uri: matchChatUserDetails?.profilePicture?.url } : matchChatUserDetails?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile} resizeMode="cover" style={styles.profileImage} />
                     <View>
 
-                        <AppText type={TWELVE} color={WHITE} weight={INTER_BOLD}>{"    "}{matchChatUserDetails?.username ? matchChatUserDetails?.username : matchChatUserDetails?.name}
+                        <AppText style={{marginTop: metrics.hp0_6}} type={TWELVE} color={WHITE} weight={INTER_BOLD}>{"   "}{matchChatUserDetails?.username ? matchChatUserDetails?.username : matchChatUserDetails?.name}
                         </AppText>
                         {matchChatUserDetails?.online ? 
-                        <AppText type={ELEVEN} weight={INTER_MEDIUM} style={{ color: "#26F600", marginTop: -metrics.hp0 }}>
+                        <AppText type={ELEVEN} weight={SCHEHERAZADE_BOLD} style={{ color: "#26F600", marginTop: -metrics.hp0_4 }}>
                             {"    "}Online
                         </AppText>:<></>}
                     </View>

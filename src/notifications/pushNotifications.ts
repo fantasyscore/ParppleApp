@@ -1,4 +1,4 @@
-import { Platform, InteractionManager } from 'react-native';
+import { AppState, Platform, InteractionManager } from 'react-native';
 import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 import notifee, {
   AndroidImportance,
@@ -85,6 +85,12 @@ export async function displayRemoteMessage(
 ) {
   try {
     const data = remoteMessage?.data || {};
+
+    // iOS shows a push that has an alert (a `notification` part) by itself, also in the background. Showing it again
+    // here would make every message appear twice; only data-only pushes need to be displayed by the app.
+    if (Platform.OS === 'ios' && remoteMessage?.notification && AppState.currentState !== 'active') {
+      return;
+    }
 
     // Check for duplicate notification
     const notificationId = getNotificationId(data);

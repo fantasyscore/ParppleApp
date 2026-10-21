@@ -86,11 +86,12 @@ export function useSubscriptionPurchase() {
         }
 
         // iOS verifies with the receipt; Android with the purchase token
+        const iosReceipt = await RNIap.getIosReceipt(purchase);
         const payload = {
           productId: purchase.productId,
-          purchaseToken: Platform.OS === "ios" ? purchase.transactionReceipt : purchase.purchaseToken,
+          purchaseToken: Platform.OS === "ios" ? iosReceipt : purchase.purchaseToken,
           platform: Platform.OS === "ios" ? "ios" : "android",
-          transactionReceipt: purchase?.transactionReceipt,
+          transactionReceipt: Platform.OS === "ios" ? iosReceipt : purchase?.transactionReceipt,
         };
         const response: any = await dispatch(subscriptionVerifyAPI(payload));
 

@@ -6,7 +6,7 @@ import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_CHATS_SCREEN, NAVIGATION_GANDER_SCREEN, NAVIGATION_OTP_SCREEN, NAVIGATION_PROCCED_SCREEN, NAVIGATION_TAKING_SCREEN, NAVIGATION_USER_EDIT_PROFILE_SCREEN, NAVIGATION_WELCOME_SCREEN } from "../navigation/routes";
 import { toastAlert } from "./UploadImageActions";
 import Toast from "react-native-toast-message";
-import { chatHistoryDetails, matchChatDetails, setAttributes, setDiscoverData, setGetProfile, setLikeByOther, setLikeYou, setListProfiles, removeUserFromProfileLists, setNewMatches, setOtherUserProfile, setRecentMatches, setTurnOnData, setViewByOhter, setViewYou } from "../slices/loginServices/authSlice";
+import { chatHistoryDetails, matchChatDetails, setAttributes, setDiscoverData, setGetProfile, setLikeByOther, setLikeYou, setListProfiles, removeUserFromProfileLists, setFilterFeed, setBlockedUsers, removeBlockedUser, restoreBlockedUser, blockedUserIdOf, setNewMatches, setOtherUserProfile, setRecentMatches, setTurnOnData, setViewByOhter, setViewYou } from "../slices/loginServices/authSlice";
 import { logLogin, logSignUp, setAnalyticsUserId } from "../services/analyticsService";
 
 /**
@@ -137,7 +137,8 @@ export const listProfiles: any = (navigate: any, skip?: number, limit?: number, 
         const payload: any = {};
         if (skip !== undefined) payload.skip = skip;
         if (limit !== undefined) payload.limit = limit;
-        if (filterData?.global === false) payload.city = filterData?.city;
+        // "All" tab: the city is sent empty, unless the user picked a city in the filter sheet
+        payload.city = filterData?.global === false ? filterData?.city : "";
         payload.minAge = filterData?.preferredAgeRange?.min;
         payload.maxAge = filterData?.preferredAgeRange?.max;
         payload.photosOnly = filterData?.onlyImage;
@@ -181,6 +182,46 @@ export const listProfiles: any = (navigate: any, skip?: number, limit?: number, 
         (listProfiles as any)._inFlight = false;
     }
 };
+export type HomeFilterTab = "nearby" | "verified" | "online";
+export const FILTER_FEED_LIMIT = 20;
+
+/**
+ * Loads one Home filter tab (Near By / Verified / Online) from showProfiles into auth.filterFeeds.
+ * Resolves the number of profiles received, so callers know when a tab has no more pages.
+ */
+export const fetchFilterFeed: any =
+    (tab: HomeFilterTab, options: { city?: string; skip?: number; append?: boolean } = {}) => async (dispatch: any) => {
+        const { city, skip = 0, append = false } = options;
+        try {
+            const payload: any = { [tab]: true, skip, limit: FILTER_FEED_LIMIT };
+            // Only Near By sends the city; Verified and Online do not
+            if (tab === "nearby" && city) payload.city = city;
+            
+            const response: any = await appOperation.customer.datingProfileAPI(payload);
+            // Debug: what the Verified tab's request sent and what the server answered
+            if (tab === "verified") {
+                console.log("[VerifiedFeed] request:", JSON.stringify(payload));
+                console.log("[VerifiedFeed] response:", JSON.stringify({
+                    statusCode: response?.statusCode,
+                    message: response?.message,
+                    count: Array.isArray(response?.data) ? response.data.length : response?.data,
+                    firstProfile: Array.isArray(response?.data) ? response.data[0] : undefined,
+                }));
+            }
+            if (response?.statusCode == 200) {
+                const data: any[] = Array.isArray(response?.data) ? response.data : [];
+                dispatch(setFilterFeed({ tab, profiles: data, append }));
+                return data.length;
+            }
+        } catch (error: any) {
+            console.log(error, `${tab} feed error`);
+            if (tab === "verified") console.log("[VerifiedFeed] request failed:", String(error?.message ?? error));
+        }
+        // A failed first load still ends the tab's "loading" state with an empty list
+        if (!append) dispatch(setFilterFeed({ tab, profiles: [], append: false }));
+        return 0;
+    };
+
 export const swipeLikeDisLike: any = (data: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.swipeLikeDisLikeAPI(data);
@@ -247,7 +288,6 @@ export const youView: any = () => async (dispatch: any) => {
 export const getOtherProfile: any = (data: any, setCurrentProfileData: any, setOtherUserProfile: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.otherDataProfileAPI(data);
-        console.log(response, "responseresponseresponse");
 
         if (response?.statusCode == 200) {
             setCurrentProfileData(response?.data);
@@ -393,11 +433,23 @@ export const userBlockAPI: any = (data: any, options: { navigateToChats?: boolea
 // fresh page loads in the background.
 const chatHistoryCache = new Map<string, any[]>();
 export const clearChatHistoryCache = () => chatHistoryCache.clear();
+/** Replaces the cached history of a chat (the chat screen saves what it shows when it is left). */
+export const setChatHistoryCache = (matchId: string, items: any[]) => {
+    chatHistoryCache.set(String(matchId), items);
+};
+/** A deleted message must not come back from the cached history the next time the chat opens. */
+export const removeMessageFromChatHistoryCache = (matchId: string, messageId: string) => {
+    const cached = chatHistoryCache.get(String(matchId));
+    if (!cached) return;
+    chatHistoryCache.set(
+        String(matchId),
+        cached.filter((message: any) => String(message?._id ?? message?.messageId ?? message?.id) !== String(messageId))
+    );
+};
 
 export const chatHistoryAPI: any = (data: any, params: any, shouldNavigate: boolean = true) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.chatHistortAPI(data, params);
-        console.log(response, "responseresponseresponse");
 
         if (response?.statusCode == 200) {
             if (data?.matchId && params?.page === 1 && Array.isArray(response.data)) {
@@ -565,6 +617,37 @@ export const reportUserAPI: any =
             return { statusCode: 500, message: String(error ?? "") };
         }
     };
+
+/** Loads the users you have blocked into the store (auth.blockedUsers). */
+export const getBlockedUsersAPI: any = () => async (dispatch: any) => {
+    try {
+        const response: any = await appOperation.customer.blockedUsersAPI();
+        if (response?.statusCode == 200) {
+            const list = response?.data?.blockedUsers ?? response?.data?.users ?? response?.data;
+            dispatch(setBlockedUsers(Array.isArray(list) ? list : []));
+            return;
+        }
+    } catch (error: any) {
+        console.log(error, "blocked users error");
+    }
+    // Loading failed: show an empty list rather than a spinner forever
+    dispatch(setBlockedUsers([]));
+};
+
+/** Unblocks a user: removes them from auth.blockedUsers at once and puts them back if the server refuses. */
+export const unblockUserAPI: any = (user: any) => async (dispatch: any) => {
+    const userId = blockedUserIdOf(user);
+    if (!userId) return false;
+    dispatch(removeBlockedUser(userId));
+    const unblocked = await dispatch(blockByIdAPIUser({ blockedId: userId }, { navigateToChats: false }));
+    if (unblocked) {
+        toastAlert.showToastError(`${user?.username || user?.name || "User"} has been unblocked.`);
+    } else {
+        dispatch(restoreBlockedUser(user));
+        toastAlert.showToastError("Couldn't unblock this user. Please try again.");
+    }
+    return unblocked;
+};
 
 /** Blocks a user by their user id (no match needed). Resolves true on success. */
 export const blockByIdAPIUser: any = (data: any, options: { navigateToChats?: boolean } = {}) => async (dispatch: any) => {

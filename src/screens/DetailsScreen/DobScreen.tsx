@@ -3,7 +3,6 @@ import {
     Modal,
     StyleSheet,
     View,
-    Platform,
     ImageBackground,
 } from "react-native";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
@@ -27,16 +26,12 @@ import {
 import { colors, newColor } from "../../theme/colors";
 import FastImage from "react-native-fast-image";
 import OnboardingLogo from "../../components/Onboarding/OnboardingLogo";
-import GoButton from "../../common/GoButton";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import { Screen } from "../../theme/dimens";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_HEIGHT_SCREEN } from "../../navigation/routes";
-import { toastAlert } from "../../actions/UploadImageActions";
 import { useDispatch, useSelector } from "react-redux";
 import { setAddProfile } from "../../slices/loginServices/authSlice";
-import LinearGradient from "react-native-linear-gradient";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { bdyBack, BottomLayer, calendarIcon, dobImage } from "../../helper/ImageAssets";
 import DOBPicker from "../../components/DOBPicker";
 
@@ -45,12 +40,10 @@ const DobScreen = () => {
     const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
     const todaynew = new Date();
     const [date, setDate] = useState<Date | null>(null);
-    const [showAndroidPicker, setShowAndroidPicker] = useState(false);
-    const [showIOSPicker, setShowIOSPicker] = useState(false);
+    const [showPicker, setShowPicker] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
 
     const today = new Date();
-    const minAgeDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
 
     const getDateDigits = (d: Date) => {
         const day = String(d.getDate()).padStart(2, "0");
@@ -93,13 +86,7 @@ const DobScreen = () => {
         NavigationService.navigate(NAVIGATION_HEIGHT_SCREEN);
     };
 
-    const openPicker = () => {
-        if (Platform.OS === "ios") {
-            setShowIOSPicker(true);
-        } else {
-            setShowAndroidPicker(true);
-        }
-    };
+    const openPicker = () => setShowPicker(true);
 
     return (
         <AppSafeAreaView color={newColor.blackNew}>
@@ -174,60 +161,18 @@ const DobScreen = () => {
                 </ImageBackground>
             </View>
 
-            {Platform.OS === "android" && (
-                <DOBPicker
-                    visible={showAndroidPicker}
-                    onClose={() => setShowAndroidPicker(false)}
-                    initialDate={date || todaynew}
-                    onConfirm={(selectedDate) => {
-                        setDate(selectedDate);
-                        setTimeout(() => {
-                            setModalVisible(true);
-                        }, 500);
-                    }}
-                />
-            )}
-
-            <Modal transparent animationType="slide" visible={showIOSPicker}>
-                <TouchableOpacityView onPress={() => setShowIOSPicker(false)} style={styles.iosOverlay}>
-                    <TouchableOpacityView activeOpacity={0} onPress={() => console.log("")} style={styles.iosContainer}>
-                        <DateTimePicker
-                            value={date || minAgeDate}
-                            mode="date"
-                            display="spinner"
-                            textColor="black"
-                            themeVariant="light"
-                            maximumDate={minAgeDate}
-                            onChange={(e, selectedDate) => {
-                                if (selectedDate) setDate(selectedDate);
-                            }}
-                        />
-
-                        <LinearGradient
-                            style={{ position: "absolute", right: metrics.hp1, bottom: metrics.hp2 }}
-                            colors={["#ffffff50", colors.white, colors.white]}
-                        >
-                            <View style={{ marginTop: metrics.hp0 }}>
-                                <GoButton
-                                    colortrue={date}
-                                    onPress={() => {
-                                        if (!formattedDate) {
-                                            toastAlert.showToastError("Please add your DOB")
-                                        } else {
-                                            setShowIOSPicker(false)
-                                            setModalVisible(true)
-                                        }
-                                        // !formattedDate
-                                        //     ? toastAlert.showToastError("Please add your DOB")
-                                        //     : setShowIOSPicker(false)
-                                    }
-                                    }
-                                />
-                            </View>
-                        </LinearGradient>
-                    </TouchableOpacityView>
-                </TouchableOpacityView>
-            </Modal>
+            {/* Same themed wheel picker on Android and iOS */}
+            <DOBPicker
+                visible={showPicker}
+                onClose={() => setShowPicker(false)}
+                initialDate={date || todaynew}
+                onConfirm={(selectedDate) => {
+                    setDate(selectedDate);
+                    setTimeout(() => {
+                        setModalVisible(true);
+                    }, 500);
+                }}
+            />
             <Modal transparent animationType="fade" visible={modalVisible}>
                 <View style={styles.centeredView}>
                     <View style={styles.confirmContainer}>
@@ -286,16 +231,7 @@ const styles = StyleSheet.create({    homeLandImage: {
         height: metrics.hp0_1,
         backgroundColor: colors.white,
     },
-    iosOverlay: {
-        flex: 1,
-        justifyContent: "flex-end",
-        backgroundColor: "rgba(0,0,0,0.3)",
-    },
-    iosContainer: {
-        backgroundColor: colors.white,
-        paddingBottom: metrics.hp10,
-        alignItems: "center",
-    },    centeredView: {
+    centeredView: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",

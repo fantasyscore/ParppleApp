@@ -3,13 +3,9 @@ import { Platform } from "react-native";
 // Android products come from the "publish_*" subscription (silver tier) plus gold / platinum.
 const ANDROID_SKUS = [
   "publish_one_week", "publish_one_month", "publish_six_months",
-  "gold_week", "gold_month", "gold_6month",
-  "platinum_week", "platinum_month", "platinum_6month",
 ];
 const IOS_SKUS = [
-  "silver_week", "silver_month", "silver_6month",
-  "gold_week", "gold_month", "gold_6month",
-  "platinum_week", "platinum_month", "platinum_6month",
+  "publish_one_week", "publish_one_month", "publish_six_months",
 ];
 
 export const ALL_SUBSCRIPTION_SKUS: string[] = Platform.select({ android: ANDROID_SKUS, ios: IOS_SKUS }) ?? ANDROID_SKUS;
@@ -78,14 +74,15 @@ export const extractSubscriptionPeriod = (subscription: any): SubscriptionPeriod
   // iOS
   if (subscription.subscriptionPeriodNumberIOS && subscription.subscriptionPeriodUnitIOS) {
     const number = parseInt(subscription.subscriptionPeriodNumberIOS);
-    const unit = subscription.subscriptionPeriodUnitIOS;
+    // StoreKit reports the unit in lower case ("month"), other bridges in upper case: compare case-insensitively
+    const unit = String(subscription.subscriptionPeriodUnitIOS).toUpperCase();
     if (unit === "WEEK") return weekPeriod(number);
     if (unit === "MONTH") return monthPeriod(number);
     if (unit === "YEAR") return yearPeriod(number);
   }
 
   // Fallback: the SKU name
-  if (productId.includes("6month")) return monthPeriod(6);
+  if (/6month|six_?month/i.test(productId)) return monthPeriod(6);
   if (productId.includes("month")) return monthPeriod(1);
   if (productId.includes("week")) return weekPeriod(1);
   if (productId.includes("year")) return yearPeriod(1);

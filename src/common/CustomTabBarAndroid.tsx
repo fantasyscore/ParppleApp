@@ -1,6 +1,6 @@
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React, { memo } from "react";
-import { ImageBackground, StyleSheet, View } from "react-native";
+import { ImageBackground, Platform, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import metrics from "../assets/Metrics";
 import { TouchableOpacityView } from "./TouchableOpacityView";
@@ -68,6 +68,8 @@ const TabBadge = memo(({ count }: { count: number }) => {
 
 const CustomTabBarAndroid = ({ state }: BottomTabBarProps) => {
     const insets = useSafeAreaInsets();
+    // iOS reports the home-indicator inset (~34pt) which made the bar noticeably taller than on Android; keep both the same height
+    const bottomInset = Platform.OS === "ios" ? 0 : insets.bottom;
     const userData = useSelector((state: any) => state.auth.userData);
     // Numbers (not arrays) so the bar only re-renders when a count actually changes
     const likedYouCount = useSelector((state: any) => state.auth.likeByOtherData?.length ?? 0);
@@ -117,7 +119,7 @@ const CustomTabBarAndroid = ({ state }: BottomTabBarProps) => {
     return (
         <>
             {shouldShowOverlay ? <HiddenProfileOverlay userData={userData} /> :
-                <ImageBackground source={navBarBottom} resizeMode="cover" style={[styles.bottomLayer, { height: metrics.hp13 + insets.bottom, paddingBottom: insets.bottom }]}>
+                <ImageBackground source={navBarBottom} resizeMode="cover" style={[styles.bottomLayer, { height: metrics.hp13 + bottomInset, paddingBottom: bottomInset }]}>
                     <View style={styles.flowContainer}>
                         {state?.routes?.map((route, index) => {
                             const isFocused = state.index === index;

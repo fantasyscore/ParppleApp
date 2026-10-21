@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { ImageBackground, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { ImageBackground, Linking, Platform, ScrollView, StyleSheet, View } from "react-native";
 import FastImage from "react-native-fast-image";
 import LinearGradient from "react-native-linear-gradient";
-import { useSelector } from "react-redux";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { AppText, BLACK, EIGHTEEN, FORTEEN, INTER_MEDIUM, INTER_REGULAR, OPECITY, OPECITY_DARK, SCHEHERAZADE_BOLD, SIXTEEN, THIRTEEN, TWELVE, TWENTY, TWENTY_FOUR, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
@@ -11,8 +10,6 @@ import { colors, newColor } from "../../theme/colors";
 import { benifitsIconNew, BottomLayer, closeNewWhiteIcon, legalBackgroundSettin, purchaseImageNew, subScriptionBackgroundNew, subscriptionSelectedNew, timeShowNewBackground } from "../../helper/ImageAssets";
 import NavigationService from "../../navigation/NavigationService";
 import PaymentStatusModal from "../../components/Payment/PaymentStatusModal";
-import FaceGateDialogs from "./subscription/components/FaceGateDialogs";
-import { useFaceVerificationGate } from "./subscription/useFaceVerificationGate";
 import { useSubscriptionPurchase } from "./subscription/useSubscriptionPurchase";
 
 const BENEFITS = [
@@ -25,25 +22,21 @@ const BENEFITS = [
 
 const POPULAR_PLAN_INDEX = 1;
 
+// App Store guideline 3.1.2(c): auto-renewing subscriptions must show working Privacy Policy and Terms of Use links in the app
+const PRIVACY_URL = "https://parpple.com/privacy_policy";
+const TERMS_URL = "https://parpple.com/terms_conditions";
+const SUBSCRIPTION_TITLE = "Parpple Publish";
+
 const SubscriptionScreen = ({ route }: any) => {
   const selectedTier = route?.params?.comming?.title ?? "Silver";
-  const userData = useSelector((state: any) => state.auth.userData);
   const [selectedPlanIndex, setSelectedPlanIndex] = useState(0);
 
   const { plans, loading, processing, startPurchase, verify } = useSubscriptionPurchase();
-  const faceGate = useFaceVerificationGate();
 
   const tierPlans = plans.filter((plan) => plan.tier === selectedTier).sort((a, b) => a.periodOrder - b.periodOrder);
   const selectedPlan = tierPlans[selectedPlanIndex];
 
-  const onBuyPress = () => {
-    // iOS: unverified users must pass the face check first
-    if (Platform.OS === "ios" && userData?.faceVerified === false) {
-      faceGate.open();
-      return;
-    }
-    startPurchase(selectedPlan);
-  };
+  const onBuyPress = () => startPurchase(selectedPlan);
 
   const hero = (
     <ImageBackground source={purchaseImageNew} resizeMode="stretch" style={styles.hero}>
@@ -135,6 +128,23 @@ const SubscriptionScreen = ({ route }: any) => {
           <AppText style={styles.centered} color={WHITE} type={THIRTEEN} weight={INTER_REGULAR}>
             Your membership renews automatically for uninterrupted access. Cancel at least 24 hours before renewal. Manage your membership anytime in Account Settings.
           </AppText>
+          {Platform.OS === "ios" && (
+            <>
+              <AppText style={[styles.centered, styles.legalDetails]} color={WHITE} type={TWELVE} weight={INTER_MEDIUM}>
+                {SUBSCRIPTION_TITLE}
+                {selectedPlan ? ` · ${selectedPlan.planOf} · ${selectedPlan.displayPrice}` : ""}
+              </AppText>
+              <AppText style={[styles.centered, styles.legalLinks]} color={WHITE} type={TWELVE} weight={INTER_MEDIUM}>
+                <AppText style={styles.legalLink} color={WHITE} type={TWELVE} weight={INTER_MEDIUM} onPress={() => Linking.openURL(PRIVACY_URL)}>
+                  Privacy Policy
+                </AppText>
+                {"   |   "}
+                <AppText style={styles.legalLink} color={WHITE} type={TWELVE} weight={INTER_MEDIUM} onPress={() => Linking.openURL(TERMS_URL)}>
+                  Terms of Use (EULA)
+                </AppText>
+              </AppText>
+            </>
+          )}
         </ImageBackground>
       </ScrollView>
 
@@ -160,7 +170,6 @@ const SubscriptionScreen = ({ route }: any) => {
           if (stage === "success") NavigationService.goBack();
         }}
       />
-      <FaceGateDialogs dialog={faceGate.dialog} onStart={faceGate.start} onClose={faceGate.close} />
     </AppSafeAreaView>
   );
 };
@@ -261,11 +270,22 @@ const styles = StyleSheet.create({
     marginTop: -metrics.hp1,
   },
   legal: {
-    height: metrics.hp13,
+    // minHeight: the iOS-only subscription details and links make this block taller
+    minHeight: metrics.hp13,
+    paddingVertical: metrics.hp1,
     paddingHorizontal: metrics.hp2,
     alignItems: "center",
     justifyContent: "center",
     marginTop: metrics.hp2,
+  },
+  legalDetails: {
+    marginTop: metrics.hp1,
+  },
+  legalLinks: {
+    marginTop: metrics.hp0_5,
+  },
+  legalLink: {
+    textDecorationLine: "underline",
   },
   bottomLayer: {
     width: "100%",

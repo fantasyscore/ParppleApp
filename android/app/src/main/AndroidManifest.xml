@@ -4,15 +4,30 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <!-- No READ_MEDIA_IMAGES / READ_MEDIA_VIDEO / READ_EXTERNAL_STORAGE on purpose: photos are chosen with the system photo
+         picker (react-native-image-picker), which needs no storage permission. Google Play rejects apps that declare the
+         broad photo permissions without needing them. -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove" />
+    <!-- Some libraries add these on their own while merging manifests; they are stripped so none reaches the release -->
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" tools:node="remove" />
     <uses-permission android:name="com.android.vending.BILLING" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    
+
+    <!-- Android 11+ hides other apps from this one unless they are declared here: without it the system camera
+         cannot be found and launchCamera fails with "camera_unavailable". -->
+    <queries>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+    </queries>
+    <!-- Keeps the app installable on devices without a (back) camera; the chat checks for one when it opens it -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
     <application
       android:name=".MainApplication"
       android:label="@string/app_name"
@@ -40,6 +55,20 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyDHYHRJXGEJr_IQ2Fbw10BSwNoekfu7UPk"/>
+      <!-- Android photo picker backport: on Android 4.4 - 12 (devices with Google Play services) this makes Play services
+           install the same system photo picker that Android 13+ has built in, so no storage permission is needed anywhere.
+           See https://developer.android.com/training/data-storage/shared/photopicker -->
+      <service
+        android:name="com.google.android.gms.metadata.ModuleDependencies"
+        android:enabled="false"
+        android:exported="false"
+        tools:ignore="MissingClass">
+        <intent-filter>
+          <action android:name="com.google.android.gms.metadata.MODULE_DEPENDENCIES" />
+        </intent-filter>
+        <meta-data android:name="photopicker_activity:0:required" android:value="" />
+      </service>
+
       <activity
         android:name=".MainActivity"
         android:label="@string/app_name"

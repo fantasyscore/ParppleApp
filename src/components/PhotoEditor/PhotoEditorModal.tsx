@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Image,
   Modal,
+  PixelRatio,
   Platform,
   Pressable,
   ScrollView,
@@ -271,11 +272,14 @@ const PhotoEditorModal = ({
         1,
         MAX_EXPORT_DIMENSION / Math.max(fit.imageWidth, fit.imageHeight)
       );
+      // iOS renders captures at the device scale (2-3x), so ask in points to get the intended pixel size.
+      // Without this a 2160px export becomes ~6500px and the upload fails with 413 Payload Too Large.
+      const outputScale = Platform.OS === "ios" ? PixelRatio.get() : 1;
       const uri = await captureRef(shotRef, {
         format: "jpg",
         quality: 0.92,
-        width: Math.round(fit.imageWidth * exportScale),
-        height: Math.round(fit.imageHeight * exportScale),
+        width: (fit.imageWidth * exportScale) / outputScale,
+        height: (fit.imageHeight * exportScale) / outputScale,
       });
       onDone({ uri: Platform.OS === "android" && !uri.startsWith("file://") ? `file://${uri}` : uri });
     } catch (err) {

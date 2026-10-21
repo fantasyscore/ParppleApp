@@ -182,6 +182,10 @@ export const reportData = [
     },
     {
         id: "1",
+        title: "Child Safety Standards"
+    },
+    {
+        id: "1",
         title: "Other"
     },
 ];
@@ -263,6 +267,28 @@ export const SexualReport = [
     {
         id: "4",
         title: "Asking to meet for paid sexual activities",
+    },
+    {
+        id: "5",
+        title: "Other",
+    },
+];
+export const ChildSafetyReport = [
+    {
+        id: "1",
+        title: "This person appears to be under 18",
+    },
+    {
+        id: "2",
+        title: "Sexual content or messages involving a minor",
+    },
+    {
+        id: "3",
+        title: "Grooming or attempting to contact a minor",
+    },
+    {
+        id: "4",
+        title: "Sharing or requesting images of a minor",
     },
     {
         id: "5",

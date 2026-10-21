@@ -2,8 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>LSApplicationCategoryType</key>
-	<string/>
+	<key>AWS_COGNITO_IDENTITY_POOL_ID</key>
+	<string>ap-south-1:419a295b-5bb7-4a2b-83df-5216b0f7bd83</string>
+	<key>AWS_REKOGNITION_REGION</key>
+	<string>ap-south-1</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
@@ -51,41 +53,24 @@
 	<string>6U17vl8b9XV-lN99ALwWG902toMi419xRVnB7e</string>
 	<key>CodePushServerURL</key>
 	<string>https://api.revopush.org</string>
+	<key>LSApplicationCategoryType</key>
+	<string></string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>13.201.74.29</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-				<key>NSIncludesSubdomains</key>
-				<true/>
-			</dict>
-		</dict>
-	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Parpple needs camera access to complete face liveness verification.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Parpple uses your location to help you discover and connect with nearby matches, even when the app is running in the background.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Parpple uses your location to show potential matches and profiles near you.</string>
-	<key>UILaunchStoryboardName</key>
-	<string>LaunchScreen</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Parpple needs permission to save photos you download or share from the app to your photo library.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>This app uses speech recognition to enhance user experience.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Parpple needs access to your photo library so you can upload profile pictures and share photos with matches.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>Parpple needs camera access to complete face liveness verification.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Parpple needs microphone access to support secure face liveness verification and media recording.</string>
-	<key>AWS_REKOGNITION_REGION</key>
-	<string>ap-south-1</string>
-	<key>AWS_COGNITO_IDENTITY_POOL_ID</key>
-	<string>ap-south-1:419a295b-5bb7-4a2b-83df-5216b0f7bd83</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Parpple needs permission to save photos you download or share from the app to your photo library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Parpple needs access to your photo library so you can upload profile pictures and share photos with matches.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>This app uses speech recognition to enhance user experience.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Inter_24pt-Bold.ttf</string>
@@ -103,6 +88,12 @@
 		<string>ScheherazadeNew-SemiBold.ttf</string>
 		<string>BadScript-Regular.ttf</string>
 	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>arm64</string>

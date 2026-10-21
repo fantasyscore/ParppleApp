@@ -2,7 +2,7 @@ import React from "react";
 import { ImageBackground, Linking, Platform, StyleSheet, View } from "react-native";
 import FastImage from "react-native-fast-image";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { AppText, BADSCRIPTREGALUR, INTER_MEDIUM, SCHEHERAZADE_BOLD, SIXTEEN, THIRTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
+import { AppText, BADSCRIPTREGALUR, BLACK, INTER_MEDIUM, SCHEHERAZADE_BOLD, SIXTEEN, THIRTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import metrics from "../../assets/Metrics";
 import { colors, newColor } from "../../theme/colors";
@@ -12,6 +12,12 @@ import { useLoginFlow } from "./hooks/useLoginFlow";
 import { useReviewLogin } from "./hooks/useReviewLogin";
 import ReviewLoginOverlay from "./components/ReviewLoginOverlay";
 import LoginLoadingOverlay from "./components/LoginLoadingOverlay";
+
+// iOS used to lift the panel by this much, leaving a strip of background under it. The panel now sits on the
+// bottom edge and is this much taller, so its content stays exactly where it was.
+// It is also taller by the height of the "Continue with Apple" button that only iOS shows.
+const IS_IOS = Platform.OS === "ios";
+const IOS_PANEL_EXTENSION = IS_IOS ? metrics.hp5 + metrics.hp8_5 : 0;
 
 const TERMS_URL = "https://parpple.com/terms_conditions";
 
@@ -37,6 +43,16 @@ const WelcomeScreen = () => {
               Continue with Google
             </AppText>
           </TouchableOpacityView>
+          {IS_IOS && (
+            <TouchableOpacityView onPress={login.signInWithApple} disabled={login.loading} style={styles.appleButton}>
+              <AppText weight={SCHEHERAZADE_BOLD} color={BLACK} type={TWENTY} style={styles.appleLogo}>
+                {"\uF8FF"}
+              </AppText>
+              <AppText weight={SCHEHERAZADE_BOLD} color={BLACK} type={TWENTY}>
+                Continue with Apple
+              </AppText>
+            </TouchableOpacityView>
+          )}
           <AppText type={THIRTEEN} weight={INTER_MEDIUM} style={styles.adultsText}>
             For adults aged 18+ only
           </AppText>
@@ -74,14 +90,14 @@ const styles = StyleSheet.create({
     marginTop: metrics.hp8,
   },
   bottomContainer: {
-    height: metrics.hp30,
+    height: metrics.hp30 + IOS_PANEL_EXTENSION,
     width: Screen.Width,
     position: "absolute",
-    bottom: Platform.OS === "ios" ? metrics.hp5 : metrics.hp0,
+    bottom: metrics.hp0,
     paddingVertical: metrics.hp3,
   },
   bottomLayer: {
-    height: metrics.hp30,
+    height: metrics.hp30 + IOS_PANEL_EXTENSION,
     width: "100%",
     paddingVertical: metrics.hp2,
   },
@@ -94,6 +110,18 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
     marginHorizontal: metrics.hp2,
     marginTop: metrics.hp4,
+  },
+  appleButton: {
+    height: metrics.hp7,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.white,
+    marginHorizontal: metrics.hp2,
+    marginTop: metrics.hp1_5,
+  },
+  appleLogo: {
+    marginRight: metrics.hp1,
   },
   googleIcon: {
     height: metrics.hp3,

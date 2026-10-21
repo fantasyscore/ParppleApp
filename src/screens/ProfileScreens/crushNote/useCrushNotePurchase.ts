@@ -11,7 +11,7 @@ import { buildChatPacks } from "./chatPacks";
 // One-time Product SKUs
 const PRODUCT_SKUS = Platform.select({
   android: ["20_chats", "10_chats", "5_chats"],
-  ios: ["10_crush_notes", "3_crush_notes", "1_crush_note"],
+  ios: ["20_chats", "10_chats", "5_chats"],
 }) ?? ["20_chats", "10_chats", "5_chats"];
 
 /**
@@ -40,6 +40,10 @@ export function useCrushNotePurchase() {
         await RNIap.initConnection();
         const rawProducts = await RNIap.getProducts({ skus: PRODUCT_SKUS });
         const availableProducts = Array.isArray(rawProducts) ? rawProducts : [];
+        // The store silently drops SKUs it doesn't know; say which ones so a missing pack is easy to trace
+        const returnedIds = availableProducts.map((prod: any) => prod?.productId || prod?.id);
+        const missingIds = PRODUCT_SKUS.filter((sku) => !returnedIds.includes(sku));
+        if (missingIds.length > 0) console.warn("[Crush Note] Store did not return these products:", missingIds);
         if (availableProducts.length > 0) {
           setProducts(buildChatPacks(availableProducts));
         }
@@ -88,6 +92,7 @@ export function useCrushNotePurchase() {
           setProcessing(purchase?.productId || "verifying");
         }
 
+        const iosReceipt = await RNIap.getIosReceipt(purchase);
         const data = {
           productId: purchase.productId,
           purchaseToken: purchase.purchaseToken,
@@ -98,6 +103,9 @@ export function useCrushNotePurchase() {
         };
         const iosData = {
           productId: purchase?.productId,
+          purchaseToken: purchase.purchaseToken,
+          platform: Platform.OS === "ios" ? "ios" : "android",
+          orderId: purchase.id,
           transactionReceipt: purchase?.transactionReceipt,
           transactionId: purchase?.transactionId,
         };

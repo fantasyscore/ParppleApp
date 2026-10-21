@@ -27,7 +27,7 @@ import { EngagementConfig } from "./engagementConfig";
 import EngagementTabs from "./EngagementTabs";
 import EngagementPaywall from "./EngagementPaywall";
 import EngagementEmptyState from "./EngagementEmptyState";
-import VerifyIdentityModal from "./VerifyIdentityModal";
+import LikeLimitModal from "../../HomeScreens/home/components/LikeLimitModal";
 
 const LIST_TOP_PADDING = metrics.hp3;
 const NO_PROFILES: any[] = [];
@@ -223,11 +223,11 @@ console.log(profiles,"profiles");
         />
       </Modal>
 
-      <VerifyIdentityModal
+      {/* The same face-verification dialog as the Home screen */}
+      <LikeLimitModal
         visible={verifyVisible}
         stage={faceVerification.stage}
         error={faceVerification.error}
-        photoUrl={userData?.gallery?.[0]?.url}
         onStart={faceVerification.start}
         onClose={closeVerify}
       />

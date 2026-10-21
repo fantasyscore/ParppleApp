@@ -39,6 +39,8 @@ export default (appOperation: AppOperation) => ({
     appOperation.post(`matches/recentMatches`, {}, CUSTOMER_TYPE),
   userUnMatchApi: (data: any) =>
     appOperation.post(`app/Useraction/unmatch`, data, CUSTOMER_TYPE),
+  blockedUsersAPI: () =>
+    appOperation.get(`app/userAction/blocked-users`, undefined, undefined, CUSTOMER_TYPE),
   userBlockAPI: (data: any) =>
     appOperation.post(`app/Useraction/block`, data, CUSTOMER_TYPE),
   chatHistortAPI: (data: any, params: any) =>
@@ -77,6 +79,11 @@ export default (appOperation: AppOperation) => ({
     appOperation.post(`faceId/verifySessionResult`, data, CUSTOMER_TYPE),
   blockByIdAPI: (data: any) =>
     appOperation.post(`app/userAction/blockById`, data, CUSTOMER_TYPE),
+  // DELETE /chat/message/:id (no request body)
+  deleteChatMessageAPI: (messageId: string) =>
+    appOperation.send(`chat/message/${messageId}`, "DELETE", undefined, undefined, CUSTOMER_TYPE),
+  uploadChatMediaAPI: (data: any) =>
+    appOperation.post(`chat/media/upload`, data, CUSTOMER_TYPE),
   uplaodPhotoAPI: (data: any) =>
     appOperation.post(`asset/upload`, data, CUSTOMER_TYPE),
   deletePhotoAPI: (data: { imageId: string }) =>

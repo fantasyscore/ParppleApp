@@ -81,5 +81,5 @@ export function useMatchSocket(userId: string | undefined, isFocused: boolean) {
 
   const closeMatch = useCallback(() => setMatchVisible(false), []);
 
-  return { matchVisible, matchData, closeMatch };
+  return { matchVisible, matchData, closeMatch, location };
 }

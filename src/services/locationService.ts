@@ -79,7 +79,7 @@ const getPosition = async (): Promise<GeoPosition> => {
   }
 };
 
-const reverseGeocode = async (latitude: number, longitude: number) => {
+export const reverseGeocode = async (latitude: number, longitude: number) => {
   console.log("[Location] Reverse geocoding started for", latitude, longitude);
   const response = await fetch(
     `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GEOCODE_API_KEY}`

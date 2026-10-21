@@ -18,6 +18,7 @@ import MatchScreen from "../screens/HomeScreens/MatchScreen";
 import EditProfileScreen from "../screens/ProfileScreens/EditProfileScreen";
 import SubscriptionScreen from "../screens/ProfileScreens/SubscriptionScreen";
 import SettingScreen from "../screens/ProfileScreens/SettingScreen";
+import BlockedUsersScreen from "../screens/ProfileScreens/BlockedUsersScreen";
 import TakingScreen from "../screens/ChatScreens/TakingScreen";
 import ReportScreen from "../screens/ProfileScreens/ReportScreen";
 import ReportCommonScreen from "../screens/ProfileScreens/ReportCommonScreen";
@@ -125,6 +126,7 @@ const MyAuthLoadingStack = () => (
     <Stack.Screen name={routes.NAVIAGATION_PROFILE_PREVIEW_NEW_SCREEN} component={ProfilePreviewNew} />
     <Stack.Screen name={routes.NAVIGATION_SUBSCRIPTION_SCREEN} component={SubscriptionScreen} />
     <Stack.Screen name={routes.NAVIGATION_SETTING_SCREEN} component={SettingScreen} />
+    <Stack.Screen name={routes.NAVIGATION_BLOCKED_USERS_SCREEN} component={BlockedUsersScreen} />
     <Stack.Screen name={routes.NAVIGATION_TAKING_SCREEN} component={TakingScreen} />
     <Stack.Screen name={routes.NAVIGATION_ALL_MATCHES_SCREEN} component={AllMatchesScreen} />
     <Stack.Screen name={routes.NAVIGATION_BOT_CHAT_SCREEN} component={BotChatScreen} />

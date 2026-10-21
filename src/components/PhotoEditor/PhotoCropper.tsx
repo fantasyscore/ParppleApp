@@ -109,7 +109,14 @@ const PhotoCropper = forwardRef<PhotoCropperHandle, PhotoCropperProps>(
             )
           );
           const height = Math.round(width / PHOTO_ASPECT_RATIO);
-          const uri = await captureRef(frameRef, { format: "jpg", quality: 0.92, width, height });
+          // iOS renders captures at the device scale (2-3x), so ask in points to get `width` x `height` pixels
+          const outputScale = Platform.OS === "ios" ? PixelRatio.get() : 1;
+          const uri = await captureRef(frameRef, {
+            format: "jpg",
+            quality: 0.92,
+            width: width / outputScale,
+            height: height / outputScale,
+          });
           return Platform.OS === "android" && !uri.startsWith("file://") ? `file://${uri}` : uri;
         },
       }),
