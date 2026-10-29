@@ -5,6 +5,7 @@ import { ForceUpdateService } from "../services/ForceUpdateService";
 import { initializeAnalytics } from "../services/analyticsService";
 import { recoverPurchasesOnStartup } from "../services/purchaseRecoveryService";
 import { enableScreenSecurity } from "../utils/ScreenSecurity";
+import { getSnapDevice } from "../services/snapDeviceService";
 
 /** One-time work when the app process starts. Each step is independent and must never block the UI. */
 export function useAppStartup() {
@@ -17,6 +18,8 @@ export function useAppStartup() {
       initializeAnalytics().catch(() => {});
       ForceUpdateService.checkAndEnforceUpdate();
       recoverPurchasesOnStartup().catch(() => {});
+      // Debug builds only: shows the snapDevice object sent with sign-up and purchase APIs
+      if (__DEV__) getSnapDevice().then(device => console.log("[SnapDevice]", JSON.stringify(device)));
     });
     return () => handle.cancel();
   }, []);

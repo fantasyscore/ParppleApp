@@ -132,11 +132,15 @@ const CardGallery = ({ item, photoField, isLocked, onOpenGallery }: Pick<Profile
   const photos = photosOf(item, photoField);
   if (!photos.length) {
     return (
-      <ImageBackground source={chatPurchaseColour} tintColor="#555359" resizeMode="stretch" style={styles.bioOnlyCard}>
-        <AppText style={styles.bioOnlyText} color={WHITE} type={TWELVE} weight={SCHEHERAZADE_BOLD}>
+       <TouchableOpacityView
+        activeOpacity={1}
+        onPress={isLocked ? goToSubscription : undefined}
+        style={[styles.galleryItem, styles.bioTile]}
+      >
+        <AppText style={styles.bioTileText} color={WHITE} type={TWELVE} weight={SCHEHERAZADE_BOLD}>
           {item.bio}
         </AppText>
-      </ImageBackground>
+      </TouchableOpacityView>
     );
   }
 

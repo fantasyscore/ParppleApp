@@ -123,6 +123,6 @@ const styles = StyleSheet.create({
     height: metrics.hp2_22,
   },
   label: {
-    marginTop: -metrics.hp0_5,
+    // marginTop: -metrics.hp0_5,
   },
 });

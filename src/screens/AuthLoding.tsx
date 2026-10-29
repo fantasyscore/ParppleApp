@@ -3,7 +3,7 @@ import { useDispatch } from "react-redux";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { USER_TOKEN_KEY } from "../helper/Constants";
 import { appOperation } from "../appOperation";
-import { loadSessionData } from "../actions/authActions";
+import { isSessionExpiredError, loadSessionData } from "../actions/authActions";
 import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_WELCOME_SCREEN } from "../navigation/routes";
 import { ActivityIndicator, ImageBackground, Text, TouchableOpacity, View, StyleSheet } from "react-native";
@@ -13,6 +13,7 @@ import { config } from "../config/config";
 import { newColor } from "../theme/colors";
 import { INTER_MEDIUM } from "../common/AppText";
 import { splashImage } from "../helper/ImageAssets";
+import { logLogin } from "../services/analyticsService";
 
 const REACHABILITY_TIMEOUT_MS = 10000;
 const NAVIGATION_READY_POLL_MS = 25;
@@ -137,8 +138,15 @@ const AuthLoding = () => {
       if (token) {
         // Make sure requests carry the token even if the startup hook has not applied it yet
         appOperation.setCustomerToken(token);
-        // Fetching the feed also moves the user into the main tabs
-        dispatch(loadSessionData());
+        // A returning user who is already signed in never goes through the login screen, so without this
+        // the `login` event only counted fresh logins
+        logLogin('session_restore').catch(() => {});
+        // Fetching the feed also moves the user into the main tabs. If it fails for any reason other than an
+        // expired session (which goes to Welcome), stay here and offer Retry instead of a spinner forever.
+        const result: any = await dispatch(loadSessionData());
+        if (result?.error && !isSessionExpiredError(result.error)) {
+          setLoadingState('error');
+        }
       } else {
         goToWelcome();
       }

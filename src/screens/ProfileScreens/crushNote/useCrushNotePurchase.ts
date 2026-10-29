@@ -7,6 +7,7 @@ import { addRecoveredTransactionIds, getAlreadyRecoveredTransactionIds } from ".
 import { getProfile, iosPucrchesAPIIs, verifyconsumableitemsAPI } from "../../../actions/authActions";
 import { PaymentStage } from "../../../components/Payment/PaymentStatusModal";
 import { buildChatPacks } from "./chatPacks";
+import { logCustomEvent } from "../../../services/analyticsService";
 
 // One-time Product SKUs
 const PRODUCT_SKUS = Platform.select({
@@ -170,6 +171,7 @@ export function useCrushNotePurchase() {
     const productId = selectedProduct.productId || selectedProduct.id;
     if (!productId) return;
 
+    logCustomEvent('purchase_click', { type: 'crush_note', product_id: String(productId) });
     try {
       setProcessing(String(productId));
       purchaseInitiatedRef.current = true;

@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, View, TouchableOpacity, StatusBar, ImageBackground } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, withSpring, withSequence, withRepeat } from 'react-native-reanimated';
-import { dummyfemaleProfile, dummyMaleProfile, matchbackground, matchText, seeMoreBackground } from '../../helper/ImageAssets';
+import { matchbackground, matchText, seeMoreBackground } from '../../helper/ImageAssets';
+import { dummyProfileFor, profilePhotoUrl } from '../../helper/profileImage';
 import metrics from '../../assets/Metrics';
 import { AppText, EIGHTEEN, INTER_MEDIUM, SCHEHERAZADE_BOLD, SIXTEEN, WHITE } from '../../common/AppText';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
@@ -43,6 +44,16 @@ const createGlowingHeartAnimation = (delay: number, startY: number, finalY: numb
     });
 
     return animatedStyle;
+};
+
+/**
+ * Photo for one of the two matched users: their first photo, otherwise the dummy image for their own gender
+ * (a man without photos must not show the female dummy). `profilePicture` may be missing, an array or one object.
+ * `fallbackGender` only applies when the server sent no gender.
+ */
+const matchPhotoSource = (user: any, fallbackGender: "male" | "female") => {
+    const url = profilePhotoUrl(user);
+    return url ? { uri: url } : dummyProfileFor(user?.gender ?? fallbackGender);
 };
 
 const MatchScreen = ({ matchData, setMatchVisible }: any) => {
@@ -96,7 +107,7 @@ const MatchScreen = ({ matchData, setMatchVisible }: any) => {
     return (
         <AppSafeAreaView>
             <ImageBackground source={matchbackground} resizeMode='cover' style={styles.container}>
-                <StatusBar barStyle="light-content" backgroundColor="#A020F0" />
+                <StatusBar barStyle="light-content" />
                 {/* <Animated.Image source={heartEight} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp17, left: metrics.hp10, width: metrics.hp4, height: metrics.hp4 }, heartEightAnim]} />
                 <Animated.Image source={heartTwo} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp20, left: metrics.hp15, width: metrics.hp5, height: metrics.hp5 }, heartTwoAnim]} />
                 <Animated.Image source={heartSeven} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp14, left: metrics.hp25, width: metrics.hp6, height: metrics.hp6 }, heartSevenAnim]} />
@@ -106,11 +117,11 @@ const MatchScreen = ({ matchData, setMatchVisible }: any) => {
                 <Animated.Image source={heartOne} resizeMode='contain' style={[styles.cascadingHeart, { top: metrics.hp15, right: metrics.hp20, width: metrics.hp7, height: metrics.hp7 }, heartOneAnim]} /> */}
                 <View style={styles.profilesWrapper}>
                     <Animated.Image
-                        source={matchData[0]?.profilePicture[0]?.url ? { uri: matchData[0]?.profilePicture[0]?.url } : matchData?.gender === "male"? dummyMaleProfile : dummyfemaleProfile}
+                        source={matchPhotoSource(matchData?.[0], "female")}
                         style={[styles.profileImage, animatedProfile1Style, styles.profile1Position]}
                     />
                     <Animated.Image
-                        source={matchData[1]?.profilePicture[0]?.url ? { uri: matchData[1]?.profilePicture[0]?.url } : matchData?.gender === "female"? dummyfemaleProfile : dummyMaleProfile}
+                        source={matchPhotoSource(matchData?.[1], "male")}
                         style={[styles.profileImage, animatedProfile2Style, styles.profile2Position]}
                     />
                     {/* <Animated.Image source={bigHeart} style={[styles.centralHeartWrapper, bigHeartAnim]} /> */}

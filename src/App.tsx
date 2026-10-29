@@ -26,7 +26,7 @@ const App = () => {
     <SafeAreaProvider>
       <KeyboardProvider statusBarTranslucent={true} navigationBarTranslucent={true}>
         <Provider store={store}>
-          <StatusBar hidden={false} translucent backgroundColor="transparent" barStyle="light-content" />
+          <StatusBar hidden={false} translucent barStyle="light-content" />
           <Navigator />
         </Provider>
       </KeyboardProvider>

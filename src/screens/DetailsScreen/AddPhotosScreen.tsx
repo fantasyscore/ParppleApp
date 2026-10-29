@@ -20,6 +20,7 @@ import OnboardingLogo from "../../components/Onboarding/OnboardingLogo";
 import OnboardingButton from "../../components/Onboarding/OnboardingButton";
 
 const SLOT_COUNT = 4;
+// Women need at least this many photos; men may add fewer or skip the step
 const MIN_PHOTOS = 2;
 
 interface PhotoSlot {
@@ -32,7 +33,10 @@ interface PhotoSlot {
 const emptySlot = (position: number): PhotoSlot => ({ id: String(position), image: "", imageId: "", loading: false });
 const createEmptySlots = () => Array.from({ length: SLOT_COUNT }, (_, index) => emptySlot(index + 1));
 
-/** Sign-up step: add 2-4 photos. Each photo goes through the shared crop / sticker / upload pipeline. */
+/**
+ * Sign-up step: add up to 4 photos (at least 2 for women; men can skip). Each photo goes through the shared
+ * crop / sticker / upload pipeline.
+ */
 const AddPhotoScreen = () => {
   const dispatch = useDispatch();
   const addProfileData = useSelector((state: any) => state?.auth?.addProfileData);
@@ -90,12 +94,20 @@ const AddPhotoScreen = () => {
     }
   };
 
+  const isMale = String(addProfileData?.gender ?? "").toLowerCase() === "male";
+  const minPhotos = isMale ? 0 : MIN_PHOTOS;
   const uploadedPhotos = photos.filter((photo) => photo.image !== "");
-  const remaining = Math.max(0, MIN_PHOTOS - uploadedPhotos.length);
+  const remaining = Math.max(0, minPhotos - uploadedPhotos.length);
+  const isUploading = photos.some((photo) => photo.loading);
 
   const onSubmit = () => {
     if (remaining > 0) {
       toastAlert.showToastError(`Please add ${remaining} more photo${remaining > 1 ? "s" : ""} to continue`);
+      return;
+    }
+    // A man can tap Skip while his first photo is still uploading; wait so it isn't lost
+    if (isMale && isUploading) {
+      toastAlert.showToastError("Please wait for the current upload to finish.");
       return;
     }
     dispatch(
@@ -163,12 +175,15 @@ const AddPhotoScreen = () => {
         contentContainerStyle={styles.listContent}
         columnWrapperStyle={styles.listColumns}
       />
-      <AppText style={styles.minimumText} color={RED} weight={INTER_SEMI_BOLD} type={THIRTEEN}>
-        Minimum {MIN_PHOTOS} photos are required
-      </AppText>
+      {!isMale && (
+        <AppText style={styles.minimumText} color={RED} weight={INTER_SEMI_BOLD} type={THIRTEEN}>
+          Minimum {MIN_PHOTOS} photos are required
+        </AppText>
+      )}
       {remaining === 0 ? (
         <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
-          <OnboardingButton label="Next" onPress={onSubmit} activeOpacity={1} />
+          {/* Men without photos skip the step; the same button continues once they have added some */}
+          <OnboardingButton label={uploadedPhotos.length === 0 ? "Skip" : "Next"} onPress={onSubmit} activeOpacity={1} />
         </ImageBackground>
       ) : null}
       {editorVisible && <PhotoEditorModal {...editorProps} />}

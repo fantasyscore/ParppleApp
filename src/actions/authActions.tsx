@@ -7,7 +7,7 @@ import { NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_CHATS_SCREEN, NAVIGATION_GANDER
 import { toastAlert } from "./UploadImageActions";
 import Toast from "react-native-toast-message";
 import { chatHistoryDetails, matchChatDetails, setAttributes, setDiscoverData, setGetProfile, setLikeByOther, setLikeYou, setListProfiles, removeUserFromProfileLists, setFilterFeed, setBlockedUsers, removeBlockedUser, restoreBlockedUser, blockedUserIdOf, setNewMatches, setOtherUserProfile, setRecentMatches, setTurnOnData, setViewByOhter, setViewYou } from "../slices/loginServices/authSlice";
-import { logLogin, logSignUp, setAnalyticsUserId } from "../services/analyticsService";
+import { logCustomEvent, logLogin, logSignUp, setAnalyticsUserId } from "../services/analyticsService";
 
 /**
  * Loads everything the signed-in app needs: profile, discovery feed, matches, likes, views and
@@ -16,7 +16,7 @@ import { logLogin, logSignUp, setAnalyticsUserId } from "../services/analyticsSe
  */
 export const loadSessionData: any = () => (dispatch: any) => {
     // The feed and the profile decide what the first screen shows (and the feed moves the user into the tabs)
-    dispatch(listProfiles());
+    const feed = dispatch(listProfiles());
     dispatch(getProfile(true));
     // Everything else only fills badges and the other tabs: start it once the screen transition has finished so
     // its store updates and re-renders don't compete with the animation.
@@ -30,7 +30,12 @@ export const loadSessionData: any = () => (dispatch: any) => {
         dispatch(youView());
         dispatch(turnOn({}));
     });
+    // Resolves with the feed result so the caller can tell whether the user reached the main tabs
+    return feed;
 };
+
+/** The server rejected the saved token: the user has to sign in again. */
+export const isSessionExpiredError = (error: any) => error?.code === 401 || error?.code === 403;
 export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.guest.login(data);
@@ -58,13 +63,12 @@ export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) =
             }
             return true;
         } else {
-            console.log("i am here")
-            // toastAlert.showToastError(response.message);
+            toastAlert.showToastError(response?.message || "Login failed. Please try again.");
             return false;
         }
     } catch (error: any) {
         console.log(error, "errorerrorerrorerrorerror")
-        // toastAlert.showToastError(error);
+        toastAlert.showToastError(error?.message || "Login failed. Please try again.");
         return false;
     }
 };
@@ -120,11 +124,12 @@ export const addProfile: any = (data: any) => async (dispatch: any) => {
         }
         return response;
     } catch (error: any) {
-        // Toast.show({
-        //     type: "error",
-        //     text2: "Unable to save your profile. Please try again.",
-        // });
-        return { statusCode: 500, message: String(error ?? "") };
+        // Non-2xx responses (e.g. a 400 validation error) arrive here, not in the else branch above
+        Toast.show({
+            type: "error",
+            text2: error?.message || "Unable to save your profile. Please try again.",
+        });
+        return { statusCode: error?.code || 500, message: String(error?.message ?? error ?? "") };
     }
 };
 export const listProfiles: any = (navigate: any, skip?: number, limit?: number, merge?: boolean, filterData?: any) => async (dispatch: any, getState: any) => {
@@ -175,8 +180,13 @@ export const listProfiles: any = (navigate: any, skip?: number, limit?: number, 
         }
         return { data: [], newProfiles: [], mergedProfiles: [] };
     } catch (error: any) {
-        NavigationService.navigate(NAVIGATION_WELCOME_SCREEN);
-        // toastAlert.showToastError(error);
+        // Only an expired/rejected session goes back to Welcome. A timeout, a dropped network or a server error
+        // keeps the user where they are: they are still signed in.
+        if (isSessionExpiredError(error)) {
+            NavigationService.navigate(NAVIGATION_WELCOME_SCREEN);
+        } else {
+            toastAlert.showToastError(error?.message || "Couldn't load profiles. Please try again.");
+        }
         return { data: [], newProfiles: [], mergedProfiles: [], error };
     } finally {
         (listProfiles as any)._inFlight = false;
@@ -226,6 +236,7 @@ export const swipeLikeDisLike: any = (data: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.swipeLikeDisLikeAPI(data);
         if (response?.statusCode == 200) {
+            logCustomEvent('profile_swipe', { action: String(data?.type ?? '') });
         }
     } catch (error: any) {
         // toastAlert.showToastError(error);

@@ -11,6 +11,7 @@ import { benifitsIconNew, BottomLayer, closeNewWhiteIcon, legalBackgroundSettin,
 import NavigationService from "../../navigation/NavigationService";
 import PaymentStatusModal from "../../components/Payment/PaymentStatusModal";
 import { useSubscriptionPurchase } from "./subscription/useSubscriptionPurchase";
+import { logCustomEvent } from "../../services/analyticsService";
 
 const BENEFITS = [
   { title: "Unlimites Likes", description: "Unlimited freedom to like and connect" },
@@ -36,7 +37,10 @@ const SubscriptionScreen = ({ route }: any) => {
   const tierPlans = plans.filter((plan) => plan.tier === selectedTier).sort((a, b) => a.periodOrder - b.periodOrder);
   const selectedPlan = tierPlans[selectedPlanIndex];
 
-  const onBuyPress = () => startPurchase(selectedPlan);
+  const onBuyPress = () => {
+    logCustomEvent('purchase_click', { type: 'subscription', tier: String(selectedTier), product_id: String(selectedPlan?.id ?? '') });
+    startPurchase(selectedPlan);
+  };
 
   const hero = (
     <ImageBackground source={purchaseImageNew} resizeMode="stretch" style={styles.hero}>

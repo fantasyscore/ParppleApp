@@ -33,6 +33,19 @@ export const requestLocationPermission = async (): Promise<boolean> => {
   return Object.values(statuses).some((s) => s === RESULTS.GRANTED);
 };
 
+// Geocoding and the IP fallback are best-effort extras: on a slow network give up instead of blocking sign-up
+const LOOKUP_TIMEOUT_MS = 10000;
+
+const fetchWithTimeout = async (url: string) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), LOOKUP_TIMEOUT_MS);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
 export interface LocationPayload {
   coordinates: { long: number | string; lat: number | string };
   city: string;
@@ -81,7 +94,7 @@ const getPosition = async (): Promise<GeoPosition> => {
 
 export const reverseGeocode = async (latitude: number, longitude: number) => {
   console.log("[Location] Reverse geocoding started for", latitude, longitude);
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GEOCODE_API_KEY}`
   );
 
@@ -127,7 +140,7 @@ export const fetchLocationPayload = async (): Promise<LocationPayload> => {
 export const fetchIpLocationPayload = async (): Promise<LocationPayload> => {
   console.log("[Location] Starting IP location fallback fetch");
   try {
-    const response = await fetch("https://ipapi.co/json/");
+    const response = await fetchWithTimeout("https://ipapi.co/json/");
     const data = await response.json();
     
     if (data.error) {

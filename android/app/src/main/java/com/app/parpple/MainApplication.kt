@@ -26,6 +26,7 @@ class MainApplication : Application(), ReactApplication {
               // add(MyReactNativePackage())
               add(FaceLivenessPackage())
               add(InAppUpdatePackage())
+              add(AdvertisingIdPackage())
             }
 
         override fun getJSMainModuleName(): String = "index"

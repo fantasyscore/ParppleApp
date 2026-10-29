@@ -1,6 +1,7 @@
 
 import { AppOperation } from "./../../index";
 import { CUSTOMER_TYPE } from "../../types";
+import { withSnapDevice } from "../../../services/snapDeviceService";
 
 export default (appOperation: AppOperation) => ({
   addProfileAPI: (data: any) =>
@@ -47,10 +48,11 @@ export default (appOperation: AppOperation) => ({
     appOperation.post(`chat/conversation?page=${params?.page}&limit=${params?.limit}`, data, CUSTOMER_TYPE),
   loadChatMessagesAPI: (params: any, data: any) =>
     appOperation.post(`chat/conversation?page=${params?.page}&limit=${params?.limit}`, data, CUSTOMER_TYPE),
-  subscriptionverifyAPI: (data: any) =>
-    appOperation.post(`subscription/verify`, data, CUSTOMER_TYPE),
-  verifyconsumableAPI: (data: any) =>
-    appOperation.post(`api/purchases/google/verify-consumable`, data, CUSTOMER_TYPE),
+  // snapDevice: device data the backend forwards to Snap as the PURCHASE event
+  subscriptionverifyAPI: async (data: any) =>
+    appOperation.post(`subscription/verify`, await withSnapDevice(data), CUSTOMER_TYPE),
+  verifyconsumableAPI: async (data: any) =>
+    appOperation.post(`api/purchases/google/verify-consumable`, await withSnapDevice(data), CUSTOMER_TYPE),
   recoverPurchaseAPI: (data: any) =>
     appOperation.post(`api/purchases/google/recover`, data, CUSTOMER_TYPE),
   crushnotesSenderAPI: (data: any) =>

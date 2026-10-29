@@ -1,10 +1,13 @@
 package com.app.parpple
 
 import android.content.Context
+import android.graphics.Color
 import android.content.res.Configuration
 import android.view.WindowManager
 import android.os.Bundle
 import android.view.View
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatDelegate
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -29,16 +32,13 @@ class MainActivity : ReactActivity() {
         WindowManager.LayoutParams.FLAG_SECURE
     )
 
-    // Make STATUS BAR transparent and allow content to draw behind it
-    window.statusBarColor = android.graphics.Color.TRANSPARENT
-    
-    // Make NAVIGATION BAR transparent to remove the bottom strip
-    window.navigationBarColor = android.graphics.Color.TRANSPARENT
-    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-        window.isNavigationBarContrastEnforced = false
-    }
+    // Draw behind transparent status and navigation bars with light icons on every Android version.
+    // Replaces the deprecated window.statusBarColor / navigationBarColor setters flagged by Play Console.
+    enableEdgeToEdge(
+        statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+        navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT)
+    )
 
-    WindowCompat.setDecorFitsSystemWindows(window, false)
     val controller = WindowCompat.getInsetsController(window, window.decorView)
     controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
   }

@@ -3,7 +3,8 @@ import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { ActivityIndicator, FlatList, ImageBackground, InteractionManager, Platform, StyleSheet, View } from "react-native";
 import metrics from "../../assets/Metrics";
 import { colors, newColor } from "../../theme/colors";
-import { ChatSearchIcon, dummyfemaleProfile, dummyMaleProfile, HomeBackground, } from "../../helper/ImageAssets";
+import { ChatSearchIcon, HomeBackground, } from "../../helper/ImageAssets";
+import { dummyProfileFor, profileImageSource, profilePhotoUrl } from "../../helper/profileImage";
 import { AppText, BLACK, FORTEEN, INTER_BOLD, INTER_MEDIUM, INTER_REGULAR, INTER_SEMI_BOLD, LIGHT_BLACK, OPECITY, SIXTEEN, TEN, TWELVE, WHITE } from "../../common/AppText";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
 import SearchContainer from "../../common/SearchContainer";
@@ -64,7 +65,7 @@ const ChatRow = memo(({ item, isBot, userId, showCrushBadge, onOpen }: { item: a
         <TouchableOpacityView onPress={handlePress} style={styles.chatListContainer}>
             <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
                 <PortraitAvatar
-                    source={isBot ? AppIcon : item?.profilePicture?.url ? { uri: item.profilePicture.url } : item.gender == "male" ? dummyMaleProfile : dummyfemaleProfile}
+                    source={isBot ? AppIcon : profileImageSource(item)}
                     style={styles.newMatchProfile}
                 />
                 {item.online && !isBot &&
@@ -132,7 +133,7 @@ const RecentMatchesStrip = memo(({ data, onOpenProfile, onOpenAll }: { data: any
             return (
                 <TouchableOpacityView onPress={onOpenAll} style={[styles.newmatchContainer, { marginLeft: metrics.hp2, marginRight: metrics.hp2 }]}>
                     <PortraitAvatar
-                        source={item?.avatarUrl ? { uri: item?.avatarUrl } : item?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile}
+                        source={item?.avatarUrl ? { uri: item?.avatarUrl } : dummyProfileFor(item?.gender)}
                         style={styles.newMatchProfile}
                     >
                         {item.online ?
@@ -154,7 +155,7 @@ const RecentMatchesStrip = memo(({ data, onOpenProfile, onOpenAll }: { data: any
                 marginLeft: data.length <= 3 ? metrics.hp2 : 0,
                 marginRight: data.length > 3 ? metrics.hp2 : 0
             }]}>
-                <PortraitAvatar source={item?.profilePicture?.url ? { uri: item?.profilePicture?.url } : item?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile} style={styles.newMatchProfile} />
+                <PortraitAvatar source={profileImageSource(item)} style={styles.newMatchProfile} />
                 <AppText style={{ marginTop: metrics.hp1, color: colors.white }} type={TWELVE} weight={INTER_SEMI_BOLD}>
                     {item.username ? item.username : item.name}
                 </AppText>
@@ -239,7 +240,7 @@ const ChatsScreen = () => {
             {
                 __type: "MORE",
                 remaining,
-                avatarUrl: fourth?.profilePicture?.url,
+                avatarUrl: profilePhotoUrl(fourth),
                 gender: fourth?.gender,
                 name: fourth?.name,
             },

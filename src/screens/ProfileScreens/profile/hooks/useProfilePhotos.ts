@@ -6,6 +6,7 @@ import { useLatest } from "../../../../hooks/useLatest";
 import { usePhotoEditorUpload, UploadedPhoto } from "../../../../components/PhotoEditor/usePhotoEditorUpload";
 
 const MAX_PHOTOS = 4;
+// Women must keep at least this many photos; men can delete down to none
 const MIN_PHOTOS = 2;
 
 export interface ProfilePhoto {
@@ -19,7 +20,7 @@ export interface ProfilePhoto {
  * The photos on the signed-in profile: mirrors `userData.gallery` locally so uploads and
  * deletions show immediately, and keeps the backend gallery (order + priority) in sync.
  */
-export function useProfilePhotos(gallery: any[] | undefined) {
+export function useProfilePhotos(gallery: any[] | undefined, gender?: string) {
   const dispatch = useDispatch();
   const [photos, setPhotos] = useState<ProfilePhoto[]>([]);
   const photosRef = useLatest(photos);
@@ -72,9 +73,10 @@ export function useProfilePhotos(gallery: any[] | undefined) {
   const deletePhoto = async (photo: ProfilePhoto) => {
     if (photo.loading) return;
 
+    const minPhotos = String(gender ?? "").toLowerCase() === "male" ? 0 : MIN_PHOTOS;
     const validCount = photosRef.current.filter((p) => p.image).length;
-    if (validCount <= MIN_PHOTOS && photo.image) {
-      toastAlert.showToastError("You must have at least 2 photos on your profile.");
+    if (validCount <= minPhotos && photo.image) {
+      toastAlert.showToastError(`You must have at least ${MIN_PHOTOS} photos on your profile.`);
       return;
     }
 

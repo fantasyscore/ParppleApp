@@ -3,6 +3,7 @@ apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "org.jetbrains.kotlin.plugin.compose"
 apply plugin: "com.facebook.react"
 apply plugin: "com.google.gms.google-services"
+apply plugin: "com.google.firebase.crashlytics"
 
 react {
     autolinkLibrariesWithApp()
@@ -43,8 +44,8 @@ android {
         }
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 82
-        versionName "1.1.0"
+        versionCode 83
+        versionName "1.1.1"
         missingDimensionStrategy 'react-native-capture-protection', 'base'
         missingDimensionStrategy 'store', 'play'
     }
@@ -86,6 +87,14 @@ android {
             signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
             shrinkResources true
+            // Bundle native debug symbols in the AAB so Play Console can symbolicate native crashes/ANRs
+            ndk {
+                debugSymbolLevel 'SYMBOL_TABLE'
+            }
+            // R8 mapping file is uploaded to Crashlytics automatically for minified builds
+            firebaseCrashlytics {
+                mappingFileUploadEnabled true
+            }
             proguardFiles getDefaultProguardFile(
                 "proguard-android-optimize.txt"
             ), "proguard-rules.pro"
@@ -116,6 +125,9 @@ dependencies {
     // Google Play In-App Updates
     implementation("com.google.android.play:app-update:2.1.0")
     implementation("com.google.android.play:app-update-ktx:2.1.0")
+
+    // Google Advertising ID (GAID) for Snap Conversions API attribution
+    implementation "com.google.android.gms:play-services-ads-identifier:18.2.0"
 
     if (react.hasProperty("hermesEnabled") && hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

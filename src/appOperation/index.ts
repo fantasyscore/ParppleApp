@@ -4,9 +4,20 @@ import customer from "./lib/customer";
 import { ADMIN_TYPE, CUSTOMER_TYPE } from "./types";
 import { config } from "../config/config";
 
-class ApiError extends Error {
-  constructor(m: string) {
+// A request that hangs (slow or dead network) must not keep a loader spinning forever; React Native's fetch has no
+// timeout of its own. Uploads carry photos, so they get longer.
+const REQUEST_TIMEOUT_MS = 30000;
+const UPLOAD_TIMEOUT_MS = 120000;
+const TIMEOUT_MESSAGE = "Request timed out. Please check your internet connection and try again.";
+const NETWORK_MESSAGE = "No internet connection. Please check your network and try again.";
+const FALLBACK_MESSAGE = "Something went wrong. Please try again.";
+
+export class ApiError extends Error {
+  /** HTTP status of the failed response; 0 when no response arrived (timeout or network failure) */
+  code: number;
+  constructor(m: string, code: number = 0) {
     super(m);
+    this.code = code;
   }
 }
 
@@ -97,7 +108,14 @@ export class AppOperation {
         bodyData = JSON.stringify(data);
       }
 
-      fetch(uri, { method, headers, body: bodyData })
+      const controller = new AbortController();
+      let timedOut = false;
+      const timeoutId = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, data instanceof FormData ? UPLOAD_TIMEOUT_MS : REQUEST_TIMEOUT_MS);
+
+      fetch(uri, { method, headers, body: bodyData, signal: controller.signal })
         .then((response) => {
           let status = response.status;
           if (response.ok) {
@@ -120,10 +138,16 @@ export class AppOperation {
         })
         .catch((error) => {
           // console.log({ error });
-
+          const status = typeof error?.code === "number" ? error.code : 0;
+          if (status === 0) {
+            // No HTTP response at all: either our timeout fired or the network request itself failed
+            reject(new ApiError(timedOut ? TIMEOUT_MESSAGE : NETWORK_MESSAGE, 0));
+            return;
+          }
           const customError = this.getErrorMessageForResponse(error);
-          reject(new ApiError(customError));
-        });
+          reject(new ApiError(customError || FALLBACK_MESSAGE, status));
+        })
+        .finally(() => clearTimeout(timeoutId));
     });
   }
 

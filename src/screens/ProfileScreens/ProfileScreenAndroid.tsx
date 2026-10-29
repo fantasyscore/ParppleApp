@@ -35,7 +35,7 @@ const ProfileScreenAndroid = () => {
   const [verifyVisible, setVerifyVisible] = useState(false);
 
   const publish = usePublishToggle(userData);
-  const photos = useProfilePhotos(userData?.gallery);
+  const photos = useProfilePhotos(userData?.gallery, userData?.gender);
   const turnOns = useTurnOnSelection(userData?.turnOns, isFocused);
   const faceVerification = useFaceVerification();
   const { reset: resetFaceVerification } = faceVerification;

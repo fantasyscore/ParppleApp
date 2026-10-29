@@ -26,6 +26,7 @@
     "@react-native-firebase/analytics": "23.7.0",
     "@react-native-firebase/app": "^23.7.0",
     "@react-native-firebase/auth": "^23.5.0",
+    "@react-native-firebase/crashlytics": "23.8.8",
     "@react-native-firebase/messaging": "^23.7.0",
     "@react-native-google-signin/google-signin": "^16.0.0",
     "@react-native-ml-kit/face-detection": "^2.0.1",

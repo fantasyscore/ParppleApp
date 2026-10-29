@@ -6,6 +6,7 @@ import { appleAuth } from "@invertase/react-native-apple-authentication";
 import { useDispatch } from "react-redux";
 import { userLogin } from "../../../actions/authActions";
 import { setEmailAuth } from "../../../slices/loginServices/authSlice";
+import { toastAlert } from "../../../actions/UploadImageActions";
 import { useFcmToken } from "./useFcmToken";
 
 const GOOGLE_WEB_CLIENT_ID = "316625885811-s7ak9u8n13up5egaqa3l07hdi7i8sau1.apps.googleusercontent.com";
@@ -16,11 +17,8 @@ const GOOGLE_WEB_CLIENT_ID = "316625885811-s7ak9u8n13up5egaqa3l07hdi7i8sau1.apps
  */
 const LOADER_SAFETY_TIMEOUT_MS = 5000;
 
-const SIGN_IN_ABORTED_CODES = [
-  statusCodes.SIGN_IN_CANCELLED,
-  statusCodes.IN_PROGRESS,
-  statusCodes.PLAY_SERVICES_NOT_AVAILABLE,
-];
+// The user closed the account chooser, or a sign-in is already running: nothing to tell them
+const SIGN_IN_ABORTED_CODES = [statusCodes.SIGN_IN_CANCELLED, statusCodes.IN_PROGRESS];
 
 /**
  * Every way of signing in from the Welcome screen (Google, email/password,
@@ -75,17 +73,25 @@ export function useLoginFlow() {
 
       dispatch(setEmailAuth(signInResult));
       startLoading();
-      // Backend login and Firebase sign-in run in parallel; the loader covers both.
+      // Backend login and Firebase sign-in run in parallel; the loader covers both. Only the backend decides
+      // whether the login worked, so a Firebase failure must not turn an accepted login into an error.
       const [accepted] = await Promise.all([
         loginWithIdToken(idToken),
-        signInWithCredential(getAuth(), GoogleAuthProvider.credential(idToken)),
+        signInWithCredential(getAuth(), GoogleAuthProvider.credential(idToken)).catch((error) =>
+          console.log("[Login] Firebase sign-in failed:", error)
+        ),
       ]);
       if (accepted) keepLoadingUntilNavigation();
       else stopLoading();
     } catch (error: any) {
       stopLoading();
-      // Cancelling or a missing Play Services dialog is not an error worth logging
-      if (!SIGN_IN_ABORTED_CODES.includes(error?.code)) console.log("[Login] Google sign-in failed:", error);
+      if (SIGN_IN_ABORTED_CODES.includes(error?.code)) return;
+      console.log("[Login] Google sign-in failed:", error);
+      toastAlert.showToastError(
+        error?.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE
+          ? "Google Play Services is not available on this device."
+          : "Google sign-in failed. Please try again."
+      );
     }
   }, [dispatch, startLoading, stopLoading, keepLoadingUntilNavigation, loginWithIdToken]);
 
@@ -128,6 +134,7 @@ export function useLoginFlow() {
       });
       if (!response.identityToken) {
         console.warn("[Apple Sign-In] No identity token received");
+        toastAlert.showToastError("Apple sign-in failed. Please try again.");
         return;
       }
       dispatch(setEmailAuth(response));
@@ -143,6 +150,7 @@ export function useLoginFlow() {
       // The user closing the Apple sheet is not an error
       if (error?.code === "ERR_REQUEST_CANCELED" || error?.code === 1001 || error?.code === "1001") return;
       console.warn("[Apple Sign-In] Error:", error?.message ?? error);
+      toastAlert.showToastError("Apple sign-in failed. Please try again.");
     }
   }, [dispatch, fcmToken, startLoading, stopLoading, keepLoadingUntilNavigation]);
 

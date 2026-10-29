@@ -18,7 +18,6 @@ const AppSafeAreaView = ({
     useCallback(() => {
       if (Platform.OS === 'android' && !hasConfiguredStatusBarRef.current) {
         hasConfiguredStatusBarRef.current = true;
-        StatusBar.setBackgroundColor('transparent');
         StatusBar.setTranslucent(true);
       }
     }, [])
@@ -52,7 +51,6 @@ const AppSafeAreaView = ({
           transition. The final rendered state is identical. */}
       <StatusBar
         translucent
-        backgroundColor={'transparent'}
         barStyle="light-content"
       />
       {children}

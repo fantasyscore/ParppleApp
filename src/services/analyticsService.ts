@@ -191,6 +191,15 @@ export const logSignUp = async (method: string): Promise<void> => {
 };
 
 /**
+ * Log one of our own events (onboarding steps, feature use, purchase clicks). Never throws.
+ */
+export const logCustomEvent = (name: string, params?: Record<string, string | number | boolean>): void => {
+  analytics()
+    .logEvent(name, params)
+    .catch((error: any) => console.warn(`[AnalyticsService] logEvent ${name} failed:`, error));
+};
+
+/**
  * Associate analytics events with the authenticated user.
  */
 export const setAnalyticsUserId = async (userId: string | null | undefined): Promise<void> => {

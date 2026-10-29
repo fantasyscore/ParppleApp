@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { AppState, AppStateStatus, ImageBackground, InteractionManager, Platform, ScrollView } from 'react-native';
 import { Chat, Bubble, Time } from '@kesha-antonov/react-native-chat';
-import { addPhotoIcon, gallaryICon, blockModalImage, chatBackground, dummyfemaleProfile, dummyMaleProfile, emptyTextImage, helloHand, timeShowNewBackground, unmatchModalImage } from '../../helper/ImageAssets';
+import { addPhotoIcon, gallaryICon, blockModalImage, chatBackground, dummyMaleProfile, emptyTextImage, helloHand, timeShowNewBackground, unmatchModalImage } from '../../helper/ImageAssets';
+import { dummyProfileFor, profileImageSource, profilePhotoUrl } from '../../helper/profileImage';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 import ChatHeader from '../../common/ChatHeader';
 import { StyleSheet, View, Dimensions, Modal, Animated } from 'react-native';
@@ -28,6 +29,7 @@ import { clearActiveChat, setActiveChatMatchId } from '../../slices/inAppNotific
 import { chatHistoryDetails, setLastMessageOverride, setNewMatches } from '../../slices/loginServices/authSlice';
 import { clearNotificationsByMatchId } from '../../notifications/pushNotifications';
 import { toastAlert } from '../../actions/UploadImageActions';
+import { logCustomEvent } from '../../services/analyticsService';
 import SeeOtherUserProfile from './SeeOtherUserProfile';
 import FullScreenImage from '../HomeScreens/FullScreenImage'
 import KeyboardInsetView from './KeyboardInsetView';
@@ -104,6 +106,12 @@ const buildOutgoingMessage = (text: string): ChatMessage => ({
         avatar: dummyMaleProfile,
     },
 });
+
+/** Message avatar for the signed-in user: their first photo URL, otherwise the dummy image for their gender */
+const myAvatar = (user: any) => profilePhotoUrl(user) || dummyProfileFor(user?.gender);
+/** Message avatar for the other person: photo from their full profile or the match entry, otherwise their gender's dummy */
+const otherAvatar = (profile: any, matchUser: any) =>
+    profilePhotoUrl(profile) || profilePhotoUrl(matchUser) || dummyProfileFor(matchUser?.gender ?? profile?.gender);
 
 // Defined at module level so React keeps one component identity (and one running animation)
 // instead of remounting it on every TakingScreen render.
@@ -312,8 +320,8 @@ const TakingScreen = ({ route }: any) => {
             const messageId = item._id || item.messageId || item.id;
             const isMine = item.isMine === true || item.isMine === 'true';
             const avatar = isMine
-                ? (userData?.profilePicture?.[0]?.url || userData?.gallery?.[0]?.url || userData?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile)
-                : (otherUserProfile?.profilePicture?.[0]?.url || matchChatUserDetails?.profilePicture?.[0]?.url || matchChatUserDetails?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile);
+                ? myAvatar(userData)
+                : otherAvatar(otherUserProfile, matchChatUserDetails);
 
             const createdAt = parseCreatedAt(item);
             const isRead = item.isRead === true || item.isRead === 'true';
@@ -470,7 +478,7 @@ const TakingScreen = ({ route }: any) => {
                         user: {
                             _id: 'typing-indicator-user',
                             name: senderName,
-                            avatar: matchChatUserDetailsRef.current?.profilePicture?.[0]?.url || matchChatUserDetails?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile,
+                            avatar: otherAvatar(otherUserProfileRef.current, matchChatUserDetailsRef.current),
                         },
                     };
                     return Chat.append(prevMessages, [typingMessage]);
@@ -497,8 +505,8 @@ const TakingScreen = ({ route }: any) => {
 
                 const isMine = response.isMine === true || response.isMine === 'true';
                 const avatar = isMine
-                    ? (userDataRef.current?.profilePicture?.[0]?.url || userDataRef.current?.gallery?.[0]?.url || userDataRef.current?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile)
-                    : (otherUserProfileRef.current?.profilePicture?.[0]?.url || matchChatUserDetailsRef.current?.profilePicture?.[0]?.url || matchChatUserDetailsRef.current?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile);
+                    ? myAvatar(userDataRef.current)
+                    : otherAvatar(otherUserProfileRef.current, matchChatUserDetailsRef.current);
                 const createdAt = parseCreatedAt(response);
                 const messageId = response._id || response.messageId || response.id || Date.now() + Math.random();
                 const createdAtKey =
@@ -654,7 +662,33 @@ const TakingScreen = ({ route }: any) => {
         };
 
         socket.emit('send_message', payload);
-    }, [socket, matchChatUserDetails?.userId]);
+        logCustomEvent('message_sent', { type: messageType });
+
+        // Move this conversation to the top of the chats list now, while that screen is hidden behind this one. The
+        // server lists the newest conversation first, so otherwise the row visibly jumps up when the user goes back and
+        // the list refreshes. Incoming messages are reordered the same way by GlobalNotificationManager.
+        const matchId = matchChatUserDetails?.matchId;
+        const chats: any[] = (store.getState() as any)?.auth?.newMatches || [];
+        const index = chats.findIndex((chat: any) => chat.matchId === matchId);
+        if (index < 0) return;
+        const chat = chats[index];
+        // Only a text preview is known here; for photos the preview is filled in when the user leaves this chat
+        const promoted = messageType === 'text' ? {
+            ...chat,
+            lastMessage: {
+                ...(chat.lastMessage || {}),
+                // A crush note or photo that was the last message must not keep its label/badge
+                type: 'text',
+                messageType: 'text',
+                text: message,
+                message,
+                createdAt: new Date().toISOString(),
+                senderId: userDataRef.current?._id,
+            },
+        } : chat;
+        if (index === 0 && promoted === chat) return;
+        dispatch(setNewMatches([promoted, ...chats.slice(0, index), ...chats.slice(index + 1)]));
+    }, [socket, matchChatUserDetails?.userId, matchChatUserDetails?.matchId, store, dispatch]);
 
     // A viewed photo is gone from the chat, so the chat list must not keep showing the photo label as the last message:
     // it shows the newest message that is still visible instead (from me or from the other user), or none.
@@ -1003,7 +1037,7 @@ const TakingScreen = ({ route }: any) => {
         return (
             <TouchableOpacityView onPress={() => seeOtherProfile()}>
                 <PortraitAvatar
-                    source={matchChatUserDetails?.profilePicture?.url ? { uri: matchChatUserDetails?.profilePicture?.url } : matchChatUserDetails?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile}
+                    source={profileImageSource(matchChatUserDetails)}
                     style={{ width: AVATAR_SIZE, height: AVATAR_SIZE, borderRadius: AVATAR_SIZE / 2, marginBottom: metrics.hp1_5, backgroundColor: '#2A2A2D' }}
                 />
             </TouchableOpacityView>
@@ -1110,7 +1144,7 @@ const TakingScreen = ({ route }: any) => {
 
     // Props handed to the chat list are kept stable, so an unrelated state change never makes the whole list re-render
     const chatUser = useMemo(
-        () => ({ _id: USER_ID, name: 'Gurrent User', avatar: userData?.gender == "male" ? dummyMaleProfile : dummyfemaleProfile }),
+        () => ({ _id: USER_ID, name: 'Gurrent User', avatar: dummyProfileFor(userData?.gender) }),
         [userData?.gender]
     );
     const loadEarlierMessagesProps = useMemo(

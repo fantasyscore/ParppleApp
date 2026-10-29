@@ -107,7 +107,9 @@ const LocationScreen = () => {
       </View>
       <ImageBackground source={BottomLayer} resizeMode="stretch" style={[styles.bottomLayer]}>
         <AppText style={{ textAlign: "center", marginTop: metrics.hp1_2, marginHorizontal: metrics.hp3 }} type={ELEVEN} color={OPECITY} weight={INTER_MEDIUM}>
-          Want to find more people around you? Allow access to your location
+          {submitting
+            ? "Finding your location… this can take a few seconds."
+            : "Want to find more people around you? Allow access to your location"}
         </AppText>
         <OnboardingButton label="Continue" onPress={onContinue} loading={submitting} />
       </ImageBackground>
