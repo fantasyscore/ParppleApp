@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { ActivityIndicator, ImageBackground, Linking, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, ImageBackground, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { openWebPage, PARPPLE_LINKS } from "./WebPageScreen";
 import { colors, newColor } from "../../theme/colors";
 import { editButtonBackground, legalBackgroundSettin, emailNewIcon, privacyNewIcon, termsandConditionNewIcon, safetyCenterNewIcon, helpAndSupportNewIcon, ChatSearchIcon, rightGoNewIcon, blackIcon as blockUserNewIcon, deleteNewBackground, deleteNewIcon, BottomLayer, logOutnewIcon, applogo, childIcon } from "../../helper/ImageAssets";
 import metrics from "../../assets/Metrics";
@@ -17,7 +18,7 @@ import { getBlockedUsersAPI } from "../../actions/authActions";
 import NavigationService from "../../navigation/NavigationService";
 import { appOperation } from "../../appOperation";
 import NewHeader from "../../common/NewHeader";
-import { NAVIGATION_BLOCKED_USERS_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_BLOCKED_USERS_SCREEN, NAVIGATION_HELP_FEEDBACK_SCREEN } from "../../navigation/routes";
 
 type ConfirmAction = "logout" | "delete";
 
@@ -110,7 +111,7 @@ const SettingScreen = () => {
                 </AppText>
 
                 <ImageBackground source={legalBackgroundSettin} style={styles.legalCard} imageStyle={styles.cardImageStyle}>
-                    <TouchableOpacityView style={styles.legalRow} onPress={() => Linking.openURL("https://parpple.com/privacy_policy")}>
+                    <TouchableOpacityView style={styles.legalRow} onPress={() => openWebPage(PARPPLE_LINKS.privacy)}>
                         <View style={styles.rowContent}>
                             <FastImage source={privacyNewIcon} resizeMode="contain" style={styles.leftIcon} tintColor={WHITE} />
                             <AppText type={TWELVE} weight={INTER_MEDIUM} color={WHITE} style={styles.rowTitle}>
@@ -122,7 +123,7 @@ const SettingScreen = () => {
 
                     {/* <View style={styles.legalSeparator} /> */}
 
-                    <TouchableOpacityView style={styles.legalRow} onPress={() => Linking.openURL("https://parpple.com/terms_conditions")}>
+                    <TouchableOpacityView style={styles.legalRow} onPress={() => openWebPage(PARPPLE_LINKS.terms)}>
                         <View style={styles.rowContent}>
                             <FastImage source={termsandConditionNewIcon} resizeMode="contain" style={styles.leftIcon} tintColor={WHITE} />
                             <AppText type={TWELVE} weight={INTER_MEDIUM} color={WHITE} style={styles.rowTitle}>
@@ -134,7 +135,7 @@ const SettingScreen = () => {
 
                     {/* <View style={styles.legalSeparator} /> */}
 
-                    <TouchableOpacityView style={styles.legalRow} onPress={() => Linking.openURL("https://parpple.com/safety")}>
+                    <TouchableOpacityView style={styles.legalRow} onPress={() => openWebPage(PARPPLE_LINKS.safety)}>
                         <View style={styles.rowContent}>
                             <FastImage source={safetyCenterNewIcon} resizeMode="contain" style={styles.leftIcon} tintColor={WHITE} />
                             <AppText type={TWELVE} weight={INTER_MEDIUM} color={WHITE} style={styles.rowTitle}>
@@ -144,7 +145,7 @@ const SettingScreen = () => {
                         <FastImage source={rightGoNewIcon} resizeMode="contain" style={styles.rightArrowIcon} />
                     </TouchableOpacityView>
 
-                    <TouchableOpacityView style={styles.legalRow} onPress={() => Linking.openURL("https://parpple.com/child-safety")}>
+                    <TouchableOpacityView style={styles.legalRow} onPress={() => openWebPage(PARPPLE_LINKS.childSafety)}>
                         <View style={styles.rowContent}>
                             <FastImage source={childIcon} resizeMode="contain" style={styles.leftIcon} tintColor={WHITE} />
                             <AppText type={TWELVE} weight={INTER_MEDIUM} color={WHITE} style={styles.rowTitle}>
@@ -176,15 +177,13 @@ const SettingScreen = () => {
                     Contact Us
                 </AppText>
 
-                <TouchableOpacityView onPress={() => {
-                    // logMetaEvent('Contact');
-                    Linking.openURL("https://parpple.com/contact-us");
-                }}>
+                {/* Opens the in-app form: feedback and safety concerns must be sendable without leaving the app */}
+                <TouchableOpacityView onPress={() => NavigationService.navigate(NAVIGATION_HELP_FEEDBACK_SCREEN)}>
                     <ImageBackground source={ChatSearchIcon} style={styles.singleItemCard} imageStyle={styles.cardImageStyle}>
                         <View style={styles.rowContent}>
                             <FastImage source={helpAndSupportNewIcon} resizeMode="contain" style={[styles.leftIcon, { marginLeft: metrics.hp2 }]} tintColor={WHITE} />
                             <AppText type={TWELVE} weight={INTER_MEDIUM} color={WHITE} style={styles.rowTitle}>
-                                Help & Support
+                                Help & Feedback
                             </AppText>
                         </View>
                         <FastImage source={rightGoNewIcon} resizeMode="contain" style={[styles.rightArrowIcon, { marginRight: metrics.hp2 }]} />

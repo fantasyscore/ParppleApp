@@ -71,6 +71,9 @@ export default (appOperation: AppOperation) => ({
     appOperation.post(`api/crush-notes/action`, data, CUSTOMER_TYPE),
   deleteAccount: () =>
     appOperation.post(`dattingApp/users/delete-account`, {}, CUSTOMER_TYPE),
+  // Settings → Help & Feedback (in-app feedback / safety concerns, required by Play's Child Safety Standards policy)
+  submitFeedbackAPI: (data: { category: string; message: string; email?: string }) =>
+    appOperation.post(`api/feedback`, data, CUSTOMER_TYPE),
   reportUserAPI: (data: any) =>
     appOperation.post(`api/reports/reporteUser`, data, CUSTOMER_TYPE),
   iosPurchesAPI: (data:any) =>

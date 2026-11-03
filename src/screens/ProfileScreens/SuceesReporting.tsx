@@ -10,22 +10,37 @@ import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_CHATS_SCREEN } from "../../navigation/routes";
 import { newColor } from "../../theme/colors";
 
+const DEFAULT_TITLE = "Thank you for reporting.";
+const DEFAULT_MESSAGE =
+    "Our Trust & Safety team will review your report\nas soon as possible and take action if the user\nhas violated our guidelines.";
+
+/**
+ * Confirmation after a report. Also used by Settings → Help & Feedback, which passes its own `title`/`message` and
+ * `backOnDone` so Done returns to Settings.
+ */
 const SuceesReporting = ({ route }: any) => {
     const returnToOrigin = !!route?.params?.returnToOrigin;
+    const backOnDone = !!route?.params?.backOnDone;
+    const title = route?.params?.title ?? DEFAULT_TITLE;
+    const message = route?.params?.message ?? DEFAULT_MESSAGE;
     return (
         <AppSafeAreaView color={newColor.blackNew}>
             <View style={{ flex: 1 }}>
                 <FastImage source={rightSuccesIcon} resizeMode="cover" style={styles.icons} />
                 <AppText style={{ textAlign: "center" }} type={EIGHTEEN} weight={INTER_BOLD} color={WHITE}>
-                    Thank you for reporting.
+                    {title}
                 </AppText>
                 <AppText style={{ textAlign: "center", marginTop: metrics.hp1 }} type={TWELVE} weight={INTER_REGULAR} color={OPECITY_DARK}>
-                    Our Trust & Safety team will review your report{'\n'}as soon as possible and take action if the user{'\n'}has violated our guidelines.
+                    {message}
                 </AppText>
             </View>
             <View style={styles.buttonContainer}>
                 <TouchableOpacityView
                     onPress={() => {
+                        if (backOnDone) {
+                            NavigationService.goBack();
+                            return;
+                        }
                         if (returnToOrigin) {
                             // Back to the Home / Likes / Views screen the report was started from
                             NavigationService.popTo(NAVIGATION_BOTTOMTAB_SCREEN);

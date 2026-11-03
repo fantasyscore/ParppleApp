@@ -3,7 +3,7 @@ import { useDispatch } from "react-redux";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { USER_TOKEN_KEY } from "../helper/Constants";
 import { appOperation } from "../appOperation";
-import { isSessionExpiredError, loadSessionData } from "../actions/authActions";
+import { isConnectionError, loadSessionData } from "../actions/authActions";
 import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_WELCOME_SCREEN } from "../navigation/routes";
 import { ActivityIndicator, ImageBackground, Text, TouchableOpacity, View, StyleSheet } from "react-native";
@@ -141,11 +141,19 @@ const AuthLoding = () => {
         // A returning user who is already signed in never goes through the login screen, so without this
         // the `login` event only counted fresh logins
         logLogin('session_restore').catch(() => {});
-        // Fetching the feed also moves the user into the main tabs. If it fails for any reason other than an
-        // expired session (which goes to Welcome), stay here and offer Retry instead of a spinner forever.
+        // Fetching the feed also moves the user into the main tabs. If the server can't be reached, stay here and
+        // offer Retry. If it answers but refuses the session (expired token, or an account that never finished
+        // sign-up: the token is saved at login, the profile only on the Location screen), forget the token and
+        // start again from Welcome.
         const result: any = await dispatch(loadSessionData());
-        if (result?.error && !isSessionExpiredError(result.error)) {
-          setLoadingState('error');
+        if (result?.error) {
+          if (isConnectionError(result.error)) {
+            setLoadingState('error');
+          } else {
+            appOperation.setCustomerToken("");
+            await AsyncStorage.removeItem(USER_TOKEN_KEY).catch(() => {});
+            goToWelcome();
+          }
         }
       } else {
         goToWelcome();

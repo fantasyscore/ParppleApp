@@ -36,6 +36,12 @@ export const loadSessionData: any = () => (dispatch: any) => {
 
 /** The server rejected the saved token: the user has to sign in again. */
 export const isSessionExpiredError = (error: any) => error?.code === 401 || error?.code === 403;
+/**
+ * The server couldn't be reached (timeout, no internet) or a gateway in front of it is down (502/503/504): worth
+ * retrying, the session itself may be fine. Not plain 500: the backend also uses it for real refusals, e.g.
+ * "Your profile is not cleared" for an account that never finished sign-up.
+ */
+export const isConnectionError = (error: any) => !error?.code || [502, 503, 504].includes(error.code);
 export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.guest.login(data);
@@ -181,10 +187,11 @@ export const listProfiles: any = (navigate: any, skip?: number, limit?: number, 
         return { data: [], newProfiles: [], mergedProfiles: [] };
     } catch (error: any) {
         // Only an expired/rejected session goes back to Welcome. A timeout, a dropped network or a server error
-        // keeps the user where they are: they are still signed in.
+        // keeps the user where they are (they are still signed in) and says why. Other refusals (e.g. "Your profile
+        // is not cleared" for an account that never finished sign-up) are left to the caller, without a toast.
         if (isSessionExpiredError(error)) {
             NavigationService.navigate(NAVIGATION_WELCOME_SCREEN);
-        } else {
+        } else if (isConnectionError(error)) {
             toastAlert.showToastError(error?.message || "Couldn't load profiles. Please try again.");
         }
         return { data: [], newProfiles: [], mergedProfiles: [], error };

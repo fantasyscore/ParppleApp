@@ -1,5 +1,5 @@
 import React from "react";
-import { ImageBackground, Linking, Platform, StyleSheet, View } from "react-native";
+import { ImageBackground, Platform, StyleSheet, View } from "react-native";
 import FastImage from "react-native-fast-image";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import { AppText, BADSCRIPTREGALUR, BLACK, INTER_MEDIUM, SCHEHERAZADE_BOLD, SIXTEEN, THIRTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
@@ -12,6 +12,7 @@ import { useLoginFlow } from "./hooks/useLoginFlow";
 import { useReviewLogin } from "./hooks/useReviewLogin";
 import ReviewLoginOverlay from "./components/ReviewLoginOverlay";
 import LoginLoadingOverlay from "./components/LoginLoadingOverlay";
+import { openWebPage, PARPPLE_LINKS } from "../ProfileScreens/WebPageScreen";
 
 // iOS used to lift the panel by this much, leaving a strip of background under it. The panel now sits on the
 // bottom edge and is this much taller, so its content stays exactly where it was.
@@ -19,7 +20,6 @@ import LoginLoadingOverlay from "./components/LoginLoadingOverlay";
 const IS_IOS = Platform.OS === "ios";
 const IOS_PANEL_EXTENSION = IS_IOS ? metrics.hp5 + metrics.hp8_5 : 0;
 
-const TERMS_URL = "https://parpple.com/terms_conditions";
 
 const WelcomeScreen = () => {
   const login = useLoginFlow();
@@ -58,7 +58,7 @@ const WelcomeScreen = () => {
           </AppText>
           <AppText type={TWELVE} style={styles.termsText} color={WHITE}>
             By tapping Create Account or Sign In, you agree to our {"\n"}
-            <AppText type={TWELVE} onPress={() => Linking.openURL(TERMS_URL)} color={WHITE} style={styles.termsLink}>
+            <AppText type={TWELVE} onPress={() => openWebPage(PARPPLE_LINKS.terms)} color={WHITE} style={styles.termsLink}>
               Terms & Services{"\n"}
             </AppText>
           </AppText>

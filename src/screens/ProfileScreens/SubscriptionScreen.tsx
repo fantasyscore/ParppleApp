@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { ImageBackground, Linking, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { ImageBackground, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { openWebPage, PARPPLE_LINKS } from "./WebPageScreen";
 import FastImage from "react-native-fast-image";
 import LinearGradient from "react-native-linear-gradient";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
@@ -24,8 +25,6 @@ const BENEFITS = [
 const POPULAR_PLAN_INDEX = 1;
 
 // App Store guideline 3.1.2(c): auto-renewing subscriptions must show working Privacy Policy and Terms of Use links in the app
-const PRIVACY_URL = "https://parpple.com/privacy_policy";
-const TERMS_URL = "https://parpple.com/terms_conditions";
 const SUBSCRIPTION_TITLE = "Parpple Publish";
 
 const SubscriptionScreen = ({ route }: any) => {
@@ -139,11 +138,11 @@ const SubscriptionScreen = ({ route }: any) => {
                 {selectedPlan ? ` · ${selectedPlan.planOf} · ${selectedPlan.displayPrice}` : ""}
               </AppText>
               <AppText style={[styles.centered, styles.legalLinks]} color={WHITE} type={TWELVE} weight={INTER_MEDIUM}>
-                <AppText style={styles.legalLink} color={WHITE} type={TWELVE} weight={INTER_MEDIUM} onPress={() => Linking.openURL(PRIVACY_URL)}>
+                <AppText style={styles.legalLink} color={WHITE} type={TWELVE} weight={INTER_MEDIUM} onPress={() => openWebPage(PARPPLE_LINKS.privacy)}>
                   Privacy Policy
                 </AppText>
                 {"   |   "}
-                <AppText style={styles.legalLink} color={WHITE} type={TWELVE} weight={INTER_MEDIUM} onPress={() => Linking.openURL(TERMS_URL)}>
+                <AppText style={styles.legalLink} color={WHITE} type={TWELVE} weight={INTER_MEDIUM} onPress={() => openWebPage(PARPPLE_LINKS.terms)}>
                   Terms of Use (EULA)
                 </AppText>
               </AppText>
