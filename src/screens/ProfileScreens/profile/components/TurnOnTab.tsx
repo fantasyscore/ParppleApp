@@ -52,6 +52,8 @@ const TurnOnTab = ({ turnOns, selectedIds, onToggle }: TurnOnTabProps) => {
         renderItem={renderItem}
         keyExtractor={(item) => item._id.toString()}
         numColumns={2}
+        // The profile screen scrolls as a whole (so its tabs can stick to the top); this list only lays out the grid
+        scrollEnabled={false}
         contentContainerStyle={styles.listContent}
         columnWrapperStyle={styles.columns}
         showsVerticalScrollIndicator={false}

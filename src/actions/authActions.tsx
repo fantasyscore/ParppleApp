@@ -45,7 +45,8 @@ export const isConnectionError = (error: any) => !error?.code || [502, 503, 504]
 export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.guest.login(data);
-        console.log(response, "responseresponseresponse");
+        // Debug builds only: the response carries the login token
+        if (__DEV__) console.log("[Login API] auth/registerUser response:", JSON.stringify(response, null, 2));
 
         if (response?.statusCode == 200) {
             toastAlert.showToastError(response.message);
@@ -73,7 +74,7 @@ export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) =
             return false;
         }
     } catch (error: any) {
-        console.log(error, "errorerrorerrorerrorerror")
+        if (__DEV__) console.log("[Login API] auth/registerUser failed:", { code: error?.code, message: error?.message });
         toastAlert.showToastError(error?.message || "Login failed. Please try again.");
         return false;
     }

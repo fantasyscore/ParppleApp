@@ -30,22 +30,32 @@ interface ProfileHeaderProps {
   /** The profile is currently hidden (the publish button offers to publish it) */
   isHidden: boolean;
   onVerificationPress: () => void;
+  /** The nav bar is drawn by the screen, pinned above the scrolling content; here only its space is kept */
+  navBarPinned?: boolean;
 }
 
+/** The "Profile" bar: back, verification / publish state and settings */
+export const ProfileNavBar = ({ isHidden, onVerificationPress }: Pick<ProfileHeaderProps, "isHidden" | "onVerificationPress">) => (
+  <NewHeader
+    profile={"Profile"}
+    onPress={() => NavigationService.goBack()}
+    onPressTwo={() => NavigationService.navigate(NAVIGATION_SETTING_SCREEN)}
+    isPublishButton={isHidden}
+    onVerificationPress={onVerificationPress}
+  />
+);
+
 /** Top of the profile screen: nav bar, avatar + name, info chips and the Edit Profile button. */
-const ProfileHeader = ({ userData, isHidden, onVerificationPress }: ProfileHeaderProps) => {
+const ProfileHeader = ({ userData, isHidden, onVerificationPress, navBarPinned = false }: ProfileHeaderProps) => {
   const avatarUrl: string | undefined = userData?.gallery?.[0]?.url;
   const heightChip = <InfoChip icon={heightIconWhiteNew} text={`${userData?.height || ""} ft`} />;
 
   return (
     <AppSafeAreaView color="transparent" style={styles.safeArea}>
-      <NewHeader
-        profile={"Profile"}
-        onPress={() => NavigationService.goBack()}
-        onPressTwo={() => NavigationService.navigate(NAVIGATION_SETTING_SCREEN)}
-        isPublishButton={isHidden}
-        onVerificationPress={onVerificationPress}
-      />
+      {/* When pinned, an invisible copy keeps the layout exactly as before */}
+      <View style={navBarPinned ? styles.hiddenNavBar : undefined} pointerEvents={navBarPinned ? "none" : "auto"}>
+        <ProfileNavBar isHidden={isHidden} onVerificationPress={onVerificationPress} />
+      </View>
       <View style={styles.identityRow}>
         <TouchableOpacityView activeOpacity={1} style={styles.avatarArea}>
           <PortraitAvatar
@@ -93,6 +103,9 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "transparent",
+  },
+  hiddenNavBar: {
+    opacity: 0,
   },
   identityRow: {
     marginTop: metrics.hp2,

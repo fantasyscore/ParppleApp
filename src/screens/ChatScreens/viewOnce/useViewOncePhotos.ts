@@ -3,6 +3,7 @@ import { launchCamera, launchImageLibrary } from "react-native-image-picker";
 import { toastAlert } from "../../../actions/UploadImageActions";
 import { ensureCameraPermission } from "../../../hooks/useFaceVerification";
 import { enqueueOutgoingPhoto, useOutgoingPhotos } from "./outgoingPhotos";
+import { forgetSentPhoto, getSentPhotoUri } from "./sentPhotoCache";
 
 export type MediaStatus = "unopened" | "opened" | "expired";
 export type PhotoSource = "gallery" | "camera";
@@ -89,6 +90,7 @@ export function useViewOncePhotos({ socket, socketUrl, receiverId, matchKey, myU
           viewOnce: true,
           messageType: "image",
           mediaStatus: saved.mediaStatus || "unopened",
+          localUri: getSentPhotoUri(saved._id),
           user: { _id: myUserKey, name: "", avatar: null },
         },
         ...previous,
@@ -216,6 +218,7 @@ export function useViewOncePhotos({ socket, socketUrl, receiverId, matchKey, myU
       if (messageId === viewingIdRef.current) return;
       const id = String(messageId);
       dismissedPhotoIds.add(id);
+      forgetSentPhoto(id);
       onPhotoGoneRef.current?.(id);
       setMessages((previous) =>
         previous.flatMap((message) => {

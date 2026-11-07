@@ -1,5 +1,5 @@
 import React from "react";
-import { ImageBackground, Platform, StyleSheet, View } from "react-native";
+import { ImageBackground, LayoutChangeEvent, Platform, StyleSheet, View } from "react-native";
 import metrics from "../../../../assets/Metrics";
 import { AppText, SCHEHERAZADE_BOLD, SIXTEEN } from "../../../../common/AppText";
 import { TouchableOpacityView } from "../../../../common/TouchableOpacityView";
@@ -11,9 +11,17 @@ const TABS: ProfileTab[] = ["My Bio", "Photos", "Turn On"];
 // Stacking order of an inactive tab: the middle one sits above its neighbours
 const INACTIVE_Z_INDEX = [1, 2, 1];
 
+interface Props {
+  selected: ProfileTab;
+  onSelect: (tab: ProfileTab) => void;
+  /** Laid out in place (the sticky copy at the top) instead of straddling the bottom edge of the header */
+  inline?: boolean;
+  onLayout?: (event: LayoutChangeEvent) => void;
+}
+
 /** The three overlapping tab pills straddling the bottom edge of the profile header. */
-const ProfileTabs = ({ selected, onSelect }: { selected: ProfileTab; onSelect: (tab: ProfileTab) => void }) => (
-  <View style={styles.container}>
+const ProfileTabs = ({ selected, onSelect, inline = false, onLayout }: Props) => (
+  <View style={[styles.container, inline && styles.inline]} onLayout={onLayout}>
     {TABS.map((tab, index) => {
       const active = selected === tab;
       const zIndex = active ? 3 : INACTIVE_Z_INDEX[index];
@@ -62,6 +70,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 16,
     elevation: 14,
+  },
+  inline: {
+    position: "relative",
+    bottom: 0,
   },
   overlap: {
     marginLeft: -metrics.hp3,

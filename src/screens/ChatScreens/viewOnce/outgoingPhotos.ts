@@ -2,6 +2,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import { appOperation } from "../../../appOperation";
 import { toastAlert } from "../../../actions/UploadImageActions";
 import { createSocket } from "../../../common/Socket";
+import { rememberSentPhoto } from "./sentPhotoCache";
 
 /**
  * Photos that are on their way to the server. This lives outside any screen on purpose: leaving a chat and
@@ -18,6 +19,8 @@ interface PendingPhoto {
 interface Awaiting {
   id: string;
   matchKey: string;
+  /** The picked file, kept for my own chat once the server confirms the photo */
+  uri: string;
   socket: any;
   timer: ReturnType<typeof setTimeout>;
 }
@@ -73,6 +76,7 @@ const handleMessageSent = (payload: any) => {
   const entry = awaiting.shift();
   if (!entry) return;
   releaseAwaiting(entry);
+  rememberSentPhoto(String(saved._id), entry.uri);
   removePending(entry.id);
   confirmListeners.forEach((listener) => listener(entry.matchKey, saved));
 };
@@ -115,6 +119,7 @@ export function enqueueOutgoingPhoto({ asset, receiverId, matchKey, socketUrl, m
         isMine: true,
         viewOnce: true,
         sending: true,
+        localUri: asset.uri,
         messageType: "image",
         mediaStatus: "unopened",
         user: { _id: myUserKey, name: "", avatar: null },
@@ -141,7 +146,7 @@ export function enqueueOutgoingPhoto({ asset, receiverId, matchKey, socketUrl, m
 
       const socket = createSocket(socketUrl);
       track(socket);
-      awaiting.push({ id, matchKey, socket, timer: setTimeout(() => giveUp(id), SEND_CONFIRMATION_TIMEOUT_MS) });
+      awaiting.push({ id, matchKey, uri: asset.uri, socket, timer: setTimeout(() => giveUp(id), SEND_CONFIRMATION_TIMEOUT_MS) });
       socket.emit("send_message", { receiverId, messageType: "image", mediaId });
     } catch (error: any) {
       console.warn("[ViewOnce] Sending the photo failed:", error?.message ?? error);

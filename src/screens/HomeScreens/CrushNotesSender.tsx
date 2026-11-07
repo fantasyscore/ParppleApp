@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { AppSafeAreaView } from "../../common/AppSafeAreaView";
-import { Animated, Dimensions, FlatList, Image, ImageBackground, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
+import { Animated, Dimensions, FlatList, Image, ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 import metrics from "../../assets/Metrics";
 import FastImage from "react-native-fast-image";
 import { AppText, EIGHTEEN, ELEVEN, fontSize, FORTEEN, INTER_BOLD, SCHEHERAZADE_BOLD, SIXTEEN, TWELVE, TWENTY, WHITE } from "../../common/AppText";
@@ -10,7 +10,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { interMedium } from "../../theme/typography";
 const { width, height } = Dimensions.get("window");
 const COLLAPSED_IMAGE_HEIGHT = height * 0.45;
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { KeyboardStickyView } from "react-native-keyboard-controller";
 import { getProfile, sendCrushNotesAPI } from "../../actions/authActions";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_CRUSH_PURCHESE_SCREEN } from "../../navigation/routes";
@@ -30,30 +30,13 @@ const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfil
     const dispatch = useDispatch();
     const cardWidthRef = useRef(0);
     const [inputText, setInputText] = useState('');
-    const [keyboardHeight, setKeyboardHeight] = useState(0);
     const [crushNoteModal, setCrushNoteModal] = useState(false)
     const userData = useSelector((state: any) => state.auth.userData);
     const turnOnData = useSelector((state: any) => state?.auth?.turnOnData);
     const scrollX = useRef(new Animated.Value(0)).current;
-    useEffect(() => {
-        const keyboardDidShowListener = Keyboard.addListener(
-            Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-            (e) => {
-                setKeyboardHeight(e.endCoordinates.height);
-            }
-        );
-        const keyboardDidHideListener = Keyboard.addListener(
-            Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-            () => {
-                setKeyboardHeight(0);
-            }
-        );
-
-        return () => {
-            keyboardDidShowListener.remove();
-            keyboardDidHideListener.remove();
-        };
-    }, []);
+    // Crush notes the user can still send (from the profile); null when the profile doesn't say
+    const remainingRaw = Number(userData?.crushNotesRemaining);
+    const crushNotesRemaining = userData?.crushNotesRemaining != null && Number.isFinite(remainingRaw) ? Math.max(remainingRaw, 0) : null;
     const selectedTurnOnList = React.useMemo(() => {
         if (!turnOnData?.length || !currentProfileData?.turnOns?.length) {
             return [];
@@ -167,10 +150,10 @@ const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfil
                 }}>
                     <FastImage source={unMatchProfileIcon} resizeMode="contain" tintColor={colors.white} style={{ height: metrics.hp4, width: metrics.hp4, marginTop: metrics.hp4_5, }} />
                 </TouchableOpacityView>
-                <KeyboardAwareScrollView
-                    enableOnAndroid={true}
-                    extraScrollHeight={Platform.OS === "ios" ? 40 : metrics.hp20}
+                {/* The message bar is outside this list, so the list has nothing to scroll to when the keyboard opens */}
+                <ScrollView
                     keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="on-drag"
                     contentContainerStyle={{ paddingBottom: metrics.hp20, flexGrow: 1 }}
                     showsVerticalScrollIndicator={false}
                 >
@@ -300,8 +283,27 @@ const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfil
                             contentContainerStyle={{ paddingHorizontal: metrics.hp2, alignItems: "center", marginTop: metrics.hp0, paddingBottom: metrics.hp5 }}
                             columnWrapperStyle={{ columnGap: metrics.hp2, marginTop: metrics.hp6 }} />
                     </View>
-                </KeyboardAwareScrollView>
-                <ImageBackground source={BottomLayer} resizeMode="stretch" style={[styles.inputContainer, { bottom: keyboardHeight }]}>
+                </ScrollView>
+                {/* Moves with the keyboard frame by frame (the old keyboardDidShow/DidHide offset only moved once the
+                    keyboard animation had finished, so on closing the bar hung in the air and the background showed) */}
+                <KeyboardStickyView style={styles.stickyBar}>
+                {crushNotesRemaining !== null && (
+                    <View style={[styles.remainingPill, crushNotesRemaining === 0 && styles.remainingPillEmpty]}>
+                        <AppText type={TWELVE} weight={INTER_BOLD} style={styles.remainingIcon}>
+                            {"💌"}
+                        </AppText>
+                        <AppText type={TWELVE} weight={INTER_BOLD} color={WHITE}>
+                            {crushNotesRemaining === 0 ? "No Chat left" : "Chat left: "}
+                        </AppText>
+                        {crushNotesRemaining > 0 && (
+                            <AppText type={FORTEEN} weight={INTER_BOLD} style={styles.remainingCount}>
+                                {crushNotesRemaining}
+                            </AppText>
+                        )}
+                    </View>
+                )}
+                <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.inputContainer}>
+                    <View style={styles.inputRow}>
                     <View style={styles.inputContainerType}>
                         <TextInput
                             style={styles.textInput}
@@ -317,7 +319,9 @@ const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfil
                         style={styles.sendButton}>
                         <FastImage source={sendMessageNewIcon} resizeMode='contain' style={{ height: metrics.hp5_5, width: metrics.hp5_5 }} />
                     </TouchableOpacityView>
+                    </View>
                 </ImageBackground>
+                </KeyboardStickyView>
             </AppSafeAreaView>
            
         </KeyboardAvoidingView>
@@ -335,7 +339,24 @@ const styles = StyleSheet.create({
         height: ITEM_HEIGHT,
         width: metrics.hp34
     },
-    inputContainer: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center', paddingHorizontal: metrics.hp2, backgroundColor: newColor.blackNew, paddingVertical: metrics.hp3 },
+    stickyBar: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+    inputContainer: { paddingHorizontal: metrics.hp2, backgroundColor: newColor.blackNew, paddingVertical: metrics.hp3 },
+    inputRow: { flexDirection: 'row', alignItems: 'center' },
+    remainingPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'center',
+        paddingHorizontal: metrics.hp2,
+        paddingVertical: metrics.hp0_7,
+        marginBottom: metrics.hp1,
+        borderRadius: metrics.hp4,
+        borderWidth: metrics.hp0_1,
+        borderColor: "#E6B7A8",
+        backgroundColor: "rgba(33,33,35,0.92)",
+    },
+    remainingPillEmpty: { borderColor: "#FF5A5F" },
+    remainingIcon: { marginRight: metrics.hp0_7 },
+    remainingCount: { color: "#E6B7A8" },
     inputContainerType: { borderWidth: metrics.hp0_1, borderColor: "#C4C4C447", backgroundColor: "#212123", borderRadius: metrics.hp5, paddingHorizontal: metrics.hp1, alignItems: 'center', justifyContent: 'space-between', flexDirection: 'row', paddingVertical: metrics.hp0_5 },
     textInput: { color: colors.white, minHeight: metrics.hp4, maxHeight: metrics.hp8, fontSize: fontSize(13), width: "83%", fontFamily: interMedium, marginLeft: metrics.hp1, marginTop: Platform.OS === "ios" ? metrics.hp1 : 0 },
     sendButton: { marginLeft: metrics.hp0_6, justifyContent: 'center', alignItems: 'center', },

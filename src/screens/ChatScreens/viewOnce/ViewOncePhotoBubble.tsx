@@ -1,7 +1,10 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, Easing, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Animated, Easing, Image, StyleSheet, View } from "react-native";
+import FastImage from "react-native-fast-image";
 import metrics from "../../../assets/Metrics";
-import { AppText, INTER_MEDIUM, INTER_SEMI_BOLD, TEN, TWELVE, WHITE } from "../../../common/AppText";
+import { AppText, INTER_BOLD, TEN, WHITE } from "../../../common/AppText";
+import { pepoleTabNewNrml } from "../../../helper/ImageAssets";
+import { colors } from "../../../theme/colors";
 import { TouchableOpacityView } from "../../../common/TouchableOpacityView";
 import { DISSOLVE_DURATION_MS } from "./useViewOncePhotos";
 
@@ -10,7 +13,12 @@ interface ViewOncePhotoBubbleProps {
   onOpen: (messageId: string) => void;
   /** Long press (used to delete my own photo) */
   onLongPress?: () => void;
+  /** Blurred backdrop for a photo I received and haven't opened yet: the sender's profile photo */
+  placeholderUri?: string;
 }
+
+const SENT_CAPTION = "They can view this photo only once.\nIt disappears after they open it.";
+const RECEIVED_CAPTION = "You can view this photo only once.\nIt disappears after you open it.";
 
 // Small flecks that fly off while the bubble dissolves: [x travel, y travel, size]
 const PARTICLES: [number, number, number][] = [
@@ -18,8 +26,11 @@ const PARTICLES: [number, number, number][] = [
   [-24, 24, 5], [2, 30, 4], [26, 26, 6],
 ];
 
-/** The chat bubble of a view-once photo: a placeholder only, never a preview of the photo. */
-const ViewOncePhotoBubble = ({ message, onOpen, onLongPress }: ViewOncePhotoBubbleProps) => {
+/**
+ * The chat bubble of a view-once photo. My own photo is shown in full (from this device's copy). A photo I received
+ * is never shown before it's opened: the bubble shows a heavily blurred backdrop with an eye; tapping opens it once.
+ */
+const ViewOncePhotoBubble = ({ message, onOpen, onLongPress, placeholderUri }: ViewOncePhotoBubbleProps) => {
   // Played once, when the photo has just been viewed: the bubble fades, shrinks and breaks into flecks
   const dissolve = useRef(new Animated.Value(0)).current;
   const dissolving = message?.dissolving === true;
@@ -37,9 +48,12 @@ const ViewOncePhotoBubble = ({ message, onOpen, onLongPress }: ViewOncePhotoBubb
   const status: string = message?.mediaStatus || "unopened";
   const canOpen = !isMine && status === "unopened" && !String(message?._id).startsWith("pending-");
 
-  const title = status === "opened" ? "Opened" : status === "expired" ? "Expired" : "📷 Photo";
-  const subtitle =
-    status !== "unopened" ? null : message?.sending ? "Sending..." : isMine ? "Delivered" : "Tap to view";
+  const ownPhotoUri: string | undefined = isMine ? message?.localUri : undefined;
+  // Blurred preview of the photo itself when the backend sends one with the message (the photo only arrives on open),
+  // otherwise the sender's profile photo, blurred beyond recognition
+  const backdropUri: string | undefined = isMine ? undefined : message?.thumbnailUrl || placeholderUri;
+  const showEye = !ownPhotoUri && status === "unopened";
+  const caption = message?.sending ? "Sending..." : isMine ? SENT_CAPTION : RECEIVED_CAPTION;
 
   const dissolveStyle = {
     opacity: dissolve.interpolate({ inputRange: [0, 0.7, 1], outputRange: [1, 0.5, 0] }),
@@ -52,22 +66,30 @@ const ViewOncePhotoBubble = ({ message, onOpen, onLongPress }: ViewOncePhotoBubb
   return (
     <Animated.View style={dissolveStyle}>
     <TouchableOpacityView
-      activeOpacity={canOpen ? 0.7 : 1}
+      activeOpacity={canOpen ? 0.8 : 1}
       disabled={!canOpen && !(isMine && onLongPress)}
       onPress={canOpen ? () => onOpen(String(message._id)) : undefined}
       onLongPress={isMine ? onLongPress : undefined}
       style={[styles.bubble, isMine ? styles.mine : styles.theirs, status !== "unopened" && styles.used]}
     >
-      <AppText type={TWELVE} weight={INTER_SEMI_BOLD} color={WHITE}>
-        {title}
+      <View style={styles.photoBox}>
+        {ownPhotoUri ? (
+          <FastImage source={{ uri: ownPhotoUri }} resizeMode="cover" style={StyleSheet.absoluteFill} />
+        ) : backdropUri ? (
+          <Image source={{ uri: backdropUri }} resizeMode="cover" blurRadius={25} style={StyleSheet.absoluteFill} />
+        ) : null}
+        {showEye ? (
+          <FastImage source={pepoleTabNewNrml} resizeMode="contain" tintColor={colors.white} style={styles.eyeIcon} />
+        ) : null}
+        {message?.sending ? (
+          <View style={styles.sendingOverlay}>
+            <ActivityIndicator size="small" color={colors.white} />
+          </View>
+        ) : null}
+      </View>
+      <AppText type={TEN} weight={INTER_BOLD} color={WHITE} style={styles.caption}>
+        {caption}
       </AppText>
-      {subtitle ? (
-        <View style={styles.subtitleRow}>
-          <AppText type={TEN} weight={INTER_MEDIUM} color={WHITE} style={styles.subtitle}>
-            {subtitle}
-          </AppText>
-        </View>
-      ) : null}
     </TouchableOpacityView>
     {dissolving
       ? PARTICLES.map(([x, y, size], index) => (
@@ -98,11 +120,32 @@ export default ViewOncePhotoBubble;
 
 const styles = StyleSheet.create({
   bubble: {
-    paddingHorizontal: metrics.hp2,
+    padding: metrics.hp1,
     borderRadius: metrics.hp1,
-    minWidth: metrics.hp14,
-    minHeight: metrics.hp5,
+  },
+  photoBox: {
+    width: metrics.hp30,
+    height: metrics.hp30,
+    borderRadius: metrics.hp1,
+    overflow: "hidden",
+    alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#2A2A2D",
+  },
+  eyeIcon: {
+    width: metrics.hp8,
+    height: metrics.hp8,
+  },
+  sendingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  caption: {
+    textAlign: "center",
+    marginTop: metrics.hp1,
+    marginBottom: metrics.hp0_3,
   },
   // Same colours as the text bubbles
   mine: {
@@ -124,11 +167,5 @@ const styles = StyleSheet.create({
   },
   used: {
     opacity: 0.65,
-  },
-  subtitleRow: {
-    marginTop: metrics.hp0_3,
-  },
-  subtitle: {
-    opacity: 0.8,
   },
 });

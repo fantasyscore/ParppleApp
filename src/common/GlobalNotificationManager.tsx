@@ -4,6 +4,7 @@ import { createSocket } from './Socket';
 import GlobalNotificationBanner from './GlobalNotificationBanner';
 import { useDispatch, useStore } from 'react-redux';
 import { setNewMatches } from '../slices/loginServices/authSlice';
+import { getNewMatches } from '../actions/authActions';
 import { markProcessed } from '../slices/inAppNotificationSlice';
 
 const KEEP_ALIVE_MS = 3000;
@@ -264,6 +265,9 @@ const GlobalNotificationManager: React.FC = () => {
         const ensureSocket = () => {
             const currentUserId = userIdRef.current;
             if (!currentUserId) return;
+            // The keep-alive timer keeps running in the background (Android): never open a socket there, or the
+            // backend sees the user online and sends an in-app notification instead of a push notification
+            if (AppState.currentState === 'background' || AppState.currentState === 'inactive') return;
             // Healthy already
             if (attachedTo && !attachedTo.isClosed) return;
 
@@ -290,6 +294,9 @@ const GlobalNotificationManager: React.FC = () => {
                 detach();
             } else if (nextAppState === 'active') {
                 ensureSocket();
+                // Messages sent while the app was in the background came only as pushes: bring the chats list
+                // (last message, unread count, order) up to date at once instead of on the next visit
+                if (userIdRef.current) dispatch(getNewMatches() as any);
             }
         });
 

@@ -1,4 +1,4 @@
-import { AppState, Platform, InteractionManager } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 import notifee, {
   AndroidImportance,
@@ -6,9 +6,20 @@ import notifee, {
   EventType,
 } from '@notifee/react-native';
 import NavigationService from '../navigation/NavigationService';
-import { NAVIGATION_TAKING_SCREEN } from '../navigation/routes';
-import { chatHistoryDetails, matchChatDetails } from '../slices/loginServices/authSlice';
-import { chatHistoryAPI } from '../actions/authActions';
+import {
+  NAVIGATION_ADD_PHOTOS_SCREEN,
+  NAVIGATION_AUTH_LOADING_STACK,
+  NAVIGATION_DOB_SCREEN,
+  NAVIGATION_GANDER_SCREEN,
+  NAVIGATION_HEIGHT_SCREEN,
+  NAVIGATION_LOCATION_SCREEN,
+  NAVIGATION_OTP_SCREEN,
+  NAVIGATION_PROCCED_SCREEN,
+  NAVIGATION_TRUN_ON_SCREEN,
+  NAVIGATION_WELCOME_SCREEN,
+} from '../navigation/routes';
+import { appOperation } from '../appOperation';
+import { chatHistoryAPI, getNewMatches, openMatchChat } from '../actions/authActions';
 
 const ANDROID_CHANNEL_ID = 'parpple-popup-v2';
 
@@ -222,6 +233,41 @@ export async function clearNotificationsByMatchId(matchId: string | undefined): 
 // --------------------
 let bgRegistered = false;
 
+// Sockets are closed while the app is in the background, so a message that arrives meanwhile only comes as a push.
+// When the app is still in memory (in recents, Android) its JS keeps running, so the push is used to load the new data
+// right away: by the time the user switches back, the chat and the chats list already show the message instead of
+// loading it then. Several pushes in a row are coalesced into one refresh.
+const PUSH_REFRESH_DELAY_MS = 600;
+let pushRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+const pushRefreshChats = new Map<string, string>(); // matchId -> senderId of chats to reload
+
+function refreshFromPush(remoteMessage: FirebaseMessagingTypes.RemoteMessage) {
+  // A push that launched a killed app has no signed-in session in memory: nothing to refresh
+  if (!appOperation.customerToken) return;
+  const matchId = String(remoteMessage?.data?.matchId || '');
+  const senderId = String(remoteMessage?.data?.senderId || '');
+  if (!matchId) return;
+  const store = resolveStore();
+  if (!store) return;
+  // Only the chat that is open (left on screen when the app went to the background) needs its messages reloaded
+  if (senderId && store.getState()?.inAppNotification?.activeChatMatchId === matchId) {
+    pushRefreshChats.set(matchId, senderId);
+  }
+  if (pushRefreshTimer) clearTimeout(pushRefreshTimer);
+  pushRefreshTimer = setTimeout(() => {
+    pushRefreshTimer = null;
+    try {
+      store.dispatch(getNewMatches());
+      pushRefreshChats.forEach((otherUserId, chatMatchId) =>
+        store.dispatch(chatHistoryAPI({ otherUserId, matchId: chatMatchId }, { page: 1, limit: 50 }, false))
+      );
+    } catch (error) {
+      console.warn('[PushNotifications] Background refresh failed:', error);
+    }
+    pushRefreshChats.clear();
+  }, PUSH_REFRESH_DELAY_MS);
+}
+
 export function registerBackgroundPushHandler() {
   if (bgRegistered) return;
   bgRegistered = true;
@@ -230,7 +276,8 @@ export function registerBackgroundPushHandler() {
     // CRITICAL: Display notification via Notifee only
     // This prevents Firebase from auto-displaying and creating duplicates
     await displayRemoteMessage(remoteMessage);
-    
+    refreshFromPush(remoteMessage);
+
     // Return a promise to indicate we handled the message
     // This prevents Firebase from auto-displaying the notification
     return Promise.resolve();
@@ -240,11 +287,105 @@ export function registerBackgroundPushHandler() {
 // --------------------
 // NOTIFICATION NAVIGATION HANDLER
 // --------------------
-// Track navigation attempts to prevent duplicates
-let navigationInProgress = false;
-let lastNavigationTime = 0;
+// A tapped notification opens that chat. When the tap also launched the app, the chat must wait until the app has
+// signed the user in and shown the main tabs: opening it earlier was undone by the reset to the tabs that follows
+// loading the feed, and the chat lacked the match's name, photo and messages because nothing was loaded yet.
+interface ChatTarget {
+  senderId: string;
+  matchId: string;
+}
+
+// Screens where the user is not (yet) in the signed-in app: a chat can't be opened on top of them
+const NOT_READY_ROUTES = new Set<string | undefined>([
+  undefined,
+  NAVIGATION_AUTH_LOADING_STACK,
+  NAVIGATION_WELCOME_SCREEN,
+  NAVIGATION_OTP_SCREEN,
+  NAVIGATION_PROCCED_SCREEN,
+  NAVIGATION_GANDER_SCREEN,
+  NAVIGATION_DOB_SCREEN,
+  NAVIGATION_HEIGHT_SCREEN,
+  NAVIGATION_TRUN_ON_SCREEN,
+  NAVIGATION_ADD_PHOTOS_SCREEN,
+  NAVIGATION_LOCATION_SCREEN,
+]);
+const READY_POLL_MS = 400;
+// Signing in and loading the feed on a slow network can take a while; after this the tap is dropped
+const READY_TIMEOUT_MS = 30000;
+const NAVIGATION_COOLDOWN = 2000;
+
+let pendingTarget: ChatTarget | null = null;
+let readyTimer: ReturnType<typeof setInterval> | null = null;
 let lastNavigatedMatchId: string | null = null;
-const NAVIGATION_COOLDOWN = 2000; // 2 seconds cooldown between navigations
+let lastNavigationTime = 0;
+
+const resolveStore = (store?: any) => {
+  if (store && typeof store.getState === 'function') return store;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return require('../store/store').default;
+  } catch {
+    return null;
+  }
+};
+
+const isAppReadyForChat = () =>
+  NavigationService.isNavigationReady() &&
+  !!appOperation.customerToken &&
+  !NOT_READY_ROUTES.has(NavigationService.getCurrentRouteName());
+
+const findMatch = (store: any, matchId: string) => {
+  const auth = store.getState()?.auth ?? {};
+  const inList = (list: any) => (Array.isArray(list) ? list.find((m: any) => m?.matchId === matchId) : undefined);
+  return inList(auth.newMatches) || inList(auth.recentMatches);
+};
+
+/** Opens the chat the same way the chats list does, with the match's full details whenever they can be loaded */
+async function openChat(target: ChatTarget, store: any) {
+  const now = Date.now();
+  if (lastNavigatedMatchId === target.matchId && now - lastNavigationTime < NAVIGATION_COOLDOWN) return;
+  lastNavigatedMatchId = target.matchId;
+  lastNavigationTime = now;
+
+  let match = findMatch(store, target.matchId);
+  if (!match) {
+    // On a cold start the chats list may not be loaded yet: load it so the chat has the name, photo and gender
+    try {
+      await store.dispatch(getNewMatches());
+    } catch {
+      // fall through to the minimal entry
+    }
+    match = findMatch(store, target.matchId);
+  }
+  if (!match) console.log('[PushNotifications] Match not in the chats list, opening with the ids only');
+  store.dispatch(openMatchChat(match ?? { userId: target.senderId, matchId: target.matchId }));
+  console.log('[PushNotifications] Opened chat from notification', target);
+}
+
+/** Opens the chat as soon as the signed-in app is on screen (at once when it already is) */
+function openWhenReady(target: ChatTarget, store: any) {
+  pendingTarget = target;
+  if (readyTimer) return;
+  const startedAt = Date.now();
+  const check = () => {
+    if (!pendingTarget) return stopWaiting();
+    if (isAppReadyForChat()) {
+      const next = pendingTarget;
+      stopWaiting();
+      openChat(next, store);
+    } else if (Date.now() - startedAt > READY_TIMEOUT_MS) {
+      console.warn('[PushNotifications] App never reached the signed-in screens, notification tap dropped');
+      stopWaiting();
+    }
+  };
+  const stopWaiting = () => {
+    if (readyTimer) clearInterval(readyTimer);
+    readyTimer = null;
+    pendingTarget = null;
+  };
+  readyTimer = setInterval(check, READY_POLL_MS);
+  check();
+}
 
 export function handleNotificationNavigation(
   remoteMessage: FirebaseMessagingTypes.RemoteMessage,
@@ -252,192 +393,45 @@ export function handleNotificationNavigation(
 ) {
   try {
     const data = remoteMessage?.data;
-    if (!data) {
-      console.warn('[PushNotifications] No data in notification');
+    const senderId = String(data?.senderId || '');
+    const matchId = String(data?.matchId || '');
+    if (!senderId || !matchId) {
+      console.warn('[PushNotifications] Missing senderId or matchId in notification data', { senderId, matchId });
       return;
     }
-
-    const senderId = String(data.senderId || '');
-    const matchId = String(data.matchId || '');
-
-    if (!senderId || !matchId || senderId === '' || matchId === '') {
-      console.warn(
-        '[PushNotifications] Missing senderId or matchId in notification data',
-        { senderId, matchId }
-      );
+    const resolvedStore = resolveStore(store);
+    if (!resolvedStore) {
+      console.error('[PushNotifications] Cannot access Redux store for navigation');
       return;
     }
-
-    // Prevent duplicate navigation attempts
-    if (navigationInProgress) {
-      console.log('[PushNotifications] Navigation already in progress, skipping');
-      return;
-    }
-
-    // Check cooldown to prevent rapid duplicate navigations
-    const now = Date.now();
-    if (lastNavigatedMatchId === matchId && (now - lastNavigationTime) < NAVIGATION_COOLDOWN) {
-      console.log('[PushNotifications] Navigation cooldown active for matchId:', matchId);
-      return;
-    }
-
-    // Get Redux store - we need to dispatch actions
-    if (!store) {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        store = require('../store/store').default;
-      } catch {
-        console.error(
-          '[PushNotifications] Cannot access Redux store for navigation'
-        );
-        return;
-      }
-    }
-
-    // Safety check: ensure store is valid and has getState method
-    if (!store || typeof store.getState !== 'function') {
-      console.error('[PushNotifications] Store is invalid or getState is not available');
-      return;
-    }
-
-    // Try to find the match in newMatches or recentMatches to get full profile data
-    let state: any;
-    try {
-      state = store.getState();
-      if (!state) {
-        console.warn('[PushNotifications] Store state is null/undefined');
-        // Continue with empty state - will create minimal match object
-        state = {};
-      }
-    } catch (stateError) {
-      console.error('[PushNotifications] Error getting store state:', stateError);
-      // Continue with empty state - will create minimal match object
-      state = {};
-    }
-    const newMatches = state?.auth?.newMatches || [];
-    const recentMatches = state?.auth?.recentMatches || [];
-    
-    let matchItem = newMatches.find((m: any) => m.matchId === matchId) ||
-                    recentMatches.find((m: any) => m.matchId === matchId);
-
-    // If match not found in Redux, create a minimal match object
-    // TakingScreen will fetch the profile via getOtherProfile when userId is set
-    if (!matchItem) {
-      matchItem = {
-        userId: senderId,
-        matchId: matchId,
-      };
-      console.log('[PushNotifications] Match not found in Redux, using minimal match object');
-    } else {
-      console.log('[PushNotifications] Found match in Redux with profile data');
-    }
-
-    // Prepare data for navigation (same flow as ChatsScreen.onSubmit)
-    const chatData = {
-      otherUserId: senderId,
-      matchId: matchId,
-    };
-
-    const params = {
-      page: 1,
-      limit: 50,
-    };
-
-    // Mark navigation as in progress
-    navigationInProgress = true;
-    lastNavigatedMatchId = matchId;
-    lastNavigationTime = Date.now();
-
-    // Dispatch Redux actions in the correct order
-    store.dispatch(chatHistoryDetails([]));
-    store.dispatch(matchChatDetails(matchItem)); // Use full matchItem if available
-
-    // Navigate - NavigationService will queue if not ready
-    try {
-      NavigationService.navigate(NAVIGATION_TAKING_SCREEN);
-    } catch (navError: any) {
-      console.warn('[PushNotifications] Navigation error (will be queued):', navError?.message || navError);
-      // NavigationService should have queued it, but try again after a short delay
-      setTimeout(() => {
-        try {
-          NavigationService.navigate(NAVIGATION_TAKING_SCREEN);
-        } catch (retryError) {
-          console.error('[PushNotifications] Navigation retry failed:', retryError);
-        }
-      }, 300);
-    }
-
-    store.dispatch(chatHistoryAPI(chatData, params, false));
-
-    console.log('[PushNotifications] Navigated to Taking Screen from notification', {
-      senderId,
-      matchId,
-    });
-
-    // Reset navigation flag after a delay
-    setTimeout(() => {
-      navigationInProgress = false;
-    }, NAVIGATION_COOLDOWN);
+    openWhenReady({ senderId, matchId }, resolvedStore);
   } catch (error: any) {
-    console.error(
-      '[PushNotifications] Error handling notification navigation:',
-      error?.message || error
-    );
-    // Reset flag on error
-    navigationInProgress = false;
+    console.error('[PushNotifications] Error handling notification navigation:', error?.message || error);
   }
 }
 
 // --------------------
 // INITIAL NOTIFICATION (KILLED STATE)
 // --------------------
+// The app was launched by tapping a notification. A notification shown by the system comes from Firebase; one shown
+// by this app (data-only pushes, displayed with Notifee in the background handler) only from Notifee.
 export async function getInitialNotification(store?: any) {
   try {
-    const initialNotification = await messaging().getInitialNotification();
-    console.log(initialNotification,"initialNotification");
-
-    if (initialNotification) {
-      console.log('[PushNotifications] App opened from notification (killed state)', {
-        hasData: !!initialNotification.data,
-        senderId: initialNotification.data?.senderId,
-        matchId: initialNotification.data?.matchId,
-      });
-      
-      // Get store if not provided
-      if (!store) {
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          store = require('../store/store').default;
-        } catch {
-          console.error('[PushNotifications] Cannot access Redux store for initial notification');
-          return initialNotification;
-        }
-      }
-
-      // Wait for all interactions to complete and app to be fully initialized
-      // Use InteractionManager to ensure navigation is ready
-      InteractionManager.runAfterInteractions(() => {
-        // Additional delay to ensure NavigationContainer is mounted and ready
-        setTimeout(() => {
-          try {
-            console.log('[PushNotifications] Handling initial notification navigation');
-            handleNotificationNavigation(initialNotification, store);
-          } catch (error) {
-            console.error('[PushNotifications] Error in handleNotificationNavigation:', error);
-            // Retry once after a longer delay
-            setTimeout(() => {
-              try {
-                console.log('[PushNotifications] Retrying navigation after error');
-                handleNotificationNavigation(initialNotification, store);
-              } catch (retryError) {
-                console.error('[PushNotifications] Navigation retry also failed:', retryError);
-              }
-            }, 2000);
-          }
-        }, 1000); // Additional delay after interactions complete
-      });
+    const fromFirebase = await messaging().getInitialNotification();
+    let fromNotifee: any = null;
+    try {
+      fromNotifee = (await notifee.getInitialNotification())?.notification ?? null;
+    } catch {
+      // not launched by a Notifee notification
     }
-    return initialNotification;
+    const initial: any = fromFirebase?.data?.matchId ? fromFirebase : fromNotifee?.data?.matchId ? fromNotifee : null;
+    console.log('[PushNotifications] Initial notification', {
+      fromFirebase: !!fromFirebase,
+      fromNotifee: !!fromNotifee,
+      matchId: initial?.data?.matchId,
+    });
+    if (initial) handleNotificationNavigation(initial, store);
+    return initial;
   } catch (error) {
     console.error('[PushNotifications] Error getting initial notification:', error);
     return null;

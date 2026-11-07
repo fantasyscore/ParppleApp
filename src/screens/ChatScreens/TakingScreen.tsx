@@ -19,7 +19,7 @@ import { threeDotData } from '../../common/UiltData';
 import NavigationService from '../../navigation/NavigationService';
 import { NAVIGATION_REPORT_SCREEN } from '../../navigation/routes';
 import { useDispatch, useSelector, useStore } from 'react-redux';
-import { blockByIdAPIUser, getOtherProfile, removeMessageFromChatHistoryCache, setChatHistoryCache, userUnmatchAPI } from '../../actions/authActions';
+import { blockByIdAPIUser, chatHistoryAPI, getOtherProfile, removeMessageFromChatHistoryCache, setChatHistoryCache, userUnmatchAPI } from '../../actions/authActions';
 import { createSocket } from '../../common/Socket';
 import { appOperation } from '../../appOperation';
 import { ActivityIndicator } from 'react-native';
@@ -37,6 +37,7 @@ import ChatInputBar from './components/ChatInputBar';
 import ViewOncePhotoBubble from './viewOnce/ViewOncePhotoBubble';
 import ViewOncePhotoViewer from './viewOnce/ViewOncePhotoViewer';
 import { dismissedPhotoIds, useViewOncePhotos } from './viewOnce/useViewOncePhotos';
+import { forgetSentPhoto, getSentPhotoUri } from './viewOnce/sentPhotoCache';
 const USER_ID = 1;
 const OTHER_USER_ID = 2;
 const TYPING_INDICATOR_ID = 'typing-indicator';
@@ -67,10 +68,15 @@ type ChatMessage = {
         avatar: any;
     };
     isRead?: boolean; // Read receipt status
+    // Id the server gave a text I sent (from `messageSent`). The local `_id` is kept: the chat list keys rows by `_id`,
+    // so swapping it re-mounted the bubble and made it blink right after sending.
+    serverId?: string;
     // View-once photos (see viewOnce/)
     messageType?: string;
     viewOnce?: boolean;
     mediaStatus?: 'unopened' | 'opened' | 'expired' | null;
+    localUri?: string;
+    thumbnailUrl?: string;
 }
 
 /** Newest message first (the order the chat list expects). */
@@ -106,6 +112,65 @@ const buildOutgoingMessage = (text: string): ChatMessage => ({
         avatar: dummyMaleProfile,
     },
 });
+
+/** The id the backend knows a message by (null while a text I sent is not confirmed yet) */
+const serverIdOf = (message: ChatMessage): string | null => {
+    const id = message.serverId ?? message._id;
+    return typeof id === 'string' && !id.startsWith('pending-') ? id : null;
+};
+
+const TICK_SENT_COLOR = 'rgba(255,255,255,0.7)';
+const TICK_READ_COLOR = '#34B7F1';
+const TICK_SIZE = 10;
+const Check = ({ color, style }: { color: string; style?: any }) => (
+    <View style={[styles.tickCheck, { borderColor: color }, style]} />
+);
+/**
+ * Status of a message I sent, WhatsApp style: clock while sending, two grey ticks once the server has it, two blue
+ * ticks once the other person has read it.
+ */
+const MessageTicks = ({ message }: { message: ChatMessage }) => {
+    if (!message?.isMine || message._id === TYPING_INDICATOR_ID) return null;
+    if (!serverIdOf(message)) {
+        return (
+            <View style={styles.tickContainer}>
+                <AppText style={{ color: TICK_SENT_COLOR, fontSize: 10 }}>🕓</AppText>
+            </View>
+        );
+    }
+    const color = message.isRead ? TICK_READ_COLOR : TICK_SENT_COLOR;
+    return (
+        <View style={[styles.tickContainer, styles.tickRow]}>
+            <Check color={color} />
+            <Check color={color} style={styles.tickSecond} />
+        </View>
+    );
+};
+const renderTicks = (message: ChatMessage) => <MessageTicks message={message} />;
+
+// Bubble styles are created once instead of on every render of every row
+const BUBBLE_WRAPPER_STYLE = {
+    right: {
+        backgroundColor: "#555359",
+        borderBottomRightRadius: 0,
+        borderRadius: metrics.hp1,
+        marginRight: metrics.hp0_3,
+    },
+    left: {
+        backgroundColor: "#7A4E40",
+        borderBottomLeftRadius: 0,
+        borderRadius: metrics.hp1,
+        marginLeft: 0,
+    },
+};
+const BUBBLE_TEXT_STYLE = {
+    left: { color: 'white', fontSize: fontSize(14), fontFamily: interSemiBold },
+    right: { color: 'white', fontSize: fontSize(14), fontFamily: interSemiBold },
+};
+const BUBBLE_TIME_TEXT_STYLE = {
+    left: { color: colors.nanoOpecity, fontSize: 10 },
+    right: { color: 'rgba(255,255,255,0.7)', fontSize: 10 },
+};
 
 /** Message avatar for the signed-in user: their first photo URL, otherwise the dummy image for their gender */
 const myAvatar = (user: any) => profilePhotoUrl(user) || dummyProfileFor(user?.gender);
@@ -254,17 +319,14 @@ const TakingScreen = ({ route }: any) => {
                 // opened) as the cached history. Reopening shows it at once; without this the chat showed the older cached
                 // messages first and the newest ones popped in only when the server's history arrived.
                 const shown = messagesRef.current.filter(
-                    (message) =>
-                        message._id !== TYPING_INDICATOR_ID &&
-                        typeof message._id === 'string' &&
-                        !message._id.startsWith('pending-')
+                    (message) => message._id !== TYPING_INDICATOR_ID && serverIdOf(message) !== null
                 );
                 const cachedMatchId = matchChatUserDetails?.matchId;
                 if (cachedMatchId && shown.length > 0) {
                     setChatHistoryCache(
                         cachedMatchId,
                         shown.slice(0, 50).map((message) => ({
-                            _id: message._id,
+                            _id: serverIdOf(message),
                             matchId: cachedMatchId,
                             message: message.text,
                             createdAt: message.createdAt.toISOString(),
@@ -347,6 +409,9 @@ const TakingScreen = ({ route }: any) => {
                 messageType: item.messageType,
                 viewOnce: item.viewOnce === true || item.messageType === 'image',
                 mediaStatus: item.mediaStatus ?? null,
+                // View-once photos: my own copy (this device), and a blurred preview if the backend ever sends one
+                localUri: isMine ? getSentPhotoUri(messageId) : undefined,
+                thumbnailUrl: item.thumbnailUrl || item.blurUrl || undefined,
                 _dedupeKey: dedupeKey,
             } as any;
         });
@@ -354,7 +419,10 @@ const TakingScreen = ({ route }: any) => {
         const seenLocal = new Set<string>();
         const transformed = transformedRaw.filter((m: any) => {
             // A view-once photo (sent or received) that was already opened or has expired is not shown again
-            if (m.viewOnce && (m.mediaStatus === 'opened' || m.mediaStatus === 'expired' || dismissedPhotoIds.has(String(m._id)))) return false;
+            if (m.viewOnce && (m.mediaStatus === 'opened' || m.mediaStatus === 'expired' || dismissedPhotoIds.has(String(m._id)))) {
+                if (m.isMine) forgetSentPhoto(m._id);
+                return false;
+            }
             const key = m?._dedupeKey || `id:${String(m?._id)}`;
             if (seenLocal.has(key)) return false;
             seenLocal.add(key);
@@ -536,6 +604,7 @@ const TakingScreen = ({ route }: any) => {
                         messageType: response.messageType,
                         viewOnce: response.viewOnce === true || response.messageType === 'image',
                         mediaStatus: response.mediaStatus ?? null,
+                        thumbnailUrl: response.thumbnailUrl || response.blurUrl || undefined,
                         user: {
                             _id: userId,
                             name: '',
@@ -560,8 +629,12 @@ const TakingScreen = ({ route }: any) => {
         // Log socket connection status
         console.log('[TakingScreen] Setting up socket listeners, connected:', socket.connected);
 
+        // Fires on the first connection and again every time the app returns to the foreground (sockets are closed
+        // in the background): mark what arrived meanwhile as read, so the other person's ticks turn blue.
         socket.on('connect', () => {
             console.log('[TakingScreen] Socket connected successfully');
+            const otherUserId = matchChatUserDetailsRef.current?.userId;
+            if (otherUserId) socket.emit('mark_read', { senderId: otherUserId });
         });
 
         socket.on('disconnect', (reason: string) => {
@@ -579,7 +652,7 @@ const TakingScreen = ({ route }: any) => {
             const localId = pendingTextIdsRef.current.shift();
             seenMessageKeysRef.current.add(`id:${String(saved._id)}`);
             if (localId === undefined) return;
-            setMessages((previous) => previous.map((message) => (message._id === localId ? { ...message, _id: saved._id } : message)));
+            setMessages((previous) => previous.map((message) => (message._id === localId ? { ...message, serverId: String(saved._id) } : message)));
         };
         // A message was deleted by its sender: take it out of this chat at once. The server's event name is not
         // documented, so any event whose name says "delete" / "remove" is accepted (and logged, to find the real name).
@@ -623,6 +696,12 @@ const TakingScreen = ({ route }: any) => {
                 if (socketUrl) {
                     setSocketReconnectKey((prev) => prev + 1);
                 }
+                // The socket was closed while the app was in the background, so messages sent meanwhile only came as
+                // push notifications: load the newest page (merged with what is on screen, nothing disappears)
+                const details = matchChatUserDetailsRef.current;
+                if (details?.userId && details?.matchId) {
+                    dispatch(chatHistoryAPI({ otherUserId: details.userId, matchId: details.matchId }, { page: 1, limit: 50 }, false));
+                }
             }
         };
 
@@ -632,7 +711,7 @@ const TakingScreen = ({ route }: any) => {
         return () => {
             subscription.remove();
         };
-    }, [socketUrl]);
+    }, [socketUrl, dispatch]);
 
     useEffect(() => {
         if (!socket || !matchChatUserDetails?.userId) return;
@@ -838,7 +917,12 @@ const TakingScreen = ({ route }: any) => {
             // Messages that are only on this device (just sent, or older pages loaded by scrolling up) are not in the stored
             // history. Replacing the list with the history would make them vanish until the chat is reopened, so they stay.
             setMessages((previous) => {
-                const localOnly = previous.filter((message) => message._id !== TYPING_INDICATOR_ID && !seeded.has(`id:${String(message._id)}`));
+                const localOnly = previous.filter(
+                    (message) =>
+                        message._id !== TYPING_INDICATOR_ID &&
+                        !seeded.has(`id:${String(message._id)}`) &&
+                        !(message.serverId && seeded.has(`id:${message.serverId}`))
+                );
                 return (localOnly.length === 0 ? uniq : [...uniq, ...localOnly].sort(sortNewestFirst)) as any;
             });
             setMessagesOwnerMatchId(matchChatUserDetails?.matchId);
@@ -879,7 +963,9 @@ const TakingScreen = ({ route }: any) => {
     }, [sendMessageViaSocket, matchChatUserDetails?.matchId]);
 
     forgetMessageRef.current = (messageId: string) => {
-        setMessages((previous) => previous.filter((message) => String(message._id) !== messageId));
+        setMessages((previous) =>
+            previous.filter((message) => String(message._id) !== messageId && message.serverId !== messageId)
+        );
         const matchId = matchChatUserDetailsRef.current?.matchId;
         if (matchId) removeMessageFromChatHistoryCache(matchId, messageId);
         const history: any[] = (store.getState() as any)?.auth?.chatHistory;
@@ -893,7 +979,7 @@ const TakingScreen = ({ route }: any) => {
         if (!message || !message.isMine || message._id === TYPING_INDICATOR_ID) return;
         // Messages (and photos) the server has not confirmed yet have no deletable id
         if (String(message._id).startsWith('pending-')) return;
-        if (typeof message._id === 'number') {
+        if (!serverIdOf(message)) {
             toastAlert.showToastError('This message is still being sent. Try again in a moment.');
             return;
         }
@@ -907,13 +993,17 @@ const TakingScreen = ({ route }: any) => {
         if (!target || isDeleting) return;
         setIsDeleting(true);
         try {
-            const response: any = await appOperation.customer.deleteChatMessageAPI(String(target._id));
+            const targetServerId = serverIdOf(target) ?? String(target._id);
+            const response: any = await appOperation.customer.deleteChatMessageAPI(targetServerId);
             if (response?.statusCode !== 200 && response?.success !== true) {
                 throw new Error(response?.message || 'Delete failed');
             }
             const remaining = messagesRef.current.filter((message) => message._id !== target._id);
-            if (target.viewOnce) dismissedPhotoIds.add(String(target._id));
-            forgetMessageRef.current(String(target._id));
+            if (target.viewOnce) {
+                dismissedPhotoIds.add(String(target._id));
+                forgetSentPhoto(target._id);
+            }
+            forgetMessageRef.current(targetServerId);
             setDeleteTarget(null);
             // The chat list's last message follows: it becomes the newest message that is left
             const matchId = matchChatUserDetailsRef.current?.matchId;
@@ -972,6 +1062,8 @@ const TakingScreen = ({ route }: any) => {
             return (
                 <ViewOncePhotoBubble
                     message={props.currentMessage}
+                    // The other person's profile photo (match details; state.auth.otherUserProfile holds MY profile)
+                    placeholderUri={profilePhotoUrl(matchChatUserDetailsRef.current)}
                     onOpen={(id) => openPhotoRef.current(id)}
                     // Long press on one of my own photos offers to delete it, like a text message
                     onLongPress={() => requestDeleteRef.current(props.currentMessage)}
@@ -985,43 +1077,10 @@ const TakingScreen = ({ route }: any) => {
                 {...props}
                 // Long press on one of my own messages offers to delete it
                 onLongPressMessage={(_context: any, message: any) => requestDeleteRef.current(message)}
-                wrapperStyle={{
-                    right: {
-                        backgroundColor: "#555359",
-                        borderBottomRightRadius: 0,
-                        borderRadius: metrics.hp1,
-                        marginRight: metrics.hp0_3,
-                    },
-
-                    left: {
-                        backgroundColor: "#7A4E40",
-                        borderBottomLeftRadius: 0,
-                        borderRadius: metrics.hp1,
-                        marginLeft: 0,
-                    },
-                }}
-                textStyle={{
-                    left: {
-                        color: 'white',
-                        fontSize: fontSize(14),
-                        fontFamily: interSemiBold,
-                    },
-                    right: {
-                        color: 'white',
-                        fontSize: fontSize(14),
-                        fontFamily: interSemiBold,
-                    },
-                }}
-                timeTextStyle={{
-                    left: {
-                        color: colors.nanoOpecity,
-                        fontSize: 10,
-                    },
-                    right: {
-                        color: 'rgba(255,255,255,0.7)',
-                        fontSize: 10,
-                    },
-                }}
+                wrapperStyle={BUBBLE_WRAPPER_STYLE}
+                textStyle={BUBBLE_TEXT_STYLE}
+                timeTextStyle={BUBBLE_TIME_TEXT_STYLE}
+                renderTicks={renderTicks}
             />
         );
     }, []);
@@ -1353,7 +1412,26 @@ const TakingScreen = ({ route }: any) => {
 
 export default TakingScreen;
 
-const styles = StyleSheet.create({containerChat: { flex: 1, backgroundColor: newColor.blackNew, overflow: 'hidden' },
+const styles = StyleSheet.create({
+    tickContainer: {
+        marginLeft: 4,
+        marginBottom: 1,
+        justifyContent: 'center',
+    },
+    tickRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    tickCheck: {
+        width: TICK_SIZE * 0.5,
+        height: TICK_SIZE,
+        borderRightWidth: 1.6,
+        borderBottomWidth: 1.6,
+        transform: [{ rotate: '45deg' }],
+    },
+    tickSecond: {
+        marginLeft: -TICK_SIZE * 0.15,
+    },containerChat: { flex: 1, backgroundColor: newColor.blackNew, overflow: 'hidden' },
     containerRb: { paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp2 },
     containerViewRb: { paddingHorizontal: metrics.hp1, paddingVertical: metrics.hp2, flexDirection: "row", backgroundColor: "#212123", marginBottom: metrics.hp0_5, borderRadius: metrics.hp1_5 },
     rbIcon: { height: metrics.hp2_5, width: metrics.hp2_5, marginTop: metrics.hp0_5, marginLeft: metrics.hp1 },

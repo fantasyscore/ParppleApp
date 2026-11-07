@@ -1,5 +1,5 @@
-import React, { useCallback, useState } from "react";
-import { ImageBackground, StyleSheet } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Animated, ImageBackground, LayoutChangeEvent, StyleSheet, View } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import { useIsFocused } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
@@ -12,7 +12,7 @@ import { bioBackground, biosToggla, BottomLayer, ProfileBackGroundNew } from "..
 import { editProfile } from "../../actions/authActions";
 import PhotoEditorModal from "../../components/PhotoEditor/PhotoEditorModal";
 import { useFaceVerification } from "../../hooks/useFaceVerification";
-import ProfileHeader from "./profile/components/ProfileHeader";
+import ProfileHeader, { ProfileNavBar } from "./profile/components/ProfileHeader";
 import ProfileTabs, { ProfileTab } from "./profile/components/ProfileTabs";
 import ProfilePhotosTab from "./profile/components/ProfilePhotosTab";
 import TurnOnTab from "./profile/components/TurnOnTab";
@@ -23,6 +23,8 @@ import { useProfilePhotos } from "./profile/hooks/useProfilePhotos";
 import { useTurnOnSelection } from "./profile/hooks/useTurnOnSelection";
 
 const BIO_PLACEHOLDER = "Write something about yourself...";
+// The pinned tabs tuck this far under the "Profile" bar (which stays drawn above them), so no gap shows between them
+const STICKY_TABS_OVERLAP = metrics.hp0_7;
 
 const ProfileScreenAndroid = () => {
   const dispatch = useDispatch();
@@ -33,6 +35,34 @@ const ProfileScreenAndroid = () => {
   const [selectedTab, setSelectedTab] = useState<ProfileTab>("My Bio");
   const [bioModalVisible, setBioModalVisible] = useState(false);
   const [verifyVisible, setVerifyVisible] = useState(false);
+
+  // The "Profile" bar stays pinned at the top while the rest scrolls. Once the tabs reach the bar, a copy of them is
+  // shown pinned right under it (fading in exactly where the scrolling ones are); it goes away when scrolling back.
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [navBarHeight, setNavBarHeight] = useState(0);
+  const [tabsTop, setTabsTop] = useState<number | null>(null);
+  const [tabsStuck, setTabsStuck] = useState(false);
+  const stickyTabsTop = Math.max(navBarHeight - STICKY_TABS_OVERLAP, 0);
+  const stickAt = tabsTop === null ? null : Math.max(tabsTop - stickyTabsTop, 0);
+  const onTabsLayout = useCallback((event: LayoutChangeEvent) => setTabsTop(event.nativeEvent.layout.y), []);
+  const onNavBarLayout = useCallback((event: LayoutChangeEvent) => setNavBarHeight(event.nativeEvent.layout.height), []);
+  // The bar is see-through over the header picture and gets its own background as content scrolls under it
+  const navBarBackgroundOpacity = scrollY.interpolate({
+    inputRange: [0, Math.max(navBarHeight, 1)],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+  useEffect(() => {
+    if (stickAt === null) return;
+    // Only flips a boolean when the threshold is crossed, so scrolling doesn't re-render the screen
+    const id = scrollY.addListener(({ value }) => setTabsStuck(value >= stickAt));
+    return () => scrollY.removeListener(id);
+  }, [scrollY, stickAt]);
+  const onScroll = useRef(Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })).current;
+  const stickyOpacity =
+    stickAt === null
+      ? 0
+      : scrollY.interpolate({ inputRange: [stickAt - 1, stickAt], outputRange: [0, 1], extrapolate: "clamp" });
 
   const publish = usePublishToggle(userData);
   const photos = useProfilePhotos(userData?.gallery, userData?.gender);
@@ -53,9 +83,15 @@ const ProfileScreenAndroid = () => {
   return (
     <AppSafeAreaView color={colors.transparent}>
       <LinearGradient style={styles.gradient} colors={["#212123", "#555359"]}>
+        <Animated.ScrollView
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
         <ImageBackground source={ProfileBackGroundNew} resizeMode="cover" style={styles.header}>
-          <ProfileHeader userData={userData} isHidden={publish.isHidden} onVerificationPress={openVerify} />
-          <ProfileTabs selected={selectedTab} onSelect={setSelectedTab} />
+          <ProfileHeader userData={userData} isHidden={publish.isHidden} onVerificationPress={openVerify} navBarPinned />
+          <ProfileTabs selected={selectedTab} onSelect={setSelectedTab} onLayout={onTabsLayout} />
         </ImageBackground>
 
         {selectedTab === "My Bio" && (
@@ -83,6 +119,19 @@ const ProfileScreenAndroid = () => {
         {selectedTab === "Turn On" && (
           <TurnOnTab turnOns={turnOnData} selectedIds={turnOns.selectedIds} onToggle={turnOns.toggle} />
         )}
+        </Animated.ScrollView>
+
+        <Animated.View
+          pointerEvents={tabsStuck ? "auto" : "none"}
+          style={[styles.stickyTabs, { top: stickyTabsTop, opacity: stickyOpacity }]}
+        >
+          <ProfileTabs selected={selectedTab} onSelect={setSelectedTab} inline />
+        </Animated.View>
+
+        <View style={styles.navBar} onLayout={onNavBarLayout} pointerEvents="box-none">
+          <Animated.View style={[StyleSheet.absoluteFill, styles.navBarBackground, { opacity: navBarBackgroundOpacity }]} />
+          <ProfileNavBar isHidden={publish.isHidden} onVerificationPress={openVerify} />
+        </View>
       </LinearGradient>
 
       <ImageBackground source={BottomLayer} resizeMode="stretch" style={styles.bottomLayer}>
@@ -121,6 +170,28 @@ export default ProfileScreenAndroid;
 const styles = StyleSheet.create({
   gradient: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  navBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 30,
+    elevation: 30,
+  },
+  navBarBackground: {
+    backgroundColor: "#212123",
+  },
+  stickyTabs: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 20,
+    elevation: 20,
   },
   header: {
     height: metrics.hp47,

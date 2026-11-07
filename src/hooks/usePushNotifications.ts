@@ -56,9 +56,10 @@ export function usePushNotifications() {
   useEffect(() => {
     (async () => {
       try {
+        // Read the notification that launched the app before clearing the tray
+        await getInitialNotification(store);
         notifee.setBadgeCount(0).catch((error) => console.warn("[Notification] Could not reset the badge:", error));
         await notifee.cancelDisplayedNotifications();
-        await getInitialNotification(store);
       } catch (e) {
         console.log("[Notification] Init error:", e);
       }

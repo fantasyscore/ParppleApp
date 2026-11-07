@@ -75,6 +75,8 @@ const ProfilePhotosTab = ({ photos, canAddMore, onUpload, onDelete }: ProfilePho
         renderItem={renderSlot}
         keyExtractor={(item, index) => item.id || String(index)}
         numColumns={2}
+        // The profile screen scrolls as a whole (so its tabs can stick to the top); this list only lays out the grid
+        scrollEnabled={false}
         contentContainerStyle={styles.listContent}
         columnWrapperStyle={styles.columns}
         showsVerticalScrollIndicator={false}

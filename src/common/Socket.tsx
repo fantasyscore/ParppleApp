@@ -2,6 +2,13 @@ import { connect } from 'socket.io-client';
 import { AppState, AppStateStatus } from 'react-native';
 import { appOperation } from '../appOperation';
 
+/**
+ * The backend sends a chat message as an in-app notification while the user has a socket open, and as a push
+ * notification otherwise. So a socket must only be connected while the app is on screen: in the background or after
+ * the app is closed the user has to get push notifications.
+ */
+const isAppInForeground = () => AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
+
 // Track all created sockets so we can safely disconnect them on logout.
 const activeSockets = new Set<any>();
 
@@ -24,6 +31,12 @@ class LifecycleAwareSocket {
 
   private connectInternal() {
     if (this.isDisconnectedByUser) return;
+    // Created (or asked to reconnect) while the app is in the background, e.g. by a screen's keep-alive timer that
+    // still runs there: stay offline. handleAppStateChange connects when the app comes back to the foreground.
+    if (!isAppInForeground()) {
+      console.log('[LifecycleAwareSocket] App not in foreground, connecting when it returns:', this.url);
+      return;
+    }
 
     try {
       console.log('[LifecycleAwareSocket] Establishing fresh connection to:', this.url);
@@ -87,7 +100,7 @@ class LifecycleAwareSocket {
       if (!this.isDisconnectedByUser) {
         // Safe timeout delay to ensure OS has fully resumed the TCP socket stack
         setTimeout(() => {
-          if (!this.isDisconnectedByUser && !this.rawSocket) {
+          if (!this.isDisconnectedByUser && !this.rawSocket && isAppInForeground()) {
             console.log('[LifecycleAwareSocket] Resurrecting fresh socket connection on active state');
             this.connectInternal();
           }

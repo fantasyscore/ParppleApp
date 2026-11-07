@@ -6,6 +6,7 @@ import { CaptureEventType, CaptureProtection } from "react-native-capture-protec
 import metrics from "../../../assets/Metrics";
 import { AppText, INTER_MEDIUM, TWELVE, WHITE } from "../../../common/AppText";
 import { TouchableOpacityView } from "../../../common/TouchableOpacityView";
+import { toastAlert } from "../../../actions/UploadImageActions";
 
 interface ViewOncePhotoViewerProps {
   visible: boolean;
@@ -31,19 +32,24 @@ const ViewOncePhotoViewer = ({ visible, imageUri, onClose }: ViewOncePhotoViewer
     return () => subscription.remove();
   }, [visible, onClose]);
 
-  // iOS cannot block screenshots; hide the photo while the screen is recorded / mirrored and close it on a screenshot
+  // iOS: the app-wide screenshot protection doesn't reach this Modal, so a screenshot used to capture the photo. While
+  // the viewer is open the whole window (Modal included) is put behind iOS's secure-field layer, so a screenshot comes
+  // out black, like Android's FLAG_SECURE; it's lifted again when the viewer closes. The photo is also hidden while the
+  // screen is recorded / mirrored. Android is already covered by FLAG_SECURE and is left alone.
   useEffect(() => {
     if (!visible || Platform.OS !== "ios") return;
+    CaptureProtection.prevent({ screenshot: true }).catch?.(() => undefined);
     const listener = CaptureProtection.addListener((eventType: CaptureEventType) => {
       if (eventType === CaptureEventType.RECORDING) setCaptured(true);
       else if (eventType === CaptureEventType.END_RECORDING) setCaptured(false);
-      else if (eventType === CaptureEventType.CAPTURED) onClose();
+      else if (eventType === CaptureEventType.CAPTURED) toastAlert.showToastError("Screenshots aren't allowed for this photo.");
     });
     return () => {
       listener?.remove?.();
       setCaptured(false);
+      CaptureProtection.allow({ screenshot: true }).catch?.(() => undefined);
     };
-  }, [visible, onClose]);
+  }, [visible]);
 
   return (
     <Modal visible={visible} animationType="fade" statusBarTranslucent onRequestClose={onClose}>
