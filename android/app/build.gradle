@@ -44,7 +44,7 @@ android {
         }
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 85
+        versionCode 87
         versionName "1.1.3"
         missingDimensionStrategy 'react-native-capture-protection', 'base'
         missingDimensionStrategy 'store', 'play'

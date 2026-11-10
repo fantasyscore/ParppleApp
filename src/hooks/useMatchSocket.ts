@@ -5,6 +5,7 @@ import Geolocation from "react-native-geolocation-service";
 import { config } from "../config/config";
 import { createSocket } from "../common/Socket";
 import { useLatest } from "./useLatest";
+import { trackAppsFlyerFirstMatch } from "../services/appsFlyerService";
 
 type Coordinates = { lat: string; long: string };
 
@@ -62,7 +63,10 @@ export function useMatchSocket(userId: string | undefined, isFocused: boolean) {
     const socket = createSocket(socketUrl);
 
     const handleNewMatch = (response: any) => {
-      if (!response || !isFocusedRef.current) return;
+      if (!response) return;
+      // Counts even when the match popup isn't shown (another tab is open)
+      trackAppsFlyerFirstMatch(userId);
+      if (!isFocusedRef.current) return;
       setMatchVisible(true);
       setMatchData(response?.matchData ?? []);
     };
@@ -77,7 +81,7 @@ export function useMatchSocket(userId: string | undefined, isFocused: boolean) {
       socket.off?.("newMatch", handleNewMatch);
       socket.disconnect?.();
     };
-  }, [socketUrl, isFocusedRef]);
+  }, [socketUrl, isFocusedRef, userId]);
 
   const closeMatch = useCallback(() => setMatchVisible(false), []);
 

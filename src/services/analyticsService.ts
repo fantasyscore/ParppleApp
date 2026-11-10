@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as RNIap from '../utils/iapWrapper';
 import { logMetaEvent } from '../utils/MetaEvents';
+import { setAppsFlyerCustomerUserId, trackAppsFlyerPurchase, trackAppsFlyerRegistration } from './appsFlyerService';
 
 const TRACKED_ANALYTICS_IDS_KEY = '@parpple_tracked_analytics_transaction_ids';
 const PENDING_ANALYTICS_PURCHASES_KEY = '@parpple_pending_analytics_purchases';
@@ -182,6 +183,7 @@ export const logLogin = async (method: string): Promise<void> => {
  * Log a sign-up event (GA4 recommended sign_up event).
  */
 export const logSignUp = async (method: string): Promise<void> => {
+  trackAppsFlyerRegistration(method);
   try {
     await analytics().logSignUp({ method });
     await logMetaEvent('CompleteRegistration', undefined, { registration_method: method });
@@ -204,6 +206,7 @@ export const logCustomEvent = (name: string, params?: Record<string, string | nu
  */
 export const setAnalyticsUserId = async (userId: string | null | undefined): Promise<void> => {
   try {
+    setAppsFlyerCustomerUserId(userId);
     await analytics().setUserId(userId ? String(userId) : null);
   } catch (error) {
     console.warn('[AnalyticsService] setUserId failed:', error);
@@ -345,6 +348,8 @@ export const trackSuccessfulPurchase = async (
         currency,
       });
     }
+
+    trackAppsFlyerPurchase({ productId, orderId: transactionId, revenue: price, currency, type });
 
     console.log('[AnalyticsService] Logged purchase event:', {
       transaction_id: transactionId,

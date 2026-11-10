@@ -30,6 +30,7 @@ import { chatHistoryDetails, setLastMessageOverride, setNewMatches } from '../..
 import { clearNotificationsByMatchId } from '../../notifications/pushNotifications';
 import { toastAlert } from '../../actions/UploadImageActions';
 import { logCustomEvent } from '../../services/analyticsService';
+import { trackAppsFlyerFirstChat } from '../../services/appsFlyerService';
 import SeeOtherUserProfile from './SeeOtherUserProfile';
 import FullScreenImage from '../HomeScreens/FullScreenImage'
 import KeyboardInsetView from './KeyboardInsetView';
@@ -742,6 +743,7 @@ const TakingScreen = ({ route }: any) => {
 
         socket.emit('send_message', payload);
         logCustomEvent('message_sent', { type: messageType });
+        trackAppsFlyerFirstChat(userDataRef.current?._id);
 
         // Move this conversation to the top of the chats list now, while that screen is hidden behind this one. The
         // server lists the newest conversation first, so otherwise the row visibly jumps up when the user goes back and

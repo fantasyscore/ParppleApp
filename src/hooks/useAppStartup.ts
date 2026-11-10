@@ -6,6 +6,7 @@ import { initializeAnalytics } from "../services/analyticsService";
 import { recoverPurchasesOnStartup } from "../services/purchaseRecoveryService";
 import { enableScreenSecurity } from "../utils/ScreenSecurity";
 import { getSnapDevice } from "../services/snapDeviceService";
+import { initAppsFlyer } from "../services/appsFlyerService";
 
 /** One-time work when the app process starts. Each step is independent and must never block the UI. */
 export function useAppStartup() {
@@ -13,6 +14,8 @@ export function useAppStartup() {
     // Needed before the first API call, so it runs immediately
     onAppStart();
     enableScreenSecurity();
+    // Install attribution: started right away so the first session is reported as early as possible
+    initAppsFlyer();
     // Not needed to draw the first screen: let the launch render and navigation finish first
     const handle = InteractionManager.runAfterInteractions(() => {
       initializeAnalytics().catch(() => {});

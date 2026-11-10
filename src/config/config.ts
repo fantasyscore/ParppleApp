@@ -2,6 +2,8 @@ export const config = {
   WEBSITE_URL: `https://javastage.efunder.ai/`,
   IOS_CODEPUSH_DEPLOYMENT: `fxItvxJuEjSdeHFAd217kcjv_MhtPL3MS8Ozz`,
   ANDROID_CODEPUSH_DEPLOYMENT: `oIiEE-qmiCLsQff0q5hVnc_O6-s4QiRpdi1y8`,
+  // AppsFlyer SDK dev key (Android app com.app.parpple)
+  APPSFLYER_DEV_KEY: `mcb92RLfcGTzZK2T3hqNPD`,
   ENVIRONMENT: `Staging`,
   // Base URL for API and Socket connections
   //  BASE_URL: `https://a394-2401-4900-88a9-c005-65bf-4d97-b3b8-78b5.ngrok-free.app/`

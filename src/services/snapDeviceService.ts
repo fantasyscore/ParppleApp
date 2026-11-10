@@ -40,13 +40,29 @@ const getLocale = () =>
     return String(locale || '').replace('-', '_');
   }, '');
 
-/** Short timezone name like "IST"; empty when the JS engine can't produce one */
+const timeZoneNameOf = (style: 'short' | 'long') =>
+  new Intl.DateTimeFormat('en-US', { timeZoneName: style }).formatToParts(new Date()).find((p) => p.type === 'timeZoneName')
+    ?.value ?? '';
+
+const isOffsetName = (name: string) => /^(GMT|UTC)([+-]|$)/.test(name);
+
+/**
+ * Short timezone name like "IST"; empty when the JS engine can't produce one. Hermes on Android gives "GMT+5:30" as
+ * the short name for zones without a US abbreviation, so the initials of the long name ("India Standard Time") are
+ * used instead.
+ */
 const getTimezoneAbbreviation = () =>
   safe(() => {
-    const part = new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' })
-      .formatToParts(new Date())
-      .find((p) => p.type === 'timeZoneName');
-    return part?.value ?? '';
+    const short = timeZoneNameOf('short');
+    if (short && !isOffsetName(short)) return short;
+    const long = timeZoneNameOf('long');
+    if (long && !isOffsetName(long)) {
+      return long
+        .split(/\s+/)
+        .map((word) => word.charAt(0).toUpperCase())
+        .join('');
+    }
+    return short;
   }, '');
 
 const getTimezoneName = () => safe(() => Intl.DateTimeFormat().resolvedOptions().timeZone ?? '', '');

@@ -8,6 +8,8 @@ import { toastAlert } from "./UploadImageActions";
 import Toast from "react-native-toast-message";
 import { chatHistoryDetails, matchChatDetails, setAttributes, setDiscoverData, setGetProfile, setLikeByOther, setLikeYou, setListProfiles, removeUserFromProfileLists, setFilterFeed, setBlockedUsers, removeBlockedUser, restoreBlockedUser, blockedUserIdOf, setNewMatches, setOtherUserProfile, setRecentMatches, setTurnOnData, setViewByOhter, setViewYou } from "../slices/loginServices/authSlice";
 import { logCustomEvent, logLogin, logSignUp, setAnalyticsUserId } from "../services/analyticsService";
+import { rememberAppsFlyerLoginMethod, trackAppsFlyerFirstChat } from "../services/appsFlyerService";
+import store from "../store/store";
 
 /**
  * Loads everything the signed-in app needs: profile, discovery feed, matches, likes, views and
@@ -49,6 +51,7 @@ export const userLogin: any = (data: any, gmail: any) => async (dispatch: any) =
         if (__DEV__) console.log("[Login API] auth/registerUser response:", JSON.stringify(response, null, 2));
 
         if (response?.statusCode == 200) {
+            rememberAppsFlyerLoginMethod(data?.googleToken ? 'google' : data?.iosToken ? 'apple' : 'phone');
             toastAlert.showToastError(response.message);
             appOperation.setCustomerToken(response?.data?.tokenData?.token);
             await AsyncStorage.setItem(USER_TOKEN_KEY, response?.data?.tokenData?.token);
@@ -94,6 +97,7 @@ export const otpVerifyAPIOne: any = (data: any, gmail: any) => async (dispatch: 
     try {
         const response: any = await appOperation.guest.otpVerifyAPI(data);
         if (response?.success == true) {
+            rememberAppsFlyerLoginMethod('phone_otp');
             toastAlert.showToastError(response.message);
             appOperation.setCustomerToken(response?.data?.token);
             await AsyncStorage.setItem(USER_TOKEN_KEY, response?.data?.token);
@@ -520,6 +524,7 @@ export const sendCrushNotesAPI: any = (data: any, params: any) => async (dispatc
         const response: any = await appOperation.customer.crushnotesSenderAPI(data);
         if (response?.statusCode == 200) {
             toastAlert.showToastError(response.message)
+            trackAppsFlyerFirstChat((store.getState() as any)?.auth?.userData?._id);
         }
         return response;
     } catch (error: any) {
