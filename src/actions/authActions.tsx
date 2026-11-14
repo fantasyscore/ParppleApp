@@ -6,7 +6,7 @@ import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_BOTTOMTAB_SCREEN, NAVIGATION_CHATS_SCREEN, NAVIGATION_GANDER_SCREEN, NAVIGATION_OTP_SCREEN, NAVIGATION_PROCCED_SCREEN, NAVIGATION_TAKING_SCREEN, NAVIGATION_USER_EDIT_PROFILE_SCREEN, NAVIGATION_WELCOME_SCREEN } from "../navigation/routes";
 import { toastAlert } from "./UploadImageActions";
 import Toast from "react-native-toast-message";
-import { chatHistoryDetails, matchChatDetails, setAttributes, setDiscoverData, setGetProfile, setLikeByOther, setLikeYou, setListProfiles, removeUserFromProfileLists, setFilterFeed, setBlockedUsers, removeBlockedUser, restoreBlockedUser, blockedUserIdOf, setNewMatches, setOtherUserProfile, setRecentMatches, setTurnOnData, setViewByOhter, setViewYou } from "../slices/loginServices/authSlice";
+import { chatHistoryDetails, matchChatDetails, setAttributes, setDiscoverData, setGetProfile, setLikeByOther, setLikeYou, setListProfiles, removeUserFromProfileLists, setFilterFeed, setBlockedUsers, removeBlockedUser, restoreBlockedUser, blockedUserIdOf, setNewMatches, setOtherUserProfile, setRecentMatches, removeMatch, setTurnOnData, setViewByOhter, setViewYou } from "../slices/loginServices/authSlice";
 import { logCustomEvent, logLogin, logSignUp, setAnalyticsUserId } from "../services/analyticsService";
 import { rememberAppsFlyerLoginMethod, trackAppsFlyerFirstChat } from "../services/appsFlyerService";
 import store from "../store/store";
@@ -427,11 +427,15 @@ export const getRecentMatches: any = () => async (dispatch: any) => {
     } catch (error: any) {
     }
 };
-export const userUnmatchAPI: any = (data: any) => async (dispatch: any) => {
+/** `userId` is only used to drop the user from the local lists; the API itself just needs the matchId */
+export const userUnmatchAPI: any = (data: any, userId?: string) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.userUnMatchApi(data);
         if (response?.statusCode == 200) {
+            // Gone from both lists at once; the Chats screen skips refetching for a few seconds after a visit
+            dispatch(removeMatch({ matchId: data?.matchId, userId }))
             dispatch(getNewMatches())
+            dispatch(getRecentMatches())
             return NavigationService.navigate(NAVIGATION_CHATS_SCREEN)
         }
     } catch (error: any) {
@@ -443,6 +447,7 @@ export const userBlockAPI: any = (data: any, options: { navigateToChats?: boolea
         const response: any = await appOperation.customer.userBlockAPI(data);
         if (response?.statusCode == 200) {
             dispatch(getNewMatches())
+            dispatch(getRecentMatches())
             if (navigateToChats) NavigationService.navigate(NAVIGATION_CHATS_SCREEN)
             return true;
         }
@@ -681,6 +686,7 @@ export const blockByIdAPIUser: any = (data: any, options: { navigateToChats?: bo
         console.log(response, "responseresponseresponse");
         if (response?.statusCode == 200) {
             dispatch(getNewMatches())
+            dispatch(getRecentMatches())
             if (navigateToChats) NavigationService.navigate(NAVIGATION_CHATS_SCREEN)
             return true;
         }

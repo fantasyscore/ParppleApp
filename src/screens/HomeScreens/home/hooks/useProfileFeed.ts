@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, AppStateStatus } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { getProfile, listProfiles } from "../../../../actions/authActions";
-import { removeProfileFromFeeds, setListProfiles } from "../../../../slices/loginServices/authSlice";
+import { removeProfileFromFeeds } from "../../../../slices/loginServices/authSlice";
 import { useLatest } from "../../../../hooks/useLatest";
 import {
   FEED_STALE_AFTER_MS,
@@ -10,6 +10,9 @@ import {
   PROFILE_BATCH_LIMIT,
   TOP_UP_TRIGGER_COUNT,
 } from "../constants";
+
+/** Longest a refresh waits for a running feed request before sending its own */
+const REFRESH_WAIT_MAX_MS = 35 * 1000; // a little over the 30s request timeout
 
 // Stable reference so the selector doesn't return a new array on every store update
 const NO_PROFILES: any[] = [];
@@ -22,7 +25,6 @@ export function useProfileFeed(isFocused: boolean) {
   const dispatch = useDispatch();
   const profiles: any[] = useSelector((state: any) => state.auth.listProfiles ?? NO_PROFILES);
   const userId: string | undefined = useSelector((state: any) => state.auth.userData?._id);
-console.log(profiles,"profiles");
 
   const [refreshing, setRefreshing] = useState(false);
   // Bumping this remounts the list (see LIST_REMOUNT_AFTER_MS)
@@ -38,6 +40,8 @@ console.log(profiles,"profiles");
   const feedExhaustedRef = useRef(false);
   const prevListLengthRef = useRef(0);
   const backgroundedAtRef = useRef<number | null>(null);
+  // True while a pull-to-refresh runs: paging must not append an old page onto the fresh list
+  const isRefreshingRef = useRef(false);
 
   // ---- Initial data: profile + first feed batch ----
   useEffect(() => {
@@ -53,12 +57,14 @@ console.log(profiles,"profiles");
 
   // ---- Infinite feed: append the next batch, stop when the server runs dry ----
   const loadMore = useCallback(async () => {
-    if (isFetchingMoreRef.current || feedExhaustedRef.current) return;
+    if (isFetchingMoreRef.current || feedExhaustedRef.current || isRefreshingRef.current) return;
     isFetchingMoreRef.current = true;
     try {
       const skip = profilesRef.current.length;
       const result: any = await dispatch(listProfiles(true, skip, PROFILE_BATCH_LIMIT, true));
-      if (result?.skipped) return;
+      // A skipped call (another request was running) or a failed one (timeout, no network) says nothing about
+      // whether more profiles exist: the next scroll tries again instead of the feed stopping for good
+      if (result?.skipped || result?.error) return;
       const newCount = Array.isArray(result?.newProfiles) ? result.newProfiles.length : 0;
       if (newCount === 0) {
         feedExhaustedRef.current = true;
@@ -90,21 +96,31 @@ console.log(profiles,"profiles");
 
   // ---- Pull to refresh ----
   const onRefresh = useCallback(async () => {
-    if (refreshing) return;
+    if (isRefreshingRef.current) return;
+    isRefreshingRef.current = true;
     setRefreshing(true);
     try {
       // Reset pagination
       feedExhaustedRef.current = false;
-      isFetchingMoreRef.current = false;
       prevListLengthRef.current = 0;
-      dispatch(setListProfiles([]));
-      await dispatch(listProfiles(true, 0, PROFILE_BATCH_LIMIT, false));
+      // listProfiles skips a call while another one is running (a page being loaded). Wait for that one to end
+      // instead of dropping the refresh; the request has its own timeout, so this can't wait forever.
+      const startedAt = Date.now();
+      while ((listProfiles as any)._inFlight && Date.now() - startedAt < REFRESH_WAIT_MAX_MS) {
+        await new Promise((resolve) => setTimeout(resolve, 150));
+      }
+      const result: any = await dispatch(listProfiles(true, 0, PROFILE_BATCH_LIMIT, false));
+      // The old list stays on screen until the new one has arrived (it used to be cleared first, so a failed or
+      // skipped refresh left an empty feed)
+      if (result?.skipped) console.warn("[HomeFeed] Refresh skipped: another feed request is still running");
     } catch (error) {
       console.log("Refresh Error:", error);
     } finally {
+      isFetchingMoreRef.current = false;
+      isRefreshingRef.current = false;
       setRefreshing(false);
     }
-  }, [dispatch, refreshing]);
+  }, [dispatch]);
   const onRefreshRef = useLatest(onRefresh);
 
   // ---- Returning from recents: a feed that sat in the background is stale and its

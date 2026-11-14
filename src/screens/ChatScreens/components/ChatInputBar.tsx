@@ -12,8 +12,8 @@ import { addPhotoIcon, sendMessageNewIcon } from "../../../helper/ImageAssets";
 // bottom padding plus an explicit line height keep the placeholder / text vertically centred on both platforms; a little
 // more padding below than above lifts the text slightly.
 const INPUT_LINE_HEIGHT = fontSize(16);
-const INPUT_PADDING_TOP = metrics.hp0_5;
-const INPUT_PADDING_BOTTOM = metrics.hp1_1;
+const INPUT_PADDING_TOP = metrics.hp0_8;
+const INPUT_PADDING_BOTTOM = metrics.hp0_8;
 /** After this long without typing, the other user stops seeing "typing..." */
 const TYPING_IDLE_MS = 2000;
 

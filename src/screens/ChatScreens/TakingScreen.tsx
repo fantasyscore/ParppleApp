@@ -78,6 +78,8 @@ type ChatMessage = {
     mediaStatus?: 'unopened' | 'opened' | 'expired' | null;
     localUri?: string;
     thumbnailUrl?: string;
+    // The message is a crush note (see the iOS crush-note gate below)
+    isCrushNote?: boolean;
 }
 
 /** Newest message first (the order the chat list expects). */
@@ -96,6 +98,12 @@ const extractMessageText = (item: any): string => {
     }
     return '';
 };
+
+/** Crush notes land in the chat as a message; the backend marks them with type / messageType "crushNote" */
+const isCrushNoteItem = (item: any): boolean => item?.messageType === 'crushNote' || item?.type === 'crushNote';
+
+/** Sent for the receiver when they accept a crush note; it opens the chat for both sides */
+const CRUSH_NOTE_ACCEPT_MESSAGE = 'Hi';
 
 const parseCreatedAt = (item: any): Date => {
     const raw = item?.createdAt || item?.timestamp;
@@ -334,6 +342,7 @@ const TakingScreen = ({ route }: any) => {
                             isMine: message.isMine,
                             isRead: message.isRead,
                             messageType: message.messageType,
+                            type: message.isCrushNote ? 'crushNote' : undefined,
                             viewOnce: message.viewOnce,
                             mediaStatus: message.mediaStatus,
                         }))
@@ -408,6 +417,7 @@ const TakingScreen = ({ route }: any) => {
                 isRead: isRead,
                 isMine: isMine,
                 messageType: item.messageType,
+                isCrushNote: isCrushNoteItem(item),
                 viewOnce: item.viewOnce === true || item.messageType === 'image',
                 mediaStatus: item.mediaStatus ?? null,
                 // View-once photos: my own copy (this device), and a blurred preview if the backend ever sends one
@@ -603,6 +613,7 @@ const TakingScreen = ({ route }: any) => {
                         createdAt: createdAt,
                         isMine: false,
                         messageType: response.messageType,
+                        isCrushNote: isCrushNoteItem(response),
                         viewOnce: response.viewOnce === true || response.messageType === 'image',
                         mediaStatus: response.mediaStatus ?? null,
                         thumbnailUrl: response.thumbnailUrl || response.blurUrl || undefined,
@@ -826,6 +837,25 @@ const TakingScreen = ({ route }: any) => {
         () => (viewOncePhotos.pendingMessages.length > 0 ? [...viewOncePhotos.pendingMessages, ...displayedMessages] : displayedMessages),
         [viewOncePhotos.pendingMessages, displayedMessages]
     );
+    /**
+     * iOS only: a chat that began with a crush note stays closed until the receiver accepts it.
+     * - 'waiting': I sent the crush note and the other person has not written back yet, so I can't send more.
+     * - 'respond': they sent me a crush note and I have not answered yet, so I get Accept / Decline.
+     * null: a normal chat. When the history doesn't carry the crush note, the chat list's last message tells.
+     */
+    const crushNoteGate = useMemo<'waiting' | 'respond' | null>(() => {
+        if (Platform.OS !== 'ios') return null;
+        const real = displayedMessages.filter((message) => message._id !== TYPING_INDICATOR_ID);
+        const crushNote = real.find((message) => message.isCrushNote);
+        let crushFromMe: boolean | null = crushNote ? !!crushNote.isMine : null;
+        if (crushFromMe === null) {
+            const last = matchChatUserDetails?.lastMessage;
+            if (!isCrushNoteItem(last)) return null;
+            crushFromMe = !!userData?._id && String(last?.senderId) === String(userData._id);
+        }
+        if (crushFromMe) return real.some((message) => !message.isMine) ? null : 'waiting';
+        return real.some((message) => message.isMine) ? null : 'respond';
+    }, [displayedMessages, matchChatUserDetails?.lastMessage, userData?._id]);
     const openPhotoRef = useRef(viewOncePhotos.openPhoto);
     openPhotoRef.current = viewOncePhotos.openPhoto;
 
@@ -1108,7 +1138,13 @@ const TakingScreen = ({ route }: any) => {
         const data = {
             matchId: matchChatUserDetails?.matchId
         }
-        dispatch(userUnmatchAPI(data))
+        dispatch(userUnmatchAPI(data, matchChatUserDetails?.userId))
+        setModalVisible(false);
+        NavigationService.goBack();
+    }
+    // Declining a crush note unmatches the two users and returns to the chats list
+    const declineCrushNote = () => {
+        dispatch(userUnmatchAPI({ matchId: matchChatUserDetails?.matchId }, matchChatUserDetails?.userId))
         setModalVisible(false);
         NavigationService.goBack();
     }
@@ -1132,16 +1168,60 @@ const TakingScreen = ({ route }: any) => {
     // The message box keeps its own text (see ChatInputBar), so typing never re-renders this screen
     const sendText = useCallback((text: string) => onSend([buildOutgoingMessage(text)]), [onSend]);
     const openPhotoSheet = useCallback(() => photoSheetRef.current?.open(), []);
+    const acceptCrushNote = useCallback(() => sendText(CRUSH_NOTE_ACCEPT_MESSAGE), [sendText]);
+    const askDeclineCrushNote = useCallback(() => {
+        setSaveReportTitle("declineCrush");
+        setModalVisible(true);
+    }, []);
     const renderCustomInput = useCallback(
-        () => (
-            <ChatInputBar
-                key={matchChatUserDetails?.matchId}
-                onSendText={sendText}
-                onTypingChange={emitTypingStatus}
-                onPhotoPress={openPhotoSheet}
-            />
-        ),
-        [matchChatUserDetails?.matchId, sendText, emitTypingStatus, openPhotoSheet]
+        () => {
+            if (crushNoteGate === 'waiting') {
+                return (
+                    <View style={[styles.crushGateContainer, { paddingBottom: metrics.hp2 + insets.bottom }]}>
+                        <AppText style={{ textAlign: "center" }} type={FORTEEN} weight={INTER_SEMI_BOLD} color={WHITE}>
+                            Waiting for {matchChatUserDetails?.username || matchChatUserDetails?.name || "them"} to accept
+                        </AppText>
+                        <AppText style={{ textAlign: "center", marginTop: metrics.hp0_5 }} type={TWELVE} weight={INTER_MEDIUM} color={OPECITY}>
+                            Your chat has been sent. Once they accept it, you can keep chatting.
+                        </AppText>
+                    </View>
+                );
+            }
+            if (crushNoteGate === 'respond') {
+                return (
+                    <View style={[styles.crushGateContainer, { paddingBottom: metrics.hp2 + insets.bottom }]}>
+                        <AppText style={{ textAlign: "center" }} type={FORTEEN} weight={INTER_SEMI_BOLD} color={WHITE}>
+                            {matchChatUserDetails?.username || matchChatUserDetails?.name || "Someone"} sent you a chat
+                        </AppText>
+                        <AppText style={{ textAlign: "center", marginTop: metrics.hp0_5 }} type={TWELVE} weight={INTER_MEDIUM} color={OPECITY}>
+                            Accept it to start chatting.
+                        </AppText>
+                        <View style={styles.crushGateButtons}>
+                            <TouchableOpacityView onPress={askDeclineCrushNote} style={[styles.crushGateButton, { borderColor: "#E6B7A8" }]}>
+                                <AppText color={WHITE} weight={INTER_SEMI_BOLD} type={TWELVE}>
+                                    Decline
+                                </AppText>
+                            </TouchableOpacityView>
+                            <TouchableOpacityView onPress={acceptCrushNote} style={[styles.crushGateButton, { backgroundColor: "#E6B7A8", borderColor: "#E6B7A8" }]}>
+                                <AppText color={BLACK} weight={INTER_SEMI_BOLD} type={TWELVE}>
+                                    Accept
+                                </AppText>
+                            </TouchableOpacityView>
+                        </View>
+                    </View>
+                );
+            }
+            return (
+                <ChatInputBar
+                    key={matchChatUserDetails?.matchId}
+                    onSendText={sendText}
+                    onTypingChange={emitTypingStatus}
+                    onPhotoPress={openPhotoSheet}
+                />
+            );
+        },
+        [matchChatUserDetails?.matchId, matchChatUserDetails?.username, matchChatUserDetails?.name, sendText, emitTypingStatus,
+            openPhotoSheet, crushNoteGate, acceptCrushNote, askDeclineCrushNote, insets.bottom]
     );
     // The actions sheet is a native modal. iOS cannot present another modal (the unmatch / block dialogs) while it is still
     // being dismissed and silently drops it, so the chosen action runs only once the sheet has really closed.
@@ -1171,7 +1251,7 @@ const TakingScreen = ({ route }: any) => {
     }, [onSend]);
     const forEmptyChat = !!route?.params?.forEmptyChat;
     const chatEmptyRender = useCallback(() => {
-        if (!forEmptyChat) return null
+        if (!forEmptyChat || crushNoteGate) return null
         return (
             // The chat list is upside down, so this is turned back. Android flips the list with a 180deg rotation, but iOS
             // mirrors it vertically (scaleY -1): rotating here as well left the iOS text mirrored left-to-right.
@@ -1201,7 +1281,7 @@ const TakingScreen = ({ route }: any) => {
                 </ScrollView>
             </View>
         )
-    }, [forEmptyChat, sendEmptyMessage]);
+    }, [forEmptyChat, sendEmptyMessage, crushNoteGate]);
 
     // Props handed to the chat list are kept stable, so an unrelated state change never makes the whole list re-render
     const chatUser = useMemo(
@@ -1369,6 +1449,26 @@ const TakingScreen = ({ route }: any) => {
                             </AppText>
                         </View>
                     </View>}
+                {saveReportTitle == "declineCrush" &&
+                    <View style={styles.centeredView}>
+                        <View style={styles.confirmContainer}>
+                            <FastImage source={unmatchModalImage} resizeMode="stretch" style={styles.bdyBack} />
+                            <AppText style={{ textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={WHITE}>
+                                Are you sure you want to
+                            </AppText>
+                            <AppText style={{ marginTop: -metrics.hp3, textAlign: "center" }} type={TWENTY_FOUR} weight={SCHEHERAZADE_BOLD} color={WHITE}>
+                                decline this chat?
+                            </AppText>
+                            <TouchableOpacityView onPress={declineCrushNote} style={[styles.ediButton, { backgroundColor: "#E6B7A8", marginTop: metrics.hp0 }]}>
+                                <AppText color={BLACK} weight={INTER_SEMI_BOLD} type={TWELVE}>
+                                    Yes, Decline
+                                </AppText>
+                            </TouchableOpacityView>
+                            <AppText onPress={() => setModalVisible(false)} weight={INTER_SEMI_BOLD} type={TWELVE} style={{ textAlign: "center", marginTop: metrics.hp2 }} color={WHITE}>
+                                No, cancel
+                            </AppText>
+                        </View>
+                    </View>}
                 {saveReportTitle == "Block" &&
                     <View style={styles.centeredView}>
                         <View style={[styles.confirmContainer, { height: metrics.hp42, }]}>
@@ -1438,6 +1538,26 @@ const styles = StyleSheet.create({
     containerViewRb: { paddingHorizontal: metrics.hp1, paddingVertical: metrics.hp2, flexDirection: "row", backgroundColor: "#212123", marginBottom: metrics.hp0_5, borderRadius: metrics.hp1_5 },
     rbIcon: { height: metrics.hp2_5, width: metrics.hp2_5, marginTop: metrics.hp0_5, marginLeft: metrics.hp1 },
     textContainerRb: { paddingLeft: metrics.hp2, paddingRight: metrics.hp5 },
+    crushGateContainer: {
+        paddingHorizontal: metrics.hp2,
+        paddingTop: metrics.hp2,
+        backgroundColor: "#151517",
+        borderTopLeftRadius: metrics.hp2,
+        borderTopRightRadius: metrics.hp2,
+    },
+    crushGateButtons: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginTop: metrics.hp2,
+    },
+    crushGateButton: {
+        width: "48%",
+        height: metrics.hp5,
+        borderWidth: 1,
+        borderRadius: metrics.hp4,
+        alignItems: "center",
+        justifyContent: "center",
+    },
     centeredView: {
         flex: 1,
         justifyContent: "center",

@@ -19,6 +19,7 @@ import { bioBackground, biosToggla, BottomLayer, dobIcon, dummyfemaleProfile, du
 import PortraitAvatar from "../../common/PortraitAvatar";
 import { PHOTO_ASPECT_RATIO } from "../../helper/Constants";
 import { TURN_ON_IMAGES } from "../../helper/turnOnImages";
+import { profileImageSource } from "../../helper/profileImage";
 
 const ITEM_WIDTH = metrics.hp34;
 // Carousel photos are shown at their stored 3:4 portrait ratio
@@ -48,6 +49,14 @@ const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfil
             )
           );
     }, [turnOnData, currentProfileData?.turnOns]);
+    // Photos for the big carousel; without photos it is hidden (the dummy picture shows only in the round avatar)
+    const carouselPhotos = React.useMemo(() => {
+        const pictures = Array.isArray(currentProfileData?.profilePicture)
+            ? currentProfileData.profilePicture
+            : currentProfileData?.profilePicture ? [currentProfileData.profilePicture] : [];
+        const source = pictures.length ? pictures : (Array.isArray(currentProfileData?.gallery) ? currentProfileData.gallery : []);
+        return source.filter((photo: any) => !!photo?.url);
+    }, [currentProfileData?.profilePicture, currentProfileData?.gallery]);
     const sendCrushNote = async () => {
         if (!inputText.trim()) return;
         const remaining = Number(userData?.crushNotesRemaining);
@@ -165,10 +174,11 @@ const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfil
                             </AppText>
                             <AppText style={{ marginTop: -metrics.hp2_5 }} color={WHITE} weight={SCHEHERAZADE_BOLD} type={TWENTY}>{"Chance — 4x More Connections!"}</AppText>
                         </View>
-                        {currentProfileData?.profilePicture?.length || currentProfileData?.gallery?.length ?
+                        {carouselPhotos.length > 0 &&
                             <Animated.FlatList
-                                data={currentProfileData?.profilePicture ? currentProfileData?.profilePicture : currentProfileData?.gallery}
+                                data={carouselPhotos}
                                 renderItem={renderItem}
+                                keyExtractor={(item: any, index: number) => String(item?._id || item?.url || index)}
                                 horizontal
                                 scrollEnabled
                                 showsHorizontalScrollIndicator={false}
@@ -180,11 +190,10 @@ const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfil
                                     { useNativeDriver: true }
                                 )}
                                 scrollEventThrottle={16}
-                            /> : <></>
-                        }
+                            />}
                         <View
                             style={{
-                                marginTop: currentProfileData?.profilePicture?.length || currentProfileData?.gallery?.length ? -metrics.hp5 : metrics.hp3, // overlap with FlatList
+                                marginTop: carouselPhotos.length > 0 ? -metrics.hp5 : metrics.hp3, // overlap with FlatList
                                 paddingHorizontal: metrics.hp2,
                                 zIndex: 10,
                             }}>
@@ -194,7 +203,7 @@ const CrushNotesSender = ({ setCrushNoteVisible, crushNoteVisible, currentProfil
                                 style={styles.detailsContainer}>
                                 <View style={{ paddingHorizontal: metrics.hp2, paddingVertical: metrics.hp2 }}>
                                     <View style={{ flexDirection: "row", marginTop: -metrics.hp2 }}>
-                                        <PortraitAvatar source={currentProfileData?.profilePicture || currentProfileData?.gallery ? { uri: currentProfileData?.profilePicture ? currentProfileData?.profilePicture[0]?.url : currentProfileData?.gallery[0]?.url } : currentProfileData?.gender === "male" ? dummyMaleProfile : dummyfemaleProfile} style={{ height: metrics.hp10, width: metrics.hp10, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: "#E6B7A8", marginTop: -metrics.hp2 }} />
+                                        <PortraitAvatar source={profileImageSource(currentProfileData)} style={{ height: metrics.hp10, width: metrics.hp10, borderRadius: metrics.hp50, borderWidth: metrics.hp0_1, borderColor: "#E6B7A8", marginTop: -metrics.hp2 }} />
                                         <AppText type={SIXTEEN} weight={SCHEHERAZADE_BOLD} style={{ color: "#E6B7A8", marginTop: metrics.hp2 }}>
                                             {"   "}{currentProfileData?.username ? currentProfileData?.username : currentProfileData?.name}
                                         </AppText>

@@ -180,6 +180,15 @@ export const authSlice = createSlice({
     setRecentMatches: (state, { payload }: PayloadAction<any>) => {
       state.recentMatches = payload;
     },
+    /** Drops an unmatched user from the "New Matches" strip and the "Messages" list right away, before any refetch */
+    removeMatch: (state, { payload }: PayloadAction<{ matchId?: string; userId?: string }>) => {
+      const { matchId, userId } = payload;
+      const isRemoved = (item: any) =>
+        (!!matchId && String(item?.matchId ?? "") === String(matchId)) ||
+        (!!userId && String(item?.userId ?? item?._id ?? "") === String(userId));
+      if (Array.isArray(state.newMatches)) (state as any).newMatches = (state.newMatches as any[]).filter((item: any) => !isRemoved(item));
+      if (Array.isArray(state.recentMatches)) (state as any).recentMatches = (state.recentMatches as any[]).filter((item: any) => !isRemoved(item));
+    },
     matchChatDetails: (state, { payload }: PayloadAction<any>) => {
       state.matchChatUserDetails = payload;
     },
@@ -224,6 +233,7 @@ export const {
   matchChatDetails,
   chatHistoryDetails,
   setRecentMatches,
+  removeMatch,
   setBlockedUsers,
   setFilterFeed,
   removeProfileFromFeeds,
