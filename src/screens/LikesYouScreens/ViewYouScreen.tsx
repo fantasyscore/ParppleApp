@@ -15,8 +15,8 @@ const config: EngagementConfig = {
   incomingListKey: "viewByOtherData",
   selectors: [(state) => state.auth.viewByOtherData, (state) => state.auth.viewYouData],
   refresh: () => [viewProfileByOther(), youView()],
-  // You can dislike anyone you viewed, but a like would be a first move on someone you only looked at
-  secondTabActions: { dislike: true, like: false },
+  // Someone you viewed can be liked or disliked from here
+  secondTabActions: { dislike: true, like: true },
   previewProps: (tabKey) => ({ likeYoue: "Likes You", ViewYoue: tabKey }),
   paywall: {
     image: whoVisitYourProfileWithOutPurches,

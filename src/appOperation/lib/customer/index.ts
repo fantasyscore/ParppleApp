@@ -20,6 +20,8 @@ export default (appOperation: AppOperation) => ({
     appOperation.post(`datting-profile/ViewedProfileByUser`, {}, CUSTOMER_TYPE),
   youViewAPI: () =>
     appOperation.post(`datting-profile/viewsOnProfile`, {}, CUSTOMER_TYPE),
+  registerViewAPI: (viewedId: string) =>
+    appOperation.post(`datting-profile/registerView`, { viewedId }, CUSTOMER_TYPE),
   otherDataProfileAPI: (data: any) =>
     appOperation.post(`dattingApp/users/user-profile`, data, CUSTOMER_TYPE),
   getProfileAPI: () =>

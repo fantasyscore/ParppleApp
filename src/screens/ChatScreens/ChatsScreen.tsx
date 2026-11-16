@@ -80,8 +80,9 @@ const ChatRow = memo(({ item, isBot, userId, showCrushBadge, onOpen }: { item: a
                 }
                 <View style={styles.messageContainer}>
                     <View style={{ flexDirection: "row" }}>
-                        <AppText style={{ textTransform: "capitalize" }} type={SIXTEEN} weight={INTER_BOLD} color={WHITE}>
-                            {item.username ? item.username : item.name}{"  "}
+                        {/* One line: a long name ends in "..." instead of running under the time / badges */}
+                        <AppText style={{ textTransform: "capitalize", flexShrink: 1 }} numberOfLines={1} ellipsizeMode="tail" type={SIXTEEN} weight={INTER_BOLD} color={WHITE}>
+                            {truncateText(item.username ? item.username : item.name, 15)}
                         </AppText>
                     </View>
                     <AppText type={FORTEEN} numberOfLines={1} weight={item.unreadCount > 0 ? INTER_SEMI_BOLD : INTER_REGULAR} color={item.unreadCount > 0 ? WHITE : OPECITY}>
@@ -89,7 +90,7 @@ const ChatRow = memo(({ item, isBot, userId, showCrushBadge, onOpen }: { item: a
                     </AppText>
                 </View>
             </View>
-            <View style={{ alignItems: "flex-end", marginTop: metrics.hp2_3 }}>
+            <View style={{ alignItems: "flex-end", marginTop: metrics.hp2_3, marginLeft: metrics.hp1, flexShrink: 0 }}>
                 <AppText type={TEN} weight={item.unreadCount > 0 ? INTER_SEMI_BOLD : INTER_MEDIUM} style={{ color: "#E6B7A8" }} color={item.unreadCount > 0 ? WHITE : OPECITY}>
                     {timeLabel}
                 </AppText>
@@ -144,8 +145,8 @@ const RecentMatchesStrip = memo(({ data, onOpenProfile, onOpenAll }: { data: any
                             </AppText>
                         </View>
                     </PortraitAvatar>
-                    <AppText style={{ marginTop: metrics.hp0_3, color: colors.white }} type={TWELVE} weight={INTER_SEMI_BOLD}>
-                        {item.username ? item.username : item.name}
+                    <AppText style={[styles.stripName, { marginTop: metrics.hp0_3 }]} numberOfLines={1} ellipsizeMode="tail" type={TWELVE} weight={INTER_SEMI_BOLD}>
+                        {truncateText(item.username ? item.username : item.name, 10)}
                     </AppText>
                 </TouchableOpacityView>
             );
@@ -156,8 +157,8 @@ const RecentMatchesStrip = memo(({ data, onOpenProfile, onOpenAll }: { data: any
                 marginRight: data.length > 3 ? metrics.hp2 : 0
             }]}>
                 <PortraitAvatar source={profileImageSource(item)} style={styles.newMatchProfile} />
-                <AppText style={{ marginTop: metrics.hp1, color: colors.white }} type={TWELVE} weight={INTER_SEMI_BOLD}>
-                    {item.username ? item.username : item.name}
+                <AppText style={[styles.stripName, { marginTop: metrics.hp1 }]} numberOfLines={1} ellipsizeMode="tail" type={TWELVE} weight={INTER_SEMI_BOLD}>
+                    {truncateText(item.username ? item.username : item.name, 10)}
                 </AppText>
             </TouchableOpacityView>
         );
@@ -395,7 +396,15 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between"
     }, messageContainer: {
-        marginLeft: metrics.hp2
+        marginLeft: metrics.hp2,
+        // Takes only the space left next to the avatar and the time column, so long text is cut with "..."
+        flex: 1,
+    },
+    // Name under a "New Matches" photo: never wider than the photo, so neighbours don't overlap
+    stripName: {
+        color: colors.white,
+        maxWidth: metrics.hp9,
+        textAlign: "center",
     }, moreOverlay: {
         height: metrics.hp9,
         width: metrics.hp9,

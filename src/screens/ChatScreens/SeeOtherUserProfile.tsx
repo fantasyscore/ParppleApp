@@ -11,6 +11,7 @@ import { useSelector } from "react-redux";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 import { TURN_ON_IMAGES } from "../../helper/turnOnImages";
+import { registerProfileView } from "../../actions/authActions";
 
 const ITEM_WIDTH = metrics.hp34;
 const SPACING = metrics.hp1;
@@ -28,6 +29,13 @@ const SeeOtherUserProfile = ({ currentProfileData, setModalVisible, showFullProf
             setSelectedTurnOnIds(initialTurnOnIds);
         }
     }, [userData?.turnOns]);
+
+    // Opened from the chat header: one view per open
+    const viewedProfileId = currentProfileData?.userId || currentProfileData?._id;
+    useEffect(() => {
+        if (viewedProfileId) registerProfileView(currentProfileData);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [viewedProfileId]);
     const renderItem = ({ item, index }: any) => {
         const inputRange = [
             (index - 1) * (ITEM_WIDTH + SPACING),

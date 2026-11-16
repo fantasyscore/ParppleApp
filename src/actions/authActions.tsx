@@ -8,7 +8,7 @@ import { toastAlert } from "./UploadImageActions";
 import Toast from "react-native-toast-message";
 import { chatHistoryDetails, matchChatDetails, setAttributes, setDiscoverData, setGetProfile, setLikeByOther, setLikeYou, setListProfiles, removeUserFromProfileLists, setFilterFeed, setBlockedUsers, removeBlockedUser, restoreBlockedUser, blockedUserIdOf, setNewMatches, setOtherUserProfile, setRecentMatches, removeMatch, setTurnOnData, setViewByOhter, setViewYou } from "../slices/loginServices/authSlice";
 import { logCustomEvent, logLogin, logSignUp, setAnalyticsUserId } from "../services/analyticsService";
-import { rememberAppsFlyerLoginMethod, trackAppsFlyerFirstChat } from "../services/appsFlyerService";
+import { rememberAppsFlyerLoginMethod, setAppsFlyerUserData, trackAppsFlyerFirstChat } from "../services/appsFlyerService";
 import store from "../store/store";
 
 /**
@@ -286,29 +286,59 @@ export const likeYou: any = () => async (dispatch: any) => {
         // toastAlert.showToastError(error);
     }
 };
-export const viewProfileByOther: any = () => async (dispatch: any) => {
-    try {
-        const response: any = await appOperation.customer.viewProfileByOtherAPI();
-        if (response?.statusCode === 200) {
-            // dispatch(setViewByOhter(response?.data));
-            dispatch(setViewYou(response?.data));
-
+// The session load right after login and the View tab's focus refresh can ask at the same moment: the second
+// caller shares the request already running instead of sending the same POST again.
+const viewProfileByOtherInFlight: { current: Promise<void> | null } = { current: null };
+export const viewProfileByOther: any = () => (dispatch: any) => {
+    if (viewProfileByOtherInFlight.current) return viewProfileByOtherInFlight.current;
+    viewProfileByOtherInFlight.current = (async () => {
+        try {
+            const response: any = await appOperation.customer.viewProfileByOtherAPI();
+            if (response?.statusCode === 200) {
+                dispatch(setViewYou(response?.data));
+            }
+        } catch (error: any) {
+            // toastAlert.showToastError(error);
+        } finally {
+            viewProfileByOtherInFlight.current = null;
         }
-    } catch (error: any) {
-        // toastAlert.showToastError(error);
-    }
+    })();
+    return viewProfileByOtherInFlight.current;
 };
-export const youView: any = () => async (dispatch: any) => {
-    try {
-        const response: any = await appOperation.customer.youViewAPI();
-        if (response?.statusCode === 200) {
-            dispatch(setViewByOhter(response?.data));
+const youViewInFlight: { current: Promise<void> | null } = { current: null };
+/** POST datting-profile/viewsOnProfile */
+export const youView: any = () => (dispatch: any) => {
+    if (youViewInFlight.current) return youViewInFlight.current;
+    youViewInFlight.current = (async () => {
+        try {
+            const response: any = await appOperation.customer.youViewAPI();
+            if (response?.statusCode === 200) {
+                dispatch(setViewByOhter(response?.data));
+            }
+        } catch (error: any) {
+            // toastAlert.showToastError(error);
+        } finally {
+            youViewInFlight.current = null;
         }
-    } catch (error: any) {
-        // toastAlert.showToastError(error);
-    }
+    })();
+    return youViewInFlight.current;
 };
-export const getOtherProfile: any = (data: any, setCurrentProfileData: any, setOtherUserProfile: any) => async (dispatch: any) => {
+/**
+ * POST datting-profile/registerView: tells the backend the signed-in user opened this person's full profile, which
+ * feeds their "Viewed You" and our "You Viewed". Fire and forget: never throws and never shows an error.
+ * Accepts a feed or a list item: lists carry the person's id in `userId`, the feed in `_id`.
+ */
+export const registerProfileView = (profile: any): void => {
+    const viewedId = profile?.userId || profile?._id || profile?.id;
+    const me: any = store.getState().auth.userData;
+    // Only a published profile leaves a view; a hidden one browses without being seen
+    if (me?.isPublish !== true) return;
+    if (!viewedId || String(viewedId) === String(me?._id)) return;
+    Promise.resolve(appOperation.customer.registerViewAPI(String(viewedId))).catch((error: any) =>
+        console.log("[registerView] failed:", String(error?.message ?? error))
+    );
+};
+export const getOtherProfile: any =(data: any, setCurrentProfileData: any, setOtherUserProfile: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.otherDataProfileAPI(data);
 
@@ -320,8 +350,9 @@ export const getOtherProfile: any = (data: any, setCurrentProfileData: any, setO
         console.log(error, "error");
     }
 };
-export const getProfile: any = (navigate: any, profile: any) => async (dispatch: any) => {
-    if ((getProfile as any)._inFlight) return;
+/** Loads the signed-in user's profile. Resolves true when it arrived, false when it failed, "skipped" when one was already loading. */
+export const getProfile: any = (navigate: any, profile: any) => async (dispatch: any): Promise<boolean | "skipped"> => {
+    if ((getProfile as any)._inFlight) return "skipped";
     (getProfile as any)._inFlight = true;
     try {
         const response: any = await appOperation.customer.getProfileAPI();
@@ -332,10 +363,23 @@ export const getProfile: any = (navigate: any, profile: any) => async (dispatch:
             if (userId) {
                 await setAnalyticsUserId(String(userId));
             }
+            // Hashed identifiers for ad matching. Google sign-in fills the gaps the profile leaves (surname)
+            const profileData = response?.data ?? {};
+            const googleUser = (store.getState() as any)?.auth?.emailAuth?.data?.user;
+            setAppsFlyerUserData({
+                email: profileData.email || googleUser?.email,
+                phoneNumber: profileData.phoneNumber ?? profileData.phone,
+                countryCode: profileData.countryCode,
+                firstName: profileData.firstName || googleUser?.givenName,
+                lastName: profileData.lastName || googleUser?.familyName,
+            });
             !navigate && NavigationService.navigate(NAVIGATION_USER_EDIT_PROFILE_SCREEN, { other: false, profile: profile })
+            return true;
         }
+        return false;
     } catch (error: any) {
         // toastAlert.showToastError(error);
+        return false;
     } finally {
         (getProfile as any)._inFlight = false;
     }

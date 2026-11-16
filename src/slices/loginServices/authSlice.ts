@@ -165,6 +165,22 @@ export const authSlice = createSlice({
         if (Array.isArray(feeds[tab])) feeds[tab] = feeds[tab].filter((profile: any) => profile._id !== profileId);
       });
     },
+    /**
+     * Takes a person out of the Home feed and its filter tabs by their user id, after they were liked or disliked
+     * somewhere else (Likes / Views): otherwise Home would still show them and a second like would be sent.
+     * Feed items carry the person's id in `_id` (and `userId`).
+     */
+    removeUserFromFeeds: (state, { payload: userId }: PayloadAction<string>) => {
+      const id = String(userId);
+      const isUser = (profile: any) => String(profile?._id) === id || String(profile?.userId) === id;
+      if (Array.isArray(state.listProfiles)) {
+        state.listProfiles = (state.listProfiles as any[]).filter((profile: any) => !isUser(profile)) as any;
+      }
+      const feeds: any = state.filterFeeds ?? {};
+      Object.keys(feeds).forEach((tab) => {
+        if (Array.isArray(feeds[tab])) feeds[tab] = feeds[tab].filter((profile: any) => !isUser(profile));
+      });
+    },
     setBlockedUsers: (state, { payload }: PayloadAction<any[]>) => {
       state.blockedUsers = payload;
     },
@@ -237,6 +253,7 @@ export const {
   setBlockedUsers,
   setFilterFeed,
   removeProfileFromFeeds,
+  removeUserFromFeeds,
   consumeStoreSwipe,
   removeBlockedUser,
   restoreBlockedUser,

@@ -12,6 +12,7 @@ import { useSelector } from "react-redux";
 import NavigationService from "../../navigation/NavigationService";
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../../navigation/routes";
 import { logMetaEvent } from "../../utils/MetaEvents";
+import { registerProfileView } from "../../actions/authActions";
 import PortraitAvatar from "../../common/PortraitAvatar";
 import { PHOTO_ASPECT_RATIO } from "../../helper/Constants";
 import { TURN_ON_IMAGES } from "../../helper/turnOnImages";
@@ -21,7 +22,7 @@ const ITEM_WIDTH = metrics.hp34;
 const ITEM_HEIGHT = ITEM_WIDTH / PHOTO_ASPECT_RATIO;
 const SPACING = metrics.hp1;
 
-const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislikePress, handleLikePress, likeYoue, ViewYoue, handleCrushNote, showFullProfile }: any) => {
+const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislikePress, handleLikePress, likeYoue, handleCrushNote, showFullProfile }: any) => {
 
 
     const scrollX = useRef(new Animated.Value(0)).current;
@@ -41,6 +42,13 @@ const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislike
             });
         }
     }, [currentProfileData]);
+
+    // The modal mounts this screen each time it opens: one view per open, not per re-render
+    const viewedProfileId = currentProfileData?.userId || currentProfileData?._id;
+    useEffect(() => {
+        if (viewedProfileId) registerProfileView(currentProfileData);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [viewedProfileId]);
 
     useEffect(() => {
         if (userData?.turnOns) {
@@ -294,7 +302,7 @@ const ViewProfileAndroid = ({ currentProfileData, setModalVisible, handleDislike
                         <FastImage source={newCloseIcon} resizeMode='contain' style={styles.dislikeButton} />
                     </TouchableOpacityView>
                 }
-                {likeYoue === "You Liked" || ViewYoue === "You Viewed" ? <></> :
+                {likeYoue === "You Liked" ? <></> :
                     <TouchableOpacityView onPress={() => userData?.gender === "male" && userData?.isPublish === false ? NavigationService.navigate(NAVIGATION_SUBSCRIPTION_SCREEN) : handleLikePress(currentProfileData)} activeOpacity={1} >
                         <FastImage source={newLikeIcon} resizeMode='contain' style={styles.likeButton} />
                     </TouchableOpacityView>

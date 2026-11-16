@@ -34,7 +34,8 @@ export const requestLocationPermission = async (): Promise<boolean> => {
 };
 
 // Geocoding and the IP fallback are best-effort extras: on a slow network give up instead of blocking sign-up
-const LOOKUP_TIMEOUT_MS = 10000;
+// External lookups (geocoding, IP location) give up after this long; callers fall back to the profile city
+const LOOKUP_TIMEOUT_MS = 5000;
 
 const fetchWithTimeout = async (url: string) => {
   const controller = new AbortController();

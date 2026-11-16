@@ -57,13 +57,14 @@ const HomeScreen = () => {
   const isFocused = useIsFocused();
   const userData = useSelector((state: any) => state.auth.userData);
   const isLocked = isPublishLocked(userData);
-  // Right after sign-up the feed can arrive before the user's own profile does. Whether photos are locked
-  // depends on that profile, so hold the list back until it is known instead of showing unlocked cards
-  // that turn locked a moment later.
-  const isProfileReady = !!userData?.gender;
 
   // ---- Feed + list chrome ----
   const feed = useProfileFeed(isFocused);
+  // Right after sign-up the feed can arrive before the user's own profile does. Whether photos are locked
+  // depends on that profile, so hold the list back until it is known instead of showing unlocked cards
+  // that turn locked a moment later. Only while it is actually loading: a profile that arrived without a
+  // gender, or a failed load (which shows Refresh), must not hide the feed forever.
+  const isProfileReady = !!userData?.gender || feed.profileStatus === "loaded";
   const scrollTop = useScrollToTopButton();
   usePushPermissionPrompt();
 
@@ -176,17 +177,39 @@ const HomeScreen = () => {
     [isLocked, like, dislike, modals.openPreview, modals.openCrushNote, modals.openGallery, openProfileActions]
   );
 
+  // The pulse always runs; once the request has ended a short title appears under it (pull down to load again)
+  const feedSearching = !activeTab && feed.feedStatus === "loading";
+  const feedFailed = !activeTab && feed.feedStatus === "error";
   const emptyState = useMemo(
-    () => <FeedEmptyState userData={userData} />,
+    () => (
+      <FeedEmptyState
+        userData={userData}
+        searching={feedSearching}
+        title={feedFailed ? "Couldn't load profiles" : undefined}
+      />
+    ),
     // Only the user's photo and gender change what it renders
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [userData?.gallery, userData?.gender]
+    [userData?.gallery, userData?.gender, feedSearching, feedFailed]
   );
-  // A filter tab shows a spinner only until its first load ends; after that an empty tab shows the same pulse as All
-  const listEmpty = !isProfileReady ? null : !activeTab ? emptyState : tabProfiles === undefined ? (
+  const loadingIndicator = (
     <View style={styles.tabLoading}>
       <ActivityIndicator color="#E6B7A8" />
     </View>
+  );
+  const listEmpty = !isProfileReady ? (
+    feed.profileStatus === "error" ? (
+      <FeedEmptyState
+        userData={userData}
+        searching={false}
+        title="Couldn't load your profile"
+      />
+    ) : (
+      loadingIndicator
+    )
+  ) : activeTab && tabProfiles === undefined ? (
+    // A filter tab shows a spinner only until its first load ends
+    loadingIndicator
   ) : (
     emptyState
   );

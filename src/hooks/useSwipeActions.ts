@@ -3,6 +3,7 @@ import { useDispatch } from "react-redux";
 import { swipeLikeDisLike } from "../actions/authActions";
 import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_SUBSCRIPTION_SCREEN } from "../navigation/routes";
+import { removeUserFromFeeds } from "../slices/loginServices/authSlice";
 import { useLatest } from "./useLatest";
 import { useLikeDislikeAnimation } from "./useLikeDislikeAnimation";
 
@@ -47,8 +48,11 @@ export function useSwipeActions({
         consumeSwipe();
       }
 
-      dispatch(swipeLikeDisLike({ swipedId: swipedIdOfRef.current ? swipedIdOfRef.current(item) : item._id, type }));
+      const swipedId = swipedIdOfRef.current ? swipedIdOfRef.current(item) : item._id;
+      dispatch(swipeLikeDisLike({ swipedId, type }));
       removeProfile(item._id);
+      // Liked / disliked from Likes or Views: Home must not offer this person again
+      if (swipedId) dispatch(removeUserFromFeeds(String(swipedId)));
     },
     [dispatch, consumeSwipe, removeProfile, userDataRef, swipedIdOfRef]
   );

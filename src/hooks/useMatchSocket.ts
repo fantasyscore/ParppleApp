@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { checkMultiple, PERMISSIONS, RESULTS } from "react-native-permissions";
 import Geolocation from "react-native-geolocation-service";
@@ -9,14 +9,22 @@ import { trackAppsFlyerFirstMatch } from "../services/appsFlyerService";
 
 type Coordinates = { lat: string; long: string };
 
+/** Longest the socket waits for a location fix before connecting without one */
+const LOCATION_WAIT_MS = 5000;
+
 /**
  * Silent location for the socket only: no prompts, no gating — the app already
- * requested permission during onboarding (LocationScreen).
+ * requested permission during onboarding (LocationScreen). Location is optional: `settled` turns true as soon as
+ * there is a fix, it failed, permission is missing, or LOCATION_WAIT_MS passed, whichever comes first.
  */
-function useSilentLocation(): Coordinates {
+function useSilentLocation(): { location: Coordinates; settled: boolean } {
   const [location, setLocation] = useState<Coordinates>({ lat: "", long: "" });
+  const [settled, setSettled] = useState(false);
 
   useEffect(() => {
+    let active = true;
+    const settle = () => active && setSettled(true);
+    const fallbackTimer = setTimeout(settle, LOCATION_WAIT_MS);
     (async () => {
       try {
         const permissions =
@@ -24,39 +32,55 @@ function useSilentLocation(): Coordinates {
             ? [PERMISSIONS.IOS.LOCATION_WHEN_IN_USE]
             : [PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION, PERMISSIONS.ANDROID.ACCESS_COARSE_LOCATION];
         const statuses = await checkMultiple(permissions);
-        if (!Object.values(statuses).some((status) => status === RESULTS.GRANTED)) return;
+        if (!Object.values(statuses).some((status) => status === RESULTS.GRANTED)) return settle();
 
         Geolocation.getCurrentPosition(
           (position) => {
+            if (!active) return;
             setLocation({
               lat: String(position?.coords?.latitude ?? ""),
               long: String(position?.coords?.longitude ?? ""),
             });
+            settle();
           },
-          (error) => console.warn("Location fetch failed:", error),
-          { enableHighAccuracy: false, timeout: 20000, maximumAge: 60000, forceRequestLocation: true }
+          (error) => {
+            console.warn("Location fetch failed:", error);
+            settle();
+          },
+          { enableHighAccuracy: false, timeout: LOCATION_WAIT_MS, maximumAge: 60000, forceRequestLocation: true }
         );
       } catch (error) {
         console.warn("Location permission check failed:", error);
+        settle();
       }
     })();
+    return () => {
+      active = false;
+      clearTimeout(fallbackTimer);
+    };
   }, []);
 
-  return location;
+  return { location, settled };
 }
 
 /** Live "it's a match" notifications over the socket; only surfaced while the screen is focused. */
 export function useMatchSocket(userId: string | undefined, isFocused: boolean) {
-  const location = useSilentLocation();
+  const { location, settled } = useSilentLocation();
   const isFocusedRef = useLatest(isFocused);
   const [matchVisible, setMatchVisible] = useState(false);
   const [matchData, setMatchData] = useState<any[]>([]);
 
-  const socketUrl = userId
-    ? `${config.BASE_URL}?userId=${encodeURIComponent(String(userId))}&lat=${encodeURIComponent(
-        location.lat
-      )}&long=${encodeURIComponent(location.long)}`
-    : null;
+  // The socket connects once: after the location settled (with or without coordinates). The coordinates are frozen
+  // at that moment, so a fix arriving later doesn't change the URL and tear down / reopen the connection.
+  const socketCoordsRef = useRef<Coordinates | null>(null);
+  if (settled && !socketCoordsRef.current) socketCoordsRef.current = location;
+  const socketCoords = socketCoordsRef.current;
+  const socketUrl =
+    userId && socketCoords
+      ? `${config.BASE_URL}?userId=${encodeURIComponent(String(userId))}&lat=${encodeURIComponent(
+          socketCoords.lat
+        )}&long=${encodeURIComponent(socketCoords.long)}`
+      : null;
 
   useEffect(() => {
     if (!socketUrl) return;

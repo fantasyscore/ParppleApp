@@ -349,7 +349,7 @@ export const trackSuccessfulPurchase = async (
       });
     }
 
-    trackAppsFlyerPurchase({ productId, orderId: transactionId, revenue: price, currency, type });
+    trackAppsFlyerPurchase({ productId, orderId: transactionId, revenue: price, currency, type, description: itemName });
 
     console.log('[AnalyticsService] Logged purchase event:', {
       transaction_id: transactionId,

@@ -56,6 +56,50 @@ export const setAppsFlyerCustomerUserId = async (userId: string | null | undefin
   }
 };
 
+const clean = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
+
+/**
+ * User identifiers for ad-network matching (Snapchat "customer parameters": email, phone, first name, surname).
+ * The SDK hashes them (SHA-256) before they leave the device; they are attached to every event logged afterwards.
+ * Empty values are skipped, so a later call with partial data doesn't wipe what was set before.
+ */
+export const setAppsFlyerUserData = async (user: {
+  email?: string | null;
+  phoneNumber?: string | null;
+  countryCode?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+}) => {
+  const sdk = getSdk();
+  if (!sdk) return;
+  const email = clean(user.email).toLowerCase();
+  const firstName = clean(user.firstName).toLowerCase();
+  const lastName = clean(user.lastName).toLowerCase();
+  // Digits only; the country code without "+" (e.g. "91")
+  const phoneNumber = clean(user.phoneNumber).replace(/\D/g, '');
+  const countryCode = clean(user.countryCode).replace(/\D/g, '');
+  const calls: Promise<unknown>[] = [];
+  if (email) calls.push(sdk.setUserEmail({ email }));
+  if (phoneNumber && countryCode) calls.push(sdk.setUserPhone({ countryCode, phoneNumber }));
+  if (firstName) calls.push(sdk.setUserFirstName({ firstName }));
+  if (lastName) calls.push(sdk.setUserLastName({ lastName }));
+  const results = await Promise.allSettled(calls);
+  results.forEach((result) => {
+    if (result.status === 'rejected') console.warn('[AppsFlyer] setting user data failed:', result.reason);
+  });
+};
+
+/** Logout: forget the previous user's identifiers so the next account's events aren't matched to them. */
+export const clearAppsFlyerUserData = async () => {
+  const sdk = getSdk();
+  if (!sdk) return;
+  try {
+    await sdk.clearUserPii();
+  } catch (error) {
+    console.warn('[AppsFlyer] clearUserPii failed:', error);
+  }
+};
+
 const logAppsFlyerEvent = async (eventName: string, eventValues?: Record<string, unknown>) => {
   const sdk = getSdk();
   if (!sdk) return;
@@ -76,7 +120,7 @@ export const rememberAppsFlyerLoginMethod = (method: string) => {
 
 /** Profile finished: the user is registered. `fallback` is used when the sign-in happened in an earlier launch. */
 export const trackAppsFlyerRegistration = (fallback: string) =>
-  logAppsFlyerEvent('af_complete_registration', { af_registration_method: loginMethod ?? fallback });
+  logAppsFlyerEvent('af_complete_registration', { af_registration_method: loginMethod ?? fallback, af_success: true });
 
 /**
  * A purchase the backend has verified. Subscriptions are logged as af_subscribe, chat packs as af_purchase;
@@ -88,17 +132,24 @@ export const trackAppsFlyerPurchase = (params: {
   revenue: number;
   currency: string;
   type: 'in-app' | 'subs';
+  /** Store title of the product, e.g. "Gold Weekly" */
+  description?: string;
 }) => {
-  const { productId, orderId, revenue, currency, type } = params;
+  const { productId, orderId, revenue, currency, type, description } = params;
   // Chat-pack SKUs carry their size ("10_chats")
   const quantity = type === 'subs' ? 1 : parseInt(productId.match(/\d+/)?.[0] ?? '1', 10) || 1;
   return logAppsFlyerEvent(type === 'subs' ? 'af_subscribe' : 'af_purchase', {
     af_revenue: revenue,
+    af_price: revenue,
     af_currency: currency,
     af_content_id: productId,
     af_content_type: type === 'subs' ? 'subscription' : 'chat_pack',
+    af_description: description || productId,
     af_quantity: quantity,
     af_order_id: orderId,
+    // Only verified purchases reach this point, paid through Google Play
+    af_success: true,
+    af_payment_info_available: true,
   });
 };
 

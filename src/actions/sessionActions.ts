@@ -10,6 +10,7 @@ import {
 import NavigationService from "../navigation/NavigationService";
 import { NAVIGATION_WELCOME_SCREEN } from "../navigation/routes";
 import { setAnalyticsUserId } from "../services/analyticsService";
+import { clearAppsFlyerUserData } from "../services/appsFlyerService";
 import { clearChatHistoryCache } from "./authActions";
 import { logout } from "../slices/loginServices/authSlice";
 
@@ -35,6 +36,7 @@ export const endSession: any = () => async (dispatch: any) => {
       SWIPES_PER_DAY_KEY,
     ]);
     await setAnalyticsUserId(null);
+    await clearAppsFlyerUserData();
   } catch (error) {
     console.warn("[Session] Cleanup after logout failed:", error);
   } finally {
