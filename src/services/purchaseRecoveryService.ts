@@ -112,16 +112,34 @@ export async function addRecoveredTransactionIds(ids: string[]): Promise<void> {
 }
 
 /**
- * Check if a productId is a consumable (super likes, boosts, crush notes).
+ * Check if a productId is a consumable (chat packs, super likes, boosts, crush notes).
+ * Chat packs ("5_chats", "10_chats", "20_chats") must be here: otherwise recovery logs them as a subscription and
+ * finishes them without consuming, so the same pack can't be bought again.
  */
 function isConsumableProduct(productId: string): boolean {
   const id = (productId || "").toLowerCase();
   return (
+    /\d+_chats?$/.test(id) ||
     id.includes("super_like") ||
     id.includes("boost") ||
     id.includes("crush_note") ||
     id.includes("crush note")
   );
+}
+
+/**
+ * Whether a purchase found by recovery is a new sale to report to analytics. The purchase screens report every
+ * sale they complete, and they finish (acknowledge / consume) it right after. So a purchase the store still lists
+ * as acknowledged was already handled earlier, typically an active subscription restored after a reinstall:
+ * reporting it again counted the same order 2-4 times. Only an Android purchase that was paid but never finished
+ * (app closed mid-purchase) is reported here. iOS has no such flag, so recovery doesn't report there.
+ */
+function isUnreportedNewPurchase(purchase: any): boolean {
+  if (Platform.OS !== "android") return false;
+  // Not paid yet (react-native-iap 15: "pending"; older versions: purchaseStateAndroid 2)
+  if (purchase?.purchaseState === "pending" || purchase?.purchaseStateAndroid === 2) return false;
+  const acknowledged = purchase?.isAcknowledgedAndroid ?? purchase?.isAcknowledged;
+  return acknowledged === false;
 }
 
 /**
@@ -231,6 +249,8 @@ async function reconcileMissedAnalytics(rawPurchases: any[]): Promise<void> {
 
     const alreadyTracked = await hasBeenTracked(transactionKey);
     if (alreadyTracked) continue;
+    // Same rule as for new recoveries: a purchase the store lists as finished was reported when it was bought
+    if (!isUnreportedNewPurchase(purchase)) continue;
 
     const productId = purchase?.productId || purchase?.productIdentifier || purchase?.id || "";
     const isConsumable = isConsumableProduct(productId);
@@ -266,6 +286,8 @@ async function runPurchaseRecovery(): Promise<boolean> {
     const newIndices: number[] = [];
     const newTransactionKeys: string[] = [];
 
+    const stuckConsumables: any[] = [];
+
     formatted.forEach((p, i) => {
       const key =
         p.transactionId ||
@@ -275,8 +297,16 @@ async function runPurchaseRecovery(): Promise<boolean> {
       if (key && !alreadySent.has(key)) {
         newIndices.push(i);
         newTransactionKeys.push(key);
+      } else if (key && isConsumableProduct(p.productId)) {
+        // Already sent to the backend but still owned: an older version finished chat packs without consuming
+        // them, which blocks buying the same pack again. Consuming releases it (the chats were credited already).
+        stuckConsumables.push(raw[i]);
       }
     });
+
+    if (stuckConsumables.length > 0) {
+      await finishRecoveredTransactions(stuckConsumables);
+    }
 
     if (newIndices.length === 0) {
       console.log("[Purchase Recovery] All purchases already sent to backend (deduplicated)");
@@ -290,6 +320,8 @@ async function runPurchaseRecovery(): Promise<boolean> {
 
     if (success) {
       for (const rawPurchase of rawToFinish) {
+        // Already reported when it was bought (e.g. a subscription restored after a reinstall)
+        if (!isUnreportedNewPurchase(rawPurchase)) continue;
         try {
           const productId = rawPurchase?.productId || rawPurchase?.productIdentifier || rawPurchase?.id || "";
           const isConsumable = isConsumableProduct(productId);

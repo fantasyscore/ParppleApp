@@ -124,7 +124,18 @@ export const addProfile: any = (data: any) => async (dispatch: any) => {
     try {
         const response: any = await appOperation.customer.addProfileAPI(data);
         if (response?.statusCode == 200) {
-            await logSignUp('profile_complete');
+            // The registration event must carry the user id, but a new user's id is only set once the profile is
+            // loaded: fetch it first. In the background, so the user isn't kept waiting on the way to Home.
+            void (async () => {
+                try {
+                    const me: any = await appOperation.customer.getProfileAPI();
+                    const userId = me?.data?.id || me?.data?._id || me?.data?.userId;
+                    if (userId) await setAnalyticsUserId(String(userId));
+                } catch {
+                    // Still log the registration, just without the user id
+                }
+                await logSignUp('profile_complete');
+            })();
             dispatch(listProfiles(true));
             NavigationService.reset(NAVIGATION_BOTTOMTAB_SCREEN)
         } else {

@@ -130,10 +130,17 @@ function parsePriceFromProduct(product: any, type: PurchaseAnalyticsType): { pri
         currency = phase.priceCurrencyCode || 'USD';
       }
     } else {
-      const phase = androidProduct.oneTimePurchaseOfferDetails;
-      if (phase) {
-        price = parseFloat(phase.priceAmountMicros) / 1_000_000 || 0;
-        currency = phase.priceCurrencyCode || 'USD';
+      // react-native-iap 15 returns a list in oneTimePurchaseOfferDetailsAndroid; older versions an object in
+      // oneTimePurchaseOfferDetails. Reading only the old field gave every chat pack a price of 0 USD.
+      const offers = androidProduct.oneTimePurchaseOfferDetailsAndroid;
+      const offer = (Array.isArray(offers) ? offers[0] : offers) || androidProduct.oneTimePurchaseOfferDetails;
+      const micros = parseFloat(offer?.priceAmountMicros);
+      if (micros > 0) {
+        price = micros / 1_000_000;
+        currency = offer?.priceCurrencyCode || androidProduct.currency || 'USD';
+      } else if (typeof androidProduct.price === 'number' && androidProduct.price > 0) {
+        price = androidProduct.price;
+        currency = androidProduct.currency || 'USD';
       }
     }
   }
@@ -206,7 +213,8 @@ export const logCustomEvent = (name: string, params?: Record<string, string | nu
  */
 export const setAnalyticsUserId = async (userId: string | null | undefined): Promise<void> => {
   try {
-    setAppsFlyerCustomerUserId(userId);
+    // Awaited so an event logged right after (e.g. the registration) already carries the user id
+    await setAppsFlyerCustomerUserId(userId);
     await analytics().setUserId(userId ? String(userId) : null);
   } catch (error) {
     console.warn('[AnalyticsService] setUserId failed:', error);

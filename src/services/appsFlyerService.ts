@@ -50,7 +50,11 @@ export const setAppsFlyerCustomerUserId = async (userId: string | null | undefin
   const sdk = getSdk();
   if (!sdk || !userId) return;
   try {
-    await sdk.setCustomerUserId({ customerId: String(userId) });
+    // Callers await this before logging events; never let a stuck native call hold up login or sign-up
+    await Promise.race([
+      sdk.setCustomerUserId({ customerId: String(userId) }),
+      new Promise((resolve) => setTimeout(resolve, 2000)),
+    ]);
   } catch (error) {
     console.warn('[AppsFlyer] setCustomerUserId failed:', error);
   }
